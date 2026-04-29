@@ -21,6 +21,7 @@ return [
     App\Modules\Auditoria\Infrastructure\Providers\AuditoriaServiceProvider::class,
     App\Modules\Notificaciones\Infrastructure\Providers\NotificacionesServiceProvider::class,
     App\Modules\EntidadesConfigurables\Infrastructure\Providers\EntidadesConfigurablesServiceProvider::class,
+    App\Modules\Integracion\Infrastructure\Providers\IntegracionServiceProvider::class,
 
     App\Providers\AppServiceProvider::class,
     App\Providers\VoltServiceProvider::class,
