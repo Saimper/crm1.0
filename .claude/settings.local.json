@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(php -l app/Modules/Asignaciones/Application/UseCases/AsignarCasosAEquipo.php app/Modules/Asignaciones/Application/UseCases/ReasignarCasosEntreEquipos.php app/Modules/Notificaciones/Application/Services/GeneradorNotificaciones.php)"
+    ]
+  }
+}

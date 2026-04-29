@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Modules\Catalogos\Infrastructure\Adapters;
+
+use App\Modules\Catalogos\Infrastructure\Persistence\Models\ResultadoModel;
+use App\Modules\Gestiones\Domain\Contracts\ConsultaResultado;
+use App\Modules\Gestiones\Domain\ValueObjects\BanderasResultado;
+
+final class ConsultaResultadoEloquent implements ConsultaResultado
+{
+    public function banderas(int $resultadoId): BanderasResultado
+    {
+        /** @var ResultadoModel $resultado */
+        $resultado = ResultadoModel::query()->findOrFail($resultadoId);
+        $metadata = $resultado->metadata ?? [];
+
+        return new BanderasResultado(
+            esContactoEfectivo: (bool) ($metadata['es_contacto_efectivo'] ?? false),
+            requierePromesa:    (bool) ($metadata['requiere_promesa']     ?? false),
+            requiereCausaMora:  (bool) ($metadata['requiere_causa_mora']  ?? false),
+        );
+    }
+}
