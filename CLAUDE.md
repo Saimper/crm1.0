@@ -1351,6 +1351,27 @@ Los 4 tipos de operación funcionan con paridad desde el mismo núcleo multi-ten
 
 El **plan detallado del refactor v1 → v2** se documenta en `DOCS/MIGRACION_V2.md` cuando se inicie. Este CLAUDE.md define el destino, no ejecuta la migración.
 
+### 19.30 Estado al cierre de Fase 28 — Capa de integración wrapper (2026-04-29)
+
+**Fase 28 completada.** Capa SSO para wrapper externo (iframe SaaS) operativa. El CRM actúa como receptor pasivo: el wrapper inicia siempre.
+
+- **Migraciones activas**: 65 (+1 `integracion_tokens_sso`, +1 `personal_access_tokens` Sanctum).
+- **Módulo `Integracion` nuevo** registrado en `bootstrap/providers.php` (19 módulos activos).
+- **`laravel/sanctum`** instalado (`^4.3`); `HasApiTokens` añadido a `User`.
+- **Domain** (`app/Modules/Integracion/Domain/`): entidad `TokenSso` (invariantes `consumir()` / `expirado()`), VO readonly `TokenClaroHash` (sha256), eventos `TokenSsoEmitido` / `TokenSsoConsumido`, 3 excepciones (`Invalido`, `Expirado`, `YaConsumido`), contrato `RepositorioTokenSso`.
+- **UseCases**: `EmitirTokenSso` (genera `Str::random(64)` + sha256, TTL configurado en `integracion.token_sso_ttl_segundos`, devuelve URL de handshake), `ConsumirTokenSso` (valida, consume, resuelve `personaPublicId` vía join `personas × tipos_identificacion`).
+- **Infrastructure**: `TokenSsoModel`, `RepositorioTokenSsoEloquent`, `SsoHandshakeController` (POST emitir + GET consumir), `SsoLogoutController` (invalida token Sanctum + sesión web), `PreviewPersonaController` (JSON con persona + casos + compromiso vigente + última gestión), `CspFrameAncestors` middleware.
+- **Rutas**: `POST /api/auth/sso-handshake` (throttle 10/min), `POST /api/auth/logout` (auth:sanctum), `GET /api/integracion/persona` (auth:sanctum, throttle 60/min), `GET /integracion/handshake` (web + csp.frame-ancestors).
+- **Config** `config/integracion.php`: `wrapper_domain`, `token_sso_ttl_segundos` (default 300), `preview_api_throttle`. `.env.example` actualizado.
+- **Seguridad**: redirect_path absolutos (`http://`/`https://`) rechazados; throttle en handshake; token one-time (consumido_en no-null = 410); expiración por timestamp; multi-tenancy: preview API respeta `tieneAccesoAProyecto`.
+- **Tests**: 415 / 896 assertions verdes (+29: 22 Feature, 7 Unit). Nuevos en F28: `SsoHandshakeTest` (credenciales válidas, 401, throttle 429), `ConsumirTokenSsoTest` (redirect a trabajo/bandeja, token expirado 410, ya consumido 410, redirect absoluto rechazado, token inválido 410), `PreviewPersonaTest` (200 JSON, 401 sin auth, 403 otro proyecto, 403 sin rol, 404 persona inexistente), `SsoLogoutTest` (200, 401 sin auth, token invalidado), `CspFrameAncestorsTest` (header presente / ausente).
+
+**Próximos pasos posibles (post-F28):**
+- `SESSION_SAMESITE=none` en `.env` de producción cuando el CRM opere dentro de un iframe cross-origin (requiere HTTPS).
+- Canales email/slack para notificaciones F13.
+- Refactor interno de vista de trabajo.
+- Importación de contactos por persona.
+
 ---
 
 ## 20. Decisiones arquitectónicas
@@ -1404,3 +1425,4 @@ El **plan detallado del refactor v1 → v2** se documenta en `DOCS/MIGRACION_V2.
 - **2026-04-18 (Fase 25 cerrada — Design system base)**: 365 tests, Tailwind config con tokens semánticos (brand/accent/surface/ink/success/warning/danger/info), fuente Inter, 10 componentes Blade reutilizables en `resources/views/components/ui/`, `proyecto-dashboard` refactorizado como patrón de referencia para F26–F27.
 - **2026-04-18 (Fase 26 cerrada — Refactor visual pantallas operativas)**: 369 tests, bandeja + bandeja-equipo + notificaciones + shell vista de trabajo reescritas con `x-ui.*`, badges/cards/tables/botones consistentes, cero cambios en lógica Livewire.
 - **2026-04-18 (Fase 27 cerrada — Refactor visual admin/supervisión — CIERRE DE LOS 4 PEDIDOS DEL USUARIO)**: 383 tests, 20 pages shells con `x-ui.page-header`, admin-dashboard + selector-proyecto rediseñados, tabs de importaciones/catálogos con tokens semánticos, cero cambios Livewire. Cierra el plan correctivo F22–F27: (1) módulos desde cero = Entidades configurables §7.7 / (2) permisos granulares F22 / (3) restricción gestor F23 / (4) GUI F25–F27.
+- **2026-04-29 (Fase 28 cerrada — Capa de integración wrapper SSO)**: 415 tests / 896 assertions, 65 migraciones, 19 módulos (+Integracion). `laravel/sanctum` instalado. 4 endpoints: `POST /api/auth/sso-handshake`, `GET /integracion/handshake`, `POST /api/auth/logout`, `GET /api/integracion/persona`. Token one-time (sha256, TTL 5min, consumido_en). Middleware `CspFrameAncestors` con `WRAPPER_DOMAIN`. Multi-tenancy respetado: preview API verifica `tieneAccesoAProyecto`. 29 tests nuevos (22 Feature, 7 Unit).
