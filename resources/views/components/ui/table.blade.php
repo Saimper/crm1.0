@@ -1,20 +1,21 @@
 @props([
-    'hover' => true,
+    'compact'   => false,
+    'clickable' => false,
 ])
 
-<div {{ $attributes->merge(['class' => 'overflow-x-auto rounded-xl border border-surface-border bg-white shadow-card']) }}>
-    <table class="min-w-full divide-y divide-surface-border text-sm">
+@php
+    $cls = trim('table'.($compact ? ' table-compact' : '').($clickable ? ' table-clickable' : ''));
+@endphp
+
+<div {{ $attributes->merge(['class' => 'card overflow-x-auto']) }}>
+    <table class="{{ $cls }}">
         @isset($head)
-            <thead class="bg-surface-50">
-                <tr>{{ $head }}</tr>
-            </thead>
+            <thead><tr>{{ $head }}</tr></thead>
         @endisset
-        <tbody class="divide-y divide-surface-border {{ $hover ? '[&_tr:hover]:bg-surface-50' : '' }}">
-            {{ $slot }}
-        </tbody>
+        <tbody>{{ $slot }}</tbody>
     </table>
     @isset($footer)
-        <div class="px-4 py-3 border-t border-surface-border bg-surface-50">
+        <div class="card-header" style="border-top: 1px solid var(--border); border-bottom: 0; background: var(--bg-subtle);">
             {{ $footer }}
         </div>
     @endisset

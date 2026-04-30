@@ -63,52 +63,39 @@ new class extends Component
 }; ?>
 
 <section>
-    <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Profile Information') }}
-        </h2>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+        Actualiza tu nombre y email de la cuenta.
+    </p>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __("Update your account's profile information and email address.") }}
-        </p>
-    </header>
+    <form wire:submit="updateProfileInformation" style="display:flex;flex-direction:column;gap:14px;">
+        <x-ui.form-field label="Nombre" :error="$errors->first('name')">
+            <input wire:model="name" id="name" name="name" type="text" required autofocus
+                   autocomplete="name" class="input">
+        </x-ui.form-field>
 
-    <form wire:submit="updateProfileInformation" class="mt-6 space-y-6">
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input wire:model="name" id="name" name="name" type="text" class="mt-1 block w-full" required autofocus autocomplete="name" />
-            <x-input-error class="mt-2" :messages="$errors->get('name')" />
-        </div>
-
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="email" id="email" name="email" type="email" class="mt-1 block w-full" required autocomplete="username" />
-            <x-input-error class="mt-2" :messages="$errors->get('email')" />
-
+        <x-ui.form-field label="Email" :error="$errors->first('email')">
+            <input wire:model="email" id="email" name="email" type="email" required
+                   autocomplete="username" class="input">
             @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! auth()->user()->hasVerifiedEmail())
-                <div>
-                    <p class="text-sm mt-2 text-gray-800">
-                        {{ __('Your email address is unverified.') }}
-
-                        <button wire:click.prevent="sendVerification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            {{ __('Click here to re-send the verification email.') }}
-                        </button>
-                    </p>
-
+                <div style="margin-top:8px;font-size:12px;color:var(--text-secondary);">
+                    Tu email no está verificado.
+                    <button type="button" wire:click.prevent="sendVerification"
+                            style="background:transparent;border:0;color:var(--primary);cursor:pointer;text-decoration:underline;font-size:12px;padding:0;">
+                        Reenviar verificación
+                    </button>
                     @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-sm text-green-600">
-                            {{ __('A new verification link has been sent to your email address.') }}
-                        </p>
+                        <div style="margin-top:6px;color:var(--success);font-weight:500;">
+                            Enlace de verificación enviado.
+                        </div>
                     @endif
                 </div>
             @endif
-        </div>
+        </x-ui.form-field>
 
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('Save') }}</x-primary-button>
-
-            <x-action-message class="me-3" on="profile-updated">
-                {{ __('Saved.') }}
+        <div style="display:flex;align-items:center;gap:12px;">
+            <x-ui.button type="submit">Guardar</x-ui.button>
+            <x-action-message on="profile-updated">
+                <span style="font-size:12px;color:var(--success);">Guardado.</span>
             </x-action-message>
         </div>
     </form>

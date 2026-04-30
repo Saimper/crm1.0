@@ -37,25 +37,20 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Recuperar contraseña</h1>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+        Ingresa tu email y te enviaremos un enlace para restablecer la contraseña.
+    </p>
 
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-auth-session-status :status="session('status')" />
 
-    <form wire:submit="sendPasswordResetLink">
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+    <form wire:submit="sendPasswordResetLink" style="display:flex;flex-direction:column;gap:14px;">
+        <x-ui.form-field label="Email" :error="$errors->first('email')">
+            <input wire:model="email" id="email" type="email" name="email" required autofocus class="input">
+        </x-ui.form-field>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
+        <div style="display:flex;justify-content:flex-end;">
+            <x-ui.button type="submit">Enviar enlace</x-ui.button>
         </div>
     </form>
 </div>

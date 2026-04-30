@@ -6,24 +6,21 @@
     'required' => false,
 ])
 
-<div {{ $attributes->only('class') }}>
+<div {{ $attributes->merge(['class' => 'field']) }}>
     @if($label)
-        <label @if($for) for="{{ $for }}" @endif
-               class="block text-xs font-medium text-ink-700">
+        <label @if($for) for="{{ $for }}" @endif class="field-label">
             {{ $label }}
-            @if($required)<span class="text-danger-500" aria-hidden="true">*</span>@endif
+            @if($required)<span style="color: var(--danger);" aria-hidden="true"> *</span>@endif
         </label>
     @endif
 
-    <div class="mt-1">
-        {{ $slot }}
-    </div>
+    {{ $slot }}
 
     @if($hint && ! $error)
-        <p class="mt-1 text-xs text-ink-400">{{ $hint }}</p>
+        <p class="field-help">{{ $hint }}</p>
     @endif
 
     @if($error)
-        <p class="mt-1 text-xs text-danger-600">{{ $error }}</p>
+        <p class="field-error">{{ $error }}</p>
     @endif
 </div>

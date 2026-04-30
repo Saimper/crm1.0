@@ -36,23 +36,20 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Verifica tu email</h1>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
+        Te enviamos un enlace de verificación. Si no llegó, podemos reenviarlo.
+    </p>
 
     @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
+        <x-ui.alert tone="success">Se envió un nuevo enlace de verificación a tu email.</x-ui.alert>
     @endif
 
-    <div class="mt-4 flex items-center justify-between">
-        <x-primary-button wire:click="sendVerification">
-            {{ __('Resend Verification Email') }}
-        </x-primary-button>
-
-        <button wire:click="logout" type="submit" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            {{ __('Log Out') }}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
+        <x-ui.button wire:click="sendVerification">Reenviar verificación</x-ui.button>
+        <button type="button" wire:click="logout"
+                style="background:transparent;border:0;color:var(--text-secondary);font-size:13px;cursor:pointer;text-decoration:underline;">
+            Cerrar sesión
         </button>
     </div>
 </div>

@@ -37,52 +37,36 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <form wire:submit="register">
-        <!-- Name -->
-        <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input wire:model="name" id="name" class="block mt-1 w-full" type="text" name="name" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
-        </div>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Crear cuenta</h1>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Regístrate para comenzar.</p>
 
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+    <form wire:submit="register" style="display:flex;flex-direction:column;gap:14px;">
+        <x-ui.form-field label="Nombre" :error="$errors->first('name')">
+            <input wire:model="name" id="name" type="text" name="name" required autofocus
+                   autocomplete="name" class="input">
+        </x-ui.form-field>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        <x-ui.form-field label="Email" :error="$errors->first('email')">
+            <input wire:model="email" id="email" type="email" name="email" required
+                   autocomplete="username" class="input">
+        </x-ui.form-field>
 
-            <x-text-input wire:model="password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
+        <x-ui.form-field label="Contraseña" :error="$errors->first('password')">
+            <input wire:model="password" id="password" type="password" name="password" required
+                   autocomplete="new-password" class="input">
+        </x-ui.form-field>
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <x-ui.form-field label="Confirmar contraseña" :error="$errors->first('password_confirmation')">
+            <input wire:model="password_confirmation" id="password_confirmation" type="password"
+                   name="password_confirmation" required autocomplete="new-password" class="input">
+        </x-ui.form-field>
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input wire:model="password_confirmation" id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}" wire:navigate>
-                {{ __('Already registered?') }}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px;">
+            <a href="{{ route('login') }}" wire:navigate
+               style="font-size:13px;color:var(--primary);text-decoration:none;">
+                ¿Ya estás registrado?
             </a>
-
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
+            <x-ui.button type="submit">Registrarse</x-ui.button>
         </div>
     </form>
 </div>

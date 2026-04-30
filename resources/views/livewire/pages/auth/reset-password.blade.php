@@ -70,36 +70,27 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <form wire:submit="resetPassword">
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Restablecer contraseña</h1>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Define una nueva contraseña.</p>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input wire:model="password" id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+    <form wire:submit="resetPassword" style="display:flex;flex-direction:column;gap:14px;">
+        <x-ui.form-field label="Email" :error="$errors->first('email')">
+            <input wire:model="email" id="email" type="email" name="email" required autofocus
+                   autocomplete="username" class="input">
+        </x-ui.form-field>
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+        <x-ui.form-field label="Contraseña" :error="$errors->first('password')">
+            <input wire:model="password" id="password" type="password" name="password" required
+                   autocomplete="new-password" class="input">
+        </x-ui.form-field>
 
-            <x-text-input wire:model="password_confirmation" id="password_confirmation" class="block mt-1 w-full"
-                          type="password"
-                          name="password_confirmation" required autocomplete="new-password" />
+        <x-ui.form-field label="Confirmar contraseña" :error="$errors->first('password_confirmation')">
+            <input wire:model="password_confirmation" id="password_confirmation" type="password"
+                   name="password_confirmation" required autocomplete="new-password" class="input">
+        </x-ui.form-field>
 
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Reset Password') }}
-            </x-primary-button>
+        <div style="display:flex;justify-content:flex-end;">
+            <x-ui.button type="submit">Restablecer</x-ui.button>
         </div>
     </form>
 </div>

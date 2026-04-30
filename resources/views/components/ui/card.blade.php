@@ -1,22 +1,26 @@
 @props([
-    'title' => null,
-    'subtitle' => null,
-    'padding' => 'p-6',
+    'title'   => null,
+    'subtitle'=> null,
+    'padding' => 'card-pad',  // card-pad | card-pad-sm | none
 ])
 
-<div {{ $attributes->merge(['class' => 'rounded-xl border border-surface-border bg-white shadow-card']) }}>
+@php
+    $padCls = $padding === 'none' ? '' : $padding;
+@endphp
+
+<div {{ $attributes->merge(['class' => 'card']) }}>
     @if($title || $subtitle || isset($header))
-        <div class="px-6 py-4 border-b border-surface-border">
+        <div class="card-header">
             @if(isset($header))
                 {{ $header }}
             @else
-                <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start justify-between gap-3 flex-1">
                     <div>
                         @if($title)
-                            <h3 class="text-sm font-semibold text-ink-800">{{ $title }}</h3>
+                            <h3 class="card-title">{{ $title }}</h3>
                         @endif
                         @if($subtitle)
-                            <p class="text-xs text-ink-500 mt-0.5">{{ $subtitle }}</p>
+                            <p class="text-sm mt-0.5" style="color: var(--text-tertiary);">{{ $subtitle }}</p>
                         @endif
                     </div>
                     @isset($actions)
@@ -27,12 +31,12 @@
         </div>
     @endif
 
-    <div class="{{ $padding }}">
+    <div @class([$padCls => $padCls])>
         {{ $slot }}
     </div>
 
     @isset($footer)
-        <div class="px-6 py-3 border-t border-surface-border bg-surface-50 rounded-b-xl">
+        <div class="card-header" style="border-top: 1px solid var(--border); border-bottom: 0; background: var(--bg-subtle); border-radius: 0 0 8px 8px;">
             {{ $footer }}
         </div>
     @endisset
