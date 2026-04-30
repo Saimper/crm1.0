@@ -128,23 +128,69 @@
                         {{ \Illuminate\Support\Carbon::parse($detalle->creada_en)->format('d/m/Y H:i:s') }}
                         · IP {{ $detalle->ip ?? '—' }}
                     </div>
-                    @if($detalle->cambios)
+                    @php
+                        $cambiosArr = $detalle->cambios ? json_decode((string) $detalle->cambios, true) : null;
+                        $antesArr = $detalle->datos_antes ? json_decode((string) $detalle->datos_antes, true) : null;
+                        $despuesArr = $detalle->datos_despues ? json_decode((string) $detalle->datos_despues, true) : null;
+                        $fmtVal = function ($v) {
+                            if ($v === null) return '—';
+                            if (is_bool($v)) return $v ? 'true' : 'false';
+                            if (is_array($v)) return json_encode($v, JSON_UNESCAPED_UNICODE);
+                            return (string) $v;
+                        };
+                    @endphp
+                    @if(is_array($cambiosArr) && $cambiosArr !== [])
                         <div>
-                            <div class="font-semibold text-gray-700 mb-1">Cambios</div>
-                            <pre class="bg-gray-50 border border-gray-200 rounded p-3 overflow-x-auto">{{ json_encode(json_decode($detalle->cambios, true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                            <div class="font-semibold text-gray-700 mb-2">Cambios ({{ count($cambiosArr) }})</div>
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-gray-600">Campo</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-red-700">Antes</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-emerald-700">Después</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach($cambiosArr as $campo => $par)
+                                        <tr>
+                                            <td class="px-2 py-1.5 font-mono text-gray-900">{{ $campo }}</td>
+                                            <td class="px-2 py-1.5 font-mono text-red-700 break-all">{{ $fmtVal($par['antes'] ?? null) }}</td>
+                                            <td class="px-2 py-1.5 font-mono text-emerald-700 break-all">{{ $fmtVal($par['despues'] ?? null) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    @endif
-                    @if($detalle->datos_antes)
+                    @elseif(is_array($antesArr) || is_array($despuesArr))
                         <div>
-                            <div class="font-semibold text-gray-700 mb-1">Antes</div>
-                            <pre class="bg-gray-50 border border-gray-200 rounded p-3 overflow-x-auto">{{ json_encode(json_decode($detalle->datos_antes, true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                            <div class="font-semibold text-gray-700 mb-2">Snapshot</div>
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-gray-600">Campo</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-red-700">Antes</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-emerald-700">Después</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @php
+                                        $campos = array_unique(array_merge(
+                                            is_array($antesArr) ? array_keys($antesArr) : [],
+                                            is_array($despuesArr) ? array_keys($despuesArr) : [],
+                                        ));
+                                    @endphp
+                                    @foreach($campos as $campo)
+                                        <tr>
+                                            <td class="px-2 py-1.5 font-mono text-gray-900">{{ $campo }}</td>
+                                            <td class="px-2 py-1.5 font-mono text-red-700 break-all">{{ $fmtVal($antesArr[$campo] ?? null) }}</td>
+                                            <td class="px-2 py-1.5 font-mono text-emerald-700 break-all">{{ $fmtVal($despuesArr[$campo] ?? null) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
-                    @endif
-                    @if($detalle->datos_despues)
-                        <div>
-                            <div class="font-semibold text-gray-700 mb-1">Después</div>
-                            <pre class="bg-gray-50 border border-gray-200 rounded p-3 overflow-x-auto">{{ json_encode(json_decode($detalle->datos_despues, true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-                        </div>
+                    @else
+                        <div class="text-gray-500 italic">Sin datos de diff registrados.</div>
                     @endif
                 </div>
             </div>
