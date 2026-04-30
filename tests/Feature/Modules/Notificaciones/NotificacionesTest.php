@@ -133,7 +133,7 @@ final class NotificacionesTest extends TestCase
         Livewire::test(BadgeNotificaciones::class)->assertSet('noLeidas', 0);
     }
 
-    public function test_ruta_403_sin_permiso_compromisos_ver(): void
+    public function test_ruta_403_sin_permiso_notificaciones_ver(): void
     {
         $proyectoId = $this->proyectoCobranzaId();
 
@@ -141,7 +141,7 @@ final class NotificacionesTest extends TestCase
             'name' => 'Sin', 'email' => 'sin.'.Str::random(4).'@crm.local',
             'password' => Hash::make('x'), 'activo' => true,
         ]);
-        // No se asigna rol: no tiene compromisos.ver.
+        // No se asigna rol: no tiene notificaciones.ver.
 
         $this->actingAs($u)
             ->get(route('proyectos.notificaciones', ['proyecto_id' => $proyectoId]))

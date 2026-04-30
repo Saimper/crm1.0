@@ -136,7 +136,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->name('proyectos.auditoria.exportar');
 
             Route::view('/notificaciones', 'notificaciones::page')
-                ->middleware('can:compromisos.ver')
+                ->middleware('can:notificaciones.ver')
                 ->name('proyectos.notificaciones');
 
             Route::get('/entidades/{entidad_id}',

@@ -102,7 +102,7 @@
                             <span>Bandeja del Equipo</span>
                         </a>
                     @endcan
-                    @can('asignaciones.crear', $proyectoActivo->id)
+                    @can('asignaciones.reasignar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.asignaciones.masiva', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.asignaciones.masiva')) active @endif">
                             <x-ui.icon name="arrow-right" :size="15" />
@@ -116,7 +116,7 @@
                             <span>Reasignación</span>
                         </a>
                     @endcan
-                    @can('equipos.ver', $proyectoActivo->id)
+                    @can('usuarios.gestionar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.equipos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.equipos')) active @endif">
                             <x-ui.icon name="briefcase" :size="15" />
@@ -148,18 +148,25 @@
                             <span>Por Equipo</span>
                         </a>
                     @endcan
+                    @can('reportes.constructor.ejecutar', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.reportes.custom', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.reportes.custom', 'proyectos.reportes.custom.nuevo', 'proyectos.reportes.custom.editar')) active @endif">
+                            <x-ui.icon name="layers" :size="15" />
+                            <span>Reportes custom</span>
+                        </a>
+                    @endcan
                 </div>
 
                 <div class="sb-group">
                     <div class="sb-group-title">Datos</div>
-                    @can('catalogos.ver', $proyectoActivo->id)
+                    @can('catalogos.gestionar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.catalogos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.catalogos')) active @endif">
                             <x-ui.icon name="tag" :size="15" />
                             <span>Catálogos</span>
                         </a>
                     @endcan
-                    @can('importaciones.ver', $proyectoActivo->id)
+                    @can('importaciones.crear', $proyectoActivo->id)
                         <a href="{{ route('proyectos.importaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.importaciones*')) active @endif">
                             <x-ui.icon name="upload" :size="15" />
@@ -177,11 +184,13 @@
                             <span>Auditoría</span>
                         </a>
                     @endcan
-                    <a href="{{ route('proyectos.notificaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                       class="sb-item @if($rid('proyectos.notificaciones')) active @endif">
-                        <x-ui.icon name="bell" :size="15" />
-                        <span>Notificaciones</span>
-                    </a>
+                    @can('notificaciones.ver', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.notificaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.notificaciones')) active @endif">
+                            <x-ui.icon name="bell" :size="15" />
+                            <span>Notificaciones</span>
+                        </a>
+                    @endcan
                 </div>
 
                 @can('usuarios.gestionar', $proyectoActivo->id)
@@ -191,6 +200,22 @@
                            class="sb-item @if($rid('proyectos.usuarios')) active @endif">
                             <x-ui.icon name="user" :size="15" />
                             <span>Usuarios del Proyecto</span>
+                        </a>
+                    </div>
+                @endcan
+
+                @can('roles.gestionar', $proyectoActivo->id)
+                    <div class="sb-group">
+                        <div class="sb-group-title">Permisos</div>
+                        <a href="{{ route('proyectos.admin.roles-custom', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.admin.roles-custom')) active @endif">
+                            <x-ui.icon name="shield" :size="15" />
+                            <span>Roles custom</span>
+                        </a>
+                        <a href="{{ route('proyectos.admin.matriz-permisos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.admin.matriz-permisos')) active @endif">
+                            <x-ui.icon name="hash" :size="15" />
+                            <span>Matriz de permisos</span>
                         </a>
                     </div>
                 @endcan
