@@ -67,16 +67,16 @@ final class ImportarPersonasTest extends TestCase
             'id' => $importacionId,
             'proyecto_id' => $proyectoId,
             'total_filas' => 3,
-            'filas_ok' => 3,
-            'filas_error' => 0,
-            'estado' => 'validada',
+            'validas' => 3,
+            'invalidas' => 0,
+            'estado' => 'preparada',
         ]);
 
         $componente->call('confirmar');
 
         $this->assertDatabaseHas('importaciones', [
             'id' => $importacionId,
-            'filas_importadas' => 3,
+            'procesadas' => 3,
             'estado' => 'completada',
         ]);
         $this->assertDatabaseHas('personas', ['identificacion' => '2200000001']);
@@ -90,9 +90,9 @@ final class ImportarPersonasTest extends TestCase
         $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
 
         $csv = "tipo_persona,tipo_identificacion_codigo,identificacion,nombres,apellidos,razon_social,fecha_nacimiento\n"
-             ."fisica,CED,,Sin identificacion,,,\n"            // sin identificacion
-             ."XYZ,CED,2200000010,,,,\n"                         // tipo_persona inválido
-             ."fisica,CED,2200000011,Valido,Ok,,\n";            // ok
+             ."fisica,CED,,Sin identificacion,,,\n"
+             ."XYZ,CED,2200000010,,,,\n"
+             ."fisica,CED,2200000011,Valido,Ok,,\n";
         $archivo = UploadedFile::fake()->createWithContent('mix.csv', $csv);
 
         $c = Livewire::test(ImportarPersonas::class)
@@ -104,9 +104,9 @@ final class ImportarPersonasTest extends TestCase
         $this->assertDatabaseHas('importaciones', [
             'id' => $id,
             'total_filas' => 3,
-            'filas_ok' => 1,
-            'filas_error' => 2,
-            'estado' => 'validada',
+            'validas' => 1,
+            'invalidas' => 2,
+            'estado' => 'preparada',
         ]);
     }
 

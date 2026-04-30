@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<div class="space-y-6" @if($progreso !== null && $progreso->enCurso() && $progreso->estado->value === 'procesando') wire:poll.2s @endif>
     @if(session('importacion-ok'))
         <div class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
             {{ session('importacion-ok') }}
@@ -10,7 +10,6 @@
             <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-700">Importar personas</h3>
             <p class="text-xs text-gray-500 mt-1">
                 Columnas esperadas: <code>tipo_persona, tipo_identificacion_codigo, identificacion, nombres, apellidos, razon_social, fecha_nacimiento</code>.
-                <br>Acepta CSV hasta 2 MB. Primero validamos las filas; luego confirmas para persistir.
             </p>
         </div>
 
@@ -22,6 +21,20 @@
                            class="mt-1 block w-full text-sm text-gray-700"/>
                     @error('archivo')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Modo de importación</label>
+                    <select wire:model="modo" class="mt-1 block w-full text-sm border-gray-300 rounded-md">
+                        <option value="merge">merge — rellena solo campos vacíos en registros existentes</option>
+                        <option value="skip_duplicados">skip_duplicados — ignora existentes (continúa el batch)</option>
+                        <option value="overwrite">overwrite — pisa todos los campos en registros existentes</option>
+                    </select>
+                    <p class="text-[11px] text-gray-500 mt-1">
+                        Aplica cuando una persona ya existe en el proyecto (mismo tipo + identificación).
+                        Para nuevas personas, los tres modos insertan igual.
+                    </p>
+                </div>
+
                 <div>
                     <button type="submit"
                             class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
@@ -30,31 +43,72 @@
                 </div>
             </form>
         @else
+            @php $estadoActual = $progreso?->estado->value ?? '—'; @endphp
+
             <div class="space-y-3">
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-sm">
                     <div class="rounded border border-gray-200 p-3">
                         <div class="text-[10px] uppercase text-gray-500">Archivo</div>
-                        <div class="mt-1 font-medium text-gray-900">{{ $importacionActual->nombre_archivo ?? '—' }}</div>
+                        <div class="mt-1 font-medium text-gray-900 truncate">{{ $importacionActual->nombre_archivo ?? '—' }}</div>
                     </div>
                     <div class="rounded border border-gray-200 p-3">
-                        <div class="text-[10px] uppercase text-gray-500">Total filas</div>
-                        <div class="mt-1 font-semibold text-gray-900">{{ $importacionActual->total_filas ?? 0 }}</div>
+                        <div class="text-[10px] uppercase text-gray-500">Total</div>
+                        <div class="mt-1 font-semibold text-gray-900">{{ $progreso?->totalFilas ?? 0 }}</div>
                     </div>
                     <div class="rounded border border-emerald-200 bg-emerald-50 p-3">
-                        <div class="text-[10px] uppercase text-emerald-700">Válidas</div>
-                        <div class="mt-1 font-semibold text-emerald-900">{{ $importacionActual->filas_ok ?? 0 }}</div>
+                        <div class="text-[10px] uppercase text-emerald-700">Procesadas</div>
+                        <div class="mt-1 font-semibold text-emerald-900">{{ $progreso?->procesadas ?? 0 }}</div>
+                    </div>
+                    <div class="rounded border border-blue-200 bg-blue-50 p-3">
+                        <div class="text-[10px] uppercase text-blue-700">Válidas</div>
+                        <div class="mt-1 font-semibold text-blue-900">{{ $progreso?->validas ?? 0 }}</div>
+                    </div>
+                    <div class="rounded border border-amber-200 bg-amber-50 p-3">
+                        <div class="text-[10px] uppercase text-amber-700">Duplicadas</div>
+                        <div class="mt-1 font-semibold text-amber-900">{{ $progreso?->duplicadas ?? 0 }}</div>
                     </div>
                     <div class="rounded border border-red-200 bg-red-50 p-3">
-                        <div class="text-[10px] uppercase text-red-700">Con error</div>
-                        <div class="mt-1 font-semibold text-red-900">{{ $importacionActual->filas_error ?? 0 }}</div>
+                        <div class="text-[10px] uppercase text-red-700">Inválidas</div>
+                        <div class="mt-1 font-semibold text-red-900">{{ $progreso?->invalidas ?? 0 }}</div>
                     </div>
                 </div>
 
-                <div class="text-xs text-gray-600">
-                    Estado: <code>{{ $importacionActual->estado ?? '—' }}</code>
-                    @if(($importacionActual->estado ?? null) === 'completada')
-                        · Importadas reales: <span class="font-semibold text-emerald-700">{{ $importacionActual->filas_importadas ?? 0 }}</span>
-                    @endif
+                @if($progreso !== null)
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-xs text-gray-700">
+                            <span>Estado: <code>{{ $estadoActual }}</code> · Modo: <code>{{ $progreso->modo->value }}</code></span>
+                            <span class="font-mono">{{ $progreso->porcentaje() }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded h-2 overflow-hidden">
+                            <div class="bg-blue-600 h-2 transition-all duration-500" style="width: {{ $progreso->porcentaje() }}%"></div>
+                        </div>
+                        @if($progreso->errorGlobal)
+                            <div class="text-xs text-red-700 mt-1">Error: {{ $progreso->errorGlobal }}</div>
+                        @endif
+                    </div>
+                @endif
+
+                @if($estadoActual === 'preparada')
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Cambiar modo antes de procesar</label>
+                        <select wire:model="modo" class="block w-full text-sm border-gray-300 rounded-md">
+                            <option value="merge">merge — rellena solo campos vacíos</option>
+                            <option value="skip_duplicados">skip_duplicados — ignora existentes</option>
+                            <option value="overwrite">overwrite — pisa todos los campos</option>
+                        </select>
+                    </div>
+                @endif
+
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-600">Filtrar filas:</label>
+                    <select wire:model.live="filtroFilas" class="text-xs border-gray-300 rounded">
+                        <option value="todas">Todas</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="procesada">Procesadas</option>
+                        <option value="duplicada">Duplicadas</option>
+                        <option value="invalida">Inválidas</option>
+                        <option value="omitida">Omitidas</option>
+                    </select>
                 </div>
 
                 <div class="rounded-md border border-gray-200 overflow-x-auto max-h-96 overflow-y-auto">
@@ -64,8 +118,8 @@
                                 <th class="px-2 py-2 text-left">#</th>
                                 <th class="px-2 py-2 text-left">Estado</th>
                                 <th class="px-2 py-2 text-left">Identificación</th>
-                                <th class="px-2 py-2 text-left">Nombre / Razón social</th>
-                                <th class="px-2 py-2 text-left">Error</th>
+                                <th class="px-2 py-2 text-left">Nombre / Razón</th>
+                                <th class="px-2 py-2 text-left">Detalle</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -76,12 +130,13 @@
                                         ? ($p['razon_social'] ?? '')
                                         : trim(($p['nombres'] ?? '').' '.($p['apellidos'] ?? ''));
                                     $badge = match ($f->estado) {
-                                        'valida'    => 'bg-emerald-100 text-emerald-800',
-                                        'importada' => 'bg-emerald-200 text-emerald-900',
+                                        'procesada' => 'bg-emerald-200 text-emerald-900',
+                                        'duplicada' => 'bg-amber-100 text-amber-800',
                                         'invalida'  => 'bg-red-100 text-red-800',
-                                        'omitida'   => 'bg-amber-100 text-amber-800',
+                                        'omitida'   => 'bg-gray-200 text-gray-700',
                                         default     => 'bg-gray-100 text-gray-700',
                                     };
+                                    $detalle = $f->mensaje_error ?: $f->razon_omision;
                                 @endphp
                                 <tr>
                                     <td class="px-2 py-1 font-mono">{{ $f->numero_fila }}</td>
@@ -93,7 +148,7 @@
                                         {{ $p['identificacion'] ?? '' }}
                                     </td>
                                     <td class="px-2 py-1">{{ $nombre }}</td>
-                                    <td class="px-2 py-1 text-red-700">{{ $f->mensaje_error }}</td>
+                                    <td class="px-2 py-1 text-gray-700">{{ $detalle }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -101,20 +156,26 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-2">
-                    <button type="button" wire:click="cancelar"
-                            class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
-                        Cancelar
-                    </button>
-                    @if(($importacionActual->estado ?? null) === 'validada')
-                        <button type="button" wire:click="confirmar"
-                                wire:confirm="¿Confirmar importación? Se crearán las personas válidas."
-                                class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
-                            Confirmar importación
+                    @if($estadoActual === 'preparada')
+                        <button type="button" wire:click="cerrar"
+                                class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
+                            Descartar
                         </button>
-                    @elseif(($importacionActual->estado ?? null) === 'completada')
+                        <button type="button" wire:click="confirmar"
+                                wire:confirm="¿Confirmar importación con modo {{ $modo }}? El proceso correrá en segundo plano."
+                                class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
+                            Procesar en segundo plano
+                        </button>
+                    @elseif($estadoActual === 'procesando')
                         <button type="button" wire:click="cancelar"
+                                wire:confirm="¿Cancelar la importación en curso?"
+                                class="px-3 py-1.5 text-xs text-white bg-red-600 rounded hover:bg-red-700">
+                            Cancelar importación
+                        </button>
+                    @elseif(in_array($estadoActual, ['completada', 'fallida', 'cancelada']))
+                        <button type="button" wire:click="cerrar"
                                 class="px-3 py-1.5 text-xs text-white bg-emerald-600 rounded hover:bg-emerald-700">
-                            Finalizar
+                            Cerrar
                         </button>
                     @endif
                 </div>
@@ -134,10 +195,12 @@
                     <tr>
                         <th class="px-3 py-2 text-left">Fecha</th>
                         <th class="px-3 py-2 text-left">Archivo</th>
+                        <th class="px-3 py-2 text-left">Modo</th>
                         <th class="px-3 py-2 text-left">Usuario</th>
                         <th class="px-3 py-2 text-right">Total</th>
-                        <th class="px-3 py-2 text-right">Importadas</th>
-                        <th class="px-3 py-2 text-right">Errores</th>
+                        <th class="px-3 py-2 text-right">Procesadas</th>
+                        <th class="px-3 py-2 text-right">Duplicadas</th>
+                        <th class="px-3 py-2 text-right">Inválidas</th>
                         <th class="px-3 py-2 text-left">Estado</th>
                     </tr>
                 </thead>
@@ -146,10 +209,12 @@
                         <tr>
                             <td class="px-3 py-2 text-xs">{{ \Illuminate\Support\Carbon::parse($h->creada_en)->format('d/m/Y H:i') }}</td>
                             <td class="px-3 py-2 text-xs">{{ $h->nombre_archivo }}</td>
+                            <td class="px-3 py-2 text-xs"><code>{{ $h->modo }}</code></td>
                             <td class="px-3 py-2 text-xs">{{ $h->usuario_nombre ?? '—' }}</td>
                             <td class="px-3 py-2 text-right font-mono">{{ number_format($h->total_filas) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-emerald-700">{{ number_format($h->filas_importadas) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-red-700">{{ number_format($h->filas_error) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-emerald-700">{{ number_format($h->procesadas) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-amber-700">{{ number_format($h->duplicadas) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-red-700">{{ number_format($h->invalidas) }}</td>
                             <td class="px-3 py-2 text-xs"><code>{{ $h->estado }}</code></td>
                         </tr>
                     @endforeach
@@ -163,21 +228,13 @@
         @php $pid = app('tenancy.proyecto_activo')->id; @endphp
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
             <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
-                Personas
-            </a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Personas</a>
             <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
-                Casos
-            </a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Casos</a>
             <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
-                Gestiones
-            </a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Gestiones</a>
             <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
-                Compromisos
-            </a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Compromisos</a>
         </div>
     </section>
 </div>

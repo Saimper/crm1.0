@@ -50,16 +50,16 @@ final class ImportarCasosTest extends TestCase
             'id' => $importacionId,
             'tipo_entidad' => 'caso_cobranza',
             'total_filas' => 1,
-            'filas_ok' => 1,
-            'filas_error' => 0,
-            'estado' => 'validada',
+            'validas' => 1,
+            'invalidas' => 0,
+            'estado' => 'preparada',
         ]);
 
         $componente->call('confirmar');
 
         $this->assertDatabaseHas('importaciones', [
             'id' => $importacionId,
-            'filas_importadas' => 1,
+            'procesadas' => 1,
             'estado' => 'completada',
         ]);
         $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'IMP-0001']);
@@ -88,9 +88,9 @@ final class ImportarCasosTest extends TestCase
         $this->assertDatabaseHas('importaciones', [
             'id' => $id,
             'total_filas' => 3,
-            'filas_ok' => 1,
-            'filas_error' => 2,
-            'estado' => 'validada',
+            'validas' => 1,
+            'invalidas' => 2,
+            'estado' => 'preparada',
         ]);
     }
 
@@ -118,7 +118,7 @@ final class ImportarCasosTest extends TestCase
         $this->assertDatabaseHas('importaciones', [
             'id' => $id,
             'tipo_entidad' => 'caso_ticket_cx',
-            'filas_ok' => 1,
+            'validas' => 1,
         ]);
 
         $componente->call('confirmar');
