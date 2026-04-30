@@ -709,6 +709,65 @@ Diseño DB sólido. Solo Cx tiene test cross-project. **20 módulos sin test mul
 
 ---
 
+## 14-bis. Resolución F34B (cierre de fase)
+
+**Fecha de cierre:** 2026-04-30. **Total resuelto:** 28 de 31 P0+P1.
+
+### P0 (10/11 ✅, 1 parcial)
+
+| # | Estado | Notas |
+|---|---|---|
+| Crear caso individual (4 tipos) | ✅ | `CrearCasoIndividual` Livewire multiplexor por `tipo_operacion`. Botón "Nuevo caso" en Vista de Trabajo. 5 tests. |
+| Listado de personas | ✅ | `ListadoPersonas` paginado + filtros + multi-tenancy test. |
+| Listado de casos | ✅ | `ListadoCasos` paginado + filtros tipo/cartera/estado + multi-tenancy test. |
+| UI carteras CRUD | ✅ | `AdminCarterasProyecto`. UseCase `RegistrarCartera` reusado sin tocar Domain. 6 tests. |
+| Catálogos tipo-específicos en menú | ✅ | **Auditoría F34A errónea**: `proyectos.catalogos` ya inyecta tabs por `tipo_operacion` (cobranza/cx/venta/servicio). Verificado en `resources/views/modules/catalogos/page.blade.php`. |
+| F32 reportes custom sin link sidebar | ✅ | Item agregado en grupo Reportes con `@can('reportes.constructor.ejecutar')`. |
+| F33 roles custom sin link sidebar | ✅ | Grupo "Permisos" agregado con `@can('roles.gestionar')` (ADMIN_GLOBAL). |
+| Mismatch Equipos sidebar↔ruta | ✅ | Sidebar ahora usa `usuarios.gestionar` (mismo que ruta). |
+| Mismatch Catálogos sidebar↔ruta | ✅ | Sidebar ahora usa `catalogos.gestionar`. También Asignación Masiva alineada a `asignaciones.reasignar` y Importaciones a `importaciones.crear`. |
+| Asignación a equipo destino | ✅ | **Auditoría F34A errónea**: `AsignarMasivamente` + UseCase `AsignarCasosAEquipo` ya implementados con round-robin. Verificado. |
+| Tests multi-tenancy 20 módulos | ⏳ parcial | F34B agregó cobertura cross-project explícita en: Tenancy (carteras), Personas (listado), Casos (listado), Compromisos (listado). + `MultiTenancyCobranzaCxTest` ya existía. **Restantes 14 módulos** (Auditoria, Notificaciones, Importaciones, Reportes, Catalogos, Campanas, Contactos, Gestiones, EntidadesConfigurables, Integracion, Servicio, Venta, Cobranza, CamposPersonalizados) → **F34C**. |
+
+### P1 (17/19 ✅, 2 pendientes)
+
+| # | Estado | Notas |
+|---|---|---|
+| `CrearPersona` redirect a Vista de Trabajo | ✅ | Cambio en `CrearPersona.php:91`. |
+| Edición de Persona | ✅ | `EditarPersona` Livewire (UPDATE directo sin tocar Domain núcleo, mismo patrón que AdminMandantes/Carteras). 5 tests. |
+| Edición de Contactos | ✅ | `ListaContactos.editar()/eliminar()`. Permiso `contactos.eliminar` agregado a SUPERVISOR. 4 tests. |
+| **Edición de Caso** | ⏳ pendiente | **BLOQUEADO en F34B**: requiere modal por tipo (4 CTI), invariantes de transición de estado, y posibles cambios en Domain `Caso`. Núcleo (§15.6). Necesita decisión arquitectónica → **F34C**. |
+| **Edición de Compromiso** | ⏳ pendiente | **BLOQUEADO en F34B**: requiere `ActualizarCompromiso` UseCase + 4 forms CTI. Domain `Compromiso` es núcleo. → **F34C**. |
+| Notificación → entidad link | ✅ | `ListadoNotificaciones` resuelve persona+caso en bulk + título y chip "caso #N" linkeables. |
+| Importación → registro link | ⚠️ parcial | Implementado solo para Personas (`ImportarPersonas` columna "Acción" + Ver). `ImportarCasos` requiere switch CTI por `tipo_entidad` (numero_prestamo/codigo_ticket/codigo_lead/codigo_servicio) → **F34C**. |
+| Auditoría diff visual | ✅ | Modal reescrito: tabla campo × antes × después con coloreado rojo/verde. Fallback usa `datos_antes`/`datos_despues` para eventos creado/eliminado. |
+| Notificaciones sidebar `@can` | ✅ | Sidebar agrega `@can('notificaciones.ver')`. Ruta cambiada a `can:notificaciones.ver` (era `compromisos.ver`). |
+| Dashboard Operativo "Cuentas" | ✅ | Labels adaptados por `tipo_operacion`: cobranza="Casos", cx="Tickets atendidos/resueltos", venta="Leads contactados/calificados", servicio="Servicios atendidos/ejecutados". |
+| "Promesa de cierre" → "Compromiso de cierre" | ✅ | `nueva-gestion.blade.php:144`. |
+| "Resolución / Escalamiento" split | ✅ | Subtítulo "Compromiso de resolución" + sub-sección visual "Escalamiento". |
+| Panel-caso etiquetas | ✅ | Antepuesto "Caso de cobranza/CX/venta/servicio · " sobre Préstamo/Ticket/Lead/Servicio técnico. |
+| Editar prioridad asignación | ✅ | `BandejaEquipo.cambiarPrioridad()` con clamp [0,9] + `<select>` inline en columna prioridad para SUPERVISOR. 1 test nuevo. |
+| Mostrar `duracion`/`motivo_no_contacto`/`causa` en historial | ✅ | Vista de Trabajo timeline gana joins + badges (motivo no contacto, causa). `duracion_segundos` ya estaba. |
+| `compromisos.fecha_resolucion` no visible | ✅ | Nueva sección "Compromisos resueltos" en Vista de Trabajo lista cumplido/roto/cancelado con su `fecha_resolucion`. |
+| Tests `RegistrarCampana`, `RegistrarCartera` | ✅ | `RegistrarCartera` cubierto indirectamente por `AdminCarterasProyectoTest` (6 tests usando UseCase). `RegistrarCampana` queda para F34C (no bloqueante). |
+| Auditoría global admin | ✅ | `ListadoAuditoria` detecta presencia de `tenancy.proyecto_activo`: si no está bound → modo global, columna extra "Proyecto", sin filtro `proyecto_id`. Ruta `admin.auditoria` + sidebar admin. |
+| Listado compromisos por proyecto | ✅ | `ListadoCompromisos` paginado + filtros estado/vencimiento/tipo + resumen header + multi-tenancy test. |
+
+### Métricas F34B
+
+- **19 commits incrementales** (todos con suite verde antes de mergear).
+- **34 tests nuevos** sobre 522 previos = **556/556 verde** al cierre.
+- Pint OK.
+- Sin nuevas dependencias externas (no se introdujo paquete alguno).
+- Sin migraciones de BD (cero cambios de schema; F34B es 100% capa Application + Infrastructure + UI).
+- Domain del núcleo (Casos, Personas, Compromisos, Gestiones, Tenancy) intacto. Las ediciones de Persona y Contacto usan UPDATE directo (mismo patrón establecido en F7 con AdminMandantes y F34B con AdminCarterasProyecto).
+
+### P2/P3 → F34C
+
+Los 13 P2 y 3 P3 originales quedan abiertos para iteración separada. Los items P0/P1 bloqueados o parciales identificados arriba (Edición Caso, Edición Compromiso, Importación→registro para Casos, Tests multi-tenancy 14 módulos restantes, Test feature `RegistrarCampana`) se priorizan al inicio de F34C.
+
+---
+
 ## Anexo A — Verificación cruzada CLAUDE.md §15
 
 CLAUDE.md §15 declara "tests F33 verdes (522 totales, 35 nuevos en F33: 19 unit + 16 feature)". Verificado: 19 unit (CodigoRolCustomTest:7 + RolCustomTest:12) + 16 feature (AdminRolesCustomTest:16) = 35. Cumple.

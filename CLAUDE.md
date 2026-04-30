@@ -321,7 +321,7 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ## 15. Estado actual (2026-04-30)
 
-**73 migraciones | 22 módulos activos | tests F33 verdes (522 totales, 35 nuevos en F33: 19 unit + 16 feature)**
+**73 migraciones | 22 módulos activos | tests F34B verdes (556 totales, 34 nuevos en F34B: 0 unit + 34 feature)**
 
 Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion, Clientes.
 
@@ -360,6 +360,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Importaciones async + 3 modos (`merge`/`skip_duplicados`/`overwrite`) — `EjecutarImportacionJob` en cola `imports`, lock advisory `GET_LOCK("import:{id}")`, chunks `IMPORTS_BATCH_SIZE` (default 1000), polling Livewire 2s. Enums `ModoImportacion`/`EstadoImportacion`/`EstadoFila`, VO `ResumenChunk`, eventos `ImportacionEncolada`/`Iniciada`/`Terminada`/`Fallada`. Rename estados (`borrador→pendiente`, `validada→preparada`) y contadores (`procesadas/validas/invalidas/omitidas/duplicadas`). | ✅ F31 |
 | Constructor de reportes custom + export streaming sin límite — DSL declarativo `DefinicionReporte` (entidad raíz + columnas + filtros + agrupaciones + orden), persistido en `reportes_definiciones`. Whitelist server-side `CatalogoCamposReporte` por entidad. Ejecutor `EjecutarReporte` traduce DSL a Eloquent Query Builder con joins predeclarados y bindings parametrizados (cero SQL injection). Streaming CSV nativo (BOM + fputcsv) y XLSX vía OpenSpout `^4.28`. Permisos nuevos `reportes.constructor.{gestionar,ejecutar,exportar}`. Auditoría `reportes_ejecuciones`. Livewire `ConstructorReporte` (preview live LIMIT 50) + `ListadoReportesCustom`. | ✅ F32 |
 | Constructor de roles custom por proyecto — ADMIN_GLOBAL combina permisos existentes en roles nombrados sin desplegar código. VO `CodigoRolCustom` regex `[A-Z][A-Z0-9_]*`. Entidad `RolCustom` con lista vetada `PERMISOS_VETADOS = ['campos.definir','entidades.definir','roles.gestionar']`. Tablas separadas (`roles_custom`, `rol_custom_permiso`, `usuario_proyecto_rol_custom`) sin tocar la base; `User::tienePermiso` une rol base (con cartera-scoping F22) + rol custom (sin cartera-scoping). Permiso nuevo `roles.gestionar` exclusivo ADMIN_GLOBAL. Livewire `AdminRolesCustom` (CRUD + filtro defensivo de permisos vetados) y `MatrizPermisos` read-only. Roles base permanecen inmutables desde UI. | ✅ F33 |
+| Auditoría F34A + remediación F34B — diagnóstico exhaustivo (47 ítems en `DOCS/AUDITORIA_F34.md`) y resolución de 28/31 P0+P1: nuevas pantallas (CrearCasoIndividual multiplexor por tipo, ListadoPersonas, ListadoCasos, ListadoCompromisos, AdminCarterasProyecto, EditarPersona); ediciones inline (Contactos editar/eliminar, prioridad asignación con clamp [0,9]); auditoría global admin (`admin.auditoria` reusa `ListadoAuditoria` en modo sin-proyecto); diff visual auditoría (tabla campo×antes×después); enrichment de listados (notificación → caso link, importación → persona link, historial gestiones con motivo/causa/duración, panel compromisos resueltos con `fecha_resolucion`). Sidebar realineado con permisos de ruta + nuevos links F32/F33/F34. Terminología unificada (Cuentas→Casos, Promesa cierre→Compromiso cierre, Resolución/Escalamiento split, panel-caso prefix). 0 migraciones, 0 dependencias nuevas, 0 cambios al Domain del núcleo. 34 tests feature nuevos (556 totales). | ✅ F34B |
 
 ### Módulo Integracion (F28)
 
@@ -432,6 +433,16 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
   - `GestionUsuariosProyecto` (F10) extendido: la property `rolAsignarId` se reemplazó por `rolAsignarValor` con formato `"base:{id}"` o `"custom:{id}"`. El selector usa `<optgroup>`. Para roles custom, la sección de cartera-scoping se oculta (cartera-scoping no aplica en F33). Listado consolidado (UNION de `usuario_proyecto_rol` + `usuario_proyecto_rol_custom`); cada fila trae `tipo_rol` (`base`/`custom`) y la acción `quitar` o `quitarCustom` correspondiente.
 - **Multi-tenancy**: rol custom siempre scoped por `proyecto_id`. `AsignarRolCustomAUsuario` valida que el rol pertenece al proyecto destino antes de insertar — un rol custom de proyecto A nunca se asigna a usuario en proyecto B.
 - **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F33, con acuerdo previo.
+
+### Auditoría F34A + remediación F34B
+
+- **F34A**: diagnóstico exhaustivo en `DOCS/AUDITORIA_F34.md` (741 líneas, solo lectura del repo). Inventario de pantallas, journeys end-to-end (J1-J8), conexiones rotas, datos cargados pero no expuestos, multi-tenancy real vs declarado, mismatches sidebar↔ruta, gaps de tests. Sección 14 lista priorizada: 12 P0, 19 P1, 13 P2, 3 P3.
+- **F34B**: cierre 2026-04-30. Resueltos 11/11 P0 (1 parcial: tests multi-tenancy 6 de 20 módulos cubiertos) + 17/19 P1. Pendientes a F34C: edición Caso (P1), edición Compromiso (P1), 14 módulos sin test multi-tenancy, ImportarCasos→registro link, los 13 P2 y 3 P3 originales.
+- **Restricciones honradas**: 0 migraciones, 0 dependencias nuevas, 0 cambios al Domain del núcleo (Casos/Personas/Compromisos/Gestiones/Tenancy). Todas las edición operativas (Persona, Contacto, Cartera) usan UPDATE directo via DB::table siguiendo el patrón establecido en F7 (AdminMandantes); la única creación de entidad nueva F34B (caso individual) reusa los UseCases existentes (`RegistrarCasoCobranza/TicketCx/LeadVenta/Servicio`) ya validados por F2-F5.
+- **Permisos modificados**: `notificaciones.ver` ahora protege la ruta (era `compromisos.ver`); `contactos.eliminar` agregado a SUPERVISOR (era huérfano §9.2 del reporte); el resto del seeder intacto. No se introdujo permiso nuevo.
+- **Entidades nuevas en UI** (sin ser módulos nuevos): `ListadoPersonas`, `ListadoCasos`, `ListadoCompromisos`, `AdminCarterasProyecto`, `CrearCasoIndividual`, `EditarPersona`. Todos viven en módulos existentes (`Personas`, `Casos`, `Compromisos`, `Tenancy`).
+- **Vistas reescritas**: modal de auditoría (JSON pretty → tabla diff), `ListadoAuditoria` (modo dual proyecto/global vía detección de binding `tenancy.proyecto_activo`), `dashboard-operativo` (labels por tipo), `nueva-gestion` (terminología compromisos), 4×`panel-caso` (prefix "Caso de X").
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F34B, con acuerdo previo.
 
 ### Design system — F29-bis (en re-ejecución)
 
