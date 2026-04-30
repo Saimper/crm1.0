@@ -5,6 +5,7 @@ use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCasosContr
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromisosController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarGestionesController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarPersonasController;
+use App\Modules\Reportes\Infrastructure\Http\Controllers\ExportarReporteController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
@@ -59,6 +60,27 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::view('/reportes/equipos', 'reportes::reporte-equipos-page')
                 ->middleware('can:reportes.operativos')
                 ->name('proyectos.reportes.equipos');
+
+            Route::view('/reportes/custom', 'reportes::listado-custom-page')
+                ->middleware('can:reportes.constructor.ejecutar')
+                ->name('proyectos.reportes.custom');
+
+            Route::view('/reportes/custom/nuevo', 'reportes::constructor-page')
+                ->middleware('can:reportes.constructor.gestionar')
+                ->name('proyectos.reportes.custom.nuevo');
+
+            Route::get('/reportes/custom/{definicion_id}/editar', fn (int $proyecto_id, int $definicion_id) => view('reportes::constructor-page', [
+                'definicionId' => $definicion_id,
+            ]))
+                ->middleware('can:reportes.constructor.gestionar')
+                ->whereNumber('definicion_id')
+                ->name('proyectos.reportes.custom.editar');
+
+            Route::get('/reportes/custom/{definicion_id}/exportar',
+                ExportarReporteController::class)
+                ->middleware('can:reportes.constructor.exportar')
+                ->whereNumber('definicion_id')
+                ->name('proyectos.reportes.custom.exportar');
 
             Route::view('/importaciones', 'importaciones::page')
                 ->middleware('can:importaciones.crear')
