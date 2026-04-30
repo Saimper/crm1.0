@@ -9,6 +9,7 @@ use App\Modules\Casos\Application\Listeners\ActualizarDesnormalizadosDesdeGestio
 use App\Modules\Casos\Application\Listeners\RecalcularBanderaCompromisoVigente;
 use App\Modules\Casos\Domain\Contracts\CasoRepository;
 use App\Modules\Casos\Infrastructure\Http\Livewire\CrearCasoIndividual;
+use App\Modules\Casos\Infrastructure\Http\Livewire\EditarCaso;
 use App\Modules\Casos\Infrastructure\Http\Livewire\ListadoCasos;
 use App\Modules\Casos\Infrastructure\Http\Livewire\NuevaGestion;
 use App\Modules\Casos\Infrastructure\Http\Livewire\VistaDeTrabajo;
@@ -37,6 +38,7 @@ final class CasosServiceProvider extends ServiceProvider
         Livewire::component('casos.nueva-gestion', NuevaGestion::class);
         Livewire::component('casos.listado-casos', ListadoCasos::class);
         Livewire::component('casos.crear-caso-individual', CrearCasoIndividual::class);
+        Livewire::component('casos.editar-caso', EditarCaso::class);
 
         Event::listen(GestionRegistrada::class, ActualizarDesnormalizadosDesdeGestion::class);
         Event::listen(CompromisoCreado::class, ActivarBanderaCompromisoVigente::class);

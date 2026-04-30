@@ -26,6 +26,13 @@
                     </div>
                 </div>
                 <div class="alert-actions">
+                    @can('compromisos.crear', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
+                           wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                            <x-ui.icon name="edit" :size="13" />
+                            <span>Editar</span>
+                        </a>
+                    @endcan
                     @if($casoActivo && $casoActivo->tipo_caso === 'cobranza' && $compromisoActivo->tipo_compromiso === 'promesa_pago')
                         <livewire:cobranza.resolver-promesa :compromisoId="$compromisoActivo->id" :key="'resolver-promesa-'.$compromisoActivo->id" />
                     @elseif($casoActivo && $casoActivo->tipo_caso === 'ticket_cx' && $compromisoActivo->tipo_compromiso === 'resolucion_ticket')
@@ -151,6 +158,15 @@
                     @elseif($casoActivo->tipo_caso === 'servicio')
                         @include('servicio::partials.panel-caso', ['servicio' => $casoServicio])
                     @endif
+                    @can('casos.editar', $proyectoActivo->id)
+                        <div style="margin-top:8px;text-align:right;">
+                            <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
+                               wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                                <x-ui.icon name="edit" :size="13" />
+                                <span>Editar caso</span>
+                            </a>
+                        </div>
+                    @endcan
                 </div>
 
                 <div style="margin-top:12px;">

@@ -30,9 +30,21 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:casos.crear')
                 ->name('proyectos.casos.crear');
 
+            Route::get('/casos/{caso}/editar', fn (int $proyecto_id, string $caso) => view('casos::editar-caso-page', [
+                'caso' => $caso,
+            ]))
+                ->middleware('can:casos.editar')
+                ->name('proyectos.casos.editar');
+
             Route::view('/compromisos', 'compromisos::listado-page')
                 ->middleware('can:compromisos.ver')
                 ->name('proyectos.compromisos.lista');
+
+            Route::get('/compromisos/{compromiso}/editar', fn (int $proyecto_id, string $compromiso) => view('compromisos::editar-page', [
+                'compromiso' => $compromiso,
+            ]))
+                ->middleware('can:compromisos.crear')
+                ->name('proyectos.compromisos.editar');
 
             Route::view('/personas/crear', 'personas::crear-page')
                 ->middleware('can:personas.crear')

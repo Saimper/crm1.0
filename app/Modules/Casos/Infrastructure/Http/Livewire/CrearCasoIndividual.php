@@ -148,7 +148,7 @@ final class CrearCasoIndividual extends Component
         $reglasComunes = [
             'carteraId' => ['required', 'integer'],
             'estadoCasoId' => ['required', 'integer'],
-            'prioridad' => ['integer', 'min:0', 'max:9'],
+            'prioridad' => ['integer', 'min:0', 'max:1000'],
             'fechaIngreso' => ['required', 'date'],
         ];
 
