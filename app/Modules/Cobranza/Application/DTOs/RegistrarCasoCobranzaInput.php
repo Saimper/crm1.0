@@ -27,6 +27,5 @@ final readonly class RegistrarCasoCobranzaInput
         public int $diasMora,
         public DateTimeImmutable $fechaDesembolso,
         public DateTimeImmutable $fechaVencimiento,
-    ) {
-    }
+    ) {}
 }

@@ -34,7 +34,7 @@ final class TransicionDeAsignacionTest extends TestCase
         $this->app->make(RegistrarGestion::class)->execute($this->gestionInput($ctx));
 
         $this->assertDatabaseHas('asignaciones', [
-            'id'     => $asignacionId,
+            'id' => $asignacionId,
             'estado' => 'en_trabajo',
         ]);
     }
@@ -66,21 +66,21 @@ final class TransicionDeAsignacionTest extends TestCase
         $ctx = $this->contextoBase();
 
         $campanaId = (int) DB::table('campanas')->insertGetId([
-            'public_id'    => (string) Str::ulid(),
-            'codigo'       => 'CAMP-TEST',
-            'nombre'       => 'Campaña de prueba',
+            'public_id' => (string) Str::ulid(),
+            'codigo' => 'CAMP-TEST',
+            'nombre' => 'Campaña de prueba',
             'fecha_inicio' => '2026-04-01',
-            'estado'       => 'activa',
+            'estado' => 'activa',
         ]);
 
         $asignacionId = (int) DB::table('asignaciones')->insertGetId([
-            'public_id'        => (string) Str::ulid(),
-            'campana_id'       => $campanaId,
-            'producto_id'      => $ctx['productoId'],
-            'usuario_id'       => $ctx['usuarioId'],
+            'public_id' => (string) Str::ulid(),
+            'campana_id' => $campanaId,
+            'producto_id' => $ctx['productoId'],
+            'usuario_id' => $ctx['usuarioId'],
             'fecha_asignacion' => '2026-04-17',
-            'prioridad'        => 100,
-            'estado'           => 'pendiente',
+            'prioridad' => 100,
+            'estado' => 'pendiente',
         ]);
 
         return [$ctx, $asignacionId];
@@ -90,21 +90,21 @@ final class TransicionDeAsignacionTest extends TestCase
     private function gestionInput(array $ctx): RegistrarGestionInput
     {
         return new RegistrarGestionInput(
-            publicId:           (string) Str::ulid(),
-            productoId:         $ctx['productoId'],
-            clienteId:          $ctx['clienteId'],
-            contactoId:         null,
-            canalId:            $this->catId('canales', 'TELEFONO'),
-            tipoGestionId:      $this->catId('tipos_gestion', 'LLAMADA_SALIENTE'),
-            resultadoId:        $this->catId('resultados', 'CONTACTO_TITULAR'),
-            causaMoraId:        null,
+            publicId: (string) Str::ulid(),
+            productoId: $ctx['productoId'],
+            clienteId: $ctx['clienteId'],
+            contactoId: null,
+            canalId: $this->catId('canales', 'TELEFONO'),
+            tipoGestionId: $this->catId('tipos_gestion', 'LLAMADA_SALIENTE'),
+            resultadoId: $this->catId('resultados', 'CONTACTO_TITULAR'),
+            causaMoraId: null,
             motivoNoContactoId: null,
-            usuarioId:          $ctx['usuarioId'],
-            notas:              null,
-            duracion:           new DuracionSegundos(60),
-            snapshot:           null,
-            datosPromesa:       null,
-            creadaEn:           new DateTimeImmutable('2026-04-17 10:00:00'),
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: new DuracionSegundos(60),
+            snapshot: null,
+            datosPromesa: null,
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
         );
     }
 
@@ -119,37 +119,37 @@ final class TransicionDeAsignacionTest extends TestCase
         $usuario = User::factory()->create();
 
         $clienteId = (int) DB::table('clientes')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $this->catId('tipos_identificacion', 'CED'),
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Test',
-            'apellidos'              => 'User',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Test',
+            'apellidos' => 'User',
         ]);
 
         $productoId = (int) DB::table('productos')->insertGetId([
-            'public_id'          => (string) Str::ulid(),
-            'cliente_id'         => $clienteId,
-            'numero_prestamo'    => 'P-TRANS-'.Str::random(6),
-            'cartera_id'         => $this->catId('carteras', 'CONSUMO'),
+            'public_id' => (string) Str::ulid(),
+            'cliente_id' => $clienteId,
+            'numero_prestamo' => 'P-TRANS-'.Str::random(6),
+            'cartera_id' => $this->catId('carteras', 'CONSUMO'),
             'estado_producto_id' => $this->catId('estados_producto', 'MORA'),
-            'tramo_mora_id'      => $this->catId('tramos_mora', 'TRAMO_31_60'),
-            'monto_original'     => 5000,
-            'saldo_capital'      => 4000,
-            'saldo_total'        => 4500,
-            'cuota_mensual'      => 250,
-            'dias_mora'          => 45,
-            'cuotas_totales'     => 24,
-            'cuotas_pagadas'     => 6,
-            'moneda'             => 'USD',
-            'fecha_desembolso'   => '2026-01-15',
-            'fecha_vencimiento'  => '2028-01-15',
+            'tramo_mora_id' => $this->catId('tramos_mora', 'TRAMO_31_60'),
+            'monto_original' => 5000,
+            'saldo_capital' => 4000,
+            'saldo_total' => 4500,
+            'cuota_mensual' => 250,
+            'dias_mora' => 45,
+            'cuotas_totales' => 24,
+            'cuotas_pagadas' => 6,
+            'moneda' => 'USD',
+            'fecha_desembolso' => '2026-01-15',
+            'fecha_vencimiento' => '2028-01-15',
         ]);
 
         return [
-            'clienteId'  => $clienteId,
+            'clienteId' => $clienteId,
             'productoId' => $productoId,
-            'usuarioId'  => $usuario->id,
+            'usuarioId' => $usuario->id,
         ];
     }
 }

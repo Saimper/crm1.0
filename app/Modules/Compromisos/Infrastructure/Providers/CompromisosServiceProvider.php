@@ -15,7 +15,5 @@ final class CompromisosServiceProvider extends ServiceProvider
         $this->app->bind(CompromisoRepository::class, EloquentCompromisoRepository::class);
     }
 
-    public function boot(): void
-    {
-    }
+    public function boot(): void {}
 }

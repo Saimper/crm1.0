@@ -14,6 +14,5 @@ final readonly class AsignacionCerrada
         public int $casoId,
         public int $usuarioId,
         public DateTimeImmutable $cerradaEn,
-    ) {
-    }
+    ) {}
 }

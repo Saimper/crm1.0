@@ -15,9 +15,9 @@ final class AuditoriaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'datos_antes'   => 'array',
+        'datos_antes' => 'array',
         'datos_despues' => 'array',
-        'cambios'       => 'array',
-        'creada_en'     => 'immutable_datetime',
+        'cambios' => 'array',
+        'creada_en' => 'immutable_datetime',
     ];
 }

@@ -49,14 +49,14 @@ final class CrearPersona extends Component
         }
 
         $reglas = [
-            'tipoPersona'          => 'required|in:fisica,juridica',
+            'tipoPersona' => 'required|in:fisica,juridica',
             'tipoIdentificacionId' => 'required|integer|exists:tipos_identificacion,id',
-            'identificacion'       => 'required|string|min:5|max:50',
-            'fechaNacimiento'      => 'nullable|date|before:today',
+            'identificacion' => 'required|string|min:5|max:50',
+            'fechaNacimiento' => 'nullable|date|before:today',
         ];
 
         if ($this->tipoPersona === 'fisica') {
-            $reglas['nombres']   = 'required|string|max:150';
+            $reglas['nombres'] = 'required|string|max:150';
             $reglas['apellidos'] = 'nullable|string|max:150';
         } else {
             $reglas['razonSocial'] = 'required|string|max:250';
@@ -66,26 +66,26 @@ final class CrearPersona extends Component
 
         try {
             $output = $useCase->execute(new RegistrarPersonaInput(
-                publicId:             (string) Str::ulid(),
-                proyectoId:           (int) $proyecto->id,
-                tipoPersona:          TipoPersona::from($this->tipoPersona),
+                publicId: (string) Str::ulid(),
+                proyectoId: (int) $proyecto->id,
+                tipoPersona: TipoPersona::from($this->tipoPersona),
                 tipoIdentificacionId: (int) $this->tipoIdentificacionId,
-                identificacion:       new Identificacion($this->identificacion),
-                nombres:              $this->nombres !== '' ? $this->nombres : null,
-                apellidos:            $this->apellidos !== '' ? $this->apellidos : null,
-                razonSocial:          $this->razonSocial !== '' ? $this->razonSocial : null,
-                fechaNacimiento:      $this->fechaNacimiento ? new DateTimeImmutable($this->fechaNacimiento) : null,
-                creadaEn:             new DateTimeImmutable('now'),
+                identificacion: new Identificacion($this->identificacion),
+                nombres: $this->nombres !== '' ? $this->nombres : null,
+                apellidos: $this->apellidos !== '' ? $this->apellidos : null,
+                razonSocial: $this->razonSocial !== '' ? $this->razonSocial : null,
+                fechaNacimiento: $this->fechaNacimiento ? new DateTimeImmutable($this->fechaNacimiento) : null,
+                creadaEn: new DateTimeImmutable('now'),
             ));
         } catch (IdentificacionYaRegistradaEnProyecto $e) {
             throw ValidationException::withMessages(['identificacion' => $e->getMessage()]);
-        } catch (DatosPersonaInvalidos | InvalidArgumentException $e) {
+        } catch (DatosPersonaInvalidos|InvalidArgumentException $e) {
             throw ValidationException::withMessages(['general' => $e->getMessage()]);
         }
 
         session()->flash('persona_creada', [
             'public_id' => $output->publicId,
-            'nombre'    => $output->nombreCompleto,
+            'nombre' => $output->nombreCompleto,
         ]);
 
         $this->redirectRoute('proyectos.dashboard', ['proyecto_id' => $proyecto->id], navigate: true);

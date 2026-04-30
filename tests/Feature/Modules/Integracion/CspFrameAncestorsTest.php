@@ -10,7 +10,6 @@ use App\Modules\Integracion\Application\UseCases\EmitirTokenSso;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -30,7 +29,7 @@ final class CspFrameAncestorsTest extends TestCase
         Config::set('integracion.wrapper_domain', 'https://wrapper.example.com');
 
         $usuario = $this->crearUsuario();
-        $output  = app(EmitirTokenSso::class)->execute(new EmitirTokenSsoInput(
+        $output = app(EmitirTokenSso::class)->execute(new EmitirTokenSsoInput(
             usuarioId: (int) $usuario->id,
             proyectoId: null,
             identificacion: null,
@@ -54,7 +53,7 @@ final class CspFrameAncestorsTest extends TestCase
         Config::set('integracion.wrapper_domain', null);
 
         $usuario = $this->crearUsuario();
-        $output  = app(EmitirTokenSso::class)->execute(new EmitirTokenSsoInput(
+        $output = app(EmitirTokenSso::class)->execute(new EmitirTokenSsoInput(
             usuarioId: (int) $usuario->id,
             proyectoId: null,
             identificacion: null,
@@ -74,10 +73,10 @@ final class CspFrameAncestorsTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => 'CSP Test',
-            'email'    => 'csp.' . Str::random(6) . '@crm.local',
+            'name' => 'CSP Test',
+            'email' => 'csp.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         return $u;

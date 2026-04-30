@@ -18,8 +18,8 @@ final class NotificacionModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'metadata'  => 'array',
-        'leida_en'  => 'immutable_datetime',
+        'metadata' => 'array',
+        'leida_en' => 'immutable_datetime',
         'creada_en' => 'immutable_datetime',
     ];
 }

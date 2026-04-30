@@ -6,8 +6,10 @@ namespace Tests\Feature\Modules\Tenancy;
 
 use App\Models\User;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\FormularioCamposPersonalizados;
+use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverProyectoActivo;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -47,14 +49,14 @@ final class PersistentMiddlewareLivewireTest extends TestCase
         if ($campoId === 0) {
             DB::table('campos_personalizados')->insert([
                 'proyecto_id' => $proyectoId,
-                'ambito'      => 'caso',
-                'ambito_id'   => $carteraId,
-                'codigo'      => 'operador_externo',
-                'etiqueta'    => 'Operador externo',
-                'tipo'        => 'texto_corto',
+                'ambito' => 'caso',
+                'ambito_id' => $carteraId,
+                'codigo' => 'operador_externo',
+                'etiqueta' => 'Operador externo',
+                'tipo' => 'texto_corto',
                 'obligatorio' => false,
-                'activo'      => true,
-                'orden'       => 10,
+                'activo' => true,
+                'orden' => 10,
             ]);
         }
 
@@ -80,17 +82,17 @@ final class PersistentMiddlewareLivewireTest extends TestCase
         // El componente se monta sin depender de app('tenancy.proyecto_activo') porque
         // recibe proyectoId como prop. Debe poder guardar incluso sin binding previo.
         Livewire::test(FormularioCamposPersonalizados::class, [
-                'proyectoId' => $proyectoId,
-                'ambito'     => 'caso',
-                'ambitoId'   => $carteraId,
-                'entidadId'  => $casoId,
-            ])
+            'proyectoId' => $proyectoId,
+            'ambito' => 'caso',
+            'ambitoId' => $carteraId,
+            'entidadId' => $casoId,
+        ])
             ->set('valores.operador_externo', 'Valor del gestor')
             ->call('guardar')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('valores_campo_personalizado', [
-            'entidad_id'        => $casoId,
+            'entidad_id' => $casoId,
             'valor_texto_corto' => 'Valor del gestor',
         ]);
     }
@@ -110,8 +112,8 @@ final class PersistentMiddlewareLivewireTest extends TestCase
         ]);
 
         // Simulamos un request /livewire/update con Referer apuntando a /proyectos/{id}/trabajo
-        $middleware = new \App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverProyectoActivo();
-        $request = \Illuminate\Http\Request::create('/livewire/update', 'POST');
+        $middleware = new ResolverProyectoActivo;
+        $request = Request::create('/livewire/update', 'POST');
         $request->headers->set('Referer', "http://localhost/proyectos/{$proyectoId}/trabajo/01ABC");
         $request->setUserResolver(fn () => $gestor);
 
@@ -124,8 +126,8 @@ final class PersistentMiddlewareLivewireTest extends TestCase
 
     public function test_middleware_no_aborta_en_livewire_cuando_no_hay_referer_resolvible(): void
     {
-        $middleware = new \App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverProyectoActivo();
-        $request = \Illuminate\Http\Request::create('/livewire/update', 'POST');
+        $middleware = new ResolverProyectoActivo;
+        $request = Request::create('/livewire/update', 'POST');
 
         $response = $middleware->handle($request, fn ($r) => response('ok'));
 

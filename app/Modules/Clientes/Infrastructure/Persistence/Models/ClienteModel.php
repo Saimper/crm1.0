@@ -23,9 +23,9 @@ final class ClienteModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'        => 'immutable_datetime',
-        'actualizada_en'   => 'immutable_datetime',
-        'eliminada_en'     => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'eliminada_en' => 'immutable_datetime',
         'fecha_nacimiento' => 'immutable_date',
     ];
 

@@ -16,19 +16,18 @@ final readonly class RegistrarContacto
     public function __construct(
         private ContactoRepository $repositorio,
         private ConnectionInterface $db,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarContactoInput $input): RegistrarContactoOutput
     {
         $contacto = Contacto::registrar(
-            proyectoId:  $input->proyectoId,
-            personaId:   $input->personaId,
-            tipo:        $input->tipo,
-            valor:       $input->valor,
-            etiqueta:    $input->etiqueta,
+            proyectoId: $input->proyectoId,
+            personaId: $input->personaId,
+            tipo: $input->tipo,
+            valor: $input->valor,
+            etiqueta: $input->etiqueta,
             esPrincipal: $input->esPrincipal,
-            creadaEn:    $input->creadaEn,
+            creadaEn: $input->creadaEn,
         );
 
         $yaExiste = $this->repositorio->existeValorParaPersona(
@@ -45,9 +44,9 @@ final readonly class RegistrarContacto
         $persistido = $this->db->transaction(fn (): Contacto => $this->repositorio->save($contacto));
 
         return new RegistrarContactoOutput(
-            id:    (int) $persistido->id,
+            id: (int) $persistido->id,
             valor: $persistido->valor,
-            tipo:  $persistido->tipo->value,
+            tipo: $persistido->tipo->value,
         );
     }
 }

@@ -21,44 +21,44 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
     protected function formVacio(): array
     {
         return [
-            'codigo'      => '',
-            'nombre'      => '',
+            'codigo' => '',
+            'nombre' => '',
             'es_terminal' => false,
-            'orden'       => 100,
-            'activo'      => true,
+            'orden' => 100,
+            'activo' => true,
         ];
     }
 
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo'      => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
-            'form.nombre'      => ['required', 'string', 'max:150'],
+            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.nombre' => ['required', 'string', 'max:150'],
             'form.es_terminal' => ['boolean'],
-            'form.orden'       => ['integer', 'min:0'],
-            'form.activo'      => ['boolean'],
+            'form.orden' => ['integer', 'min:0'],
+            'form.activo' => ['boolean'],
         ];
     }
 
     protected function payloadDesdeForm(): array
     {
         return [
-            'codigo'      => (string) $this->form['codigo'],
-            'nombre'      => (string) $this->form['nombre'],
+            'codigo' => (string) $this->form['codigo'],
+            'nombre' => (string) $this->form['nombre'],
             'es_terminal' => (bool) ($this->form['es_terminal'] ?? false),
-            'orden'       => (int) ($this->form['orden'] ?? 100),
-            'activo'      => (bool) ($this->form['activo'] ?? true),
+            'orden' => (int) ($this->form['orden'] ?? 100),
+            'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
 
     protected function formDesdeFila(object $row): array
     {
         return [
-            'codigo'      => (string) $row->codigo,
-            'nombre'      => (string) $row->nombre,
+            'codigo' => (string) $row->codigo,
+            'nombre' => (string) $row->nombre,
             'es_terminal' => (bool) $row->es_terminal,
-            'orden'       => (int) $row->orden,
-            'activo'      => (bool) $row->activo,
+            'orden' => (int) $row->orden,
+            'activo' => (bool) $row->activo,
         ];
     }
 
@@ -72,6 +72,7 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
 
         if ($enUso) {
             session()->flash('admin-catalogo-error', 'No se puede desactivar: hay casos usando este estado.');
+
             return;
         }
 

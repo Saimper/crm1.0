@@ -23,8 +23,7 @@ final readonly class Proyecto
         public ?DateTimeImmutable $fechaInicio,
         public ?DateTimeImmutable $fechaFin,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

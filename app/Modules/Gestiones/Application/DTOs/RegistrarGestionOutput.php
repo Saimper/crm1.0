@@ -12,6 +12,5 @@ final readonly class RegistrarGestionOutput
         public int $id,
         public string $publicId,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

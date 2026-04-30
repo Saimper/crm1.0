@@ -17,14 +17,14 @@ final class EloquentCarteraRepository implements CarteraRepository
     {
         $model = $cartera->id !== null
             ? CarteraModel::query()->findOrFail($cartera->id)
-            : new CarteraModel();
+            : new CarteraModel;
 
-        $model->public_id    = $cartera->publicId;
-        $model->proyecto_id  = $cartera->proyectoId;
-        $model->codigo       = $cartera->codigo->asString();
-        $model->nombre       = $cartera->nombre;
-        $model->descripcion  = $cartera->descripcion;
-        $model->activo       = $cartera->activo;
+        $model->public_id = $cartera->publicId;
+        $model->proyecto_id = $cartera->proyectoId;
+        $model->codigo = $cartera->codigo->asString();
+        $model->nombre = $cartera->nombre;
+        $model->descripcion = $cartera->descripcion;
+        $model->activo = $cartera->activo;
         if ($cartera->id === null) {
             $model->creada_en = $cartera->creadaEn;
         }
@@ -43,14 +43,14 @@ final class EloquentCarteraRepository implements CarteraRepository
         }
 
         return Cartera::reconstituir(
-            id:          (int) $model->id,
-            publicId:    (string) $model->public_id,
-            proyectoId:  (int) $model->proyecto_id,
-            codigo:      new CodigoCartera((string) $model->codigo),
-            nombre:      (string) $model->nombre,
+            id: (int) $model->id,
+            publicId: (string) $model->public_id,
+            proyectoId: (int) $model->proyecto_id,
+            codigo: new CodigoCartera((string) $model->codigo),
+            nombre: (string) $model->nombre,
             descripcion: $model->descripcion !== null ? (string) $model->descripcion : null,
-            activo:      (bool) $model->activo,
-            creadaEn:    $this->hidratarFecha($model->creada_en),
+            activo: (bool) $model->activo,
+            creadaEn: $this->hidratarFecha($model->creada_en),
         );
     }
 

@@ -70,7 +70,7 @@ final class BuscadorGlobal extends Component
         }
 
         return view('gestiones::livewire.buscador-global', [
-            'clientes'  => $clientes,
+            'clientes' => $clientes,
             'productos' => $productos,
         ]);
     }

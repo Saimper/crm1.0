@@ -54,17 +54,17 @@ final class NuevaGestionComponentTest extends TestCase
         $gestor = $this->crearGestor();
         $this->actingAs($gestor);
 
-        $canalId        = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
-        $tipoGestionId  = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
-        $resultadoId    = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'PROMESA_PAGO')->value('id');
-        $causaId        = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'DESEMPLEO')->value('id');
-        $tipoPagoId     = (int) DB::table('tipos_pago')->where('proyecto_id', $proyectoId)->where('codigo', 'TRANSFERENCIA')->value('id');
+        $canalId = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
+        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
+        $resultadoId = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'PROMESA_PAGO')->value('id');
+        $causaId = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'DESEMPLEO')->value('id');
+        $tipoPagoId = (int) DB::table('tipos_pago')->where('proyecto_id', $proyectoId)->where('codigo', 'TRANSFERENCIA')->value('id');
 
         Livewire::test(NuevaGestion::class, [
-                'casoId'    => $casoId,
-                'personaId' => $personaId,
-                'tipoCaso'  => 'cobranza',
-            ])
+            'casoId' => $casoId,
+            'personaId' => $personaId,
+            'tipoCaso' => 'cobranza',
+        ])
             ->set('canalId', $canalId)
             ->set('tipoGestionId', $tipoGestionId)
             ->set('resultadoId', $resultadoId)
@@ -78,20 +78,20 @@ final class NuevaGestionComponentTest extends TestCase
             ->assertDispatched('gestion-registrada');
 
         $this->assertDatabaseHas('gestiones', [
-            'caso_id'      => $casoId,
+            'caso_id' => $casoId,
             'resultado_id' => $resultadoId,
-            'causa_id'     => $causaId,
+            'causa_id' => $causaId,
         ]);
         $this->assertDatabaseHas('compromisos', [
-            'caso_id'         => $casoId,
+            'caso_id' => $casoId,
             'tipo_compromiso' => 'promesa_pago',
-            'estado'          => 'pendiente',
+            'estado' => 'pendiente',
         ]);
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $casoId)->value('id');
         $this->assertDatabaseHas('compromisos_promesa_pago', [
             'compromiso_id' => $compromisoId,
-            'monto'         => '750.50',
-            'tipo_pago_id'  => $tipoPagoId,
+            'monto' => '750.50',
+            'tipo_pago_id' => $tipoPagoId,
         ]);
     }
 
@@ -101,14 +101,14 @@ final class NuevaGestionComponentTest extends TestCase
         $this->bindProyecto($proyectoId);
         $this->actingAs($this->crearGestor());
 
-        $canalId        = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
-        $tipoGestionId  = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
+        $canalId = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
+        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
 
         Livewire::test(NuevaGestion::class, [
-                'casoId'    => $casoId,
-                'personaId' => $personaId,
-                'tipoCaso'  => 'cobranza',
-            ])
+            'casoId' => $casoId,
+            'personaId' => $personaId,
+            'tipoCaso' => 'cobranza',
+        ])
             ->set('canalId', $canalId)
             ->set('tipoGestionId', $tipoGestionId)
             ->call('guardar')
@@ -119,8 +119,8 @@ final class NuevaGestionComponentTest extends TestCase
     private function crearCasoCobranza(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')
             ->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
@@ -132,23 +132,23 @@ final class NuevaGestionComponentTest extends TestCase
         ]);
 
         $out = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId:       $proyectoId,
-            carteraId:        $carteraId,
-            personaId:        $personaId,
-            estadoCasoId:     $estadoAbiertoId,
-            fechaIngreso:     new DateTimeImmutable('2026-04-17'),
-            prioridad:        100,
-            numeroPrestamo:   'PRST-UI-'.Str::random(4),
-            moneda:           'USD',
-            montoOriginal:    '3000.00',
-            saldoCapital:     '2500.00',
-            saldoInteres:     '50.00',
-            saldoTotal:       '2550.00',
-            cuotaMensual:     '250.00',
-            cuotasTotales:    12,
-            cuotasPagadas:    2,
-            diasMora:         10,
-            fechaDesembolso:  new DateTimeImmutable('2026-01-01'),
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoAbiertoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            numeroPrestamo: 'PRST-UI-'.Str::random(4),
+            moneda: 'USD',
+            montoOriginal: '3000.00',
+            saldoCapital: '2500.00',
+            saldoInteres: '50.00',
+            saldoTotal: '2550.00',
+            cuotaMensual: '250.00',
+            cuotasTotales: 12,
+            cuotasPagadas: 2,
+            diasMora: 10,
+            fechaDesembolso: new DateTimeImmutable('2026-01-01'),
             fechaVencimiento: new DateTimeImmutable('2027-01-01'),
         ));
 

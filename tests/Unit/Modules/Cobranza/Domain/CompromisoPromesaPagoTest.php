@@ -16,11 +16,11 @@ final class CompromisoPromesaPagoTest extends TestCase
     public function test_registra_promesa_valida(): void
     {
         $promesa = CompromisoPromesaPago::registrar(
-            compromisoId:     10,
-            proyectoId:       5,
-            monto:            new MontoPromesa('250.00', 'USD'),
+            compromisoId: 10,
+            proyectoId: 5,
+            monto: new MontoPromesa('250.00', 'USD'),
             fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-05-15')),
-            tipoPagoId:       2,
+            tipoPagoId: 2,
         );
 
         $this->assertSame(10, $promesa->compromisoId);

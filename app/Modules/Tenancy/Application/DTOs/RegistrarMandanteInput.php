@@ -15,6 +15,5 @@ final readonly class RegistrarMandanteInput
         public string $nombre,
         public ?string $documento,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

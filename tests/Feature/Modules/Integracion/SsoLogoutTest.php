@@ -24,7 +24,7 @@ final class SsoLogoutTest extends TestCase
     public function test_logout_autenticado_devuelve_200_ok(): void
     {
         $usuario = $this->crearUsuario();
-        $token   = $usuario->createToken('wrapper')->plainTextToken;
+        $token = $usuario->createToken('wrapper')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/auth/logout');
@@ -42,7 +42,7 @@ final class SsoLogoutTest extends TestCase
     public function test_logout_invalida_token_sanctum(): void
     {
         $usuario = $this->crearUsuario();
-        $token   = $usuario->createToken('wrapper')->plainTextToken;
+        $token = $usuario->createToken('wrapper')->plainTextToken;
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/auth/logout')
@@ -59,10 +59,10 @@ final class SsoLogoutTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => 'Logout Test',
-            'email'    => 'logout.' . Str::random(6) . '@crm.local',
+            'name' => 'Logout Test',
+            'email' => 'logout.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         return $u;

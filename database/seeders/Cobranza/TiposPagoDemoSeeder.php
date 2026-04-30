@@ -35,10 +35,10 @@ final class TiposPagoDemoSeeder extends Seeder
 
             DB::table('tipos_pago')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

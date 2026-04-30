@@ -28,8 +28,7 @@ final readonly class Gestion
         public ?DuracionSegundos $duracion,
         public BanderasResultado $banderas,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

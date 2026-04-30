@@ -34,12 +34,12 @@ final class NivelesSlaDemoSeeder extends Seeder
             }
 
             DB::table('niveles_sla')->insert([
-                'proyecto_id'      => $proyectoId,
-                'codigo'           => $f['codigo'],
-                'nombre'           => $f['nombre'],
+                'proyecto_id' => $proyectoId,
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
                 'horas_resolucion' => $f['horas'],
-                'activo'           => true,
-                'orden'            => $f['orden'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

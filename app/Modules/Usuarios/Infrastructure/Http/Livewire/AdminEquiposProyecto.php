@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 
-use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Illuminate\Support\Carbon;
 use Livewire\Component;
 
 /**
@@ -23,15 +22,23 @@ use Livewire\Component;
 final class AdminEquiposProyecto extends Component
 {
     public bool $formEquipoVisible = false;
+
     public ?int $equipoEditandoId = null;
+
     public string $formCodigo = '';
+
     public string $formNombre = '';
+
     public string $formDescripcion = '';
+
     public bool $formActivo = true;
 
     public ?int $gestionandoEquipoId = null;
+
     public string $buscarEmail = '';
+
     public ?int $usuarioBuscadoId = null;
+
     public string $usuarioBuscadoNombre = '';
 
     public function abrirFormCrear(): void
@@ -85,6 +92,7 @@ final class AdminEquiposProyecto extends Component
         }
         if ($dupQ->exists()) {
             $this->addError('formCodigo', 'Ya existe un equipo con ese código en el proyecto.');
+
             return;
         }
 
@@ -156,6 +164,7 @@ final class AdminEquiposProyecto extends Component
         $user = DB::table('users')->where('email', $email)->first();
         if ($user === null) {
             $this->addError('buscarEmail', 'No existe un usuario con ese email.');
+
             return;
         }
 
@@ -166,6 +175,7 @@ final class AdminEquiposProyecto extends Component
             ->exists();
         if ($esAdmin) {
             $this->addError('buscarEmail', 'Los ADMIN_GLOBAL no se agregan a equipos de proyecto.');
+
             return;
         }
 
@@ -176,6 +186,7 @@ final class AdminEquiposProyecto extends Component
             ->exists();
         if (! $tieneRolEnProyecto) {
             $this->addError('buscarEmail', 'El usuario no tiene rol activo en este proyecto.');
+
             return;
         }
 
@@ -250,8 +261,8 @@ final class AdminEquiposProyecto extends Component
                 ->join('users as u', 'u.id', '=', 'eu.usuario_id')
                 ->leftJoin('usuario_proyecto_rol as upr', function ($join) use ($proyectoId) {
                     $join->on('upr.usuario_id', '=', 'eu.usuario_id')
-                         ->where('upr.proyecto_id', '=', $proyectoId)
-                         ->where('upr.activo', '=', true);
+                        ->where('upr.proyecto_id', '=', $proyectoId)
+                        ->where('upr.activo', '=', true);
                 })
                 ->leftJoin('roles as r', 'r.id', '=', 'upr.rol_id')
                 ->where('eu.proyecto_id', $proyectoId)
@@ -262,7 +273,7 @@ final class AdminEquiposProyecto extends Component
         }
 
         return view('usuarios::admin.equipos-proyecto', [
-            'equipos'  => $equipos,
+            'equipos' => $equipos,
             'miembros' => $miembros,
         ]);
     }

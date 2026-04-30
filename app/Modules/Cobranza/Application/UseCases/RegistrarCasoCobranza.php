@@ -34,8 +34,7 @@ final readonly class RegistrarCasoCobranza
         private TramoMoraRepository $tramosRepo,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarCasoCobranzaInput $input): RegistrarCasoCobranzaOutput
     {
@@ -45,19 +44,19 @@ final readonly class RegistrarCasoCobranza
             );
         }
 
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         return $this->db->transaction(function () use ($input, $ahora): RegistrarCasoCobranzaOutput {
             $caso = Caso::registrar(
-                publicId:     (string) Str::ulid(),
-                proyectoId:   $input->proyectoId,
-                carteraId:    $input->carteraId,
-                personaId:    $input->personaId,
-                tipoCaso:     TipoCaso::COBRANZA,
+                publicId: (string) Str::ulid(),
+                proyectoId: $input->proyectoId,
+                carteraId: $input->carteraId,
+                personaId: $input->personaId,
+                tipoCaso: TipoCaso::COBRANZA,
                 estadoCasoId: $input->estadoCasoId,
                 fechaIngreso: $input->fechaIngreso,
-                prioridad:    $input->prioridad,
-                creadaEn:     $ahora,
+                prioridad: $input->prioridad,
+                creadaEn: $ahora,
             );
             $caso = $this->casoRepo->save($caso);
             $casoId = (int) $caso->id;
@@ -65,35 +64,35 @@ final readonly class RegistrarCasoCobranza
             $tramoMoraId = $this->tramosRepo->resolverPorDiasMora($input->proyectoId, $input->diasMora);
 
             $cobranza = CasoCobranza::registrar(
-                casoId:           $casoId,
-                proyectoId:       $input->proyectoId,
-                numeroPrestamo:   new NumeroPrestamo($input->numeroPrestamo),
-                montoOriginal:    new MontoCobranza($input->montoOriginal, $input->moneda),
-                saldoCapital:     new MontoCobranza($input->saldoCapital, $input->moneda),
-                saldoInteres:     new MontoCobranza($input->saldoInteres, $input->moneda),
-                saldoTotal:       new MontoCobranza($input->saldoTotal, $input->moneda),
-                cuotaMensual:     new MontoCobranza($input->cuotaMensual, $input->moneda),
-                cuotasTotales:    $input->cuotasTotales,
-                cuotasPagadas:    $input->cuotasPagadas,
-                diasMora:         new DiasMora($input->diasMora),
-                tramoMoraId:      $tramoMoraId,
-                fechaDesembolso:  $input->fechaDesembolso,
+                casoId: $casoId,
+                proyectoId: $input->proyectoId,
+                numeroPrestamo: new NumeroPrestamo($input->numeroPrestamo),
+                montoOriginal: new MontoCobranza($input->montoOriginal, $input->moneda),
+                saldoCapital: new MontoCobranza($input->saldoCapital, $input->moneda),
+                saldoInteres: new MontoCobranza($input->saldoInteres, $input->moneda),
+                saldoTotal: new MontoCobranza($input->saldoTotal, $input->moneda),
+                cuotaMensual: new MontoCobranza($input->cuotaMensual, $input->moneda),
+                cuotasTotales: $input->cuotasTotales,
+                cuotasPagadas: $input->cuotasPagadas,
+                diasMora: new DiasMora($input->diasMora),
+                tramoMoraId: $tramoMoraId,
+                fechaDesembolso: $input->fechaDesembolso,
                 fechaVencimiento: $input->fechaVencimiento,
             );
             $this->cobranzaRepo->save($cobranza);
 
             $this->eventos->dispatch(new CasoCreado(
-                casoId:     $casoId,
-                publicId:   $caso->publicId,
+                casoId: $casoId,
+                publicId: $caso->publicId,
                 proyectoId: $caso->proyectoId,
-                carteraId:  $caso->carteraId,
-                personaId:  $caso->personaId,
-                tipoCaso:   TipoCaso::COBRANZA,
-                creadaEn:   $ahora,
+                carteraId: $caso->carteraId,
+                personaId: $caso->personaId,
+                tipoCaso: TipoCaso::COBRANZA,
+                creadaEn: $ahora,
             ));
 
             return new RegistrarCasoCobranzaOutput(
-                casoId:   $casoId,
+                casoId: $casoId,
                 publicId: $caso->publicId,
             );
         });

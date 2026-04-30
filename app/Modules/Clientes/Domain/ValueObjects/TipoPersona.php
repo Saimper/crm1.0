@@ -6,6 +6,6 @@ namespace App\Modules\Clientes\Domain\ValueObjects;
 
 enum TipoPersona: string
 {
-    case FISICA   = 'fisica';
+    case FISICA = 'fisica';
     case JURIDICA = 'juridica';
 }

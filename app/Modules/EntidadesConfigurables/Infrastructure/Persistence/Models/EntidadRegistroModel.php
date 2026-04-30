@@ -18,8 +18,8 @@ final class EntidadRegistroModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creado_en'     => 'immutable_datetime',
+        'creado_en' => 'immutable_datetime',
         'actualizado_en' => 'immutable_datetime',
-        'eliminado_en'  => 'immutable_datetime',
+        'eliminado_en' => 'immutable_datetime',
     ];
 }

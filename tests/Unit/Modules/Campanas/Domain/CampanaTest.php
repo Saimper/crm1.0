@@ -17,15 +17,15 @@ final class CampanaTest extends TestCase
     public function test_registra_campana_en_programada_y_normaliza_codigo(): void
     {
         $c = Campana::registrar(
-            publicId:    '01HXCAMP0000000000000CAMP01',
-            proyectoId:  1,
-            codigo:      new CodigoCampana('camp-demo-abr'),
-            nombre:      '  Campaña demo  ',
+            publicId: '01HXCAMP0000000000000CAMP01',
+            proyectoId: 1,
+            codigo: new CodigoCampana('camp-demo-abr'),
+            nombre: '  Campaña demo  ',
             descripcion: null,
             fechaInicio: new DateTimeImmutable('2026-04-01'),
-            fechaFin:    new DateTimeImmutable('2026-04-30'),
+            fechaFin: new DateTimeImmutable('2026-04-30'),
             creadaPorId: 9,
-            creadaEn:    new DateTimeImmutable('2026-04-17'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertSame('CAMP-DEMO-ABR', $c->codigo->asString());
@@ -37,15 +37,15 @@ final class CampanaTest extends TestCase
     {
         $this->expectException(RangoFechasCampanaInvalido::class);
         Campana::registrar(
-            publicId:    '01HXCAMP0000000000000CAMP02',
-            proyectoId:  1,
-            codigo:      new CodigoCampana('CAMP_X'),
-            nombre:      'X',
+            publicId: '01HXCAMP0000000000000CAMP02',
+            proyectoId: 1,
+            codigo: new CodigoCampana('CAMP_X'),
+            nombre: 'X',
             descripcion: null,
             fechaInicio: new DateTimeImmutable('2026-06-01'),
-            fechaFin:    new DateTimeImmutable('2026-05-31'),
+            fechaFin: new DateTimeImmutable('2026-05-31'),
             creadaPorId: null,
-            creadaEn:    new DateTimeImmutable('2026-04-17'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 

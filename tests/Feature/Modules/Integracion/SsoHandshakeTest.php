@@ -9,7 +9,6 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 final class SsoHandshakeTest extends TestCase
@@ -27,7 +26,7 @@ final class SsoHandshakeTest extends TestCase
         $usuario = $this->crearUsuarioActivo('gestor.sso@crm.local', 'secret123');
 
         $response = $this->postJson('/api/auth/sso-handshake', [
-            'email'    => 'gestor.sso@crm.local',
+            'email' => 'gestor.sso@crm.local',
             'password' => 'secret123',
         ]);
 
@@ -44,8 +43,8 @@ final class SsoHandshakeTest extends TestCase
         $this->crearUsuarioActivo('gestor.proy@crm.local', 'secret123');
 
         $response = $this->postJson('/api/auth/sso-handshake', [
-            'email'      => 'gestor.proy@crm.local',
-            'password'   => 'secret123',
+            'email' => 'gestor.proy@crm.local',
+            'password' => 'secret123',
             'proyecto_id' => $proyectoId,
         ]);
 
@@ -62,7 +61,7 @@ final class SsoHandshakeTest extends TestCase
         $this->crearUsuarioActivo('test.401@crm.local', 'correctpass');
 
         $response = $this->postJson('/api/auth/sso-handshake', [
-            'email'    => 'test.401@crm.local',
+            'email' => 'test.401@crm.local',
             'password' => 'wrongpass',
         ]);
 
@@ -73,7 +72,7 @@ final class SsoHandshakeTest extends TestCase
     public function test_email_inexistente_devuelve_401_sin_filtrar(): void
     {
         $response = $this->postJson('/api/auth/sso-handshake', [
-            'email'    => 'noexiste@crm.local',
+            'email' => 'noexiste@crm.local',
             'password' => 'cualquiercosa',
         ]);
 
@@ -84,13 +83,13 @@ final class SsoHandshakeTest extends TestCase
     {
         for ($i = 0; $i < 10; $i++) {
             $this->postJson('/api/auth/sso-handshake', [
-                'email'    => "x{$i}@x.com",
+                'email' => "x{$i}@x.com",
                 'password' => 'y',
             ]);
         }
 
         $response = $this->postJson('/api/auth/sso-handshake', [
-            'email'    => 'x11@x.com',
+            'email' => 'x11@x.com',
             'password' => 'y',
         ]);
 
@@ -101,10 +100,10 @@ final class SsoHandshakeTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => 'Test SSO',
-            'email'    => $email,
+            'name' => 'Test SSO',
+            'email' => $email,
             'password' => Hash::make($password),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         return $u;

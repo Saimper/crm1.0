@@ -22,8 +22,7 @@ final readonly class Caso
         public int $prioridad,
         public ?DateTimeImmutable $cerradoEn,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

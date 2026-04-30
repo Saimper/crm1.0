@@ -80,27 +80,27 @@ final class EntidadesConfigurablesTest extends TestCase
 
         $this->assertDatabaseHas('entidades_configurables', [
             'proyecto_id' => $proyectoId,
-            'codigo'      => 'POLIZAS',
-            'relacion_con'=> 'caso',
+            'codigo' => 'POLIZAS',
+            'relacion_con' => 'caso',
         ]);
 
         $entidadId = (int) DB::table('entidades_configurables')
             ->where('proyecto_id', $proyectoId)->where('codigo', 'POLIZAS')->value('id');
 
         $c->call('abrirCamposDe', $entidadId)
-          ->call('abrirFormCampoCrear')
-          ->set('formCampoCodigo', 'numero_poliza')
-          ->set('formCampoEtiqueta', 'Número de póliza')
-          ->set('formCampoTipo', 'texto_corto')
-          ->set('formCampoObligatorio', true)
-          ->call('guardarCampo')
-          ->assertHasNoErrors();
+            ->call('abrirFormCampoCrear')
+            ->set('formCampoCodigo', 'numero_poliza')
+            ->set('formCampoEtiqueta', 'Número de póliza')
+            ->set('formCampoTipo', 'texto_corto')
+            ->set('formCampoObligatorio', true)
+            ->call('guardarCampo')
+            ->assertHasNoErrors();
 
         $this->assertDatabaseHas('campos_personalizados', [
             'proyecto_id' => $proyectoId,
-            'ambito'      => 'entidad_configurable',
-            'ambito_id'   => $entidadId,
-            'codigo'      => 'numero_poliza',
+            'ambito' => 'entidad_configurable',
+            'ambito_id' => $entidadId,
+            'codigo' => 'numero_poliza',
             'obligatorio' => true,
         ]);
     }
@@ -115,16 +115,16 @@ final class EntidadesConfigurablesTest extends TestCase
             ->set('proyectoSeleccionadoId', $proyectoId);
 
         $c->call('abrirFormCrear')
-          ->set('formCodigo', 'DUP')
-          ->set('formNombre', 'Primera')
-          ->call('guardarEntidad')
-          ->assertHasNoErrors();
+            ->set('formCodigo', 'DUP')
+            ->set('formNombre', 'Primera')
+            ->call('guardarEntidad')
+            ->assertHasNoErrors();
 
         $c->call('abrirFormCrear')
-          ->set('formCodigo', 'DUP')
-          ->set('formNombre', 'Segunda')
-          ->call('guardarEntidad')
-          ->assertHasErrors(['formCodigo']);
+            ->set('formCodigo', 'DUP')
+            ->set('formNombre', 'Segunda')
+            ->call('guardarEntidad')
+            ->assertHasErrors(['formCodigo']);
     }
 
     // ====== Operativo (CRUD registros) ======
@@ -143,14 +143,14 @@ final class EntidadesConfigurablesTest extends TestCase
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
-            'ambito'      => 'entidad_configurable',
-            'ambito_id'   => $entidadId,
-            'codigo'      => 'placa',
-            'etiqueta'    => 'Placa',
-            'tipo'        => 'texto_corto',
+            'ambito' => 'entidad_configurable',
+            'ambito_id' => $entidadId,
+            'codigo' => 'placa',
+            'etiqueta' => 'Placa',
+            'tipo' => 'texto_corto',
             'obligatorio' => true,
-            'activo'      => true,
-            'orden'       => 10,
+            'activo' => true,
+            'orden' => 10,
         ]);
 
         $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
@@ -159,7 +159,7 @@ final class EntidadesConfigurablesTest extends TestCase
 
         Livewire::test(GestorRegistrosEntidad::class, [
             'proyectoId' => $proyectoId,
-            'entidadId'  => $entidadId,
+            'entidadId' => $entidadId,
         ])
             ->call('abrirFormCrear')
             ->set('titulo', 'Camioneta principal')
@@ -170,7 +170,7 @@ final class EntidadesConfigurablesTest extends TestCase
         $this->assertDatabaseHas('entidades_registros', [
             'proyecto_id' => $proyectoId,
             'entidad_configurable_id' => $entidadId,
-            'titulo'      => 'Camioneta principal',
+            'titulo' => 'Camioneta principal',
         ]);
         $registroId = (int) DB::table('entidades_registros')
             ->where('proyecto_id', $proyectoId)->where('titulo', 'Camioneta principal')->value('id');
@@ -203,7 +203,7 @@ final class EntidadesConfigurablesTest extends TestCase
 
         Livewire::test(GestorRegistrosEntidad::class, [
             'proyectoId' => $proyectoId,
-            'entidadId'  => $entidadId,
+            'entidadId' => $entidadId,
         ])
             ->assertStatus(403);
     }
@@ -256,7 +256,7 @@ final class EntidadesConfigurablesTest extends TestCase
 
         Livewire::test(GestorRegistrosEntidad::class, [
             'proyectoId' => $proyectoId,
-            'entidadId'  => $entidadId,
+            'entidadId' => $entidadId,
         ])
             ->call('eliminar', $regId);
 
@@ -289,6 +289,7 @@ final class EntidadesConfigurablesTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 
@@ -303,6 +304,7 @@ final class EntidadesConfigurablesTest extends TestCase
         DB::table('usuario_global_rol')->insert([
             'usuario_id' => $u->id, 'rol_id' => $rolAdminId,
         ]);
+
         return $u;
     }
 }

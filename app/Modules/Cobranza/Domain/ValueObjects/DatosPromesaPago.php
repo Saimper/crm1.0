@@ -17,6 +17,5 @@ final readonly class DatosPromesaPago implements DatosCompromiso
         public MontoPromesa $monto,
         public FechaPromesa $fechaVencimiento,
         public ?int $tipoPagoId = null,
-    ) {
-    }
+    ) {}
 }

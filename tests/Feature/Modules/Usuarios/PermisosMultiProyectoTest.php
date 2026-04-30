@@ -62,12 +62,12 @@ final class PermisosMultiProyectoTest extends TestCase
         // Crear un proyecto B adicional del mismo mandante.
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
         $proyectoB = (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => '01HXPRBALTERN0000000000A',
-            'mandante_id'    => $mandanteId,
-            'codigo'         => 'OTRO_COB_2026',
-            'nombre'         => 'Otro proyecto cobranza',
+            'public_id' => '01HXPRBALTERN0000000000A',
+            'mandante_id' => $mandanteId,
+            'codigo' => 'OTRO_COB_2026',
+            'nombre' => 'Otro proyecto cobranza',
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
 
         $this->setProyectoActivo($proyectoB);
@@ -113,7 +113,7 @@ final class PermisosMultiProyectoTest extends TestCase
         $rolId = (int) DB::table('roles')->where('codigo', $rolCodigo)->value('id');
         DB::table('usuario_global_rol')->insert([
             'usuario_id' => $usuarioId,
-            'rol_id'     => $rolId,
+            'rol_id' => $rolId,
         ]);
     }
 
@@ -121,10 +121,10 @@ final class PermisosMultiProyectoTest extends TestCase
     {
         $rolId = (int) DB::table('roles')->where('codigo', $rolCodigo)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id'  => $usuarioId,
+            'usuario_id' => $usuarioId,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolId,
-            'activo'      => true,
+            'rol_id' => $rolId,
+            'activo' => true,
         ]);
     }
 

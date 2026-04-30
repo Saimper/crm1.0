@@ -31,8 +31,8 @@ final class CamposPersonalizadosTest extends TestCase
     public function test_guarda_y_recupera_valor_texto_corto(): void
     {
         $proyectoId = $this->idProyecto();
-        $carteraId  = $this->idCartera($proyectoId);
-        $campoId    = $this->definirCampo($proyectoId, $carteraId, 'referencia_pago', 'texto_corto', obligatorio: false);
+        $carteraId = $this->idCartera($proyectoId);
+        $campoId = $this->definirCampo($proyectoId, $carteraId, 'referencia_pago', 'texto_corto', obligatorio: false);
 
         $servicio = $this->app->make(ServicioCamposPersonalizados::class);
         $servicio->guardarValores($proyectoId, AmbitoCampo::CASO, $carteraId, entidadId: 999, valoresPorCodigo: [
@@ -41,15 +41,15 @@ final class CamposPersonalizadosTest extends TestCase
 
         $this->assertDatabaseHas('valores_campo_personalizado', [
             'campo_personalizado_id' => $campoId,
-            'entidad_id'             => 999,
-            'valor_texto_corto'      => 'TRX-ABC-123',
+            'entidad_id' => 999,
+            'valor_texto_corto' => 'TRX-ABC-123',
         ]);
     }
 
     public function test_obligatorio_no_enviado_throws(): void
     {
         $proyectoId = $this->idProyecto();
-        $carteraId  = $this->idCartera($proyectoId);
+        $carteraId = $this->idCartera($proyectoId);
         $this->definirCampo($proyectoId, $carteraId, 'campo_obligatorio', 'texto_corto', obligatorio: true);
 
         $this->expectException(ReglaViolada::class);
@@ -60,18 +60,18 @@ final class CamposPersonalizadosTest extends TestCase
     public function test_regla_regex_rechaza_valor_invalido(): void
     {
         $proyectoId = $this->idProyecto();
-        $carteraId  = $this->idCartera($proyectoId);
+        $carteraId = $this->idCartera($proyectoId);
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
-            'ambito'      => 'caso',
-            'ambito_id'   => $carteraId,
-            'tipo'        => 'texto_corto',
-            'codigo'      => 'numero_plan',
-            'etiqueta'    => 'Número plan',
+            'ambito' => 'caso',
+            'ambito_id' => $carteraId,
+            'tipo' => 'texto_corto',
+            'codigo' => 'numero_plan',
+            'etiqueta' => 'Número plan',
             'obligatorio' => false,
-            'activo'      => true,
-            'orden'       => 0,
-            'reglas'      => json_encode(['regex' => '^PL-\d{6}$']),
+            'activo' => true,
+            'orden' => 0,
+            'reglas' => json_encode(['regex' => '^PL-\d{6}$']),
         ]);
 
         $servicio = $this->app->make(ServicioCamposPersonalizados::class);
@@ -92,25 +92,25 @@ final class CamposPersonalizadosTest extends TestCase
     public function test_campos_otro_proyecto_no_se_cargan(): void
     {
         $proyectoA = $this->idProyecto();
-        $carteraA  = $this->idCartera($proyectoA);
+        $carteraA = $this->idCartera($proyectoA);
         $this->definirCampo($proyectoA, $carteraA, 'campo_a', 'texto_corto', obligatorio: false);
 
         // Un proyecto B adicional del mismo mandante.
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
         $proyectoB = (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => '01HXOTHER0000000000000B',
-            'mandante_id'    => $mandanteId,
-            'codigo'         => 'OTRO_P',
-            'nombre'         => 'Otro proyecto',
+            'public_id' => '01HXOTHER0000000000000B',
+            'mandante_id' => $mandanteId,
+            'codigo' => 'OTRO_P',
+            'nombre' => 'Otro proyecto',
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
         $carteraB = (int) DB::table('carteras')->insertGetId([
-            'public_id'   => '01HXOTHER0000000000000CB',
+            'public_id' => '01HXOTHER0000000000000CB',
             'proyecto_id' => $proyectoB,
-            'codigo'      => 'OTRA_CART',
-            'nombre'      => 'Otra cartera',
-            'activo'      => true,
+            'codigo' => 'OTRA_CART',
+            'nombre' => 'Otra cartera',
+            'activo' => true,
         ]);
 
         $servicio = $this->app->make(ServicioCamposPersonalizados::class);
@@ -133,15 +133,15 @@ final class CamposPersonalizadosTest extends TestCase
     {
         return (int) DB::table('campos_personalizados')->insertGetId([
             'proyecto_id' => $proyectoId,
-            'ambito'      => 'caso',
-            'ambito_id'   => $carteraId,
-            'tipo'        => $tipo,
-            'codigo'      => $codigo,
-            'etiqueta'    => ucfirst(str_replace('_', ' ', $codigo)),
+            'ambito' => 'caso',
+            'ambito_id' => $carteraId,
+            'tipo' => $tipo,
+            'codigo' => $codigo,
+            'etiqueta' => ucfirst(str_replace('_', ' ', $codigo)),
             'obligatorio' => $obligatorio,
-            'activo'      => true,
-            'orden'       => 0,
-            'reglas'      => json_encode([]),
+            'activo' => true,
+            'orden' => 0,
+            'reglas' => json_encode([]),
         ]);
     }
 }

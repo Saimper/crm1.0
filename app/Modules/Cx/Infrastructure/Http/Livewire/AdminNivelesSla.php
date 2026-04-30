@@ -18,44 +18,44 @@ final class AdminNivelesSla extends AbstractAdminCatalogo
     protected function formVacio(): array
     {
         return [
-            'codigo'           => '',
-            'nombre'           => '',
+            'codigo' => '',
+            'nombre' => '',
             'horas_resolucion' => 24,
-            'orden'            => 100,
-            'activo'           => true,
+            'orden' => 100,
+            'activo' => true,
         ];
     }
 
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo'           => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
-            'form.nombre'           => ['required', 'string', 'max:150'],
+            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.nombre' => ['required', 'string', 'max:150'],
             'form.horas_resolucion' => ['required', 'integer', 'min:1'],
-            'form.orden'            => ['integer', 'min:0'],
-            'form.activo'           => ['boolean'],
+            'form.orden' => ['integer', 'min:0'],
+            'form.activo' => ['boolean'],
         ];
     }
 
     protected function payloadDesdeForm(): array
     {
         return [
-            'codigo'           => (string) $this->form['codigo'],
-            'nombre'           => (string) $this->form['nombre'],
+            'codigo' => (string) $this->form['codigo'],
+            'nombre' => (string) $this->form['nombre'],
             'horas_resolucion' => (int) $this->form['horas_resolucion'],
-            'orden'            => (int) ($this->form['orden'] ?? 100),
-            'activo'           => (bool) ($this->form['activo'] ?? true),
+            'orden' => (int) ($this->form['orden'] ?? 100),
+            'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
 
     protected function formDesdeFila(object $row): array
     {
         return [
-            'codigo'           => (string) $row->codigo,
-            'nombre'           => (string) $row->nombre,
+            'codigo' => (string) $row->codigo,
+            'nombre' => (string) $row->nombre,
             'horas_resolucion' => (int) $row->horas_resolucion,
-            'orden'            => (int) $row->orden,
-            'activo'           => (bool) $row->activo,
+            'orden' => (int) $row->orden,
+            'activo' => (bool) $row->activo,
         ];
     }
 

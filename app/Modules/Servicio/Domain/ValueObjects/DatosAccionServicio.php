@@ -17,6 +17,5 @@ final readonly class DatosAccionServicio implements DatosCompromiso
         public FechaProgramada $fechaProgramada,
         public ?int $tipoAccionServicioId = null,
         public ?string $tecnicoAsignado = null,
-    ) {
-    }
+    ) {}
 }

@@ -39,23 +39,23 @@ final class RegistrarPersonaTest extends TestCase
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
 
         $output = $this->app->make(RegistrarPersona::class)->execute(new RegistrarPersonaInput(
-            publicId:             (string) Str::ulid(),
-            proyectoId:           $proyectoId,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: (string) Str::ulid(),
+            proyectoId: $proyectoId,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: $tipoCed,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         ));
 
         $this->assertDatabaseHas('personas', [
-            'id'             => $output->id,
-            'proyecto_id'    => $proyectoId,
+            'id' => $output->id,
+            'proyecto_id' => $proyectoId,
             'identificacion' => '0102030405',
-            'nombres'        => 'Juan',
+            'nombres' => 'Juan',
         ]);
     }
 
@@ -66,16 +66,16 @@ final class RegistrarPersonaTest extends TestCase
         $useCase = $this->app->make(RegistrarPersona::class);
 
         $make = fn () => $useCase->execute(new RegistrarPersonaInput(
-            publicId:             (string) Str::ulid(),
-            proyectoId:           $proyectoId,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: (string) Str::ulid(),
+            proyectoId: $proyectoId,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: $tipoCed,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         ));
 
         $make();
@@ -91,16 +91,16 @@ final class RegistrarPersonaTest extends TestCase
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
 
         $inputBase = fn (int $proyectoId) => new RegistrarPersonaInput(
-            publicId:             (string) Str::ulid(),
-            proyectoId:           $proyectoId,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: (string) Str::ulid(),
+            proyectoId: $proyectoId,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: $tipoCed,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $useCase = $this->app->make(RegistrarPersona::class);
@@ -131,12 +131,12 @@ final class RegistrarPersonaTest extends TestCase
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
 
         return (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => (string) Str::ulid(),
-            'mandante_id'    => $mandanteId,
-            'codigo'         => $codigo,
-            'nombre'         => "Proyecto adicional {$codigo}",
+            'public_id' => (string) Str::ulid(),
+            'mandante_id' => $mandanteId,
+            'codigo' => $codigo,
+            'nombre' => "Proyecto adicional {$codigo}",
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
     }
 

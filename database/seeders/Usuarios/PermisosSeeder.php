@@ -77,7 +77,7 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'asignaciones.reasignar',  'nombre' => 'Reasignar casos',                         'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.cerrar',     'nombre' => 'Cerrar asignaciones',                     'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.eliminar',   'nombre' => 'Eliminar asignaciones',                   'grupo' => 'asignaciones',  'activo' => true],
-            ['codigo' => 'asignaciones.administrar','nombre' => 'Administrar asignaciones',                'grupo' => 'asignaciones',  'activo' => true],
+            ['codigo' => 'asignaciones.administrar', 'nombre' => 'Administrar asignaciones',                'grupo' => 'asignaciones',  'activo' => true],
 
             // Usuarios del proyecto
             ['codigo' => 'usuarios.ver',            'nombre' => 'Ver usuarios del proyecto',               'grupo' => 'usuarios',      'activo' => true],
@@ -118,7 +118,7 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'auditoria.exportar',      'nombre' => 'Exportar auditoría',                      'grupo' => 'auditoria',     'activo' => true],
 
             // Notificaciones
-            ['codigo' => 'notificaciones.ver',      'nombre' => 'Ver notificaciones propias',              'grupo' => 'notificaciones','activo' => true],
+            ['codigo' => 'notificaciones.ver',      'nombre' => 'Ver notificaciones propias',              'grupo' => 'notificaciones', 'activo' => true],
 
             // Campos personalizados (solo VALORES para operativos; DEFINICIONES solo admin)
             ['codigo' => 'campos.ver',              'nombre' => 'Ver campos personalizados',               'grupo' => 'campos',        'activo' => true],
@@ -126,7 +126,7 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'campos.definir',          'nombre' => 'Definir campos personalizados (admin)',   'grupo' => 'campos',        'activo' => true],
 
             // Entidades configurables (Fase 24) — tablas definibles por proyecto/cartera
-            ['codigo' => 'entidades.ver',           'nombre' => 'Ver registros de entidades configurables','grupo' => 'entidades',     'activo' => true],
+            ['codigo' => 'entidades.ver',           'nombre' => 'Ver registros de entidades configurables', 'grupo' => 'entidades',     'activo' => true],
             ['codigo' => 'entidades.crear',         'nombre' => 'Crear registros de entidades',            'grupo' => 'entidades',     'activo' => true],
             ['codigo' => 'entidades.editar',        'nombre' => 'Editar registros de entidades',           'grupo' => 'entidades',     'activo' => true],
             ['codigo' => 'entidades.eliminar',      'nombre' => 'Eliminar registros de entidades',         'grupo' => 'entidades',     'activo' => true],

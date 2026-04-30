@@ -59,6 +59,7 @@ final class ImportarCasos extends Component
         $tipoOperacion = (string) app('tenancy.proyecto_activo')->tipo_operacion;
         if (! isset(self::COLUMNAS_POR_TIPO[$tipoOperacion])) {
             $this->addError('archivo', 'Tipo de operación no soportado.');
+
             return;
         }
 
@@ -69,11 +70,12 @@ final class ImportarCasos extends Component
 
         if ($filas === []) {
             $this->addError('archivo', 'El CSV está vacío o faltan columnas obligatorias para '.$tipoOperacion.'.');
+
             return;
         }
 
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
-        $importacion = new ImportacionModel();
+        $importacion = new ImportacionModel;
         $importacion->public_id = (string) Str::ulid();
         $importacion->proyecto_id = $proyectoId;
         $importacion->tipo_entidad = self::COLUMNAS_POR_TIPO[$tipoOperacion]['tipo_entidad'];
@@ -86,10 +88,10 @@ final class ImportarCasos extends Component
         foreach ($filas as $i => $payload) {
             ImportacionFilaModel::query()->create([
                 'importacion_id' => $importacion->id,
-                'proyecto_id'    => $proyectoId,
-                'numero_fila'    => $i + 1,
-                'estado'         => 'pendiente',
-                'payload'        => $payload,
+                'proyecto_id' => $proyectoId,
+                'numero_fila' => $i + 1,
+                'estado' => 'pendiente',
+                'payload' => $payload,
             ]);
         }
 
@@ -152,10 +154,10 @@ final class ImportarCasos extends Component
         }
 
         return view('importaciones::livewire.importar-casos', [
-            'historial'         => $historial,
-            'preview'           => $preview,
+            'historial' => $historial,
+            'preview' => $preview,
             'importacionActual' => $importacionActual,
-            'tipoOperacion'     => $tipoOperacion,
+            'tipoOperacion' => $tipoOperacion,
             'columnasEsperadas' => self::COLUMNAS_POR_TIPO[$tipoOperacion]['obligatorias'] ?? [],
         ]);
     }
@@ -168,15 +170,15 @@ final class ImportarCasos extends Component
 
         match ($tipoOperacion) {
             'cobranza' => app(ProcesarImportacionCasosCobranza::class)->ejecutar($this->importacionId, $commit),
-            'cx'       => app(ProcesarImportacionCasosTicketCx::class)->ejecutar($this->importacionId, $commit),
-            'venta'    => app(ProcesarImportacionCasosLeadVenta::class)->ejecutar($this->importacionId, $commit),
+            'cx' => app(ProcesarImportacionCasosTicketCx::class)->ejecutar($this->importacionId, $commit),
+            'venta' => app(ProcesarImportacionCasosLeadVenta::class)->ejecutar($this->importacionId, $commit),
             'servicio' => app(ProcesarImportacionCasosServicio::class)->ejecutar($this->importacionId, $commit),
-            default    => null,
+            default => null,
         };
     }
 
     /**
-     * @param list<string> $columnasObligatorias
+     * @param  list<string>  $columnasObligatorias
      * @return list<array<string, string>>
      */
     private function parsearCsv(string $contenido, array $columnasObligatorias): array

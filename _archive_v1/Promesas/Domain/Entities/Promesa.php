@@ -24,8 +24,7 @@ final readonly class Promesa
         public EstadoPromesa $estado,
         public ?DateTimeImmutable $fechaResolucion,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function crear(
         string $publicId,

@@ -6,6 +6,7 @@ namespace Tests\Feature\Modules\Integracion;
 
 use App\Models\User;
 use App\Modules\Integracion\Application\DTOs\EmitirTokenSsoInput;
+use App\Modules\Integracion\Application\DTOs\EmitirTokenSsoOutput;
 use App\Modules\Integracion\Application\UseCases\EmitirTokenSso;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,8 +28,8 @@ final class ConsumirTokenSsoTest extends TestCase
     public function test_token_valido_con_persona_redirige_a_vista_de_trabajo(): void
     {
         $proyectoId = $this->proyectoCobranzaId();
-        $usuario    = $this->crearGestorEnProyecto($proyectoId);
-        $persona    = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
+        $usuario = $this->crearGestorEnProyecto($proyectoId);
+        $persona = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
 
         $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
 
@@ -44,8 +45,8 @@ final class ConsumirTokenSsoTest extends TestCase
     public function test_token_valido_solo_con_proyecto_redirige_a_bandeja(): void
     {
         $proyectoId = $this->proyectoCobranzaId();
-        $usuario    = $this->crearGestorEnProyecto($proyectoId);
-        $output     = $this->emitir($usuario, $proyectoId);
+        $usuario = $this->crearGestorEnProyecto($proyectoId);
+        $output = $this->emitir($usuario, $proyectoId);
 
         $response = $this->get($output->handshakeUrl);
 
@@ -55,7 +56,7 @@ final class ConsumirTokenSsoTest extends TestCase
     public function test_token_expirado_devuelve_410(): void
     {
         $usuario = $this->crearUsuario();
-        $output  = $this->emitir($usuario);
+        $output = $this->emitir($usuario);
 
         // Expirar manualmente en DB
         DB::table('integracion_tokens_sso')
@@ -69,7 +70,7 @@ final class ConsumirTokenSsoTest extends TestCase
     public function test_token_ya_consumido_devuelve_410(): void
     {
         $usuario = $this->crearUsuario();
-        $output  = $this->emitir($usuario);
+        $output = $this->emitir($usuario);
 
         // Primer uso: OK
         $this->get($output->handshakeUrl);
@@ -82,7 +83,7 @@ final class ConsumirTokenSsoTest extends TestCase
     public function test_redirect_path_absoluto_es_rechazado(): void
     {
         $usuario = $this->crearUsuario();
-        $output  = $this->emitir($usuario, null, null, null, 'https://evil.com/phishing');
+        $output = $this->emitir($usuario, null, null, null, 'https://evil.com/phishing');
 
         $response = $this->get($output->handshakeUrl);
 
@@ -112,7 +113,7 @@ final class ConsumirTokenSsoTest extends TestCase
         ?string $identificacion = null,
         ?string $tiCodigo = null,
         ?string $redirectPath = null,
-    ): \App\Modules\Integracion\Application\DTOs\EmitirTokenSsoOutput {
+    ): EmitirTokenSsoOutput {
         return app(EmitirTokenSso::class)->execute(new EmitirTokenSsoInput(
             usuarioId: (int) $usuario->id,
             proyectoId: $proyectoId,
@@ -128,10 +129,10 @@ final class ConsumirTokenSsoTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => 'SSO Test',
-            'email'    => 'sso.' . Str::random(6) . '@crm.local',
+            'name' => 'SSO Test',
+            'email' => 'sso.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         return $u;
@@ -140,12 +141,12 @@ final class ConsumirTokenSsoTest extends TestCase
     private function crearGestorEnProyecto(int $proyectoId): User
     {
         $usuario = $this->crearUsuario();
-        $rolId   = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
+        $rolId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
         DB::table('usuario_proyecto_rol')->insert([
             'usuario_id' => $usuario->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'     => $rolId,
-            'activo'     => true,
+            'rol_id' => $rolId,
+            'activo' => true,
         ]);
 
         return $usuario;

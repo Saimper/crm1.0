@@ -54,17 +54,17 @@ final class NuevaGestionCxComponentTest extends TestCase
         $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
         $this->actingAs(User::factory()->create());
 
-        $canalId         = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
-        $tipoGestionId   = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_ENTRANTE')->value('id');
-        $resultadoId     = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'ESCALADO')->value('id');
-        $causaId         = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'CAIDO')->value('id');
-        $escalamientoId  = (int) DB::table('niveles_escalamiento')->where('proyecto_id', $proyectoId)->where('codigo', 'N2')->value('id');
+        $canalId = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
+        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_ENTRANTE')->value('id');
+        $resultadoId = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'ESCALADO')->value('id');
+        $causaId = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'CAIDO')->value('id');
+        $escalamientoId = (int) DB::table('niveles_escalamiento')->where('proyecto_id', $proyectoId)->where('codigo', 'N2')->value('id');
 
         Livewire::test(NuevaGestion::class, [
-                'casoId'    => $casoId,
-                'personaId' => $personaId,
-                'tipoCaso'  => 'ticket_cx',
-            ])
+            'casoId' => $casoId,
+            'personaId' => $personaId,
+            'tipoCaso' => 'ticket_cx',
+        ])
             ->set('canalId', $canalId)
             ->set('tipoGestionId', $tipoGestionId)
             ->set('resultadoId', $resultadoId)
@@ -77,14 +77,14 @@ final class NuevaGestionCxComponentTest extends TestCase
             ->assertDispatched('gestion-registrada');
 
         $this->assertDatabaseHas('compromisos', [
-            'caso_id'         => $casoId,
+            'caso_id' => $casoId,
             'tipo_compromiso' => 'resolucion_ticket',
-            'estado'          => 'pendiente',
+            'estado' => 'pendiente',
         ]);
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $casoId)->value('id');
         $this->assertDatabaseHas('compromisos_resolucion_ticket', [
-            'compromiso_id'         => $compromisoId,
-            'accion_comprometida'   => 'Verificar infraestructura',
+            'compromiso_id' => $compromisoId,
+            'accion_comprometida' => 'Verificar infraestructura',
             'nivel_escalamiento_id' => $escalamientoId,
         ]);
     }
@@ -93,9 +93,9 @@ final class NuevaGestionCxComponentTest extends TestCase
     private function crearContextoCx(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado     = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $personaId = (int) DB::table('personas')->insertGetId([
             'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
@@ -105,21 +105,21 @@ final class NuevaGestionCxComponentTest extends TestCase
         ]);
 
         $out = $this->app->make(RegistrarCasoTicketCx::class)->execute(new RegistrarCasoTicketCxInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estado,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoTicket:        'TKT-UI-'.Str::random(4),
-            asunto:              'Test UI CX',
-            descripcion:         null,
-            categoriaTicketId:   null,
-            prioridadTicketId:   null,
-            nivelSlaId:          null,
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estado,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoTicket: 'TKT-UI-'.Str::random(4),
+            asunto: 'Test UI CX',
+            descripcion: null,
+            categoriaTicketId: null,
+            prioridadTicketId: null,
+            nivelSlaId: null,
             nivelEscalamientoId: null,
-            fechaReporte:        new DateTimeImmutable('2026-04-18 09:00:00'),
-            fechaLimiteSla:      null,
+            fechaReporte: new DateTimeImmutable('2026-04-18 09:00:00'),
+            fechaLimiteSla: null,
         ));
 
         return [$out->casoId, $personaId, $proyectoId];

@@ -53,17 +53,17 @@ final class PromesaTest extends TestCase
         $hoy = new DateTimeImmutable('2026-04-17');
 
         $promesa = Promesa::reconstituir(
-            id:              123,
-            publicId:        '01HXRECONSTITUIDULIDSAMPLE',
-            productoId:      5,
+            id: 123,
+            publicId: '01HXRECONSTITUIDULIDSAMPLE',
+            productoId: 5,
             gestionOrigenId: 8,
-            usuarioId:       2,
-            tipoPagoId:      null,
-            monto:           new MontoPromesa('500.00'),
-            fecha:           FechaPromesa::hidratar(new DateTimeImmutable('2026-04-20')),
-            estado:          EstadoPromesa::CUMPLIDA,
+            usuarioId: 2,
+            tipoPagoId: null,
+            monto: new MontoPromesa('500.00'),
+            fecha: FechaPromesa::hidratar(new DateTimeImmutable('2026-04-20')),
+            estado: EstadoPromesa::CUMPLIDA,
             fechaResolucion: new DateTimeImmutable('2026-04-21'),
-            creadaEn:        $hoy,
+            creadaEn: $hoy,
         );
 
         $this->assertSame(123, $promesa->id);
@@ -75,14 +75,14 @@ final class PromesaTest extends TestCase
         $hoy = new DateTimeImmutable('2026-04-17');
 
         return Promesa::crear(
-            publicId:        '01HXTESTPROMESAULIDSAMPLE',
-            productoId:      42,
+            publicId: '01HXTESTPROMESAULIDSAMPLE',
+            productoId: 42,
             gestionOrigenId: 99,
-            usuarioId:       7,
-            tipoPagoId:      null,
-            monto:           new MontoPromesa('1500.00'),
-            fecha:           FechaPromesa::futura(new DateTimeImmutable('2026-04-25'), $hoy),
-            creadaEn:        $hoy->setTime(10, 30),
+            usuarioId: 7,
+            tipoPagoId: null,
+            monto: new MontoPromesa('1500.00'),
+            fecha: FechaPromesa::futura(new DateTimeImmutable('2026-04-25'), $hoy),
+            creadaEn: $hoy->setTime(10, 30),
         );
     }
 }

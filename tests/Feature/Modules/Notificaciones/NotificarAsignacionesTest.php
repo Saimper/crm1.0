@@ -7,6 +7,8 @@ namespace Tests\Feature\Modules\Notificaciones;
 use App\Models\User;
 use App\Modules\Asignaciones\Application\UseCases\AsignarCasosAEquipo;
 use App\Modules\Asignaciones\Application\UseCases\ReasignarCasosEntreEquipos;
+use App\Modules\Asignaciones\Infrastructure\Persistence\Models\AsignacionModel;
+use App\Modules\Auditoria\Infrastructure\Providers\AuditoriaServiceProvider;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -35,20 +37,20 @@ final class NotificarAsignacionesTest extends TestCase
 
         app(AsignarCasosAEquipo::class)->execute(
             proyectoId: $proyectoId,
-            campanaId:  $campanaId,
-            equipoId:   $equipoId,
-            limite:     0,
+            campanaId: $campanaId,
+            equipoId: $equipoId,
+            limite: 0,
         );
 
         $this->assertDatabaseHas('notificaciones', [
-            'proyecto_id'             => $proyectoId,
+            'proyecto_id' => $proyectoId,
             'destinatario_usuario_id' => $g1->id,
-            'tipo'                    => 'asignacion_recibida',
+            'tipo' => 'asignacion_recibida',
         ]);
         $this->assertDatabaseHas('notificaciones', [
-            'proyecto_id'             => $proyectoId,
+            'proyecto_id' => $proyectoId,
             'destinatario_usuario_id' => $g2->id,
-            'tipo'                    => 'asignacion_recibida',
+            'tipo' => 'asignacion_recibida',
         ]);
 
         $meta = json_decode((string) DB::table('notificaciones')
@@ -127,10 +129,10 @@ final class NotificarAsignacionesTest extends TestCase
         // Para que el observer capture, la reasignación debe pasar por Eloquent — pero el UseCase usa DB::table.
         // Así que esta prueba valida que futura evolución (si se migra a Eloquent) lo audite.
         // Por ahora solo verificamos que exista AsignacionModel en la lista.
-        $modelosAuditados = (new \ReflectionClass(\App\Modules\Auditoria\Infrastructure\Providers\AuditoriaServiceProvider::class))
+        $modelosAuditados = (new \ReflectionClass(AuditoriaServiceProvider::class))
             ->getConstants();
         $this->assertContains(
-            \App\Modules\Asignaciones\Infrastructure\Persistence\Models\AsignacionModel::class,
+            AsignacionModel::class,
             $modelosAuditados['MODELOS_AUDITADOS'],
         );
     }
@@ -171,6 +173,7 @@ final class NotificarAsignacionesTest extends TestCase
                 'creada_en' => Carbon::now(),
             ]);
         }
+
         return $equipoId;
     }
 
@@ -188,6 +191,7 @@ final class NotificarAsignacionesTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 }

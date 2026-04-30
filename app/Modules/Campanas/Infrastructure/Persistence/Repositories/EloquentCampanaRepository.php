@@ -13,17 +13,17 @@ final class EloquentCampanaRepository implements CampanaRepository
 {
     public function save(Campana $campana): Campana
     {
-        $model = new CampanaModel();
-        $model->public_id     = $campana->publicId;
-        $model->proyecto_id   = $campana->proyectoId;
-        $model->codigo        = $campana->codigo->asString();
-        $model->nombre        = $campana->nombre;
-        $model->descripcion   = $campana->descripcion;
-        $model->estado        = $campana->estado->value;
-        $model->fecha_inicio  = $campana->fechaInicio;
-        $model->fecha_fin     = $campana->fechaFin;
+        $model = new CampanaModel;
+        $model->public_id = $campana->publicId;
+        $model->proyecto_id = $campana->proyectoId;
+        $model->codigo = $campana->codigo->asString();
+        $model->nombre = $campana->nombre;
+        $model->descripcion = $campana->descripcion;
+        $model->estado = $campana->estado->value;
+        $model->fecha_inicio = $campana->fechaInicio;
+        $model->fecha_fin = $campana->fechaFin;
         $model->creada_por_id = $campana->creadaPorId;
-        $model->creada_en     = $campana->creadaEn;
+        $model->creada_en = $campana->creadaEn;
 
         $model->save();
 

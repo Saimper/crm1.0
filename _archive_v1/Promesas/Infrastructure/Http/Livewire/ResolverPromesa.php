@@ -67,20 +67,20 @@ final class ResolverPromesa extends Component
         $this->validate([
             'fechaResolucion' => 'required|date|before_or_equal:today',
         ], [
-            'fechaResolucion.required'       => 'La fecha de resolución es obligatoria.',
+            'fechaResolucion.required' => 'La fecha de resolución es obligatoria.',
             'fechaResolucion.before_or_equal' => 'La fecha no puede ser futura.',
         ]);
 
         $input = new ResolverPromesaInput(
-            promesaId:       $this->promesaId,
+            promesaId: $this->promesaId,
             fechaResolucion: new DateTimeImmutable($this->fechaResolucion),
         );
 
         $useCase = match ($this->accion) {
-            'cumplida'  => app(MarcarPromesaCumplida::class),
-            'rota'      => app(MarcarPromesaRota::class),
+            'cumplida' => app(MarcarPromesaCumplida::class),
+            'rota' => app(MarcarPromesaRota::class),
             'cancelada' => app(CancelarPromesa::class),
-            default     => null,
+            default => null,
         };
 
         if ($useCase === null) {

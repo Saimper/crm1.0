@@ -13,6 +13,5 @@ final readonly class CampanaCreada
         public string $publicId,
         public int $proyectoId,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

@@ -20,7 +20,7 @@ trait PerteneceAProyecto
 {
     protected static function bootPerteneceAProyecto(): void
     {
-        static::addGlobalScope(new ScopeProyectoActivo());
+        static::addGlobalScope(new ScopeProyectoActivo);
 
         static::creating(function (Model $model): void {
             if ($model->getAttribute('proyecto_id') === null && app()->bound('tenancy.proyecto_activo')) {

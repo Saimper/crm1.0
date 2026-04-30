@@ -9,9 +9,7 @@ use DateTimeImmutable;
 
 final readonly class FechaCierreEstimada
 {
-    public function __construct(public DateTimeImmutable $fecha)
-    {
-    }
+    public function __construct(public DateTimeImmutable $fecha) {}
 
     public function validarNoPasada(DateTimeImmutable $hoy): void
     {

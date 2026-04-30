@@ -22,6 +22,5 @@ final readonly class RegistrarCasoServicioInput
         public ?string $tecnicoAsignado,
         public DateTimeImmutable $fechaSolicitud,
         public ?DateTimeImmutable $fechaProgramada,
-    ) {
-    }
+    ) {}
 }

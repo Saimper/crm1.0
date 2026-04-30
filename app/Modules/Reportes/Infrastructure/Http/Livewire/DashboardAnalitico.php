@@ -74,13 +74,13 @@ final class DashboardAnalitico extends Component
             ->get();
 
         return view('reportes::livewire.dashboard-analitico', [
-            'proyecto'              => $proyecto,
-            'distribucionCasos'     => $distribucionCasos,
-            'compromisosPorEstado'  => $compromisosPorEstado,
-            'gestionesPorMes'       => $gestionesPorMes,
+            'proyecto' => $proyecto,
+            'distribucionCasos' => $distribucionCasos,
+            'compromisosPorEstado' => $compromisosPorEstado,
+            'gestionesPorMes' => $gestionesPorMes,
             'efectividadPorResultado' => $efectividadPorResultado,
-            'totalGestiones'        => $totalGestiones,
-            'topDias'               => $topDias,
+            'totalGestiones' => $totalGestiones,
+            'topDias' => $topDias,
         ]);
     }
 }

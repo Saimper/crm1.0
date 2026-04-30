@@ -65,6 +65,7 @@ final class ReporteEquipos extends Component
 
             if ($miembroIds === []) {
                 $filas[] = $this->filaVacia($eq);
+
                 continue;
             }
 
@@ -97,12 +98,12 @@ final class ReporteEquipos extends Component
                 ->count();
 
             $filas[] = [
-                'equipo'               => $eq,
-                'miembros_count'       => count($miembroIds),
-                'total_gestiones'      => $totalGestiones,
-                'cuentas_intentadas'   => $intentadas,
-                'cuentas_gestionadas'  => $gestionadas,
-                'efectividad'          => $efectividad,
+                'equipo' => $eq,
+                'miembros_count' => count($miembroIds),
+                'total_gestiones' => $totalGestiones,
+                'cuentas_intentadas' => $intentadas,
+                'cuentas_gestionadas' => $gestionadas,
+                'efectividad' => $efectividad,
                 'compromisos_vigentes' => $compromisosVigentes,
                 'compromisos_vencidos' => $compromisosVencidos,
             ];
@@ -120,16 +121,16 @@ final class ReporteEquipos extends Component
         }
 
         return view('reportes::livewire.reporte-equipos', [
-            'proyecto'      => $proyecto,
+            'proyecto' => $proyecto,
             'etiquetaRango' => $rango['etiqueta'],
-            'filas'         => $filas,
-            'detalle'       => $detalle,
+            'filas' => $filas,
+            'detalle' => $detalle,
         ]);
     }
 
     /**
-     * @param array<int, object> $_
-     * @param list<int> $resultadosEfectivos
+     * @param  array<int, object>  $_
+     * @param  list<int>  $resultadosEfectivos
      * @return list<array<string, mixed>>
      */
     private function breakdownPorMiembro(
@@ -168,13 +169,13 @@ final class ReporteEquipos extends Component
             $efectividad = $intentadas === 0 ? 0.0 : round(($gestionadas / $intentadas) * 100, 1);
 
             $res[] = [
-                'usuario_id'   => (int) $u->id,
-                'nombre'       => (string) $u->name,
-                'email'        => (string) $u->email,
-                'total'        => $total,
-                'intentadas'   => $intentadas,
-                'gestionadas'  => $gestionadas,
-                'efectividad'  => $efectividad,
+                'usuario_id' => (int) $u->id,
+                'nombre' => (string) $u->name,
+                'email' => (string) $u->email,
+                'total' => $total,
+                'intentadas' => $intentadas,
+                'gestionadas' => $gestionadas,
+                'efectividad' => $efectividad,
             ];
         }
 
@@ -185,12 +186,12 @@ final class ReporteEquipos extends Component
     private function filaVacia(object $eq): array
     {
         return [
-            'equipo'               => $eq,
-            'miembros_count'       => 0,
-            'total_gestiones'      => 0,
-            'cuentas_intentadas'   => 0,
-            'cuentas_gestionadas'  => 0,
-            'efectividad'          => 0.0,
+            'equipo' => $eq,
+            'miembros_count' => 0,
+            'total_gestiones' => 0,
+            'cuentas_intentadas' => 0,
+            'cuentas_gestionadas' => 0,
+            'efectividad' => 0.0,
             'compromisos_vigentes' => 0,
             'compromisos_vencidos' => 0,
         ];
@@ -203,23 +204,23 @@ final class ReporteEquipos extends Component
 
         return match ($this->rango) {
             'hoy' => [
-                'desde'    => $ahora->copy()->startOfDay(),
-                'hasta'    => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->startOfDay(),
+                'hasta' => $ahora->copy()->endOfDay(),
                 'etiqueta' => 'Hoy',
             ],
             'ayer' => [
-                'desde'    => $ahora->copy()->subDay()->startOfDay(),
-                'hasta'    => $ahora->copy()->subDay()->endOfDay(),
+                'desde' => $ahora->copy()->subDay()->startOfDay(),
+                'hasta' => $ahora->copy()->subDay()->endOfDay(),
                 'etiqueta' => 'Ayer',
             ],
             'semana' => [
-                'desde'    => $ahora->copy()->subDays(6)->startOfDay(),
-                'hasta'    => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->subDays(6)->startOfDay(),
+                'hasta' => $ahora->copy()->endOfDay(),
                 'etiqueta' => 'Últimos 7 días',
             ],
             default => [
-                'desde'    => $ahora->copy()->startOfMonth(),
-                'hasta'    => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->startOfMonth(),
+                'hasta' => $ahora->copy()->endOfDay(),
                 'etiqueta' => 'Mes en curso',
             ],
         };

@@ -18,10 +18,10 @@ final class PrioridadTicketModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'      => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
         'actualizada_en' => 'immutable_datetime',
-        'activo'         => 'boolean',
-        'peso'           => 'integer',
-        'orden'          => 'integer',
+        'activo' => 'boolean',
+        'peso' => 'integer',
+        'orden' => 'integer',
     ];
 }

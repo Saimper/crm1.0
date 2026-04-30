@@ -15,6 +15,5 @@ final readonly class ProyectoCreado
         public int $mandanteId,
         public TipoOperacion $tipoOperacion,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

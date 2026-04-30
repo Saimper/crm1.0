@@ -16,16 +16,16 @@ final class EloquentCasoLeadVentaRepository implements CasoLeadVentaRepository
     public function save(CasoLeadVenta $lead): CasoLeadVenta
     {
         $model = CasoLeadVentaModel::query()->sinScopeProyecto()->find($lead->casoId)
-            ?? new CasoLeadVentaModel();
+            ?? new CasoLeadVentaModel;
 
-        $model->caso_id               = $lead->casoId;
-        $model->proyecto_id           = $lead->proyectoId;
-        $model->codigo_lead           = $lead->codigoLead->valor;
-        $model->producto_venta_id     = $lead->productoVentaId;
-        $model->etapa_embudo_id       = $lead->etapaEmbudoId;
-        $model->valor_estimado        = $lead->valorEstimado->monto;
-        $model->moneda                = $lead->valorEstimado->moneda;
-        $model->origen_lead           = $lead->origenLead;
+        $model->caso_id = $lead->casoId;
+        $model->proyecto_id = $lead->proyectoId;
+        $model->codigo_lead = $lead->codigoLead->valor;
+        $model->producto_venta_id = $lead->productoVentaId;
+        $model->etapa_embudo_id = $lead->etapaEmbudoId;
+        $model->valor_estimado = $lead->valorEstimado->monto;
+        $model->moneda = $lead->valorEstimado->moneda;
+        $model->origen_lead = $lead->origenLead;
         $model->fecha_primer_contacto = $lead->fechaPrimerContacto;
         $model->fecha_estimada_cierre = $lead->fechaEstimadaCierre;
 
@@ -43,13 +43,13 @@ final class EloquentCasoLeadVentaRepository implements CasoLeadVentaRepository
         }
 
         return CasoLeadVenta::reconstituir(
-            casoId:              (int) $model->caso_id,
-            proyectoId:          (int) $model->proyecto_id,
-            codigoLead:          new CodigoLead((string) $model->codigo_lead),
-            productoVentaId:     $model->producto_venta_id === null ? null : (int) $model->producto_venta_id,
-            etapaEmbudoId:       $model->etapa_embudo_id === null ? null : (int) $model->etapa_embudo_id,
-            valorEstimado:       new ValorEstimadoVenta((string) $model->valor_estimado, (string) $model->moneda),
-            origenLead:          $model->origen_lead,
+            casoId: (int) $model->caso_id,
+            proyectoId: (int) $model->proyecto_id,
+            codigoLead: new CodigoLead((string) $model->codigo_lead),
+            productoVentaId: $model->producto_venta_id === null ? null : (int) $model->producto_venta_id,
+            etapaEmbudoId: $model->etapa_embudo_id === null ? null : (int) $model->etapa_embudo_id,
+            valorEstimado: new ValorEstimadoVenta((string) $model->valor_estimado, (string) $model->moneda),
+            origenLead: $model->origen_lead,
             fechaPrimerContacto: $this->hidratarFecha($model->fecha_primer_contacto),
             fechaEstimadaCierre: $model->fecha_estimada_cierre === null ? null : $this->hidratarFecha($model->fecha_estimada_cierre),
         );

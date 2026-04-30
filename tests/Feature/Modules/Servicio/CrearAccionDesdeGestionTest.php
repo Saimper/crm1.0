@@ -55,38 +55,38 @@ final class CrearAccionDesdeGestionTest extends TestCase
         $ctx = $this->contexto();
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'COORDINACION', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'AGENDADO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'COORDINACION', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'AGENDADO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             'Se coordinó visita técnica.',
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-20 10:00:00'),
-            datosCompromiso:   new DatosAccionServicio(
-                descripcion:          new DescripcionAccion('Instalación de equipos en domicilio del cliente'),
-                fechaProgramada:      new FechaProgramada(new DateTimeImmutable('2026-04-25 10:00:00')),
+            causaId: null,
+            usuarioId: $ctx['usuarioId'],
+            notas: 'Se coordinó visita técnica.',
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-20 10:00:00'),
+            datosCompromiso: new DatosAccionServicio(
+                descripcion: new DescripcionAccion('Instalación de equipos en domicilio del cliente'),
+                fechaProgramada: new FechaProgramada(new DateTimeImmutable('2026-04-25 10:00:00')),
                 tipoAccionServicioId: $this->idProyecto('tipos_accion_servicio', 'INSTALACION', $ctx['proyectoId']),
-                tecnicoAsignado:      'Carlos Peña',
+                tecnicoAsignado: 'Carlos Peña',
             ),
         ));
 
         $this->assertDatabaseHas('compromisos', [
-            'caso_id'         => $ctx['casoId'],
+            'caso_id' => $ctx['casoId'],
             'tipo_compromiso' => 'accion_servicio',
-            'estado'          => 'pendiente',
+            'estado' => 'pendiente',
         ]);
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
         $this->assertDatabaseHas('compromisos_accion_servicio', [
-            'compromiso_id'      => $compromisoId,
+            'compromiso_id' => $compromisoId,
             'descripcion_accion' => 'Instalación de equipos en domicilio del cliente',
-            'tecnico_asignado'   => 'Carlos Peña',
+            'tecnico_asignado' => 'Carlos Peña',
         ]);
         $this->assertTrue((bool) DB::table('casos')->where('id', $ctx['casoId'])->value('tiene_compromiso_vigente'));
     }
@@ -98,7 +98,7 @@ final class CrearAccionDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(MarcarAccionEjecutada::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-25 18:00:00'),
         ));
 
@@ -113,7 +113,7 @@ final class CrearAccionDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(MarcarAccionFallida::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-26'),
         ));
 
@@ -127,7 +127,7 @@ final class CrearAccionDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(CancelarAccion::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-21'),
         ));
 
@@ -138,22 +138,22 @@ final class CrearAccionDesdeGestionTest extends TestCase
     private function registrarAccion(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'COORDINACION', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'AGENDADO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'COORDINACION', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'AGENDADO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-20 10:00:00'),
-            datosCompromiso:   new DatosAccionServicio(
-                descripcion:     new DescripcionAccion('Acción estándar'),
+            causaId: null,
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-20 10:00:00'),
+            datosCompromiso: new DatosAccionServicio(
+                descripcion: new DescripcionAccion('Acción estándar'),
                 fechaProgramada: new FechaProgramada(new DateTimeImmutable('2026-04-25 10:00:00')),
             ),
         ));
@@ -163,9 +163,9 @@ final class CrearAccionDesdeGestionTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'RESIDENCIAL')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId   = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'PENDIENTE')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'RESIDENCIAL')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'PENDIENTE')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([
             'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
@@ -179,26 +179,26 @@ final class CrearAccionDesdeGestionTest extends TestCase
         ]);
 
         $out = $this->app->make(RegistrarCasoServicio::class)->execute(new RegistrarCasoServicioInput(
-            proyectoId:           $proyectoId,
-            carteraId:            $carteraId,
-            personaId:            $personaId,
-            estadoCasoId:         $estadoId,
-            fechaIngreso:         new DateTimeImmutable('2026-04-20'),
-            prioridad:            100,
-            codigoServicio:       'SVC-CROSS-'.Str::random(4),
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-20'),
+            prioridad: 100,
+            codigoServicio: 'SVC-CROSS-'.Str::random(4),
             tipoAccionServicioId: null,
-            estadoTecnicoId:      null,
-            direccionServicio:    null,
-            tecnicoAsignado:      null,
-            fechaSolicitud:       new DateTimeImmutable('2026-04-20'),
-            fechaProgramada:      null,
+            estadoTecnicoId: null,
+            direccionServicio: null,
+            tecnicoAsignado: null,
+            fechaSolicitud: new DateTimeImmutable('2026-04-20'),
+            fechaProgramada: null,
         ));
 
         return [
             'proyectoId' => $proyectoId,
-            'casoId'     => $out->casoId,
-            'personaId'  => $personaId,
-            'usuarioId'  => $usuarioId,
+            'casoId' => $out->casoId,
+            'personaId' => $personaId,
+            'usuarioId' => $usuarioId,
         ];
     }
 

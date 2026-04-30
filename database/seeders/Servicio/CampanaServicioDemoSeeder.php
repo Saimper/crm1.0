@@ -24,14 +24,14 @@ final class CampanaServicioDemoSeeder extends Seeder
         }
 
         DB::table('campanas')->insert([
-            'public_id'     => (string) Str::ulid(),
-            'proyecto_id'   => $proyectoId,
-            'codigo'        => $codigo,
-            'nombre'        => 'Servicio técnico abril 2026',
-            'descripcion'   => 'Campaña demo de servicio técnico para validar el tipo Servicio (Fase 5).',
-            'estado'        => 'activa',
-            'fecha_inicio'  => '2026-04-20',
-            'fecha_fin'     => '2026-05-31',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => 'Servicio técnico abril 2026',
+            'descripcion' => 'Campaña demo de servicio técnico para validar el tipo Servicio (Fase 5).',
+            'estado' => 'activa',
+            'fecha_inicio' => '2026-04-20',
+            'fecha_fin' => '2026-05-31',
             'creada_por_id' => $adminId > 0 ? $adminId : null,
         ]);
     }

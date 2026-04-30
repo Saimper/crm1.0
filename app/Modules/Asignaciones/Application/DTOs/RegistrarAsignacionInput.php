@@ -17,6 +17,5 @@ final readonly class RegistrarAsignacionInput
         public DateTimeImmutable $fechaAsignacion,
         public int $prioridad,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

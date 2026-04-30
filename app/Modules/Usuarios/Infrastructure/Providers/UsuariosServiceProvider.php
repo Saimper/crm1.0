@@ -17,9 +17,7 @@ use Livewire\Livewire;
 
 final class UsuariosServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     public function boot(Router $router): void
     {

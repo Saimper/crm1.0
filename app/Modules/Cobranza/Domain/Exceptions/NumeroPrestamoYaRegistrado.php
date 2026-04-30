@@ -6,6 +6,4 @@ namespace App\Modules\Cobranza\Domain\Exceptions;
 
 use DomainException;
 
-final class NumeroPrestamoYaRegistrado extends DomainException
-{
-}
+final class NumeroPrestamoYaRegistrado extends DomainException {}

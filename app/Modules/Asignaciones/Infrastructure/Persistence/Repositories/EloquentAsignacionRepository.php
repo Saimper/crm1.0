@@ -17,17 +17,17 @@ final class EloquentAsignacionRepository implements AsignacionRepository
     {
         $model = $asignacion->id !== null
             ? AsignacionModel::query()->sinScopeProyecto()->findOrFail($asignacion->id)
-            : new AsignacionModel();
+            : new AsignacionModel;
 
-        $model->public_id        = $asignacion->publicId;
-        $model->proyecto_id      = $asignacion->proyectoId;
-        $model->campana_id       = $asignacion->campanaId;
-        $model->caso_id          = $asignacion->casoId;
-        $model->usuario_id       = $asignacion->usuarioId;
+        $model->public_id = $asignacion->publicId;
+        $model->proyecto_id = $asignacion->proyectoId;
+        $model->campana_id = $asignacion->campanaId;
+        $model->caso_id = $asignacion->casoId;
+        $model->usuario_id = $asignacion->usuarioId;
         $model->fecha_asignacion = $asignacion->fechaAsignacion;
-        $model->prioridad        = $asignacion->prioridad;
-        $model->estado           = $asignacion->estado->value;
-        $model->cerrada_en       = $asignacion->cerradaEn;
+        $model->prioridad = $asignacion->prioridad;
+        $model->estado = $asignacion->estado->value;
+        $model->cerrada_en = $asignacion->cerradaEn;
         if ($asignacion->id === null) {
             $model->creada_en = $asignacion->creadaEn;
         }
@@ -46,19 +46,19 @@ final class EloquentAsignacionRepository implements AsignacionRepository
         }
 
         return Asignacion::reconstituir(
-            id:              (int) $model->id,
-            publicId:        (string) $model->public_id,
-            proyectoId:      (int) $model->proyecto_id,
-            campanaId:       (int) $model->campana_id,
-            casoId:          (int) $model->caso_id,
-            usuarioId:       (int) $model->usuario_id,
+            id: (int) $model->id,
+            publicId: (string) $model->public_id,
+            proyectoId: (int) $model->proyecto_id,
+            campanaId: (int) $model->campana_id,
+            casoId: (int) $model->caso_id,
+            usuarioId: (int) $model->usuario_id,
             fechaAsignacion: $model->fecha_asignacion instanceof DateTimeImmutable
                 ? $model->fecha_asignacion
                 : new DateTimeImmutable((string) $model->fecha_asignacion),
-            prioridad:       (int) $model->prioridad,
-            estado:          EstadoAsignacion::from((string) $model->estado),
-            cerradaEn:       $model->cerrada_en instanceof DateTimeImmutable ? $model->cerrada_en : null,
-            creadaEn:        $model->creada_en instanceof DateTimeImmutable
+            prioridad: (int) $model->prioridad,
+            estado: EstadoAsignacion::from((string) $model->estado),
+            cerradaEn: $model->cerrada_en instanceof DateTimeImmutable ? $model->cerrada_en : null,
+            creadaEn: $model->creada_en instanceof DateTimeImmutable
                 ? $model->creada_en
                 : new DateTimeImmutable((string) $model->creada_en),
         );

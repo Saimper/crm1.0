@@ -6,6 +6,4 @@ namespace App\Modules\Tenancy\Domain\Exceptions;
 
 use DomainException;
 
-final class RangoFechasProyectoInvalido extends DomainException
-{
-}
+final class RangoFechasProyectoInvalido extends DomainException {}

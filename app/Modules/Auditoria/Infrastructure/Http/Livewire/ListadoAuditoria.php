@@ -18,9 +18,13 @@ final class ListadoAuditoria extends Component
     use WithPagination;
 
     public string $entidadTipo = '';
+
     public ?int $usuarioId = null;
+
     public string $evento = '';
+
     public string $desde = '';
+
     public string $hasta = '';
 
     public ?int $detalleId = null;
@@ -98,10 +102,10 @@ final class ListadoAuditoria extends Component
         }
 
         return view('auditoria::livewire.listado-auditoria', [
-            'registros'    => $registros,
+            'registros' => $registros,
             'tiposEntidad' => $tiposEntidad,
-            'usuarios'     => $usuarios,
-            'detalle'      => $detalle,
+            'usuarios' => $usuarios,
+            'detalle' => $detalle,
         ]);
     }
 }

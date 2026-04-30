@@ -16,8 +16,7 @@ final readonly class RegistrarCliente
     public function __construct(
         private ClienteRepository $repositorio,
         private ConnectionInterface $db,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarClienteInput $input): RegistrarClienteOutput
     {
@@ -28,22 +27,22 @@ final readonly class RegistrarCliente
         }
 
         $cliente = Cliente::registrar(
-            publicId:             $input->publicId,
-            tipoPersona:          $input->tipoPersona,
+            publicId: $input->publicId,
+            tipoPersona: $input->tipoPersona,
             tipoIdentificacionId: $input->tipoIdentificacionId,
-            identificacion:       $input->identificacion,
-            nombres:              $input->nombres,
-            apellidos:            $input->apellidos,
-            razonSocial:          $input->razonSocial,
-            fechaNacimiento:      $input->fechaNacimiento,
-            creadaEn:             $input->creadaEn,
+            identificacion: $input->identificacion,
+            nombres: $input->nombres,
+            apellidos: $input->apellidos,
+            razonSocial: $input->razonSocial,
+            fechaNacimiento: $input->fechaNacimiento,
+            creadaEn: $input->creadaEn,
         );
 
         $persistido = $this->db->transaction(fn (): Cliente => $this->repositorio->save($cliente));
 
         return new RegistrarClienteOutput(
-            id:             (int) $persistido->id,
-            publicId:       $persistido->publicId,
+            id: (int) $persistido->id,
+            publicId: $persistido->publicId,
             nombreCompleto: $persistido->nombreCompleto(),
         );
     }

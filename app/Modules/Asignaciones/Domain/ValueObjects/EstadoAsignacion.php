@@ -6,7 +6,7 @@ namespace App\Modules\Asignaciones\Domain\ValueObjects;
 
 enum EstadoAsignacion: string
 {
-    case PENDIENTE  = 'pendiente';
+    case PENDIENTE = 'pendiente';
     case EN_TRABAJO = 'en_trabajo';
-    case CERRADA    = 'cerrada';
+    case CERRADA = 'cerrada';
 }

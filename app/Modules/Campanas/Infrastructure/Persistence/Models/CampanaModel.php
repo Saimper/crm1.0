@@ -22,10 +22,10 @@ final class CampanaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'      => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
         'actualizada_en' => 'immutable_datetime',
-        'eliminada_en'   => 'immutable_datetime',
-        'fecha_inicio'   => 'immutable_date',
-        'fecha_fin'      => 'immutable_date',
+        'eliminada_en' => 'immutable_datetime',
+        'fecha_inicio' => 'immutable_date',
+        'fecha_fin' => 'immutable_date',
     ];
 }

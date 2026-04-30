@@ -6,6 +6,4 @@ namespace App\Modules\Venta\Domain\Exceptions;
 
 use DomainException;
 
-final class DatosLeadInvalidos extends DomainException
-{
-}
+final class DatosLeadInvalidos extends DomainException {}

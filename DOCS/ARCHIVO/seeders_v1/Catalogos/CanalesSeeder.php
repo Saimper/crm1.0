@@ -15,7 +15,7 @@ final class CanalesSeeder extends Seeder
             ['codigo' => 'TELEFONO', 'nombre' => 'Teléfono',          'activo' => true, 'orden' => 10, 'metadata' => null],
             ['codigo' => 'WHATSAPP', 'nombre' => 'WhatsApp',          'activo' => true, 'orden' => 20, 'metadata' => null],
             ['codigo' => 'SMS',      'nombre' => 'SMS',               'activo' => true, 'orden' => 30, 'metadata' => null],
-            ['codigo' => 'CORREO',   'nombre' => 'Correo electrónico','activo' => true, 'orden' => 40, 'metadata' => null],
+            ['codigo' => 'CORREO',   'nombre' => 'Correo electrónico', 'activo' => true, 'orden' => 40, 'metadata' => null],
             ['codigo' => 'VISITA',   'nombre' => 'Visita',            'activo' => true, 'orden' => 50, 'metadata' => null],
             ['codigo' => 'OFICINA',  'nombre' => 'Oficina',           'activo' => true, 'orden' => 60, 'metadata' => null],
         ];

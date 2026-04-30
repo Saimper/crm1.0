@@ -6,6 +6,4 @@ namespace App\Modules\Tenancy\Domain\Exceptions;
 
 use DomainException;
 
-final class CodigoCarteraDuplicadoEnProyecto extends DomainException
-{
-}
+final class CodigoCarteraDuplicadoEnProyecto extends DomainException {}

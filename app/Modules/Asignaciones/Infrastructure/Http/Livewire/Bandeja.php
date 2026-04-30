@@ -37,7 +37,7 @@ final class Bandeja extends Component
     public function cerrarAsignacion(int $asignacionId, CerrarAsignacion $useCase): void
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
-        $usuarioId  = (int) auth()->id();
+        $usuarioId = (int) auth()->id();
 
         $asignacion = DB::table('asignaciones')
             ->where('id', $asignacionId)
@@ -58,16 +58,16 @@ final class Bandeja extends Component
     public function render(): View
     {
         $proyectoActivo = app('tenancy.proyecto_activo');
-        $proyectoId     = (int) $proyectoActivo->id;
-        $usuarioId      = (int) auth()->id();
+        $proyectoId = (int) $proyectoActivo->id;
+        $usuarioId = (int) auth()->id();
 
         $query = DB::table('asignaciones as a')
-            ->join('casos as c',              'c.id',  '=', 'a.caso_id')
-            ->join('personas as pe',          'pe.id', '=', 'c.persona_id')
-            ->join('carteras as ca',          'ca.id', '=', 'c.cartera_id')
-            ->join('estados_caso as ec',      'ec.id', '=', 'c.estado_caso_id')
-            ->leftJoin('resultados as ru',    'ru.id', '=', 'c.resultado_ultima_gestion_id')
-            ->leftJoin('campanas as cm',      'cm.id', '=', 'a.campana_id')
+            ->join('casos as c', 'c.id', '=', 'a.caso_id')
+            ->join('personas as pe', 'pe.id', '=', 'c.persona_id')
+            ->join('carteras as ca', 'ca.id', '=', 'c.cartera_id')
+            ->join('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
+            ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
+            ->leftJoin('campanas as cm', 'cm.id', '=', 'a.campana_id')
             ->where('a.proyecto_id', $proyectoId)
             ->where('a.usuario_id', $usuarioId)
             ->whereNull('c.eliminada_en');
@@ -81,8 +81,8 @@ final class Bandeja extends Component
             $like = "%{$texto}%";
             $query->where(function ($w) use ($like): void {
                 $w->where('pe.identificacion', 'like', $like)
-                    ->orWhere('pe.nombres',      'like', $like)
-                    ->orWhere('pe.apellidos',    'like', $like)
+                    ->orWhere('pe.nombres', 'like', $like)
+                    ->orWhere('pe.apellidos', 'like', $like)
                     ->orWhere('pe.razon_social', 'like', $like);
             });
         }
@@ -113,10 +113,10 @@ final class Bandeja extends Component
             ->pluck('total', 'estado');
 
         return view('asignaciones::livewire.bandeja', [
-            'asignaciones'    => $asignaciones,
+            'asignaciones' => $asignaciones,
             'conteoPorEstado' => $conteoPorEstado,
-            'totalGeneral'    => (int) $conteoPorEstado->sum(),
-            'proyectoActivo'  => $proyectoActivo,
+            'totalGeneral' => (int) $conteoPorEstado->sum(),
+            'proyectoActivo' => $proyectoActivo,
         ]);
     }
 }

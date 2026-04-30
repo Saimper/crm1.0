@@ -16,6 +16,5 @@ final readonly class DatosResolucionTicket implements DatosCompromiso
         public AccionComprometida $accion,
         public FechaLimiteSla $fechaLimite,
         public ?int $nivelEscalamientoId = null,
-    ) {
-    }
+    ) {}
 }

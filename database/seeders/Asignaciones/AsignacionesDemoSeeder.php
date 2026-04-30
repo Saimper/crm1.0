@@ -23,7 +23,7 @@ final class AsignacionesDemoSeeder extends Seeder
 
         $campanaId = (int) DB::table('campanas')
             ->where('proyecto_id', $proyectoId)->where('codigo', 'COB_DEMO_ABR_2026')->value('id');
-        $gestorId  = (int) DB::table('users')->where('email', 'gestor.demo@crm.local')->value('id');
+        $gestorId = (int) DB::table('users')->where('email', 'gestor.demo@crm.local')->value('id');
 
         if ($campanaId === 0 || $gestorId === 0) {
             return;
@@ -40,14 +40,14 @@ final class AsignacionesDemoSeeder extends Seeder
             }
 
             DB::table('asignaciones')->insert([
-                'public_id'        => (string) Str::ulid(),
-                'proyecto_id'      => $proyectoId,
-                'campana_id'       => $campanaId,
-                'caso_id'          => $casoId,
-                'usuario_id'       => $gestorId,
+                'public_id' => (string) Str::ulid(),
+                'proyecto_id' => $proyectoId,
+                'campana_id' => $campanaId,
+                'caso_id' => $casoId,
+                'usuario_id' => $gestorId,
                 'fecha_asignacion' => '2026-04-17',
-                'prioridad'        => 100,
-                'estado'           => 'pendiente',
+                'prioridad' => 100,
+                'estado' => 'pendiente',
             ]);
         }
     }

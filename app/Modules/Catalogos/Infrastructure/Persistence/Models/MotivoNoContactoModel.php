@@ -15,8 +15,8 @@ final class MotivoNoContactoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'activo'   => 'boolean',
-        'orden'    => 'integer',
+        'activo' => 'boolean',
+        'orden' => 'integer',
         'metadata' => 'array',
     ];
 }

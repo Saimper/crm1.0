@@ -24,17 +24,17 @@ final class CasoCobranzaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'        => 'immutable_datetime',
-        'actualizada_en'   => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
         'fecha_desembolso' => 'immutable_date',
         'fecha_vencimiento' => 'immutable_date',
-        'monto_original'   => 'string',
-        'saldo_capital'    => 'string',
-        'saldo_interes'    => 'string',
-        'saldo_total'      => 'string',
-        'cuota_mensual'    => 'string',
-        'cuotas_totales'   => 'integer',
-        'cuotas_pagadas'   => 'integer',
-        'dias_mora'        => 'integer',
+        'monto_original' => 'string',
+        'saldo_capital' => 'string',
+        'saldo_interes' => 'string',
+        'saldo_total' => 'string',
+        'cuota_mensual' => 'string',
+        'cuotas_totales' => 'integer',
+        'cuotas_pagadas' => 'integer',
+        'dias_mora' => 'integer',
     ];
 }

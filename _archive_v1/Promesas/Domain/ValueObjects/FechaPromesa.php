@@ -9,9 +9,7 @@ use InvalidArgumentException;
 
 final readonly class FechaPromesa
 {
-    private function __construct(public DateTimeImmutable $fecha)
-    {
-    }
+    private function __construct(public DateTimeImmutable $fecha) {}
 
     public static function futura(DateTimeImmutable $fecha, DateTimeImmutable $hoy): self
     {

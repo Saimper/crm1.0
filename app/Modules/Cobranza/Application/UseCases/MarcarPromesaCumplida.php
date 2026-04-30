@@ -15,8 +15,7 @@ final readonly class MarcarPromesaCumplida
 {
     public function __construct(
         private MarcarCompromisoCumplido $nucleo,
-    ) {
-    }
+    ) {}
 
     public function execute(ResolverCompromisoInput $input): void
     {

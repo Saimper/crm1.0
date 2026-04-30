@@ -42,11 +42,11 @@ final class EstadosCasoDemoSeeder extends Seeder
 
             DB::table('estados_caso')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'activo'      => $f['activo'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'activo' => $f['activo'],
                 'es_terminal' => $f['es_terminal'],
-                'orden'       => $f['orden'],
+                'orden' => $f['orden'],
             ]);
         }
     }

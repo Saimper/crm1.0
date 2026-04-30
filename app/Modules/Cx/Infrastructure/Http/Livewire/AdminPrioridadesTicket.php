@@ -25,8 +25,8 @@ final class AdminPrioridadesTicket extends AbstractAdminCatalogo
         return [
             'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
-            'form.peso'   => ['integer', 'min:0'],
-            'form.orden'  => ['integer', 'min:0'],
+            'form.peso' => ['integer', 'min:0'],
+            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -36,8 +36,8 @@ final class AdminPrioridadesTicket extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $this->form['codigo'],
             'nombre' => (string) $this->form['nombre'],
-            'peso'   => (int) ($this->form['peso'] ?? 100),
-            'orden'  => (int) ($this->form['orden'] ?? 100),
+            'peso' => (int) ($this->form['peso'] ?? 100),
+            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
@@ -47,8 +47,8 @@ final class AdminPrioridadesTicket extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $row->codigo,
             'nombre' => (string) $row->nombre,
-            'peso'   => (int) $row->peso,
-            'orden'  => (int) $row->orden,
+            'peso' => (int) $row->peso,
+            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }

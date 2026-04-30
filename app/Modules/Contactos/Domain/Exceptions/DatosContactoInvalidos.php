@@ -6,6 +6,4 @@ namespace App\Modules\Contactos\Domain\Exceptions;
 
 use DomainException;
 
-final class DatosContactoInvalidos extends DomainException
-{
-}
+final class DatosContactoInvalidos extends DomainException {}

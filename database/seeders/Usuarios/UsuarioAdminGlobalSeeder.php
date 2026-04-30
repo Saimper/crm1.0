@@ -16,9 +16,9 @@ final class UsuarioAdminGlobalSeeder extends Seeder
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@crm.local'],
             [
-                'name'     => 'Administrador Global',
+                'name' => 'Administrador Global',
                 'password' => Hash::make('password'),
-                'activo'   => true,
+                'activo' => true,
             ],
         );
 

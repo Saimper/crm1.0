@@ -13,9 +13,7 @@ use Livewire\Livewire;
 
 final class ReportesServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     public function boot(): void
     {

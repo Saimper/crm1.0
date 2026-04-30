@@ -23,8 +23,7 @@ final readonly class CasoServicio
         public ?string $tecnicoAsignado,
         public DateTimeImmutable $fechaSolicitud,
         public ?DateTimeImmutable $fechaProgramada,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $casoId,
@@ -45,15 +44,15 @@ final readonly class CasoServicio
         }
 
         return new self(
-            casoId:               $casoId,
-            proyectoId:           $proyectoId,
-            codigoServicio:       $codigoServicio,
+            casoId: $casoId,
+            proyectoId: $proyectoId,
+            codigoServicio: $codigoServicio,
             tipoAccionServicioId: $tipoAccionServicioId,
-            estadoTecnicoId:      $estadoTecnicoId,
-            direccionServicio:    $direccionServicio,
-            tecnicoAsignado:      $tecnicoAsignado,
-            fechaSolicitud:       $fechaSolicitud,
-            fechaProgramada:      $fechaProgramada,
+            estadoTecnicoId: $estadoTecnicoId,
+            direccionServicio: $direccionServicio,
+            tecnicoAsignado: $tecnicoAsignado,
+            fechaSolicitud: $fechaSolicitud,
+            fechaProgramada: $fechaProgramada,
         );
     }
 
@@ -69,15 +68,15 @@ final readonly class CasoServicio
         ?DateTimeImmutable $fechaProgramada,
     ): self {
         return new self(
-            casoId:               $casoId,
-            proyectoId:           $proyectoId,
-            codigoServicio:       $codigoServicio,
+            casoId: $casoId,
+            proyectoId: $proyectoId,
+            codigoServicio: $codigoServicio,
             tipoAccionServicioId: $tipoAccionServicioId,
-            estadoTecnicoId:      $estadoTecnicoId,
-            direccionServicio:    $direccionServicio,
-            tecnicoAsignado:      $tecnicoAsignado,
-            fechaSolicitud:       $fechaSolicitud,
-            fechaProgramada:      $fechaProgramada,
+            estadoTecnicoId: $estadoTecnicoId,
+            direccionServicio: $direccionServicio,
+            tecnicoAsignado: $tecnicoAsignado,
+            fechaSolicitud: $fechaSolicitud,
+            fechaProgramada: $fechaProgramada,
         );
     }
 }

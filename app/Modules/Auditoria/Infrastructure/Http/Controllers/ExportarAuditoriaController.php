@@ -23,10 +23,10 @@ final class ExportarAuditoriaController
         abort_unless($proyecto !== null, 404);
 
         $entidadTipo = (string) $request->query('entidad_tipo', '');
-        $usuarioId   = $request->query('usuario_id');
-        $evento      = (string) $request->query('evento', '');
-        $desde       = (string) $request->query('desde', '');
-        $hasta       = (string) $request->query('hasta', '');
+        $usuarioId = $request->query('usuario_id');
+        $evento = (string) $request->query('evento', '');
+        $desde = (string) $request->query('desde', '');
+        $hasta = (string) $request->query('hasta', '');
 
         $filename = "auditoria_{$proyecto->codigo}_".now()->format('Ymd_His').'.csv';
 
@@ -86,7 +86,7 @@ final class ExportarAuditoriaController
 
             fclose($out);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }

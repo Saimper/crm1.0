@@ -18,24 +18,24 @@ final class AdminTramosMora extends AbstractAdminCatalogo
     protected function formVacio(): array
     {
         return [
-            'codigo'     => '',
-            'nombre'     => '',
+            'codigo' => '',
+            'nombre' => '',
             'dias_desde' => 0,
             'dias_hasta' => null,
-            'orden'      => 100,
-            'activo'     => true,
+            'orden' => 100,
+            'activo' => true,
         ];
     }
 
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo'     => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
-            'form.nombre'     => ['required', 'string', 'max:150'],
+            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.nombre' => ['required', 'string', 'max:150'],
             'form.dias_desde' => ['required', 'integer', 'min:0'],
             'form.dias_hasta' => ['nullable', 'integer', 'min:0', 'gte:form.dias_desde'],
-            'form.orden'      => ['integer', 'min:0'],
-            'form.activo'     => ['boolean'],
+            'form.orden' => ['integer', 'min:0'],
+            'form.activo' => ['boolean'],
         ];
     }
 
@@ -44,24 +44,24 @@ final class AdminTramosMora extends AbstractAdminCatalogo
         $hasta = $this->form['dias_hasta'] ?? null;
 
         return [
-            'codigo'     => (string) $this->form['codigo'],
-            'nombre'     => (string) $this->form['nombre'],
+            'codigo' => (string) $this->form['codigo'],
+            'nombre' => (string) $this->form['nombre'],
             'dias_desde' => (int) ($this->form['dias_desde'] ?? 0),
             'dias_hasta' => ($hasta === '' || $hasta === null) ? null : (int) $hasta,
-            'orden'      => (int) ($this->form['orden'] ?? 100),
-            'activo'     => (bool) ($this->form['activo'] ?? true),
+            'orden' => (int) ($this->form['orden'] ?? 100),
+            'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
 
     protected function formDesdeFila(object $row): array
     {
         return [
-            'codigo'     => (string) $row->codigo,
-            'nombre'     => (string) $row->nombre,
+            'codigo' => (string) $row->codigo,
+            'nombre' => (string) $row->nombre,
             'dias_desde' => (int) $row->dias_desde,
             'dias_hasta' => $row->dias_hasta === null ? null : (int) $row->dias_hasta,
-            'orden'      => (int) $row->orden,
-            'activo'     => (bool) $row->activo,
+            'orden' => (int) $row->orden,
+            'activo' => (bool) $row->activo,
         ];
     }
 

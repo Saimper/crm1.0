@@ -16,8 +16,7 @@ final readonly class MarcarCompromisoCumplido
         private CompromisoRepository $repositorio,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(ResolverCompromisoInput $input): void
     {
@@ -29,11 +28,11 @@ final readonly class MarcarCompromisoCumplido
             $quedan = $this->repositorio->existenVigentesParaCaso($persistido->casoId);
 
             $this->eventos->dispatch(new CompromisoCumplido(
-                compromisoId:                    (int) $persistido->id,
-                proyectoId:                      $persistido->proyectoId,
-                casoId:                          $persistido->casoId,
-                usuarioId:                       $persistido->usuarioId,
-                fechaResolucion:                 $input->fechaResolucion,
+                compromisoId: (int) $persistido->id,
+                proyectoId: $persistido->proyectoId,
+                casoId: $persistido->casoId,
+                usuarioId: $persistido->usuarioId,
+                fechaResolucion: $input->fechaResolucion,
                 quedanCompromisosVigentesEnCaso: $quedan,
             ));
         });

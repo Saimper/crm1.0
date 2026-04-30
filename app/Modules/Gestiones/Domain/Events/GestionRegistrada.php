@@ -23,6 +23,5 @@ final readonly class GestionRegistrada
         public BanderasResultado $banderas,
         public DateTimeImmutable $creadaEn,
         public ?DatosCompromiso $datosCompromiso = null,
-    ) {
-    }
+    ) {}
 }

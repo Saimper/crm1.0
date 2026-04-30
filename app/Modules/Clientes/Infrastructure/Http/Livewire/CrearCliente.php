@@ -47,14 +47,14 @@ final class CrearCliente extends Component
         }
 
         $reglas = [
-            'tipoPersona'          => 'required|in:fisica,juridica',
+            'tipoPersona' => 'required|in:fisica,juridica',
             'tipoIdentificacionId' => 'required|integer|exists:tipos_identificacion,id',
-            'identificacion'       => 'required|string|min:5|max:50',
-            'fechaNacimiento'      => 'nullable|date|before:today',
+            'identificacion' => 'required|string|min:5|max:50',
+            'fechaNacimiento' => 'nullable|date|before:today',
         ];
 
         if ($this->tipoPersona === 'fisica') {
-            $reglas['nombres']   = 'required|string|max:150';
+            $reglas['nombres'] = 'required|string|max:150';
             $reglas['apellidos'] = 'nullable|string|max:150';
         } else {
             $reglas['razonSocial'] = 'required|string|max:250';
@@ -64,19 +64,19 @@ final class CrearCliente extends Component
 
         try {
             $output = $useCase->execute(new RegistrarClienteInput(
-                publicId:             (string) Str::ulid(),
-                tipoPersona:          TipoPersona::from($this->tipoPersona),
+                publicId: (string) Str::ulid(),
+                tipoPersona: TipoPersona::from($this->tipoPersona),
                 tipoIdentificacionId: (int) $this->tipoIdentificacionId,
-                identificacion:       new Identificacion($this->identificacion),
-                nombres:              $this->nombres !== '' ? $this->nombres : null,
-                apellidos:            $this->apellidos !== '' ? $this->apellidos : null,
-                razonSocial:          $this->razonSocial !== '' ? $this->razonSocial : null,
-                fechaNacimiento:      $this->fechaNacimiento ? new DateTimeImmutable($this->fechaNacimiento) : null,
-                creadaEn:             new DateTimeImmutable('now'),
+                identificacion: new Identificacion($this->identificacion),
+                nombres: $this->nombres !== '' ? $this->nombres : null,
+                apellidos: $this->apellidos !== '' ? $this->apellidos : null,
+                razonSocial: $this->razonSocial !== '' ? $this->razonSocial : null,
+                fechaNacimiento: $this->fechaNacimiento ? new DateTimeImmutable($this->fechaNacimiento) : null,
+                creadaEn: new DateTimeImmutable('now'),
             ));
         } catch (IdentificacionYaExistente $e) {
             throw ValidationException::withMessages(['identificacion' => $e->getMessage()]);
-        } catch (DatosClienteInvalidos | InvalidArgumentException $e) {
+        } catch (DatosClienteInvalidos|InvalidArgumentException $e) {
             throw ValidationException::withMessages(['general' => $e->getMessage()]);
         }
 

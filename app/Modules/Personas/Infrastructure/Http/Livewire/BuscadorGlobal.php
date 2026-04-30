@@ -27,22 +27,22 @@ final class BuscadorGlobal extends Component
     public function cerrar(): void
     {
         $this->abierto = false;
-        $this->query   = '';
+        $this->query = '';
     }
 
     public function render(): View
     {
-        $texto          = trim($this->query);
+        $texto = trim($this->query);
         $proyectoActivo = app()->bound('tenancy.proyecto_activo')
             ? app('tenancy.proyecto_activo')
             : null;
 
         $personas = collect();
-        $casos    = collect();
+        $casos = collect();
 
         if ($proyectoActivo !== null && mb_strlen($texto) >= 3) {
             $proyectoId = (int) $proyectoActivo->id;
-            $like       = "%{$texto}%";
+            $like = "%{$texto}%";
 
             $personas = DB::table('personas as p')
                 ->leftJoin('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
@@ -50,8 +50,8 @@ final class BuscadorGlobal extends Component
                 ->whereNull('p.eliminada_en')
                 ->where(function ($w) use ($like): void {
                     $w->where('p.identificacion', 'like', $like)
-                        ->orWhere('p.nombres',      'like', $like)
-                        ->orWhere('p.apellidos',    'like', $like)
+                        ->orWhere('p.nombres', 'like', $like)
+                        ->orWhere('p.apellidos', 'like', $like)
                         ->orWhere('p.razon_social', 'like', $like);
                 })
                 ->select([
@@ -63,15 +63,15 @@ final class BuscadorGlobal extends Component
                 ->get();
 
             $casos = DB::table('casos as c')
-                ->join('personas as p',          'p.id',  '=', 'c.persona_id')
-                ->leftJoin('carteras as ca',     'ca.id', '=', 'c.cartera_id')
+                ->join('personas as p', 'p.id', '=', 'c.persona_id')
+                ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
                 ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
                 ->where('c.proyecto_id', $proyectoId)
                 ->whereNull('c.eliminada_en')
                 ->where(function ($w) use ($like): void {
                     $w->where('p.identificacion', 'like', $like)
-                        ->orWhere('p.nombres',      'like', $like)
-                        ->orWhere('p.apellidos',    'like', $like)
+                        ->orWhere('p.nombres', 'like', $like)
+                        ->orWhere('p.apellidos', 'like', $like)
                         ->orWhere('p.razon_social', 'like', $like);
                 })
                 ->select([
@@ -89,8 +89,8 @@ final class BuscadorGlobal extends Component
         }
 
         return view('personas::livewire.buscador-global', [
-            'personas'       => $personas,
-            'casos'          => $casos,
+            'personas' => $personas,
+            'casos' => $casos,
             'proyectoActivo' => $proyectoActivo,
         ]);
     }

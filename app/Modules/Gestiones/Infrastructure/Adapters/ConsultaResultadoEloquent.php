@@ -18,7 +18,7 @@ final class ConsultaResultadoEloquent implements ConsultaResultado
         return new BanderasResultado(
             esContactoEfectivo: (bool) $row->es_contacto_efectivo,
             requiereCompromiso: (bool) $row->requiere_compromiso,
-            requiereCausa:      (bool) $row->requiere_causa,
+            requiereCausa: (bool) $row->requiere_causa,
         );
     }
 }

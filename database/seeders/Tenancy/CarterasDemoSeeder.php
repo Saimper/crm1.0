@@ -29,7 +29,7 @@ final class CarterasDemoSeeder extends Seeder
 
         $this->sembrarParaProyecto('SERVICIO_DEMO_2026', [
             ['codigo' => 'RESIDENCIAL', 'nombre' => 'Residencial',           'descripcion' => 'Servicios a hogares (demo Servicio)'],
-            ['codigo' => 'EMPRESAS',    'nombre' => 'Empresas / corporativo','descripcion' => 'Servicios a empresas (demo Servicio)'],
+            ['codigo' => 'EMPRESAS',    'nombre' => 'Empresas / corporativo', 'descripcion' => 'Servicios a empresas (demo Servicio)'],
         ]);
     }
 
@@ -51,12 +51,12 @@ final class CarterasDemoSeeder extends Seeder
             }
 
             DB::table('carteras')->insert([
-                'public_id'   => (string) Str::ulid(),
+                'public_id' => (string) Str::ulid(),
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $row['codigo'],
-                'nombre'      => $row['nombre'],
+                'codigo' => $row['codigo'],
+                'nombre' => $row['nombre'],
                 'descripcion' => $row['descripcion'],
-                'activo'      => true,
+                'activo' => true,
             ]);
         }
     }

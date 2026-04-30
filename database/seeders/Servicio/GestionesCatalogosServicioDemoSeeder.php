@@ -49,7 +49,7 @@ final class GestionesCatalogosServicioDemoSeeder extends Seeder
             ['codigo' => 'AGENDADO',          'nombre' => 'Visita agendada',          'es_contacto_efectivo' => true,  'requiere_compromiso' => true,  'requiere_causa' => false, 'orden' => 10],
             ['codigo' => 'EJECUTADO_OK',      'nombre' => 'Servicio ejecutado OK',    'es_contacto_efectivo' => true,  'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 20],
             ['codigo' => 'REPROGRAMADO',      'nombre' => 'Reprogramado',             'es_contacto_efectivo' => true,  'requiere_compromiso' => true,  'requiere_causa' => true,  'orden' => 30],
-            ['codigo' => 'INCIDENCIA_TECNICA','nombre' => 'Incidencia técnica',       'es_contacto_efectivo' => true,  'requiere_compromiso' => false, 'requiere_causa' => true,  'orden' => 40],
+            ['codigo' => 'INCIDENCIA_TECNICA', 'nombre' => 'Incidencia técnica',       'es_contacto_efectivo' => true,  'requiere_compromiso' => false, 'requiere_causa' => true,  'orden' => 40],
             ['codigo' => 'NO_CONTESTA',       'nombre' => 'No contesta',              'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 70],
             ['codigo' => 'DIRECCION_ERRADA',  'nombre' => 'Dirección errada',         'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 80],
         ];
@@ -67,7 +67,7 @@ final class GestionesCatalogosServicioDemoSeeder extends Seeder
             ['codigo' => 'NO_RESPONDE',       'nombre' => 'No responde llamadas',        'orden' => 10],
             ['codigo' => 'DIRECCION_ERRADA',  'nombre' => 'Dirección errada',            'orden' => 20],
             ['codigo' => 'CLIENTE_AUSENTE',   'nombre' => 'Cliente ausente en terreno',  'orden' => 30],
-            ['codigo' => 'ACCESO_DENEGADO',   'nombre' => 'Acceso al domicilio denegado','orden' => 40],
+            ['codigo' => 'ACCESO_DENEGADO',   'nombre' => 'Acceso al domicilio denegado', 'orden' => 40],
         ];
         foreach ($rows as $r) {
             if (DB::table('motivos_no_contacto')->where('proyecto_id', $proyectoId)->where('codigo', $r['codigo'])->exists()) {
@@ -92,8 +92,8 @@ final class GestionesCatalogosServicioDemoSeeder extends Seeder
             }
             DB::table('causas_gestion')->insert(array_merge($r, [
                 'proyecto_id' => $proyectoId,
-                'activo'      => true,
-                'metadata'    => json_encode(['tipo' => 'servicio']),
+                'activo' => true,
+                'metadata' => json_encode(['tipo' => 'servicio']),
             ]));
         }
     }

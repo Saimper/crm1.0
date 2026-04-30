@@ -34,11 +34,11 @@ final class PrioridadesTicketDemoSeeder extends Seeder
 
             DB::table('prioridades_ticket')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'peso'        => $f['peso'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'peso' => $f['peso'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

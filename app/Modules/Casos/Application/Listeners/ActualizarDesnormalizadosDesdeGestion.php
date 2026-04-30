@@ -23,9 +23,9 @@ final class ActualizarDesnormalizadosDesdeGestion
             ->sinScopeProyecto()
             ->where('id', $evento->casoId)
             ->update([
-                'fecha_ultima_gestion'        => $evento->creadaEn,
+                'fecha_ultima_gestion' => $evento->creadaEn,
                 'resultado_ultima_gestion_id' => $evento->resultadoId,
-                'usuario_ultima_gestion_id'   => $evento->usuarioId,
+                'usuario_ultima_gestion_id' => $evento->usuarioId,
             ]);
     }
 }

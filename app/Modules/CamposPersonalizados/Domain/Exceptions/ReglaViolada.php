@@ -6,6 +6,4 @@ namespace App\Modules\CamposPersonalizados\Domain\Exceptions;
 
 use DomainException;
 
-final class ReglaViolada extends DomainException
-{
-}
+final class ReglaViolada extends DomainException {}

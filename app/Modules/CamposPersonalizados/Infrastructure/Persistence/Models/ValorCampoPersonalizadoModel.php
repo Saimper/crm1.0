@@ -15,12 +15,12 @@ final class ValorCampoPersonalizadoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'           => 'immutable_datetime',
-        'actualizada_en'      => 'immutable_datetime',
-        'valor_fecha'         => 'immutable_date',
-        'valor_fecha_hora'    => 'immutable_datetime',
-        'valor_booleano'      => 'boolean',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'valor_fecha' => 'immutable_date',
+        'valor_fecha_hora' => 'immutable_datetime',
+        'valor_booleano' => 'boolean',
         'valor_numero_entero' => 'integer',
-        'valor_opciones_ids'  => 'array',
+        'valor_opciones_ids' => 'array',
     ];
 }

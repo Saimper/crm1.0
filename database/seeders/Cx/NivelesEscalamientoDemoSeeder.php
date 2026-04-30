@@ -34,11 +34,11 @@ final class NivelesEscalamientoDemoSeeder extends Seeder
 
             DB::table('niveles_escalamiento')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'nivel'       => $f['nivel'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'nivel' => $f['nivel'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

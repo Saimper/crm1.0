@@ -46,29 +46,29 @@ final class RegistrarCasoServicioTest extends TestCase
         Event::fake([CasoCreado::class]);
 
         $output = $this->app->make(RegistrarCasoServicio::class)->execute(new RegistrarCasoServicioInput(
-            proyectoId:           $proyectoId,
-            carteraId:            $carteraId,
-            personaId:            $personaId,
-            estadoCasoId:         $estadoId,
-            fechaIngreso:         new DateTimeImmutable('2026-04-20'),
-            prioridad:            100,
-            codigoServicio:       'SVC-TEST-001',
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-20'),
+            prioridad: 100,
+            codigoServicio: 'SVC-TEST-001',
             tipoAccionServicioId: $this->idProyecto('tipos_accion_servicio', 'INSTALACION', $proyectoId),
-            estadoTecnicoId:      $this->idProyecto('estados_tecnicos', 'AGENDADO', $proyectoId),
-            direccionServicio:    'Dirección de prueba',
-            tecnicoAsignado:      'Test Técnico',
-            fechaSolicitud:       new DateTimeImmutable('2026-04-20'),
-            fechaProgramada:      new DateTimeImmutable('2026-04-25 10:00:00'),
+            estadoTecnicoId: $this->idProyecto('estados_tecnicos', 'AGENDADO', $proyectoId),
+            direccionServicio: 'Dirección de prueba',
+            tecnicoAsignado: 'Test Técnico',
+            fechaSolicitud: new DateTimeImmutable('2026-04-20'),
+            fechaProgramada: new DateTimeImmutable('2026-04-25 10:00:00'),
         ));
 
         $this->assertDatabaseHas('casos', [
-            'id'          => $output->casoId,
+            'id' => $output->casoId,
             'proyecto_id' => $proyectoId,
-            'tipo_caso'   => 'servicio',
+            'tipo_caso' => 'servicio',
         ]);
         $this->assertDatabaseHas('casos_servicio', [
-            'caso_id'          => $output->casoId,
-            'codigo_servicio'  => 'SVC-TEST-001',
+            'caso_id' => $output->casoId,
+            'codigo_servicio' => 'SVC-TEST-001',
             'tecnico_asignado' => 'Test Técnico',
         ]);
         Event::assertDispatched(CasoCreado::class);
@@ -89,9 +89,9 @@ final class RegistrarCasoServicioTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'RESIDENCIAL')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId   = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'PENDIENTE')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'RESIDENCIAL')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'PENDIENTE')->value('id');
 
         $personaId = (int) DB::table('personas')->insertGetId([
             'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
@@ -106,19 +106,19 @@ final class RegistrarCasoServicioTest extends TestCase
     private function inputBase(int $proyectoId, int $carteraId, int $personaId, int $estadoId, string $codigo): RegistrarCasoServicioInput
     {
         return new RegistrarCasoServicioInput(
-            proyectoId:           $proyectoId,
-            carteraId:            $carteraId,
-            personaId:            $personaId,
-            estadoCasoId:         $estadoId,
-            fechaIngreso:         new DateTimeImmutable('2026-04-20'),
-            prioridad:            100,
-            codigoServicio:       $codigo,
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-20'),
+            prioridad: 100,
+            codigoServicio: $codigo,
             tipoAccionServicioId: null,
-            estadoTecnicoId:      null,
-            direccionServicio:    null,
-            tecnicoAsignado:      null,
-            fechaSolicitud:       new DateTimeImmutable('2026-04-20'),
-            fechaProgramada:      null,
+            estadoTecnicoId: null,
+            direccionServicio: null,
+            tecnicoAsignado: null,
+            fechaSolicitud: new DateTimeImmutable('2026-04-20'),
+            fechaProgramada: null,
         );
     }
 

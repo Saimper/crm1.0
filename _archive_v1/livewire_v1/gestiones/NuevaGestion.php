@@ -69,8 +69,8 @@ final class NuevaGestion extends Component
 
         return [
             'es_contacto_efectivo' => (bool) ($md['es_contacto_efectivo'] ?? false),
-            'requiere_promesa'     => (bool) ($md['requiere_promesa']     ?? false),
-            'requiere_causa_mora'  => (bool) ($md['requiere_causa_mora']  ?? false),
+            'requiere_promesa' => (bool) ($md['requiere_promesa'] ?? false),
+            'requiere_causa_mora' => (bool) ($md['requiere_causa_mora'] ?? false),
         ];
     }
 
@@ -99,26 +99,26 @@ final class NuevaGestion extends Component
         $banderas = $this->banderas;
 
         $reglas = [
-            'canalId'            => 'required|integer|exists:canales,id',
-            'tipoGestionId'      => 'required|integer|exists:tipos_gestion,id',
-            'resultadoId'        => 'required|integer|exists:resultados,id',
-            'contactoId'         => 'nullable|integer|exists:contactos,id',
+            'canalId' => 'required|integer|exists:canales,id',
+            'tipoGestionId' => 'required|integer|exists:tipos_gestion,id',
+            'resultadoId' => 'required|integer|exists:resultados,id',
+            'contactoId' => 'nullable|integer|exists:contactos,id',
             'motivoNoContactoId' => 'nullable|integer|exists:motivos_no_contacto,id',
-            'notas'              => 'nullable|string|max:2000',
-            'duracionSegundos'   => 'nullable|integer|min:1|max:86400',
-            'causaMoraId'        => $banderas['requiere_causa_mora']
+            'notas' => 'nullable|string|max:2000',
+            'duracionSegundos' => 'nullable|integer|min:1|max:86400',
+            'causaMoraId' => $banderas['requiere_causa_mora']
                 ? 'required|integer|exists:causas_mora,id'
                 : 'nullable|integer|exists:causas_mora,id',
-            'montoPromesa'       => $banderas['requiere_promesa']
+            'montoPromesa' => $banderas['requiere_promesa']
                 ? 'required|numeric|min:0.01|max:9999999999999.99'
                 : 'nullable',
-            'fechaPromesa'       => $banderas['requiere_promesa']
+            'fechaPromesa' => $banderas['requiere_promesa']
                 ? 'required|date|after_or_equal:today'
                 : 'nullable',
         ];
 
         $mensajes = [
-            'causaMoraId.required'  => 'El resultado seleccionado exige indicar la causa de mora.',
+            'causaMoraId.required' => 'El resultado seleccionado exige indicar la causa de mora.',
             'montoPromesa.required' => 'El resultado seleccionado exige registrar el monto de la promesa.',
             'fechaPromesa.required' => 'El resultado seleccionado exige registrar la fecha de la promesa.',
             'fechaPromesa.after_or_equal' => 'La fecha de promesa no puede ser anterior a hoy.',
@@ -129,26 +129,26 @@ final class NuevaGestion extends Component
         $hoy = new DateTimeImmutable('today');
 
         $input = new RegistrarGestionInput(
-            publicId:           (string) Str::ulid(),
-            productoId:         $this->productoId,
-            clienteId:          $this->clienteId,
-            contactoId:         $this->contactoId,
-            canalId:            (int) $this->canalId,
-            tipoGestionId:      (int) $this->tipoGestionId,
-            resultadoId:        (int) $this->resultadoId,
-            causaMoraId:        $this->causaMoraId,
+            publicId: (string) Str::ulid(),
+            productoId: $this->productoId,
+            clienteId: $this->clienteId,
+            contactoId: $this->contactoId,
+            canalId: (int) $this->canalId,
+            tipoGestionId: (int) $this->tipoGestionId,
+            resultadoId: (int) $this->resultadoId,
+            causaMoraId: $this->causaMoraId,
             motivoNoContactoId: $this->motivoNoContactoId,
-            usuarioId:          (int) auth()->id(),
-            notas:              $this->notas !== '' ? $this->notas : null,
-            duracion:           $this->duracionSegundos !== null ? new DuracionSegundos($this->duracionSegundos) : null,
-            snapshot:           null,
-            datosPromesa:       $banderas['requiere_promesa']
+            usuarioId: (int) auth()->id(),
+            notas: $this->notas !== '' ? $this->notas : null,
+            duracion: $this->duracionSegundos !== null ? new DuracionSegundos($this->duracionSegundos) : null,
+            snapshot: null,
+            datosPromesa: $banderas['requiere_promesa']
                 ? new DatosPromesa(
                     monto: new MontoPromesa(number_format((float) $this->montoPromesa, 2, '.', '')),
                     fecha: FechaPromesa::futura(new DateTimeImmutable((string) $this->fechaPromesa), $hoy),
                 )
                 : null,
-            creadaEn:           new DateTimeImmutable('now'),
+            creadaEn: new DateTimeImmutable('now'),
         );
 
         try {
@@ -169,17 +169,17 @@ final class NuevaGestion extends Component
     public function render(): View
     {
         return view('gestiones::livewire.nueva-gestion', [
-            'canales'    => DB::table('canales')->where('activo', true)->orderBy('orden')->get(),
-            'tipos'      => DB::table('tipos_gestion')->where('activo', true)->orderBy('orden')->get(),
+            'canales' => DB::table('canales')->where('activo', true)->orderBy('orden')->get(),
+            'tipos' => DB::table('tipos_gestion')->where('activo', true)->orderBy('orden')->get(),
             'resultados' => DB::table('resultados')->where('activo', true)->orderBy('orden')->get(),
-            'causas'     => DB::table('causas_mora')->where('activo', true)->orderBy('orden')->get(),
-            'motivos'    => DB::table('motivos_no_contacto')->where('activo', true)->orderBy('orden')->get(),
-            'contactos'  => DB::table('contactos')
+            'causas' => DB::table('causas_mora')->where('activo', true)->orderBy('orden')->get(),
+            'motivos' => DB::table('motivos_no_contacto')->where('activo', true)->orderBy('orden')->get(),
+            'contactos' => DB::table('contactos')
                 ->where('cliente_id', $this->clienteId)
                 ->where('activo', true)
                 ->orderByDesc('es_principal')
                 ->get(),
-            'banderas'   => $this->banderas,
+            'banderas' => $this->banderas,
         ]);
     }
 }

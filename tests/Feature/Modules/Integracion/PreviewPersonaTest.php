@@ -25,9 +25,9 @@ final class PreviewPersonaTest extends TestCase
     public function test_con_sanctum_auth_y_persona_existente_devuelve_200_con_json(): void
     {
         $proyectoId = $this->proyectoCobranzaId();
-        $usuario    = $this->crearGestorEnProyecto($proyectoId);
-        $persona    = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $tiCodigo   = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
+        $usuario = $this->crearGestorEnProyecto($proyectoId);
+        $persona = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
+        $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
 
         $response = $this->actingAs($usuario, 'sanctum')
             ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoId}");
@@ -51,10 +51,10 @@ final class PreviewPersonaTest extends TestCase
     {
         $proyectoA = $this->proyectoCobranzaId();
         $proyectoB = $this->proyectoServicioId();
-        $usuario   = $this->crearGestorEnProyecto($proyectoA);
+        $usuario = $this->crearGestorEnProyecto($proyectoA);
 
         // Persona del proyecto A buscada con proyecto_id del proyecto B
-        $persona  = DB::table('personas')->where('proyecto_id', $proyectoA)->first();
+        $persona = DB::table('personas')->where('proyecto_id', $proyectoA)->first();
         $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
 
         $response = $this->actingAs($usuario, 'sanctum')
@@ -67,16 +67,16 @@ final class PreviewPersonaTest extends TestCase
     public function test_usuario_sin_rol_en_proyecto_devuelve_403(): void
     {
         $proyectoId = $this->proyectoCobranzaId();
-        $persona    = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $tiCodigo   = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
+        $persona = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
+        $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
 
         // Usuario sin rol en ningún proyecto
         /** @var User $sinRol */
         $sinRol = User::query()->create([
-            'name'     => 'Sin Rol',
-            'email'    => 'sinrol.' . Str::random(6) . '@crm.local',
+            'name' => 'Sin Rol',
+            'email' => 'sinrol.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         $response = $this->actingAs($sinRol, 'sanctum')
@@ -88,7 +88,7 @@ final class PreviewPersonaTest extends TestCase
     public function test_persona_inexistente_devuelve_404(): void
     {
         $proyectoId = $this->proyectoCobranzaId();
-        $usuario    = $this->crearGestorEnProyecto($proyectoId);
+        $usuario = $this->crearGestorEnProyecto($proyectoId);
 
         $response = $this->actingAs($usuario, 'sanctum')
             ->getJson("/api/integracion/persona?identificacion=99999999NOEXISTE&tipo_identificacion_codigo=CC&proyecto_id={$proyectoId}");
@@ -110,10 +110,10 @@ final class PreviewPersonaTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => 'Gestor Preview',
-            'email'    => 'prev.' . Str::random(6) . '@crm.local',
+            'name' => 'Gestor Preview',
+            'email' => 'prev.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
         DB::table('usuario_proyecto_rol')->insert([

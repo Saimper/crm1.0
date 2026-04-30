@@ -10,6 +10,5 @@ final readonly class RegistrarClienteOutput
         public int $id,
         public string $publicId,
         public string $nombreCompleto,
-    ) {
-    }
+    ) {}
 }

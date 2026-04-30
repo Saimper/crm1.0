@@ -18,8 +18,7 @@ final readonly class Cartera
         public ?string $descripcion,
         public bool $activo,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

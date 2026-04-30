@@ -55,15 +55,15 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'reportes.analiticos',  'nombre' => 'Ver reportes analíticos',     'grupo' => 'reportes',     'activo' => true],
 
             // Importaciones
-            ['codigo' => 'importaciones.crear',    'nombre' => 'Cargar importaciones',      'grupo' => 'importaciones','activo' => true],
-            ['codigo' => 'importaciones.procesar', 'nombre' => 'Procesar importaciones',    'grupo' => 'importaciones','activo' => true],
+            ['codigo' => 'importaciones.crear',    'nombre' => 'Cargar importaciones',      'grupo' => 'importaciones', 'activo' => true],
+            ['codigo' => 'importaciones.procesar', 'nombre' => 'Procesar importaciones',    'grupo' => 'importaciones', 'activo' => true],
 
             // Auditoría
             ['codigo' => 'auditoria.ver',        'nombre' => 'Consultar auditoría',         'grupo' => 'auditoria',    'activo' => true],
 
             // Configuración
-            ['codigo' => 'configuracion.ver',    'nombre' => 'Ver configuración',           'grupo' => 'configuracion','activo' => true],
-            ['codigo' => 'configuracion.editar', 'nombre' => 'Editar configuración',        'grupo' => 'configuracion','activo' => true],
+            ['codigo' => 'configuracion.ver',    'nombre' => 'Ver configuración',           'grupo' => 'configuracion', 'activo' => true],
+            ['codigo' => 'configuracion.editar', 'nombre' => 'Editar configuración',        'grupo' => 'configuracion', 'activo' => true],
         ];
 
         DB::table('permisos')->upsert(

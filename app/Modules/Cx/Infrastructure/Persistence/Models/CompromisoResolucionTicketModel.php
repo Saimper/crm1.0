@@ -24,8 +24,8 @@ final class CompromisoResolucionTicketModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'        => 'immutable_datetime',
-        'actualizada_en'   => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
         'fecha_limite_sla' => 'immutable_datetime',
     ];
 }

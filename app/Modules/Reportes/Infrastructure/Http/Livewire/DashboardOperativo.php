@@ -43,12 +43,12 @@ final class DashboardOperativo extends Component
             ->whereBetween('creada_en', [$desde, $hasta])
             ->whereNull('eliminada_en');
 
-        $cuentasIntentadas  = (clone $gestionesBase)->distinct()->count('caso_id');
+        $cuentasIntentadas = (clone $gestionesBase)->distinct()->count('caso_id');
         $cuentasGestionadas = $resultadosEfectivos === []
             ? 0
             : (clone $gestionesBase)->whereIn('resultado_id', $resultadosEfectivos)->distinct()->count('caso_id');
         $totalGestiones = (clone $gestionesBase)->count();
-        $efectividad    = $cuentasIntentadas === 0 ? 0.0 : round(($cuentasGestionadas / $cuentasIntentadas) * 100, 1);
+        $efectividad = $cuentasIntentadas === 0 ? 0.0 : round(($cuentasGestionadas / $cuentasIntentadas) * 100, 1);
 
         $hoy = Carbon::today();
         $compromisosVigentes = DB::table('compromisos')
@@ -89,12 +89,12 @@ final class DashboardOperativo extends Component
             ->get();
 
         $gestionesDelRango = DB::table('gestiones as g')
-            ->leftJoin('casos as ca',         'ca.id',  '=', 'g.caso_id')
-            ->leftJoin('personas as pe',      'pe.id',  '=', 'g.persona_id')
-            ->leftJoin('resultados as r',     'r.id',   '=', 'g.resultado_id')
-            ->leftJoin('tipos_gestion as tg', 'tg.id',  '=', 'g.tipo_gestion_id')
-            ->leftJoin('canales as cn',       'cn.id',  '=', 'g.canal_id')
-            ->leftJoin('users as u',          'u.id',   '=', 'g.usuario_id')
+            ->leftJoin('casos as ca', 'ca.id', '=', 'g.caso_id')
+            ->leftJoin('personas as pe', 'pe.id', '=', 'g.persona_id')
+            ->leftJoin('resultados as r', 'r.id', '=', 'g.resultado_id')
+            ->leftJoin('tipos_gestion as tg', 'tg.id', '=', 'g.tipo_gestion_id')
+            ->leftJoin('canales as cn', 'cn.id', '=', 'g.canal_id')
+            ->leftJoin('users as u', 'u.id', '=', 'g.usuario_id')
             ->where('g.proyecto_id', $proyectoId)
             ->whereBetween('g.creada_en', [$desde, $hasta])
             ->whereNull('g.eliminada_en')
@@ -113,16 +113,16 @@ final class DashboardOperativo extends Component
             ->get();
 
         return view('reportes::livewire.dashboard-operativo', [
-            'proyecto'            => $proyecto,
-            'etiquetaRango'       => $rango['etiqueta'],
-            'cuentasIntentadas'   => $cuentasIntentadas,
-            'cuentasGestionadas'  => $cuentasGestionadas,
-            'totalGestiones'      => $totalGestiones,
-            'efectividad'         => $efectividad,
+            'proyecto' => $proyecto,
+            'etiquetaRango' => $rango['etiqueta'],
+            'cuentasIntentadas' => $cuentasIntentadas,
+            'cuentasGestionadas' => $cuentasGestionadas,
+            'totalGestiones' => $totalGestiones,
+            'efectividad' => $efectividad,
             'compromisosVigentes' => $compromisosVigentes,
             'compromisosVencidos' => $compromisosVencidos,
-            'ranking'             => $ranking,
-            'gestiones'           => $gestionesDelRango,
+            'ranking' => $ranking,
+            'gestiones' => $gestionesDelRango,
         ]);
     }
 
@@ -132,24 +132,24 @@ final class DashboardOperativo extends Component
         $ahora = Carbon::now();
 
         return match ($this->rango) {
-            'ayer'   => [
-                'desde'    => $ahora->copy()->subDay()->startOfDay(),
-                'hasta'    => $ahora->copy()->subDay()->endOfDay(),
+            'ayer' => [
+                'desde' => $ahora->copy()->subDay()->startOfDay(),
+                'hasta' => $ahora->copy()->subDay()->endOfDay(),
                 'etiqueta' => 'Ayer',
             ],
             'semana' => [
-                'desde'    => $ahora->copy()->subDays(6)->startOfDay(),
-                'hasta'    => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->subDays(6)->startOfDay(),
+                'hasta' => $ahora->copy()->endOfDay(),
                 'etiqueta' => 'Últimos 7 días',
             ],
-            'mes'    => [
-                'desde'    => $ahora->copy()->startOfMonth(),
-                'hasta'    => $ahora->copy()->endOfDay(),
+            'mes' => [
+                'desde' => $ahora->copy()->startOfMonth(),
+                'hasta' => $ahora->copy()->endOfDay(),
                 'etiqueta' => 'Mes en curso',
             ],
-            default  => [
-                'desde'    => $ahora->copy()->startOfDay(),
-                'hasta'    => $ahora->copy()->endOfDay(),
+            default => [
+                'desde' => $ahora->copy()->startOfDay(),
+                'hasta' => $ahora->copy()->endOfDay(),
                 'etiqueta' => 'Hoy',
             ],
         };

@@ -35,10 +35,10 @@ final class CxServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('views/modules/cx'), 'cx');
 
         Livewire::component('cx.resolver-resolucion', ResolverResolucion::class);
-        Livewire::component('cx.admin-categorias-ticket',      AdminCategoriasTicket::class);
-        Livewire::component('cx.admin-prioridades-ticket',     AdminPrioridadesTicket::class);
-        Livewire::component('cx.admin-niveles-sla',            AdminNivelesSla::class);
-        Livewire::component('cx.admin-niveles-escalamiento',   AdminNivelesEscalamiento::class);
+        Livewire::component('cx.admin-categorias-ticket', AdminCategoriasTicket::class);
+        Livewire::component('cx.admin-prioridades-ticket', AdminPrioridadesTicket::class);
+        Livewire::component('cx.admin-niveles-sla', AdminNivelesSla::class);
+        Livewire::component('cx.admin-niveles-escalamiento', AdminNivelesEscalamiento::class);
 
         Event::listen(GestionRegistrada::class, CrearResolucionDesdeGestion::class);
     }

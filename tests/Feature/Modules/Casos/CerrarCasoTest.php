@@ -6,8 +6,8 @@ namespace Tests\Feature\Modules\Casos;
 
 use App\Modules\Casos\Application\DTOs\CerrarCasoInput;
 use App\Modules\Casos\Application\UseCases\CerrarCaso;
-use App\Modules\Casos\Domain\Exceptions\TransicionCasoInvalida;
 use App\Modules\Casos\Domain\Events\CasoCerrado;
+use App\Modules\Casos\Domain\Exceptions\TransicionCasoInvalida;
 use Database\Seeders\Casos\EstadosCasoDemoSeeder;
 use Database\Seeders\Catalogos\TiposIdentificacionSeeder;
 use Database\Seeders\Tenancy\CarterasDemoSeeder;
@@ -43,13 +43,13 @@ final class CerrarCasoTest extends TestCase
         Event::fake([CasoCerrado::class]);
 
         $this->app->make(CerrarCaso::class)->execute(new CerrarCasoInput(
-            casoId:               $casoId,
+            casoId: $casoId,
             estadoCasoTerminalId: $estadoPagadoId,
-            cerradoEn:            new DateTimeImmutable('2026-05-01 10:00:00'),
+            cerradoEn: new DateTimeImmutable('2026-05-01 10:00:00'),
         ));
 
         $this->assertDatabaseHas('casos', [
-            'id'             => $casoId,
+            'id' => $casoId,
             'estado_caso_id' => $estadoPagadoId,
         ]);
         $this->assertNotNull(DB::table('casos')->where('id', $casoId)->value('cerrado_en'));
@@ -72,29 +72,29 @@ final class CerrarCasoTest extends TestCase
     private function crearCasoAbierto(): int
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')->where('codigo', 'ABIERTO')->value('id');
 
         $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Test',
-            'apellidos'              => 'User',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Test',
+            'apellidos' => 'User',
         ]);
 
         return (int) DB::table('casos')->insertGetId([
-            'public_id'      => (string) Str::ulid(),
-            'proyecto_id'    => $proyectoId,
-            'cartera_id'     => $carteraId,
-            'persona_id'     => $personaId,
-            'tipo_caso'      => 'cobranza',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'cartera_id' => $carteraId,
+            'persona_id' => $personaId,
+            'tipo_caso' => 'cobranza',
             'estado_caso_id' => $estadoAbiertoId,
-            'fecha_ingreso'  => '2026-04-17',
-            'prioridad'      => 100,
+            'fecha_ingreso' => '2026-04-17',
+            'prioridad' => 100,
         ]);
     }
 }

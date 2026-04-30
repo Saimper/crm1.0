@@ -17,16 +17,14 @@ use Illuminate\Support\ServiceProvider;
 
 final class ProductosServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     public function boot(): void
     {
         Event::listen(GestionRegistrada::class, ActualizarDesnormalizadosDesdeGestion::class);
-        Event::listen(PromesaCreada::class,     ActualizarBanderaPromesaVigente::class);
-        Event::listen(PromesaCumplida::class,   RecalcularBanderaPromesaVigente::class);
-        Event::listen(PromesaRota::class,       RecalcularBanderaPromesaVigente::class);
-        Event::listen(PromesaCancelada::class,  RecalcularBanderaPromesaVigente::class);
+        Event::listen(PromesaCreada::class, ActualizarBanderaPromesaVigente::class);
+        Event::listen(PromesaCumplida::class, RecalcularBanderaPromesaVigente::class);
+        Event::listen(PromesaRota::class, RecalcularBanderaPromesaVigente::class);
+        Event::listen(PromesaCancelada::class, RecalcularBanderaPromesaVigente::class);
     }
 }

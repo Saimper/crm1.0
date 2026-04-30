@@ -29,14 +29,14 @@ final class CampanaDemoSeeder extends Seeder
         }
 
         DB::table('campanas')->insert([
-            'public_id'     => (string) Str::ulid(),
-            'proyecto_id'   => $proyectoId,
-            'codigo'        => $codigo,
-            'nombre'        => 'Cobranza demo abril 2026',
-            'descripcion'   => 'Campaña demo de cobranza temprana para validar el refactor v2.',
-            'estado'        => 'activa',
-            'fecha_inicio'  => '2026-04-01',
-            'fecha_fin'     => '2026-04-30',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => 'Cobranza demo abril 2026',
+            'descripcion' => 'Campaña demo de cobranza temprana para validar el refactor v2.',
+            'estado' => 'activa',
+            'fecha_inicio' => '2026-04-01',
+            'fecha_fin' => '2026-04-30',
             'creada_por_id' => $adminId > 0 ? $adminId : null,
         ]);
     }

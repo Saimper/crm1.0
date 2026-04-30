@@ -16,6 +16,5 @@ final readonly class DatosCierreVenta implements DatosCompromiso
         public MontoCierre $monto,
         public FechaCierreEstimada $fechaEstimada,
         public ?int $etapaEmbudoId = null,
-    ) {
-    }
+    ) {}
 }

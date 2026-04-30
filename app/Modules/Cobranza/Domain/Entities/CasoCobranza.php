@@ -31,8 +31,7 @@ final readonly class CasoCobranza
         public ?int $tramoMoraId,
         public DateTimeImmutable $fechaDesembolso,
         public DateTimeImmutable $fechaVencimiento,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $casoId,

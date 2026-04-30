@@ -22,9 +22,7 @@ use Throwable;
  */
 final readonly class ProcesarImportacionCasosTicketCx
 {
-    public function __construct(private RegistrarCasoTicketCx $registrar)
-    {
-    }
+    public function __construct(private RegistrarCasoTicketCx $registrar) {}
 
     public function ejecutar(int $importacionId, bool $commit): void
     {
@@ -89,6 +87,7 @@ final readonly class ProcesarImportacionCasosTicketCx
                 $fila->mensaje_error = implode(' | ', $errores);
                 $fila->save();
                 $errorCount++;
+
                 continue;
             }
 
@@ -97,6 +96,7 @@ final readonly class ProcesarImportacionCasosTicketCx
                 $fila->mensaje_error = null;
                 $fila->save();
                 $okCount++;
+
                 continue;
             }
 
@@ -105,21 +105,21 @@ final readonly class ProcesarImportacionCasosTicketCx
                     ? new DateTimeImmutable((string) $payload['fecha_limite_sla'])
                     : null;
                 $out = $this->registrar->execute(new RegistrarCasoTicketCxInput(
-                    proyectoId:          $proyectoId,
-                    carteraId:           (int) $carteraId,
-                    personaId:           (int) $personaId,
-                    estadoCasoId:        (int) $estadoCasoId,
-                    fechaIngreso:        new DateTimeImmutable((string) $payload['fecha_ingreso']),
-                    prioridad:           (int) ($payload['prioridad'] ?? 3),
-                    codigoTicket:        (string) $payload['codigo_ticket'],
-                    asunto:              (string) $payload['asunto'],
-                    descripcion:         $this->opcional($payload, 'descripcion'),
-                    categoriaTicketId:   $categorias[strtoupper((string) ($payload['categoria_codigo'] ?? ''))] ?? null,
-                    prioridadTicketId:   $prioridadesT[strtoupper((string) ($payload['prioridad_codigo'] ?? ''))] ?? null,
-                    nivelSlaId:          $slas[strtoupper((string) ($payload['sla_codigo'] ?? ''))] ?? null,
+                    proyectoId: $proyectoId,
+                    carteraId: (int) $carteraId,
+                    personaId: (int) $personaId,
+                    estadoCasoId: (int) $estadoCasoId,
+                    fechaIngreso: new DateTimeImmutable((string) $payload['fecha_ingreso']),
+                    prioridad: (int) ($payload['prioridad'] ?? 3),
+                    codigoTicket: (string) $payload['codigo_ticket'],
+                    asunto: (string) $payload['asunto'],
+                    descripcion: $this->opcional($payload, 'descripcion'),
+                    categoriaTicketId: $categorias[strtoupper((string) ($payload['categoria_codigo'] ?? ''))] ?? null,
+                    prioridadTicketId: $prioridadesT[strtoupper((string) ($payload['prioridad_codigo'] ?? ''))] ?? null,
+                    nivelSlaId: $slas[strtoupper((string) ($payload['sla_codigo'] ?? ''))] ?? null,
                     nivelEscalamientoId: $escalas[strtoupper((string) ($payload['escalamiento_codigo'] ?? ''))] ?? null,
-                    fechaReporte:        new DateTimeImmutable((string) $payload['fecha_reporte']),
-                    fechaLimiteSla:      $fechaSla,
+                    fechaReporte: new DateTimeImmutable((string) $payload['fecha_reporte']),
+                    fechaLimiteSla: $fechaSla,
                 ));
                 $fila->estado = 'importada';
                 $fila->entidad_id = $out->casoId;
@@ -154,6 +154,7 @@ final readonly class ProcesarImportacionCasosTicketCx
     private function opcional(array $p, string $k): ?string
     {
         $v = trim((string) ($p[$k] ?? ''));
+
         return $v === '' ? null : $v;
     }
 }

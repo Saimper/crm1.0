@@ -15,6 +15,5 @@ abstract readonly class EventoCompromisoResuelto
         public int $usuarioId,
         public DateTimeImmutable $fechaResolucion,
         public bool $quedanCompromisosVigentesEnCaso,
-    ) {
-    }
+    ) {}
 }

@@ -40,11 +40,11 @@ final class CausasMoraDemoSeeder extends Seeder
             if (! $existe) {
                 DB::table('causas_gestion')->insert([
                     'proyecto_id' => $proyectoId,
-                    'codigo'      => $f['codigo'],
-                    'nombre'      => $f['nombre'],
-                    'activo'      => true,
-                    'orden'       => $orden,
-                    'metadata'    => json_encode(['tipo' => 'mora']),
+                    'codigo' => $f['codigo'],
+                    'nombre' => $f['nombre'],
+                    'activo' => true,
+                    'orden' => $orden,
+                    'metadata' => json_encode(['tipo' => 'mora']),
                 ]);
             }
             $orden += 10;

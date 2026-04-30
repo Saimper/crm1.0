@@ -28,8 +28,7 @@ final readonly class CrearAccionDesdeGestion
         private CompromisoRepository $compromisoRepo,
         private CompromisoAccionServicioRepository $accionRepo,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function handle(GestionRegistrada $evento): void
     {
@@ -44,39 +43,39 @@ final readonly class CrearAccionDesdeGestion
         }
 
         $datos = $evento->datosCompromiso;
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         $compromiso = Compromiso::crear(
-            publicId:         (string) Str::ulid(),
-            proyectoId:       $evento->proyectoId,
-            casoId:           $evento->casoId,
-            gestionOrigenId:  $evento->gestionId,
-            usuarioId:        $evento->usuarioId,
-            tipo:             TipoCompromiso::ACCION_SERVICIO,
+            publicId: (string) Str::ulid(),
+            proyectoId: $evento->proyectoId,
+            casoId: $evento->casoId,
+            gestionOrigenId: $evento->gestionId,
+            usuarioId: $evento->usuarioId,
+            tipo: TipoCompromiso::ACCION_SERVICIO,
             fechaVencimiento: $datos->fechaProgramada->fecha,
-            creadaEn:         $ahora,
+            creadaEn: $ahora,
         );
         $persistido = $this->compromisoRepo->save($compromiso);
 
         $this->accionRepo->save(CompromisoAccionServicio::registrar(
-            compromisoId:         (int) $persistido->id,
-            proyectoId:           $persistido->proyectoId,
-            descripcion:          $datos->descripcion,
-            fechaProgramada:      $datos->fechaProgramada,
+            compromisoId: (int) $persistido->id,
+            proyectoId: $persistido->proyectoId,
+            descripcion: $datos->descripcion,
+            fechaProgramada: $datos->fechaProgramada,
             tipoAccionServicioId: $datos->tipoAccionServicioId,
-            tecnicoAsignado:      $datos->tecnicoAsignado,
+            tecnicoAsignado: $datos->tecnicoAsignado,
         ));
 
         $this->eventos->dispatch(new CompromisoCreado(
-            compromisoId:    (int) $persistido->id,
-            publicId:        $persistido->publicId,
-            proyectoId:      $persistido->proyectoId,
-            casoId:          $persistido->casoId,
+            compromisoId: (int) $persistido->id,
+            publicId: $persistido->publicId,
+            proyectoId: $persistido->proyectoId,
+            casoId: $persistido->casoId,
             gestionOrigenId: $persistido->gestionOrigenId,
-            usuarioId:       $persistido->usuarioId,
-            tipo:            TipoCompromiso::ACCION_SERVICIO,
+            usuarioId: $persistido->usuarioId,
+            tipo: TipoCompromiso::ACCION_SERVICIO,
             fechaVencimiento: $persistido->fechaVencimiento,
-            creadaEn:        $persistido->creadaEn,
+            creadaEn: $persistido->creadaEn,
         ));
     }
 

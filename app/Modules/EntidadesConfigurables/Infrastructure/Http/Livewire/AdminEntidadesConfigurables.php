@@ -23,25 +23,38 @@ final class AdminEntidadesConfigurables extends Component
     public ?int $proyectoSeleccionadoId = null;
 
     public bool $formVisible = false;
+
     public ?int $entidadEditandoId = null;
 
     public string $formCodigo = '';
+
     public string $formNombre = '';
+
     public string $formDescripcion = '';
+
     public string $formIcono = '';
+
     public string $formRelacion = 'ninguna';
+
     public ?int $formCarteraId = null;
+
     public bool $formActivo = true;
 
     /** Entidad cuyo panel de campos se está mostrando. */
     public ?int $entidadConCamposAbiertosId = null;
 
     public bool $formCampoVisible = false;
+
     public ?int $campoEditandoId = null;
+
     public string $formCampoCodigo = '';
+
     public string $formCampoEtiqueta = '';
+
     public string $formCampoTipo = 'texto_corto';
+
     public bool $formCampoObligatorio = false;
+
     public int $formCampoOrden = 100;
 
     public function mount(): void
@@ -114,12 +127,12 @@ final class AdminEntidadesConfigurables extends Component
 
         $this->validate([
             'proyectoSeleccionadoId' => ['required', 'integer', 'exists:proyectos,id'],
-            'formCodigo'             => ['required', 'string', 'max:80', 'regex:/^[A-Z0-9_]+$/'],
-            'formNombre'             => ['required', 'string', 'max:150'],
-            'formDescripcion'        => ['nullable', 'string', 'max:500'],
-            'formIcono'              => ['nullable', 'string', 'max:50'],
-            'formRelacion'           => ['required', 'in:ninguna,caso,persona'],
-            'formCarteraId'          => ['nullable', 'integer', 'exists:carteras,id'],
+            'formCodigo' => ['required', 'string', 'max:80', 'regex:/^[A-Z0-9_]+$/'],
+            'formNombre' => ['required', 'string', 'max:150'],
+            'formDescripcion' => ['nullable', 'string', 'max:500'],
+            'formIcono' => ['nullable', 'string', 'max:50'],
+            'formRelacion' => ['required', 'in:ninguna,caso,persona'],
+            'formCarteraId' => ['nullable', 'integer', 'exists:carteras,id'],
         ]);
 
         try {
@@ -144,6 +157,7 @@ final class AdminEntidadesConfigurables extends Component
             }
         } catch (Throwable $e) {
             $this->addError('formCodigo', $e->getMessage());
+
             return;
         }
 
@@ -216,29 +230,30 @@ final class AdminEntidadesConfigurables extends Component
         }
 
         $this->validate([
-            'formCampoCodigo'       => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/'],
-            'formCampoEtiqueta'     => ['required', 'string', 'max:200'],
-            'formCampoTipo'         => ['required', 'in:texto_corto,texto_largo,numero_entero,numero_decimal,fecha,fecha_hora,booleano,moneda'],
-            'formCampoObligatorio'  => ['boolean'],
-            'formCampoOrden'        => ['integer', 'min:0'],
+            'formCampoCodigo' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/'],
+            'formCampoEtiqueta' => ['required', 'string', 'max:200'],
+            'formCampoTipo' => ['required', 'in:texto_corto,texto_largo,numero_entero,numero_decimal,fecha,fecha_hora,booleano,moneda'],
+            'formCampoObligatorio' => ['boolean'],
+            'formCampoOrden' => ['integer', 'min:0'],
         ]);
 
         $entidad = DB::table('entidades_configurables')->where('id', $this->entidadConCamposAbiertosId)->first();
         if ($entidad === null) {
             $this->addError('formCampoCodigo', 'Entidad no encontrada.');
+
             return;
         }
 
         $payload = [
             'proyecto_id' => (int) $entidad->proyecto_id,
-            'ambito'      => 'entidad_configurable',
-            'ambito_id'   => (int) $entidad->id,
-            'codigo'      => $this->formCampoCodigo,
-            'etiqueta'    => $this->formCampoEtiqueta,
-            'tipo'        => $this->formCampoTipo,
+            'ambito' => 'entidad_configurable',
+            'ambito_id' => (int) $entidad->id,
+            'codigo' => $this->formCampoCodigo,
+            'etiqueta' => $this->formCampoEtiqueta,
+            'tipo' => $this->formCampoTipo,
             'obligatorio' => $this->formCampoObligatorio,
-            'activo'      => true,
-            'orden'       => $this->formCampoOrden,
+            'activo' => true,
+            'orden' => $this->formCampoOrden,
         ];
 
         if ($this->campoEditandoId === null) {
@@ -250,6 +265,7 @@ final class AdminEntidadesConfigurables extends Component
                 ->exists();
             if ($duplicado) {
                 $this->addError('formCampoCodigo', 'Ya existe un campo con ese código en esta entidad.');
+
                 return;
             }
             DB::table('campos_personalizados')->insert($payload);
@@ -307,9 +323,9 @@ final class AdminEntidadesConfigurables extends Component
                 ->get(['id', 'codigo', 'nombre']);
 
         return view('entidades::admin.admin-entidades-configurables', [
-            'proyectos'           => $proyectos,
-            'entidades'           => $entidades,
-            'campos'              => $campos,
+            'proyectos' => $proyectos,
+            'entidades' => $entidades,
+            'campos' => $campos,
             'carterasDelProyecto' => $carterasDelProyecto,
         ]);
     }

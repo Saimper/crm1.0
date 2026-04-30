@@ -18,10 +18,10 @@ final class TipoAccionServicioModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'              => 'immutable_datetime',
-        'actualizada_en'         => 'immutable_datetime',
-        'activo'                 => 'boolean',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'activo' => 'boolean',
         'duracion_estimada_horas' => 'integer',
-        'orden'                  => 'integer',
+        'orden' => 'integer',
     ];
 }

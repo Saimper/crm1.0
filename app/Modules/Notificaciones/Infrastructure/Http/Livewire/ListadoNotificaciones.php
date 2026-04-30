@@ -67,7 +67,7 @@ final class ListadoNotificaciones extends Component
 
         return view('notificaciones::livewire.listado-notificaciones', [
             'notificaciones' => $notificaciones,
-            'totalNoLeidas'  => $totalNoLeidas,
+            'totalNoLeidas' => $totalNoLeidas,
         ]);
     }
 }

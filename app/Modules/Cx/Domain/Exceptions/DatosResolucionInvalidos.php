@@ -6,6 +6,4 @@ namespace App\Modules\Cx\Domain\Exceptions;
 
 use DomainException;
 
-final class DatosResolucionInvalidos extends DomainException
-{
-}
+final class DatosResolucionInvalidos extends DomainException {}

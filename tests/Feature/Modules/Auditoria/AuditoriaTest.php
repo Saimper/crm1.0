@@ -33,20 +33,20 @@ final class AuditoriaTest extends TestCase
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $persona = PersonaModel::query()->create([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => '8100000001',
-            'nombres'                => 'Audit',
-            'apellidos'              => 'Test',
+            'identificacion' => '8100000001',
+            'nombres' => 'Audit',
+            'apellidos' => 'Test',
         ]);
 
         $this->assertDatabaseHas('auditorias', [
-            'proyecto_id'  => $proyectoId,
+            'proyecto_id' => $proyectoId,
             'entidad_tipo' => 'personas',
-            'entidad_id'   => $persona->id,
-            'evento'       => 'creado',
+            'entidad_id' => $persona->id,
+            'evento' => 'creado',
         ]);
     }
 
@@ -58,13 +58,13 @@ final class AuditoriaTest extends TestCase
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $persona = PersonaModel::query()->create([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => '8100000002',
-            'nombres'                => 'Antes',
-            'apellidos'              => 'Original',
+            'identificacion' => '8100000002',
+            'nombres' => 'Antes',
+            'apellidos' => 'Original',
         ]);
 
         $persona->nombres = 'Despues';
@@ -176,10 +176,10 @@ final class AuditoriaTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([

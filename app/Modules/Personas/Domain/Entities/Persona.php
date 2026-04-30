@@ -23,8 +23,7 @@ final readonly class Persona
         public ?string $razonSocial,
         public ?DateTimeImmutable $fechaNacimiento,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

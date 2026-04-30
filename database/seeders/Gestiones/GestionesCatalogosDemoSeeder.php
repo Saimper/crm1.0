@@ -31,7 +31,7 @@ final class GestionesCatalogosDemoSeeder extends Seeder
         $rows = [
             ['codigo' => 'LLAMADA_SALIENTE', 'nombre' => 'Llamada saliente',   'orden' => 10],
             ['codigo' => 'LLAMADA_ENTRANTE', 'nombre' => 'Llamada entrante',   'orden' => 20],
-            ['codigo' => 'VISITA',           'nombre' => 'Visita domiciliaria','orden' => 30],
+            ['codigo' => 'VISITA',           'nombre' => 'Visita domiciliaria', 'orden' => 30],
             ['codigo' => 'WHATSAPP',         'nombre' => 'WhatsApp',           'orden' => 40],
             ['codigo' => 'CORREO',           'nombre' => 'Correo electrónico', 'orden' => 60],
             ['codigo' => 'NOTA',             'nombre' => 'Nota interna',       'orden' => 90],
@@ -56,7 +56,7 @@ final class GestionesCatalogosDemoSeeder extends Seeder
             ['codigo' => 'NO_CONTESTA',      'nombre' => 'No contesta',                   'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 70],
             ['codigo' => 'OCUPADO',          'nombre' => 'Línea ocupada',                 'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 80],
             ['codigo' => 'BUZON',            'nombre' => 'Buzón de voz',                  'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 90],
-            ['codigo' => 'NUMERO_EQUIVOCADO','nombre' => 'Número equivocado',             'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 110],
+            ['codigo' => 'NUMERO_EQUIVOCADO', 'nombre' => 'Número equivocado',             'es_contacto_efectivo' => false, 'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 110],
         ];
         foreach ($rows as $r) {
             if (DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', $r['codigo'])->exists()) {

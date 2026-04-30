@@ -41,8 +41,8 @@ final class DesnormalizacionDesdeGestionTest extends TestCase
     public function test_registrar_gestion_actualiza_desnormalizados_del_caso(): void
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([
@@ -69,20 +69,20 @@ final class DesnormalizacionDesdeGestionTest extends TestCase
 
         $fechaGestion = new DateTimeImmutable('2026-04-17 10:30:00');
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $proyectoId,
-            casoId:            $casoId,
-            personaId:         $personaId,
-            contactoId:        null,
-            canalId:           (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId:     (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
-            resultadoId:       $resultadoId,
+            publicId: (string) Str::ulid(),
+            proyectoId: $proyectoId,
+            casoId: $casoId,
+            personaId: $personaId,
+            contactoId: null,
+            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
+            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
+            resultadoId: $resultadoId,
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $usuarioId,
-            notas:             null,
-            duracion:          new DuracionSegundos(120),
-            creadaEn:          $fechaGestion,
+            causaId: null,
+            usuarioId: $usuarioId,
+            notas: null,
+            duracion: new DuracionSegundos(120),
+            creadaEn: $fechaGestion,
         ));
 
         $caso = DB::table('casos')->where('id', $casoId)->first();

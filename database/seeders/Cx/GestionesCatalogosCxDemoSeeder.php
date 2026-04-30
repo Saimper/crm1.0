@@ -30,7 +30,7 @@ final class GestionesCatalogosCxDemoSeeder extends Seeder
         $rows = [
             ['codigo' => 'LLAMADA_ENTRANTE', 'nombre' => 'Llamada entrante',  'orden' => 10],
             ['codigo' => 'LLAMADA_SALIENTE', 'nombre' => 'Llamada saliente',  'orden' => 20],
-            ['codigo' => 'EMAIL',            'nombre' => 'Correo electrónico','orden' => 30],
+            ['codigo' => 'EMAIL',            'nombre' => 'Correo electrónico', 'orden' => 30],
             ['codigo' => 'WHATSAPP',         'nombre' => 'WhatsApp',          'orden' => 40],
             ['codigo' => 'CHAT',             'nombre' => 'Chat web',          'orden' => 50],
             ['codigo' => 'NOTA',             'nombre' => 'Nota interna',      'orden' => 90],
@@ -46,7 +46,7 @@ final class GestionesCatalogosCxDemoSeeder extends Seeder
     private function sembrarResultados(int $proyectoId): void
     {
         $rows = [
-            ['codigo' => 'CONTACTADO',        'nombre' => 'Contactado, sin resolución aún','es_contacto_efectivo' => true,  'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 10],
+            ['codigo' => 'CONTACTADO',        'nombre' => 'Contactado, sin resolución aún', 'es_contacto_efectivo' => true,  'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 10],
             ['codigo' => 'COMPROMISO_SLA',    'nombre' => 'Compromiso de resolución',     'es_contacto_efectivo' => true,  'requiere_compromiso' => true,  'requiere_causa' => false, 'orden' => 20],
             ['codigo' => 'RESUELTO_CONTACTO', 'nombre' => 'Resuelto en el contacto',      'es_contacto_efectivo' => true,  'requiere_compromiso' => false, 'requiere_causa' => false, 'orden' => 30],
             ['codigo' => 'ESCALADO',          'nombre' => 'Escalado a nivel superior',    'es_contacto_efectivo' => true,  'requiere_compromiso' => true,  'requiere_causa' => true,  'orden' => 40],

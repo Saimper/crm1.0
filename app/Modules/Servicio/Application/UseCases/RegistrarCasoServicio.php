@@ -26,8 +26,7 @@ final readonly class RegistrarCasoServicio
         private CasoServicioRepository $servicioRepo,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarCasoServicioInput $input): RegistrarCasoServicioOutput
     {
@@ -37,48 +36,48 @@ final readonly class RegistrarCasoServicio
             );
         }
 
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         return $this->db->transaction(function () use ($input, $ahora): RegistrarCasoServicioOutput {
             $caso = Caso::registrar(
-                publicId:     (string) Str::ulid(),
-                proyectoId:   $input->proyectoId,
-                carteraId:    $input->carteraId,
-                personaId:    $input->personaId,
-                tipoCaso:     TipoCaso::SERVICIO,
+                publicId: (string) Str::ulid(),
+                proyectoId: $input->proyectoId,
+                carteraId: $input->carteraId,
+                personaId: $input->personaId,
+                tipoCaso: TipoCaso::SERVICIO,
                 estadoCasoId: $input->estadoCasoId,
                 fechaIngreso: $input->fechaIngreso,
-                prioridad:    $input->prioridad,
-                creadaEn:     $ahora,
+                prioridad: $input->prioridad,
+                creadaEn: $ahora,
             );
             $caso = $this->casoRepo->save($caso);
             $casoId = (int) $caso->id;
 
             $servicio = CasoServicio::registrar(
-                casoId:               $casoId,
-                proyectoId:           $input->proyectoId,
-                codigoServicio:       new CodigoServicio($input->codigoServicio),
+                casoId: $casoId,
+                proyectoId: $input->proyectoId,
+                codigoServicio: new CodigoServicio($input->codigoServicio),
                 tipoAccionServicioId: $input->tipoAccionServicioId,
-                estadoTecnicoId:      $input->estadoTecnicoId,
-                direccionServicio:    $input->direccionServicio,
-                tecnicoAsignado:      $input->tecnicoAsignado,
-                fechaSolicitud:       $input->fechaSolicitud,
-                fechaProgramada:      $input->fechaProgramada,
+                estadoTecnicoId: $input->estadoTecnicoId,
+                direccionServicio: $input->direccionServicio,
+                tecnicoAsignado: $input->tecnicoAsignado,
+                fechaSolicitud: $input->fechaSolicitud,
+                fechaProgramada: $input->fechaProgramada,
             );
             $this->servicioRepo->save($servicio);
 
             $this->eventos->dispatch(new CasoCreado(
-                casoId:     $casoId,
-                publicId:   $caso->publicId,
+                casoId: $casoId,
+                publicId: $caso->publicId,
                 proyectoId: $caso->proyectoId,
-                carteraId:  $caso->carteraId,
-                personaId:  $caso->personaId,
-                tipoCaso:   TipoCaso::SERVICIO,
-                creadaEn:   $ahora,
+                carteraId: $caso->carteraId,
+                personaId: $caso->personaId,
+                tipoCaso: TipoCaso::SERVICIO,
+                creadaEn: $ahora,
             ));
 
             return new RegistrarCasoServicioOutput(
-                casoId:   $casoId,
+                casoId: $casoId,
                 publicId: $caso->publicId,
             );
         });

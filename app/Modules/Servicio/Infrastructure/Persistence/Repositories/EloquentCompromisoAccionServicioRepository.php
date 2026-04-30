@@ -16,14 +16,14 @@ final class EloquentCompromisoAccionServicioRepository implements CompromisoAcci
     public function save(CompromisoAccionServicio $accion): CompromisoAccionServicio
     {
         $model = CompromisoAccionServicioModel::query()->sinScopeProyecto()->find($accion->compromisoId)
-            ?? new CompromisoAccionServicioModel();
+            ?? new CompromisoAccionServicioModel;
 
-        $model->compromiso_id           = $accion->compromisoId;
-        $model->proyecto_id             = $accion->proyectoId;
-        $model->descripcion_accion      = $accion->descripcion->valor;
-        $model->fecha_programada        = $accion->fechaProgramada->fecha;
+        $model->compromiso_id = $accion->compromisoId;
+        $model->proyecto_id = $accion->proyectoId;
+        $model->descripcion_accion = $accion->descripcion->valor;
+        $model->fecha_programada = $accion->fechaProgramada->fecha;
         $model->tipo_accion_servicio_id = $accion->tipoAccionServicioId;
-        $model->tecnico_asignado        = $accion->tecnicoAsignado;
+        $model->tecnico_asignado = $accion->tecnicoAsignado;
 
         $model->save();
 
@@ -39,12 +39,12 @@ final class EloquentCompromisoAccionServicioRepository implements CompromisoAcci
         }
 
         return CompromisoAccionServicio::reconstituir(
-            compromisoId:         (int) $model->compromiso_id,
-            proyectoId:           (int) $model->proyecto_id,
-            descripcion:          new DescripcionAccion((string) $model->descripcion_accion),
-            fechaProgramada:      new FechaProgramada($this->hidratarFechaHora($model->fecha_programada)),
+            compromisoId: (int) $model->compromiso_id,
+            proyectoId: (int) $model->proyecto_id,
+            descripcion: new DescripcionAccion((string) $model->descripcion_accion),
+            fechaProgramada: new FechaProgramada($this->hidratarFechaHora($model->fecha_programada)),
             tipoAccionServicioId: $model->tipo_accion_servicio_id === null ? null : (int) $model->tipo_accion_servicio_id,
-            tecnicoAsignado:      $model->tecnico_asignado,
+            tecnicoAsignado: $model->tecnico_asignado,
         );
     }
 

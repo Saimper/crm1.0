@@ -42,11 +42,11 @@ final class CicloDeVidaPromesaTest extends TestCase
         );
 
         $this->assertDatabaseHas('promesas', [
-            'id'     => $promesaId,
+            'id' => $promesaId,
             'estado' => 'cumplida',
         ]);
         $this->assertDatabaseHas('productos', [
-            'id'                    => $ctx['productoId'],
+            'id' => $ctx['productoId'],
             'tiene_promesa_vigente' => 0,
         ]);
     }
@@ -60,11 +60,11 @@ final class CicloDeVidaPromesaTest extends TestCase
         );
 
         $this->assertDatabaseHas('promesas', [
-            'id'     => $promesaId,
+            'id' => $promesaId,
             'estado' => 'rota',
         ]);
         $this->assertDatabaseHas('productos', [
-            'id'                    => $ctx['productoId'],
+            'id' => $ctx['productoId'],
             'tiene_promesa_vigente' => 0,
         ]);
     }
@@ -78,11 +78,11 @@ final class CicloDeVidaPromesaTest extends TestCase
         );
 
         $this->assertDatabaseHas('promesas', [
-            'id'     => $promesaId,
+            'id' => $promesaId,
             'estado' => 'cancelada',
         ]);
         $this->assertDatabaseHas('productos', [
-            'id'                    => $ctx['productoId'],
+            'id' => $ctx['productoId'],
             'tiene_promesa_vigente' => 0,
         ]);
     }
@@ -98,7 +98,7 @@ final class CicloDeVidaPromesaTest extends TestCase
         );
 
         $this->assertDatabaseHas('productos', [
-            'id'                    => $ctx['productoId'],
+            'id' => $ctx['productoId'],
             'tiene_promesa_vigente' => 1,
         ]);
         $this->assertDatabaseHas('promesas', ['id' => $segunda, 'estado' => 'pendiente']);
@@ -137,21 +137,21 @@ final class CicloDeVidaPromesaTest extends TestCase
         );
 
         $output = $this->useCase(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:           (string) Str::ulid(),
-            productoId:         $ctx['productoId'],
-            clienteId:          $ctx['clienteId'],
-            contactoId:         null,
-            canalId:            $this->catId('canales', 'TELEFONO'),
-            tipoGestionId:      $this->catId('tipos_gestion', 'LLAMADA_SALIENTE'),
-            resultadoId:        $this->catId('resultados', 'PROMESA_PAGO'),
-            causaMoraId:        $this->catId('causas_mora', 'DESEMPLEO'),
+            publicId: (string) Str::ulid(),
+            productoId: $ctx['productoId'],
+            clienteId: $ctx['clienteId'],
+            contactoId: null,
+            canalId: $this->catId('canales', 'TELEFONO'),
+            tipoGestionId: $this->catId('tipos_gestion', 'LLAMADA_SALIENTE'),
+            resultadoId: $this->catId('resultados', 'PROMESA_PAGO'),
+            causaMoraId: $this->catId('causas_mora', 'DESEMPLEO'),
             motivoNoContactoId: null,
-            usuarioId:          $ctx['usuarioId'],
-            notas:              null,
-            duracion:           new DuracionSegundos(180),
-            snapshot:           null,
-            datosPromesa:       $datos,
-            creadaEn:           $hoy->setTime(10, 0),
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: new DuracionSegundos(180),
+            snapshot: null,
+            datosPromesa: $datos,
+            creadaEn: $hoy->setTime(10, 0),
         ));
 
         return (int) DB::table('promesas')->where('gestion_origen_id', $output->id)->value('id');
@@ -173,37 +173,37 @@ final class CicloDeVidaPromesaTest extends TestCase
         $usuario = User::factory()->create();
 
         $clienteId = (int) DB::table('clientes')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $this->catId('tipos_identificacion', 'CED'),
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Juan',
-            'apellidos'              => 'Pérez',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Juan',
+            'apellidos' => 'Pérez',
         ]);
 
         $productoId = (int) DB::table('productos')->insertGetId([
-            'public_id'          => (string) Str::ulid(),
-            'cliente_id'         => $clienteId,
-            'numero_prestamo'    => $nroPrestamo,
-            'cartera_id'         => $this->catId('carteras', 'CONSUMO'),
+            'public_id' => (string) Str::ulid(),
+            'cliente_id' => $clienteId,
+            'numero_prestamo' => $nroPrestamo,
+            'cartera_id' => $this->catId('carteras', 'CONSUMO'),
             'estado_producto_id' => $this->catId('estados_producto', 'MORA'),
-            'tramo_mora_id'      => $this->catId('tramos_mora', 'TRAMO_31_60'),
-            'monto_original'     => 5000,
-            'saldo_capital'      => 4200,
-            'saldo_total'        => 4500,
-            'cuota_mensual'      => 250,
-            'dias_mora'          => 45,
-            'cuotas_totales'     => 24,
-            'cuotas_pagadas'     => 6,
-            'moneda'             => 'USD',
-            'fecha_desembolso'   => '2026-01-15',
-            'fecha_vencimiento'  => '2028-01-15',
+            'tramo_mora_id' => $this->catId('tramos_mora', 'TRAMO_31_60'),
+            'monto_original' => 5000,
+            'saldo_capital' => 4200,
+            'saldo_total' => 4500,
+            'cuota_mensual' => 250,
+            'dias_mora' => 45,
+            'cuotas_totales' => 24,
+            'cuotas_pagadas' => 6,
+            'moneda' => 'USD',
+            'fecha_desembolso' => '2026-01-15',
+            'fecha_vencimiento' => '2028-01-15',
         ]);
 
         return [
-            'clienteId'  => $clienteId,
+            'clienteId' => $clienteId,
             'productoId' => $productoId,
-            'usuarioId'  => $usuario->id,
+            'usuarioId' => $usuario->id,
         ];
     }
 }

@@ -23,8 +23,7 @@ final readonly class Campana
         public ?DateTimeImmutable $fechaFin,
         public ?int $creadaPorId,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

@@ -19,9 +19,9 @@ final class ExportarCompromisosController
         $filename = "compromisos_{$proyecto->codigo}_".now()->format('Ymd_His').'.csv';
 
         $compromisos = DB::table('compromisos as co')
-            ->leftJoin('casos as c',    'c.id', '=', 'co.caso_id')
+            ->leftJoin('casos as c', 'c.id', '=', 'co.caso_id')
             ->leftJoin('personas as p', 'p.id', '=', 'c.persona_id')
-            ->leftJoin('users as u',    'u.id', '=', 'co.usuario_id')
+            ->leftJoin('users as u', 'u.id', '=', 'co.usuario_id')
             ->where('co.proyecto_id', $proyecto_id)
             ->whereNull('co.eliminada_en')
             ->select([
@@ -58,7 +58,7 @@ final class ExportarCompromisosController
             }
             fclose($out);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }

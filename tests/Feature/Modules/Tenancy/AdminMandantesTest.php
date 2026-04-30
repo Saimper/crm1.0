@@ -51,10 +51,10 @@ final class AdminMandantesTest extends TestCase
             ->assertSet('formVisible', false);
 
         $this->assertDatabaseHas('mandantes', [
-            'codigo'    => 'BANCO_X',
-            'nombre'    => 'Banco X S.A.',
+            'codigo' => 'BANCO_X',
+            'nombre' => 'Banco X S.A.',
             'documento' => '1799123456001',
-            'activo'    => true,
+            'activo' => true,
         ]);
     }
 
@@ -82,7 +82,7 @@ final class AdminMandantesTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('mandantes', [
-            'id'     => $id,
+            'id' => $id,
             'nombre' => 'BPO Demo Corp ACTUALIZADO',
         ]);
     }

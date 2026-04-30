@@ -9,6 +9,5 @@ final readonly class RegistrarCasoLeadVentaOutput
     public function __construct(
         public int $casoId,
         public string $publicId,
-    ) {
-    }
+    ) {}
 }

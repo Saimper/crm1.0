@@ -15,8 +15,7 @@ final readonly class CrearPromesaDesdeGestion
     public function __construct(
         private PromesaRepository $repositorio,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(CrearPromesaDesdeGestionInput $input): void
     {

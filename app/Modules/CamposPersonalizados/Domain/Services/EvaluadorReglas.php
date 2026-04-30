@@ -21,7 +21,7 @@ use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 final class EvaluadorReglas
 {
     /**
-     * @param array<string, mixed> $reglas
+     * @param  array<string, mixed>  $reglas
      */
     public function validar(TipoCampo $tipo, mixed $valor, array $reglas, bool $obligatorio, string $etiqueta): void
     {
@@ -36,12 +36,12 @@ final class EvaluadorReglas
 
         match ($tipo) {
             TipoCampo::TEXTO_CORTO, TipoCampo::TEXTO_LARGO => $this->validarTexto((string) $valor, $reglas, $etiqueta),
-            TipoCampo::NUMERO_ENTERO                       => $this->validarNumeroEntero($valor, $reglas, $etiqueta),
-            TipoCampo::NUMERO_DECIMAL, TipoCampo::MONEDA   => $this->validarNumeroDecimal($valor, $reglas, $etiqueta),
-            TipoCampo::FECHA, TipoCampo::FECHA_HORA        => $this->validarFecha((string) $valor, $reglas, $etiqueta),
-            TipoCampo::BOOLEANO                            => $this->validarBooleano($valor, $etiqueta),
-            TipoCampo::SELECCION_UNICA                     => null, // La existencia del opcion_id se valida en Application.
-            TipoCampo::SELECCION_MULTIPLE                  => $this->validarSeleccionMultiple($valor, $etiqueta),
+            TipoCampo::NUMERO_ENTERO => $this->validarNumeroEntero($valor, $reglas, $etiqueta),
+            TipoCampo::NUMERO_DECIMAL, TipoCampo::MONEDA => $this->validarNumeroDecimal($valor, $reglas, $etiqueta),
+            TipoCampo::FECHA, TipoCampo::FECHA_HORA => $this->validarFecha((string) $valor, $reglas, $etiqueta),
+            TipoCampo::BOOLEANO => $this->validarBooleano($valor, $etiqueta),
+            TipoCampo::SELECCION_UNICA => null, // La existencia del opcion_id se valida en Application.
+            TipoCampo::SELECCION_MULTIPLE => $this->validarSeleccionMultiple($valor, $etiqueta),
         };
     }
 

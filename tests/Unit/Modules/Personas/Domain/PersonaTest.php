@@ -17,16 +17,16 @@ final class PersonaTest extends TestCase
     public function test_crea_persona_fisica_con_nombres_y_apellidos(): void
     {
         $persona = Persona::registrar(
-            publicId:             '01HXPERSONA000000000000001',
-            proyectoId:           10,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: '01HXPERSONA000000000000001',
+            proyectoId: 10,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertNull($persona->id);
@@ -39,32 +39,32 @@ final class PersonaTest extends TestCase
     {
         $this->expectException(DatosPersonaInvalidos::class);
         Persona::registrar(
-            publicId:             '01HXPERSONA000000000000002',
-            proyectoId:           10,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: '01HXPERSONA000000000000002',
+            proyectoId: 10,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              '  ',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: '  ',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
     public function test_crea_persona_juridica_descarta_nombres_y_fecha_nacimiento(): void
     {
         $persona = Persona::registrar(
-            publicId:             '01HXPERSONA000000000000003',
-            proyectoId:           10,
-            tipoPersona:          TipoPersona::JURIDICA,
+            publicId: '01HXPERSONA000000000000003',
+            proyectoId: 10,
+            tipoPersona: TipoPersona::JURIDICA,
             tipoIdentificacionId: 2,
-            identificacion:       new Identificacion('1792345678001'),
-            nombres:              'Ignorado',
-            apellidos:            'Ignorado',
-            razonSocial:          'Comercial Austral S.A.',
-            fechaNacimiento:      new DateTimeImmutable('1980-01-01'),
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('1792345678001'),
+            nombres: 'Ignorado',
+            apellidos: 'Ignorado',
+            razonSocial: 'Comercial Austral S.A.',
+            fechaNacimiento: new DateTimeImmutable('1980-01-01'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertSame('Comercial Austral S.A.', $persona->nombreCompleto());
@@ -77,16 +77,16 @@ final class PersonaTest extends TestCase
     {
         $this->expectException(DatosPersonaInvalidos::class);
         Persona::registrar(
-            publicId:             '01HXPERSONA000000000000004',
-            proyectoId:           10,
-            tipoPersona:          TipoPersona::JURIDICA,
+            publicId: '01HXPERSONA000000000000004',
+            proyectoId: 10,
+            tipoPersona: TipoPersona::JURIDICA,
             tipoIdentificacionId: 2,
-            identificacion:       new Identificacion('1792345678001'),
-            nombres:              null,
-            apellidos:            null,
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('1792345678001'),
+            nombres: null,
+            apellidos: null,
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
@@ -99,16 +99,16 @@ final class PersonaTest extends TestCase
     public function test_con_id_produce_persona_persistida_con_mismo_proyecto(): void
     {
         $persona = Persona::registrar(
-            publicId:             '01HXPERSONA000000000000005',
-            proyectoId:           7,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: '01HXPERSONA000000000000005',
+            proyectoId: 7,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
-            identificacion:       new Identificacion('0304050607'),
-            nombres:              'Carlos',
-            apellidos:            'Ramírez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0304050607'),
+            nombres: 'Carlos',
+            apellidos: 'Ramírez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $persistida = $persona->conId(42);

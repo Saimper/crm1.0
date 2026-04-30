@@ -9,9 +9,7 @@ use DateTimeImmutable;
 
 final readonly class FechaPromesa
 {
-    public function __construct(public DateTimeImmutable $fecha)
-    {
-    }
+    public function __construct(public DateTimeImmutable $fecha) {}
 
     /**
      * Valida que la fecha sea hoy o posterior al registrar la promesa.

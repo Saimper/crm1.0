@@ -44,27 +44,28 @@ final class ImportarPersonas extends Component
 
         if ($filas === []) {
             $this->addError('archivo', 'El CSV está vacío o no tiene las columnas esperadas.');
+
             return;
         }
 
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
-        $importacion = new ImportacionModel();
-        $importacion->public_id      = (string) Str::ulid();
-        $importacion->proyecto_id    = $proyectoId;
-        $importacion->tipo_entidad   = 'persona';
-        $importacion->estado         = 'borrador';
-        $importacion->usuario_id     = (int) auth()->id();
+        $importacion = new ImportacionModel;
+        $importacion->public_id = (string) Str::ulid();
+        $importacion->proyecto_id = $proyectoId;
+        $importacion->tipo_entidad = 'persona';
+        $importacion->estado = 'borrador';
+        $importacion->usuario_id = (int) auth()->id();
         $importacion->nombre_archivo = $file->getClientOriginalName();
-        $importacion->total_filas    = count($filas);
+        $importacion->total_filas = count($filas);
         $importacion->save();
 
         foreach ($filas as $i => $payload) {
             ImportacionFilaModel::query()->create([
                 'importacion_id' => $importacion->id,
-                'proyecto_id'    => $proyectoId,
-                'numero_fila'    => $i + 1,
-                'estado'         => 'pendiente',
-                'payload'        => $payload,
+                'proyecto_id' => $proyectoId,
+                'numero_fila' => $i + 1,
+                'estado' => 'pendiente',
+                'payload' => $payload,
             ]);
         }
 
@@ -125,8 +126,8 @@ final class ImportarPersonas extends Component
         }
 
         return view('importaciones::livewire.importar-personas', [
-            'historial'         => $historial,
-            'preview'           => $preview,
+            'historial' => $historial,
+            'preview' => $preview,
             'importacionActual' => $importacionActual,
         ]);
     }

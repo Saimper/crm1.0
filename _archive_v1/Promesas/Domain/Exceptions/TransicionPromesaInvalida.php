@@ -6,6 +6,4 @@ namespace App\Modules\Promesas\Domain\Exceptions;
 
 use DomainException;
 
-final class TransicionPromesaInvalida extends DomainException
-{
-}
+final class TransicionPromesaInvalida extends DomainException {}

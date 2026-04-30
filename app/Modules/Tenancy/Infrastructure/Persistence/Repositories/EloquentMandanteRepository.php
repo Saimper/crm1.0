@@ -17,13 +17,13 @@ final class EloquentMandanteRepository implements MandanteRepository
     {
         $model = $mandante->id !== null
             ? MandanteModel::query()->findOrFail($mandante->id)
-            : new MandanteModel();
+            : new MandanteModel;
 
         $model->public_id = $mandante->publicId;
-        $model->codigo    = $mandante->codigo->asString();
-        $model->nombre    = $mandante->nombre;
+        $model->codigo = $mandante->codigo->asString();
+        $model->nombre = $mandante->nombre;
         $model->documento = $mandante->documento;
-        $model->activo    = $mandante->activo;
+        $model->activo = $mandante->activo;
         if ($mandante->id === null) {
             $model->creada_en = $mandante->creadaEn;
         }
@@ -42,13 +42,13 @@ final class EloquentMandanteRepository implements MandanteRepository
         }
 
         return Mandante::reconstituir(
-            id:        (int) $model->id,
-            publicId:  (string) $model->public_id,
-            codigo:    new CodigoMandante((string) $model->codigo),
-            nombre:    (string) $model->nombre,
+            id: (int) $model->id,
+            publicId: (string) $model->public_id,
+            codigo: new CodigoMandante((string) $model->codigo),
+            nombre: (string) $model->nombre,
             documento: $model->documento !== null ? (string) $model->documento : null,
-            activo:    (bool) $model->activo,
-            creadaEn:  $this->hidratarFecha($model->creada_en),
+            activo: (bool) $model->activo,
+            creadaEn: $this->hidratarFecha($model->creada_en),
         );
     }
 

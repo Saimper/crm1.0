@@ -18,7 +18,5 @@ final class GestionesServiceProvider extends ServiceProvider
         $this->app->bind(ConsultaResultado::class, ConsultaResultadoEloquent::class);
     }
 
-    public function boot(): void
-    {
-    }
+    public function boot(): void {}
 }

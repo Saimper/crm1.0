@@ -23,8 +23,8 @@ final class TenancyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(MandanteRepository::class, EloquentMandanteRepository::class);
-        $this->app->bind(ProyectoRepository::class,  EloquentProyectoRepository::class);
-        $this->app->bind(CarteraRepository::class,   EloquentCarteraRepository::class);
+        $this->app->bind(ProyectoRepository::class, EloquentProyectoRepository::class);
+        $this->app->bind(CarteraRepository::class, EloquentCarteraRepository::class);
     }
 
     public function boot(Router $router): void

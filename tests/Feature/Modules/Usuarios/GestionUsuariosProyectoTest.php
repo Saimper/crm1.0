@@ -106,10 +106,10 @@ final class GestionUsuariosProyectoTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('usuario_proyecto_rol', [
-            'usuario_id'  => $target->id,
+            'usuario_id' => $target->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolGestorId,
-            'activo'      => true,
+            'rol_id' => $rolGestorId,
+            'activo' => true,
         ]);
     }
 
@@ -132,7 +132,7 @@ final class GestionUsuariosProyectoTest extends TestCase
 
         $this->assertDatabaseMissing('usuario_proyecto_rol', [
             'usuario_id' => $target->id,
-            'rol_id'     => $rolAdminId,
+            'rol_id' => $rolAdminId,
         ]);
     }
 
@@ -149,9 +149,9 @@ final class GestionUsuariosProyectoTest extends TestCase
             ->call('quitar', $supervisor->id, $rolSupervisorId);
 
         $this->assertDatabaseHas('usuario_proyecto_rol', [
-            'usuario_id'  => $supervisor->id,
+            'usuario_id' => $supervisor->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolSupervisorId,
+            'rol_id' => $rolSupervisorId,
         ]);
     }
 
@@ -159,7 +159,7 @@ final class GestionUsuariosProyectoTest extends TestCase
     {
         $proyectoId = $this->proyectoId();
         $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $gestor     = $this->crearConRol($proyectoId, 'GESTOR');
+        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
         $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
 
         $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
@@ -220,10 +220,10 @@ final class GestionUsuariosProyectoTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([

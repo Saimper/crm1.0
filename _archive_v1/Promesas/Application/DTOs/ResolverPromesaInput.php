@@ -11,6 +11,5 @@ final readonly class ResolverPromesaInput
     public function __construct(
         public int $promesaId,
         public DateTimeImmutable $fechaResolucion,
-    ) {
-    }
+    ) {}
 }

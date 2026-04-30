@@ -87,13 +87,13 @@ final class BandejaEquipo extends Component
             $usuariosQuery = $this->miembroId !== null ? [$this->miembroId] : $miembroIds;
 
             $query = DB::table('asignaciones as a')
-                ->join('casos as c',           'c.id',  '=', 'a.caso_id')
-                ->join('personas as pe',       'pe.id', '=', 'c.persona_id')
-                ->join('carteras as ca',       'ca.id', '=', 'c.cartera_id')
-                ->join('estados_caso as ec',   'ec.id', '=', 'c.estado_caso_id')
-                ->join('users as gu',          'gu.id', '=', 'a.usuario_id')
+                ->join('casos as c', 'c.id', '=', 'a.caso_id')
+                ->join('personas as pe', 'pe.id', '=', 'c.persona_id')
+                ->join('carteras as ca', 'ca.id', '=', 'c.cartera_id')
+                ->join('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
+                ->join('users as gu', 'gu.id', '=', 'a.usuario_id')
                 ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
-                ->leftJoin('campanas as cm',   'cm.id', '=', 'a.campana_id')
+                ->leftJoin('campanas as cm', 'cm.id', '=', 'a.campana_id')
                 ->where('a.proyecto_id', $proyectoId)
                 ->whereIn('a.usuario_id', $usuariosQuery)
                 ->whereNull('c.eliminada_en');
@@ -107,8 +107,8 @@ final class BandejaEquipo extends Component
                 $like = "%{$texto}%";
                 $query->where(function ($w) use ($like): void {
                     $w->where('pe.identificacion', 'like', $like)
-                        ->orWhere('pe.nombres',      'like', $like)
-                        ->orWhere('pe.apellidos',    'like', $like)
+                        ->orWhere('pe.nombres', 'like', $like)
+                        ->orWhere('pe.apellidos', 'like', $like)
                         ->orWhere('pe.razon_social', 'like', $like);
                 });
             }
@@ -150,12 +150,12 @@ final class BandejaEquipo extends Component
         }
 
         return view('asignaciones::livewire.bandeja-equipo', [
-            'equipos'          => $equipos,
-            'miembros'         => $miembros,
-            'asignaciones'     => $asignaciones,
-            'conteoPorEstado'  => $conteoPorEstado,
+            'equipos' => $equipos,
+            'miembros' => $miembros,
+            'asignaciones' => $asignaciones,
+            'conteoPorEstado' => $conteoPorEstado,
             'conteoPorMiembro' => $conteoPorMiembro,
-            'proyectoActivo'   => $proyectoActivo,
+            'proyectoActivo' => $proyectoActivo,
         ]);
     }
 }

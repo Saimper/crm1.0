@@ -24,8 +24,8 @@ final class CasoServicioModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'       => 'immutable_datetime',
-        'actualizada_en'  => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
         'fecha_solicitud' => 'immutable_date',
         'fecha_programada' => 'immutable_datetime',
     ];

@@ -14,8 +14,8 @@ final class MandantesDemoSeeder extends Seeder
     {
         $filas = [
             [
-                'codigo'    => 'BPO_DEMO',
-                'nombre'    => 'BPO Demo Corp',
+                'codigo' => 'BPO_DEMO',
+                'nombre' => 'BPO Demo Corp',
                 'documento' => '0000000000001',
             ],
         ];
@@ -27,10 +27,10 @@ final class MandantesDemoSeeder extends Seeder
 
             DB::table('mandantes')->insert([
                 'public_id' => (string) Str::ulid(),
-                'codigo'    => $row['codigo'],
-                'nombre'    => $row['nombre'],
+                'codigo' => $row['codigo'],
+                'nombre' => $row['nombre'],
                 'documento' => $row['documento'],
-                'activo'    => true,
+                'activo' => true,
             ]);
         }
     }

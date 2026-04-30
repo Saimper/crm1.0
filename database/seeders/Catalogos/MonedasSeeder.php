@@ -14,10 +14,10 @@ final class MonedasSeeder extends Seeder
         $rows = [
             ['codigo_iso' => 'USD', 'nombre' => 'Dólar estadounidense', 'simbolo' => '$',   'decimales' => 2, 'activo' => true, 'orden' => 10],
             ['codigo_iso' => 'EUR', 'nombre' => 'Euro',                 'simbolo' => '€',   'decimales' => 2, 'activo' => true, 'orden' => 20],
-            ['codigo_iso' => 'COP', 'nombre' => 'Peso colombiano',      'simbolo' => 'COL$','decimales' => 0, 'activo' => true, 'orden' => 30],
+            ['codigo_iso' => 'COP', 'nombre' => 'Peso colombiano',      'simbolo' => 'COL$', 'decimales' => 0, 'activo' => true, 'orden' => 30],
             ['codigo_iso' => 'PEN', 'nombre' => 'Sol peruano',          'simbolo' => 'S/',  'decimales' => 2, 'activo' => true, 'orden' => 40],
-            ['codigo_iso' => 'MXN', 'nombre' => 'Peso mexicano',        'simbolo' => 'Mex$','decimales' => 2, 'activo' => true, 'orden' => 50],
-            ['codigo_iso' => 'CLP', 'nombre' => 'Peso chileno',         'simbolo' => 'CLP$','decimales' => 0, 'activo' => true, 'orden' => 60],
+            ['codigo_iso' => 'MXN', 'nombre' => 'Peso mexicano',        'simbolo' => 'Mex$', 'decimales' => 2, 'activo' => true, 'orden' => 50],
+            ['codigo_iso' => 'CLP', 'nombre' => 'Peso chileno',         'simbolo' => 'CLP$', 'decimales' => 0, 'activo' => true, 'orden' => 60],
             ['codigo_iso' => 'ARS', 'nombre' => 'Peso argentino',       'simbolo' => 'AR$', 'decimales' => 2, 'activo' => true, 'orden' => 70],
         ];
 

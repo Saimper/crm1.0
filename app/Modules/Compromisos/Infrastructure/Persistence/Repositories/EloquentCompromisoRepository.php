@@ -18,17 +18,17 @@ final class EloquentCompromisoRepository implements CompromisoRepository
     {
         $model = $compromiso->id !== null
             ? CompromisoModel::query()->sinScopeProyecto()->findOrFail($compromiso->id)
-            : new CompromisoModel();
+            : new CompromisoModel;
 
-        $model->public_id         = $compromiso->publicId;
-        $model->proyecto_id       = $compromiso->proyectoId;
-        $model->caso_id           = $compromiso->casoId;
+        $model->public_id = $compromiso->publicId;
+        $model->proyecto_id = $compromiso->proyectoId;
+        $model->caso_id = $compromiso->casoId;
         $model->gestion_origen_id = $compromiso->gestionOrigenId;
-        $model->usuario_id        = $compromiso->usuarioId;
-        $model->tipo_compromiso   = $compromiso->tipo->value;
-        $model->estado            = $compromiso->estado->value;
+        $model->usuario_id = $compromiso->usuarioId;
+        $model->tipo_compromiso = $compromiso->tipo->value;
+        $model->estado = $compromiso->estado->value;
         $model->fecha_vencimiento = $compromiso->fechaVencimiento;
-        $model->fecha_resolucion  = $compromiso->fechaResolucion;
+        $model->fecha_resolucion = $compromiso->fechaResolucion;
         if ($compromiso->id === null) {
             $model->creada_en = $compromiso->creadaEn;
         }
@@ -47,21 +47,21 @@ final class EloquentCompromisoRepository implements CompromisoRepository
         }
 
         return Compromiso::reconstituir(
-            id:               (int) $model->id,
-            publicId:         (string) $model->public_id,
-            proyectoId:       (int) $model->proyecto_id,
-            casoId:           (int) $model->caso_id,
-            gestionOrigenId:  $model->gestion_origen_id !== null ? (int) $model->gestion_origen_id : null,
-            usuarioId:        (int) $model->usuario_id,
-            tipo:             TipoCompromiso::from((string) $model->tipo_compromiso),
-            estado:           EstadoCompromiso::from((string) $model->estado),
+            id: (int) $model->id,
+            publicId: (string) $model->public_id,
+            proyectoId: (int) $model->proyecto_id,
+            casoId: (int) $model->caso_id,
+            gestionOrigenId: $model->gestion_origen_id !== null ? (int) $model->gestion_origen_id : null,
+            usuarioId: (int) $model->usuario_id,
+            tipo: TipoCompromiso::from((string) $model->tipo_compromiso),
+            estado: EstadoCompromiso::from((string) $model->estado),
             fechaVencimiento: $model->fecha_vencimiento instanceof DateTimeImmutable
                 ? $model->fecha_vencimiento
                 : new DateTimeImmutable((string) $model->fecha_vencimiento),
-            fechaResolucion:  $model->fecha_resolucion instanceof DateTimeImmutable
+            fechaResolucion: $model->fecha_resolucion instanceof DateTimeImmutable
                 ? $model->fecha_resolucion
                 : ($model->fecha_resolucion !== null ? new DateTimeImmutable((string) $model->fecha_resolucion) : null),
-            creadaEn:         $model->creada_en instanceof DateTimeImmutable
+            creadaEn: $model->creada_en instanceof DateTimeImmutable
                 ? $model->creada_en
                 : new DateTimeImmutable((string) $model->creada_en),
         );

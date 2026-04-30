@@ -15,7 +15,5 @@ final class CampanasServiceProvider extends ServiceProvider
         $this->app->bind(CampanaRepository::class, EloquentCampanaRepository::class);
     }
 
-    public function boot(): void
-    {
-    }
+    public function boot(): void {}
 }

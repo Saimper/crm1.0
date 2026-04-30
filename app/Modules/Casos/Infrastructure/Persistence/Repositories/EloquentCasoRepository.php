@@ -17,17 +17,17 @@ final class EloquentCasoRepository implements CasoRepository
     {
         $model = $caso->id !== null
             ? CasoModel::query()->sinScopeProyecto()->findOrFail($caso->id)
-            : new CasoModel();
+            : new CasoModel;
 
-        $model->public_id      = $caso->publicId;
-        $model->proyecto_id    = $caso->proyectoId;
-        $model->cartera_id     = $caso->carteraId;
-        $model->persona_id     = $caso->personaId;
-        $model->tipo_caso      = $caso->tipoCaso->value;
+        $model->public_id = $caso->publicId;
+        $model->proyecto_id = $caso->proyectoId;
+        $model->cartera_id = $caso->carteraId;
+        $model->persona_id = $caso->personaId;
+        $model->tipo_caso = $caso->tipoCaso->value;
         $model->estado_caso_id = $caso->estadoCasoId;
-        $model->fecha_ingreso  = $caso->fechaIngreso;
-        $model->prioridad      = $caso->prioridad;
-        $model->cerrado_en     = $caso->cerradoEn;
+        $model->fecha_ingreso = $caso->fechaIngreso;
+        $model->prioridad = $caso->prioridad;
+        $model->cerrado_en = $caso->cerradoEn;
         if ($caso->id === null) {
             $model->creada_en = $caso->creadaEn;
         }
@@ -46,17 +46,17 @@ final class EloquentCasoRepository implements CasoRepository
         }
 
         return Caso::reconstituir(
-            id:           (int) $model->id,
-            publicId:     (string) $model->public_id,
-            proyectoId:   (int) $model->proyecto_id,
-            carteraId:    (int) $model->cartera_id,
-            personaId:    (int) $model->persona_id,
-            tipoCaso:     TipoCaso::from((string) $model->tipo_caso),
+            id: (int) $model->id,
+            publicId: (string) $model->public_id,
+            proyectoId: (int) $model->proyecto_id,
+            carteraId: (int) $model->cartera_id,
+            personaId: (int) $model->persona_id,
+            tipoCaso: TipoCaso::from((string) $model->tipo_caso),
             estadoCasoId: (int) $model->estado_caso_id,
             fechaIngreso: $this->hidratarFecha($model->fecha_ingreso),
-            prioridad:    (int) $model->prioridad,
-            cerradoEn:    $model->cerrado_en instanceof DateTimeImmutable ? $model->cerrado_en : null,
-            creadaEn:     $this->hidratarFecha($model->creada_en),
+            prioridad: (int) $model->prioridad,
+            cerradoEn: $model->cerrado_en instanceof DateTimeImmutable ? $model->cerrado_en : null,
+            creadaEn: $this->hidratarFecha($model->creada_en),
         );
     }
 

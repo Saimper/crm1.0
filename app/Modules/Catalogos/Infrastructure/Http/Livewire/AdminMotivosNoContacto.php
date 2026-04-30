@@ -19,7 +19,7 @@ final class AdminMotivosNoContacto extends AbstractAdminCatalogo
         return [
             'codigo' => '',
             'nombre' => '',
-            'orden'  => 100,
+            'orden' => 100,
             'activo' => true,
         ];
     }
@@ -29,7 +29,7 @@ final class AdminMotivosNoContacto extends AbstractAdminCatalogo
         return [
             'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
-            'form.orden'  => ['integer', 'min:0'],
+            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -39,7 +39,7 @@ final class AdminMotivosNoContacto extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $this->form['codigo'],
             'nombre' => (string) $this->form['nombre'],
-            'orden'  => (int) ($this->form['orden'] ?? 100),
+            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
@@ -49,7 +49,7 @@ final class AdminMotivosNoContacto extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $row->codigo,
             'nombre' => (string) $row->nombre,
-            'orden'  => (int) $row->orden,
+            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }

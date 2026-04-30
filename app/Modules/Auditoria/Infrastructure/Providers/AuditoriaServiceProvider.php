@@ -41,9 +41,7 @@ final class AuditoriaServiceProvider extends ServiceProvider
         AsignacionModel::class,
     ];
 
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     public function boot(): void
     {

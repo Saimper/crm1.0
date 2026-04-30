@@ -15,12 +15,12 @@ final class CarteraTest extends TestCase
     public function test_registra_cartera_activa_y_normaliza_nombre(): void
     {
         $cartera = Cartera::registrar(
-            publicId:    '01HXTENANCY0000000CART0001',
-            proyectoId:  7,
-            codigo:      new CodigoCartera('CONSUMO'),
-            nombre:      '  Consumo  ',
+            publicId: '01HXTENANCY0000000CART0001',
+            proyectoId: 7,
+            codigo: new CodigoCartera('CONSUMO'),
+            nombre: '  Consumo  ',
             descripcion: null,
-            creadaEn:    new DateTimeImmutable('2026-04-17'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertSame('CONSUMO', $cartera->codigo->asString());
@@ -37,12 +37,12 @@ final class CarteraTest extends TestCase
     public function test_con_id_produce_cartera_persistida(): void
     {
         $cartera = Cartera::registrar(
-            publicId:    '01HXTENANCY0000000CART0002',
-            proyectoId:  7,
-            codigo:      new CodigoCartera('MICRO'),
-            nombre:      'Microempresa',
+            publicId: '01HXTENANCY0000000CART0002',
+            proyectoId: 7,
+            codigo: new CodigoCartera('MICRO'),
+            nombre: 'Microempresa',
             descripcion: null,
-            creadaEn:    new DateTimeImmutable('2026-04-17'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $persistida = $cartera->conId(99);

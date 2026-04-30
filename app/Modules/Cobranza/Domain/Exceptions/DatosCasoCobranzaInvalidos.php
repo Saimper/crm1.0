@@ -6,6 +6,4 @@ namespace App\Modules\Cobranza\Domain\Exceptions;
 
 use DomainException;
 
-final class DatosCasoCobranzaInvalidos extends DomainException
-{
-}
+final class DatosCasoCobranzaInvalidos extends DomainException {}

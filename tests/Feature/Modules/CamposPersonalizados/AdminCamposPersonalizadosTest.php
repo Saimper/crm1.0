@@ -6,6 +6,7 @@ namespace Tests\Feature\Modules\CamposPersonalizados;
 
 use App\Models\User;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\AdminCamposPersonalizados;
+use Database\Seeders\Gestiones\GestionesCatalogosDemoSeeder;
 use Database\Seeders\Tenancy\CarterasDemoSeeder;
 use Database\Seeders\Tenancy\MandantesDemoSeeder;
 use Database\Seeders\Tenancy\ProyectosDemoSeeder;
@@ -13,7 +14,6 @@ use Database\Seeders\Usuarios\PermisosSeeder;
 use Database\Seeders\Usuarios\RolesSeeder;
 use Database\Seeders\Usuarios\RolPermisoSeeder;
 use Database\Seeders\Usuarios\UsuarioAdminGlobalSeeder;
-use Database\Seeders\Gestiones\GestionesCatalogosDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +46,7 @@ final class AdminCamposPersonalizadosTest extends TestCase
         $this->actingAs($admin);
 
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
 
         Livewire::test(AdminCamposPersonalizados::class)
             ->call('abrirFormCrear')
@@ -64,12 +64,12 @@ final class AdminCamposPersonalizadosTest extends TestCase
 
         $this->assertDatabaseHas('campos_personalizados', [
             'proyecto_id' => $proyectoId,
-            'ambito'      => 'caso',
-            'ambito_id'   => $carteraId,
-            'codigo'      => 'observacion_gerente',
-            'etiqueta'    => 'Observación del gerente',
-            'tipo'        => 'texto_corto',
-            'activo'      => true,
+            'ambito' => 'caso',
+            'ambito_id' => $carteraId,
+            'codigo' => 'observacion_gerente',
+            'etiqueta' => 'Observación del gerente',
+            'tipo' => 'texto_corto',
+            'activo' => true,
         ]);
     }
 
@@ -78,18 +78,18 @@ final class AdminCamposPersonalizadosTest extends TestCase
         $this->actingAs($this->obtenerAdminGlobal());
 
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
-            'ambito'      => 'caso',
-            'ambito_id'   => $carteraId,
-            'codigo'      => 'existente',
-            'etiqueta'    => 'Ya existe',
-            'tipo'        => 'texto_corto',
+            'ambito' => 'caso',
+            'ambito_id' => $carteraId,
+            'codigo' => 'existente',
+            'etiqueta' => 'Ya existe',
+            'tipo' => 'texto_corto',
             'obligatorio' => false,
-            'activo'      => true,
-            'orden'       => 100,
+            'activo' => true,
+            'orden' => 100,
         ]);
 
         Livewire::test(AdminCamposPersonalizados::class)
@@ -108,9 +108,9 @@ final class AdminCamposPersonalizadosTest extends TestCase
     {
         $this->actingAs($this->obtenerAdminGlobal());
 
-        $proyectoCob  = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyectoCx   = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraCx    = (int) DB::table('carteras')->where('proyecto_id', $proyectoCx)->value('id');
+        $proyectoCob = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        $proyectoCx = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $carteraCx = (int) DB::table('carteras')->where('proyecto_id', $proyectoCx)->value('id');
 
         Livewire::test(AdminCamposPersonalizados::class)
             ->call('abrirFormCrear')
@@ -131,7 +131,7 @@ final class AdminCamposPersonalizadosTest extends TestCase
         $this->actingAs($this->obtenerAdminGlobal());
 
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
         $campoId = (int) DB::table('campos_personalizados')->insertGetId([
             'proyecto_id' => $proyectoId, 'ambito' => 'caso', 'ambito_id' => $carteraId,
             'codigo' => 'campo_demo', 'etiqueta' => 'Demo', 'tipo' => 'texto_corto',

@@ -19,10 +19,10 @@ final class ExportarCasosController
         $filename = "casos_{$proyecto->codigo}_".now()->format('Ymd_His').'.csv';
 
         $casos = DB::table('casos as c')
-            ->leftJoin('personas as p',        'p.id',  '=', 'c.persona_id')
-            ->leftJoin('carteras as ca',       'ca.id', '=', 'c.cartera_id')
-            ->leftJoin('estados_caso as ec',   'ec.id', '=', 'c.estado_caso_id')
-            ->leftJoin('resultados as r',      'r.id',  '=', 'c.resultado_ultima_gestion_id')
+            ->leftJoin('personas as p', 'p.id', '=', 'c.persona_id')
+            ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
+            ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
+            ->leftJoin('resultados as r', 'r.id', '=', 'c.resultado_ultima_gestion_id')
             ->where('c.proyecto_id', $proyecto_id)
             ->whereNull('c.eliminada_en')
             ->select([
@@ -66,7 +66,7 @@ final class ExportarCasosController
             }
             fclose($out);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }

@@ -20,8 +20,7 @@ final readonly class CompromisoPromesaPago
         public MontoPromesa $monto,
         public FechaPromesa $fechaVencimiento,
         public ?int $tipoPagoId,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $compromisoId,
@@ -31,11 +30,11 @@ final readonly class CompromisoPromesaPago
         ?int $tipoPagoId,
     ): self {
         return new self(
-            compromisoId:     $compromisoId,
-            proyectoId:       $proyectoId,
-            monto:            $monto,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            monto: $monto,
             fechaVencimiento: $fechaVencimiento,
-            tipoPagoId:       $tipoPagoId,
+            tipoPagoId: $tipoPagoId,
         );
     }
 
@@ -47,11 +46,11 @@ final readonly class CompromisoPromesaPago
         ?int $tipoPagoId,
     ): self {
         return new self(
-            compromisoId:     $compromisoId,
-            proyectoId:       $proyectoId,
-            monto:            $monto,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            monto: $monto,
             fechaVencimiento: $fechaVencimiento,
-            tipoPagoId:       $tipoPagoId,
+            tipoPagoId: $tipoPagoId,
         );
     }
 }

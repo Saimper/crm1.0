@@ -24,10 +24,10 @@ final class CasoLeadVentaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'             => 'immutable_datetime',
-        'actualizada_en'        => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
         'fecha_primer_contacto' => 'immutable_date',
         'fecha_estimada_cierre' => 'immutable_date',
-        'valor_estimado'        => 'string',
+        'valor_estimado' => 'string',
     ];
 }

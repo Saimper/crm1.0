@@ -8,6 +8,7 @@ use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonal
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Throwable;
 
@@ -38,10 +39,10 @@ final class FormularioCamposPersonalizados extends Component
     public function mount(int $proyectoId, string $ambito, int $ambitoId, int $entidadId, ?bool $bloqueado = null): void
     {
         $this->proyectoId = $proyectoId;
-        $this->ambito     = $ambito;
-        $this->ambitoId   = $ambitoId;
-        $this->entidadId  = $entidadId;
-        $this->bloqueado  = $bloqueado ?? ! $this->puedeEditar();
+        $this->ambito = $ambito;
+        $this->ambitoId = $ambitoId;
+        $this->entidadId = $entidadId;
+        $this->bloqueado = $bloqueado ?? ! $this->puedeEditar();
 
         $this->cargarValores();
     }
@@ -50,12 +51,12 @@ final class FormularioCamposPersonalizados extends Component
     {
         // Defensa en profundidad: re-valida permiso en cada guardar, independiente del estado.
         if (! $this->puedeEditar()) {
-            \Illuminate\Support\Facades\Log::warning('Bloqueo guardar campos personalizados', [
-                'usuario_id'   => auth()->id(),
-                'proyecto_id'  => $this->proyectoId,
-                'ambito'       => $this->ambito,
-                'ambito_id'    => $this->ambitoId,
-                'entidad_id'   => $this->entidadId,
+            Log::warning('Bloqueo guardar campos personalizados', [
+                'usuario_id' => auth()->id(),
+                'proyecto_id' => $this->proyectoId,
+                'ambito' => $this->ambito,
+                'ambito_id' => $this->ambitoId,
+                'entidad_id' => $this->entidadId,
             ]);
             abort(403, 'No tienes permiso para editar campos personalizados en este proyecto.');
         }
@@ -73,6 +74,7 @@ final class FormularioCamposPersonalizados extends Component
             );
         } catch (Throwable $e) {
             $this->addError('general', $e->getMessage());
+
             return;
         }
 
@@ -123,17 +125,17 @@ final class FormularioCamposPersonalizados extends Component
     private function leerValor(object $fila, string $tipo): mixed
     {
         return match ($tipo) {
-            'texto_corto'        => $fila->valor_texto_corto,
-            'texto_largo'        => $fila->valor_texto_largo,
-            'numero_entero'      => $fila->valor_numero_entero === null ? null : (int) $fila->valor_numero_entero,
-            'numero_decimal'     => $fila->valor_numero_decimal,
-            'fecha'              => $fila->valor_fecha,
-            'fecha_hora'         => $fila->valor_fecha_hora,
-            'booleano'           => $fila->valor_booleano === null ? null : (bool) $fila->valor_booleano,
-            'seleccion_unica'    => $fila->valor_opcion_id === null ? null : (int) $fila->valor_opcion_id,
+            'texto_corto' => $fila->valor_texto_corto,
+            'texto_largo' => $fila->valor_texto_largo,
+            'numero_entero' => $fila->valor_numero_entero === null ? null : (int) $fila->valor_numero_entero,
+            'numero_decimal' => $fila->valor_numero_decimal,
+            'fecha' => $fila->valor_fecha,
+            'fecha_hora' => $fila->valor_fecha_hora,
+            'booleano' => $fila->valor_booleano === null ? null : (bool) $fila->valor_booleano,
+            'seleccion_unica' => $fila->valor_opcion_id === null ? null : (int) $fila->valor_opcion_id,
             'seleccion_multiple' => $fila->valor_opciones_ids === null ? [] : (array) json_decode((string) $fila->valor_opciones_ids, true),
-            'moneda'             => $fila->valor_moneda_monto,
-            default              => null,
+            'moneda' => $fila->valor_moneda_monto,
+            default => null,
         };
     }
 }

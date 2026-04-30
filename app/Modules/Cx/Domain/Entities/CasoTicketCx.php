@@ -26,8 +26,7 @@ final readonly class CasoTicketCx
         public ?int $nivelEscalamientoId,
         public DateTimeImmutable $fechaReporte,
         public ?DateTimeImmutable $fechaLimiteSla,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $casoId,
@@ -47,17 +46,17 @@ final readonly class CasoTicketCx
         }
 
         return new self(
-            casoId:             $casoId,
-            proyectoId:         $proyectoId,
-            codigoTicket:       $codigoTicket,
-            asunto:             $asunto,
-            descripcion:        $descripcion,
-            categoriaTicketId:  $categoriaTicketId,
-            prioridadTicketId:  $prioridadTicketId,
-            nivelSlaId:         $nivelSlaId,
+            casoId: $casoId,
+            proyectoId: $proyectoId,
+            codigoTicket: $codigoTicket,
+            asunto: $asunto,
+            descripcion: $descripcion,
+            categoriaTicketId: $categoriaTicketId,
+            prioridadTicketId: $prioridadTicketId,
+            nivelSlaId: $nivelSlaId,
             nivelEscalamientoId: $nivelEscalamientoId,
-            fechaReporte:       $fechaReporte,
-            fechaLimiteSla:     $fechaLimiteSla,
+            fechaReporte: $fechaReporte,
+            fechaLimiteSla: $fechaLimiteSla,
         );
     }
 
@@ -75,17 +74,17 @@ final readonly class CasoTicketCx
         ?DateTimeImmutable $fechaLimiteSla,
     ): self {
         return new self(
-            casoId:             $casoId,
-            proyectoId:         $proyectoId,
-            codigoTicket:       $codigoTicket,
-            asunto:             $asunto,
-            descripcion:        $descripcion,
-            categoriaTicketId:  $categoriaTicketId,
-            prioridadTicketId:  $prioridadTicketId,
-            nivelSlaId:         $nivelSlaId,
+            casoId: $casoId,
+            proyectoId: $proyectoId,
+            codigoTicket: $codigoTicket,
+            asunto: $asunto,
+            descripcion: $descripcion,
+            categoriaTicketId: $categoriaTicketId,
+            prioridadTicketId: $prioridadTicketId,
+            nivelSlaId: $nivelSlaId,
             nivelEscalamientoId: $nivelEscalamientoId,
-            fechaReporte:       $fechaReporte,
-            fechaLimiteSla:     $fechaLimiteSla,
+            fechaReporte: $fechaReporte,
+            fechaLimiteSla: $fechaLimiteSla,
         );
     }
 }

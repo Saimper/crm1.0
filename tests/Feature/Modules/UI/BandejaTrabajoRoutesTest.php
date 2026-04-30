@@ -82,12 +82,12 @@ final class BandejaTrabajoRoutesTest extends TestCase
         // Crear otro proyecto del mismo mandante y una persona allí.
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
         $otroProyectoId = (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => (string) Str::ulid(),
-            'mandante_id'    => $mandanteId,
-            'codigo'         => 'OTRO_P',
-            'nombre'         => 'Otro proyecto',
+            'public_id' => (string) Str::ulid(),
+            'mandante_id' => $mandanteId,
+            'codigo' => 'OTRO_P',
+            'nombre' => 'Otro proyecto',
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
         $personaAjenaPublicId = $this->crearPersona($otroProyectoId);
 
@@ -104,12 +104,12 @@ final class BandejaTrabajoRoutesTest extends TestCase
 
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
         $otroProyectoId = (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => (string) Str::ulid(),
-            'mandante_id'    => $mandanteId,
-            'codigo'         => 'AJENO_P',
-            'nombre'         => 'Proyecto ajeno',
+            'public_id' => (string) Str::ulid(),
+            'mandante_id' => $mandanteId,
+            'codigo' => 'AJENO_P',
+            'nombre' => 'Proyecto ajeno',
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
 
         $this->actingAs($gestor)
@@ -126,10 +126,10 @@ final class BandejaTrabajoRoutesTest extends TestCase
     {
         $rolId = (int) DB::table('roles')->where('codigo', $rolCodigo)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id'  => $usuarioId,
+            'usuario_id' => $usuarioId,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolId,
-            'activo'      => true,
+            'rol_id' => $rolId,
+            'activo' => true,
         ]);
     }
 
@@ -139,13 +139,13 @@ final class BandejaTrabajoRoutesTest extends TestCase
         $publicId = (string) Str::ulid();
 
         DB::table('personas')->insert([
-            'public_id'              => $publicId,
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => $publicId,
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoIdentId,
-            'identificacion'         => '9999'.$proyectoId,
-            'nombres'                => 'Persona',
-            'apellidos'              => 'Test',
+            'identificacion' => '9999'.$proyectoId,
+            'nombres' => 'Persona',
+            'apellidos' => 'Test',
         ]);
 
         return $publicId;

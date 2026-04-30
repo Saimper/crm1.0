@@ -12,6 +12,5 @@ final readonly class CerrarCasoInput
         public int $casoId,
         public int $estadoCasoTerminalId,
         public DateTimeImmutable $cerradoEn,
-    ) {
-    }
+    ) {}
 }

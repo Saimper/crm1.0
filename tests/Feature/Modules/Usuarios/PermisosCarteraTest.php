@@ -55,15 +55,15 @@ final class PermisosCarteraTest extends TestCase
         $carteras = DB::table('carteras')->where('proyecto_id', $proyectoId)->pluck('id')->all();
         $this->assertGreaterThanOrEqual(2, count($carteras));
         $carteraPermitida = (int) $carteras[0];
-        $carteraDenegada  = (int) $carteras[1];
+        $carteraDenegada = (int) $carteras[1];
 
         $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
 
         DB::table('usuario_proyecto_rol_cartera')->insert([
-            'usuario_id'  => $gestor->id,
+            'usuario_id' => $gestor->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolGestorId,
-            'cartera_id'  => $carteraPermitida,
+            'rol_id' => $rolGestorId,
+            'cartera_id' => $carteraPermitida,
         ]);
 
         $this->assertTrue(
@@ -85,10 +85,10 @@ final class PermisosCarteraTest extends TestCase
         $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
 
         DB::table('usuario_proyecto_rol_cartera')->insert([
-            'usuario_id'  => $gestor->id,
+            'usuario_id' => $gestor->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolGestorId,
-            'cartera_id'  => $carteraId,
+            'rol_id' => $rolGestorId,
+            'cartera_id' => $carteraId,
         ]);
 
         // Al llamar sin cartera se evalúa sólo a nivel proyecto → permiso sigue activo.
@@ -198,16 +198,17 @@ final class PermisosCarteraTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 }

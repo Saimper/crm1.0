@@ -17,6 +17,5 @@ final readonly class RegistrarContactoInput
         public ?string $etiqueta,
         public bool $esPrincipal,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

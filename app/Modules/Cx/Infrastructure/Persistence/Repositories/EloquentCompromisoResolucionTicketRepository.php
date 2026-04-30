@@ -16,13 +16,13 @@ final class EloquentCompromisoResolucionTicketRepository implements CompromisoRe
     public function save(CompromisoResolucionTicket $resolucion): CompromisoResolucionTicket
     {
         $model = CompromisoResolucionTicketModel::query()->sinScopeProyecto()->find($resolucion->compromisoId)
-            ?? new CompromisoResolucionTicketModel();
+            ?? new CompromisoResolucionTicketModel;
 
-        $model->compromiso_id          = $resolucion->compromisoId;
-        $model->proyecto_id            = $resolucion->proyectoId;
-        $model->accion_comprometida    = $resolucion->accion->valor;
-        $model->fecha_limite_sla       = $resolucion->fechaLimite->fechaLimite;
-        $model->nivel_escalamiento_id  = $resolucion->nivelEscalamientoId;
+        $model->compromiso_id = $resolucion->compromisoId;
+        $model->proyecto_id = $resolucion->proyectoId;
+        $model->accion_comprometida = $resolucion->accion->valor;
+        $model->fecha_limite_sla = $resolucion->fechaLimite->fechaLimite;
+        $model->nivel_escalamiento_id = $resolucion->nivelEscalamientoId;
 
         $model->save();
 
@@ -38,10 +38,10 @@ final class EloquentCompromisoResolucionTicketRepository implements CompromisoRe
         }
 
         return CompromisoResolucionTicket::reconstituir(
-            compromisoId:        (int) $model->compromiso_id,
-            proyectoId:          (int) $model->proyecto_id,
-            accion:              new AccionComprometida((string) $model->accion_comprometida),
-            fechaLimite:         new FechaLimiteSla($this->hidratarFechaHora($model->fecha_limite_sla)),
+            compromisoId: (int) $model->compromiso_id,
+            proyectoId: (int) $model->proyecto_id,
+            accion: new AccionComprometida((string) $model->accion_comprometida),
+            fechaLimite: new FechaLimiteSla($this->hidratarFechaHora($model->fecha_limite_sla)),
             nivelEscalamientoId: $model->nivel_escalamiento_id === null ? null : (int) $model->nivel_escalamiento_id,
         );
     }

@@ -14,6 +14,5 @@ abstract readonly class EventoPromesaResuelta
         public int $usuarioId,
         public DateTimeImmutable $fechaResolucion,
         public bool $quedanPromesasVigentes,
-    ) {
-    }
+    ) {}
 }

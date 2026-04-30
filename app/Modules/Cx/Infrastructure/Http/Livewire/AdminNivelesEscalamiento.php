@@ -24,8 +24,8 @@ final class AdminNivelesEscalamiento extends AbstractAdminCatalogo
         return [
             'codigo' => '',
             'nombre' => '',
-            'nivel'  => 1,
-            'orden'  => 100,
+            'nivel' => 1,
+            'orden' => 100,
             'activo' => true,
         ];
     }
@@ -35,8 +35,8 @@ final class AdminNivelesEscalamiento extends AbstractAdminCatalogo
         return [
             'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
-            'form.nivel'  => ['required', 'integer', 'min:1', 'max:99'],
-            'form.orden'  => ['integer', 'min:0'],
+            'form.nivel' => ['required', 'integer', 'min:1', 'max:99'],
+            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -46,8 +46,8 @@ final class AdminNivelesEscalamiento extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $this->form['codigo'],
             'nombre' => (string) $this->form['nombre'],
-            'nivel'  => (int) $this->form['nivel'],
-            'orden'  => (int) ($this->form['orden'] ?? 100),
+            'nivel' => (int) $this->form['nivel'],
+            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
@@ -57,8 +57,8 @@ final class AdminNivelesEscalamiento extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $row->codigo,
             'nombre' => (string) $row->nombre,
-            'nivel'  => (int) $row->nivel,
-            'orden'  => (int) $row->orden,
+            'nivel' => (int) $row->nivel,
+            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }
@@ -78,6 +78,7 @@ final class AdminNivelesEscalamiento extends AbstractAdminCatalogo
         }
         if ($queryNivel->exists()) {
             $this->addError('form.nivel', 'Ya existe un nivel de escalamiento con ese número en el proyecto.');
+
             return;
         }
 

@@ -15,8 +15,7 @@ final readonly class RegistrarAsignacion
     public function __construct(
         private AsignacionRepository $repositorio,
         private ConnectionInterface $db,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarAsignacionInput $input): int
     {
@@ -27,14 +26,14 @@ final readonly class RegistrarAsignacion
         }
 
         $asignacion = Asignacion::registrar(
-            publicId:        $input->publicId,
-            proyectoId:      $input->proyectoId,
-            campanaId:       $input->campanaId,
-            casoId:          $input->casoId,
-            usuarioId:       $input->usuarioId,
+            publicId: $input->publicId,
+            proyectoId: $input->proyectoId,
+            campanaId: $input->campanaId,
+            casoId: $input->casoId,
+            usuarioId: $input->usuarioId,
             fechaAsignacion: $input->fechaAsignacion,
-            prioridad:       $input->prioridad,
-            creadaEn:        $input->creadaEn,
+            prioridad: $input->prioridad,
+            creadaEn: $input->creadaEn,
         );
 
         $persistida = $this->db->transaction(fn (): Asignacion => $this->repositorio->save($asignacion));

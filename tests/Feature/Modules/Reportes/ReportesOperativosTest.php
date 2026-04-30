@@ -97,10 +97,10 @@ final class ReportesOperativosTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');

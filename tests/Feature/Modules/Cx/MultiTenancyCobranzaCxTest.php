@@ -16,6 +16,7 @@ use App\Modules\Cx\Domain\ValueObjects\DatosResolucionTicket;
 use App\Modules\Cx\Domain\ValueObjects\FechaLimiteSla;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
+use App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel;
 use Database\Seeders\Casos\EstadosCasoDemoSeeder;
 use Database\Seeders\Catalogos\TiposIdentificacionSeeder;
 use Database\Seeders\Cobranza\CausasMoraDemoSeeder;
@@ -76,22 +77,22 @@ final class MultiTenancyCobranzaCxTest extends TestCase
         [$ticketCasoId, $personaCxId, $proyectoCxId, $usuarioId] = $this->contextoCx();
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $proyectoCxId,
-            casoId:            $ticketCasoId,
-            personaId:         $personaCxId,
-            contactoId:        null,
-            canalId:           (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId:     (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoCxId)->where('codigo', 'LLAMADA_ENTRANTE')->value('id'),
-            resultadoId:       (int) DB::table('resultados')->where('proyecto_id', $proyectoCxId)->where('codigo', 'COMPROMISO_SLA')->value('id'),
+            publicId: (string) Str::ulid(),
+            proyectoId: $proyectoCxId,
+            casoId: $ticketCasoId,
+            personaId: $personaCxId,
+            contactoId: null,
+            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
+            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoCxId)->where('codigo', 'LLAMADA_ENTRANTE')->value('id'),
+            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $proyectoCxId)->where('codigo', 'COMPROMISO_SLA')->value('id'),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $usuarioId,
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-18 10:00:00'),
-            datosCompromiso:   new DatosResolucionTicket(
-                accion:      new AccionComprometida('Acción CX'),
+            causaId: null,
+            usuarioId: $usuarioId,
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-18 10:00:00'),
+            datosCompromiso: new DatosResolucionTicket(
+                accion: new AccionComprometida('Acción CX'),
                 fechaLimite: new FechaLimiteSla(new DateTimeImmutable('2026-04-19 10:00:00')),
             ),
         ));
@@ -108,22 +109,22 @@ final class MultiTenancyCobranzaCxTest extends TestCase
         [$casoCobId, $personaCobId, $proyectoCobId, $usuarioId] = $this->contextoCobranza();
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $proyectoCobId,
-            casoId:            $casoCobId,
-            personaId:         $personaCobId,
-            contactoId:        null,
-            canalId:           (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId:     (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoCobId)->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
-            resultadoId:       (int) DB::table('resultados')->where('proyecto_id', $proyectoCobId)->where('codigo', 'PROMESA_PAGO')->value('id'),
+            publicId: (string) Str::ulid(),
+            proyectoId: $proyectoCobId,
+            casoId: $casoCobId,
+            personaId: $personaCobId,
+            contactoId: null,
+            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
+            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoCobId)->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
+            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $proyectoCobId)->where('codigo', 'PROMESA_PAGO')->value('id'),
             motivoNoContactoId: null,
-            causaId:           (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoCobId)->where('codigo', 'DESEMPLEO')->value('id'),
-            usuarioId:         $usuarioId,
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-18 10:00:00'),
-            datosCompromiso:   new DatosPromesaPago(
-                monto:            new MontoPromesa('500.00'),
+            causaId: (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoCobId)->where('codigo', 'DESEMPLEO')->value('id'),
+            usuarioId: $usuarioId,
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-18 10:00:00'),
+            datosCompromiso: new DatosPromesaPago(
+                monto: new MontoPromesa('500.00'),
                 fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-04-25')),
             ),
         ));
@@ -139,7 +140,7 @@ final class MultiTenancyCobranzaCxTest extends TestCase
         // §2.1 CLAUDE.md: misma identificación en dos proyectos no se ve desde el otro.
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $proyectoCobId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyectoCxId  = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $proyectoCxId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
 
         $cedula = '1102030405';
         DB::table('personas')->insert([
@@ -157,18 +158,18 @@ final class MultiTenancyCobranzaCxTest extends TestCase
 
         // Desde el scope de cobranza solo vemos una.
         $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoCobId));
-        $countCob = \App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel::query()
+        $countCob = PersonaModel::query()
             ->where('identificacion', $cedula)->count();
         $this->assertSame(1, $countCob);
 
         // Desde el scope CX, también solo una (y distinta).
         $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoCxId));
-        $countCx = \App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel::query()
+        $countCx = PersonaModel::query()
             ->where('identificacion', $cedula)->count();
         $this->assertSame(1, $countCx);
 
         // Pero sin scope (admin), se ven las 2.
-        $totalSinScope = \App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel::query()
+        $totalSinScope = PersonaModel::query()
             ->sinScopeProyecto()
             ->where('identificacion', $cedula)->count();
         $this->assertSame(2, $totalSinScope);
@@ -178,9 +179,9 @@ final class MultiTenancyCobranzaCxTest extends TestCase
     private function contextoCobranza(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado     = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([
             'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
@@ -194,23 +195,23 @@ final class MultiTenancyCobranzaCxTest extends TestCase
         ]);
 
         $out = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId:       $proyectoId,
-            carteraId:        $carteraId,
-            personaId:        $personaId,
-            estadoCasoId:     $estado,
-            fechaIngreso:     new DateTimeImmutable('2026-04-18'),
-            prioridad:        100,
-            numeroPrestamo:   'PRST-CROSS-'.Str::random(4),
-            moneda:           'USD',
-            montoOriginal:    '1000.00',
-            saldoCapital:     '900.00',
-            saldoInteres:     '10.00',
-            saldoTotal:       '910.00',
-            cuotaMensual:     '100.00',
-            cuotasTotales:    10,
-            cuotasPagadas:    1,
-            diasMora:         15,
-            fechaDesembolso:  new DateTimeImmutable('2026-02-01'),
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estado,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            numeroPrestamo: 'PRST-CROSS-'.Str::random(4),
+            moneda: 'USD',
+            montoOriginal: '1000.00',
+            saldoCapital: '900.00',
+            saldoInteres: '10.00',
+            saldoTotal: '910.00',
+            cuotaMensual: '100.00',
+            cuotasTotales: 10,
+            cuotasPagadas: 1,
+            diasMora: 15,
+            fechaDesembolso: new DateTimeImmutable('2026-02-01'),
             fechaVencimiento: new DateTimeImmutable('2026-12-01'),
         ));
 
@@ -221,9 +222,9 @@ final class MultiTenancyCobranzaCxTest extends TestCase
     private function contextoCx(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado     = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([
             'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
@@ -237,21 +238,21 @@ final class MultiTenancyCobranzaCxTest extends TestCase
         ]);
 
         $out = $this->app->make(RegistrarCasoTicketCx::class)->execute(new RegistrarCasoTicketCxInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estado,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoTicket:        'TKT-CROSS-'.Str::random(4),
-            asunto:              'Cross-tenant test',
-            descripcion:         null,
-            categoriaTicketId:   null,
-            prioridadTicketId:   null,
-            nivelSlaId:          null,
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estado,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoTicket: 'TKT-CROSS-'.Str::random(4),
+            asunto: 'Cross-tenant test',
+            descripcion: null,
+            categoriaTicketId: null,
+            prioridadTicketId: null,
+            nivelSlaId: null,
             nivelEscalamientoId: null,
-            fechaReporte:        new DateTimeImmutable('2026-04-18 09:00:00'),
-            fechaLimiteSla:      null,
+            fechaReporte: new DateTimeImmutable('2026-04-18 09:00:00'),
+            fechaLimiteSla: null,
         ));
 
         return [$out->casoId, $personaId, $proyectoId, $usuarioId];

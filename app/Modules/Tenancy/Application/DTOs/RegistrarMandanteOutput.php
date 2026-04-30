@@ -11,6 +11,5 @@ final readonly class RegistrarMandanteOutput
         public string $publicId,
         public string $codigo,
         public string $nombre,
-    ) {
-    }
+    ) {}
 }

@@ -9,9 +9,7 @@ use DateTimeImmutable;
 
 final readonly class FechaLimiteSla
 {
-    public function __construct(public DateTimeImmutable $fechaLimite)
-    {
-    }
+    public function __construct(public DateTimeImmutable $fechaLimite) {}
 
     public function validarNoPasada(DateTimeImmutable $ahora): void
     {

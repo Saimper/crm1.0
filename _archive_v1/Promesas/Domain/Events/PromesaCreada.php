@@ -19,6 +19,5 @@ final readonly class PromesaCreada
         public MontoPromesa $monto,
         public FechaPromesa $fecha,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

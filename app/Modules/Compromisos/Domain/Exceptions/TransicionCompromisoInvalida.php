@@ -6,6 +6,4 @@ namespace App\Modules\Compromisos\Domain\Exceptions;
 
 use DomainException;
 
-final class TransicionCompromisoInvalida extends DomainException
-{
-}
+final class TransicionCompromisoInvalida extends DomainException {}

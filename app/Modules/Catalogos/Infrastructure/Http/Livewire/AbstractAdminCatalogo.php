@@ -42,7 +42,6 @@ abstract class AbstractAdminCatalogo extends Component
     /**
      * Transforma la fila de la tabla (objeto) a los valores del form para editar.
      *
-     * @param object $row
      * @return array<string, mixed>
      */
     abstract protected function formDesdeFila(object $row): array;
@@ -90,6 +89,7 @@ abstract class AbstractAdminCatalogo extends Component
         }
         if ($query->exists()) {
             $this->addError('form.codigo', 'Ya existe un registro con ese código en el proyecto.');
+
             return;
         }
 

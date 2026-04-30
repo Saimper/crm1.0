@@ -9,9 +9,7 @@ use DateTimeImmutable;
 
 final readonly class FechaProgramada
 {
-    public function __construct(public DateTimeImmutable $fecha)
-    {
-    }
+    public function __construct(public DateTimeImmutable $fecha) {}
 
     public function validarNoPasada(DateTimeImmutable $ahora): void
     {

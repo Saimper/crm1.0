@@ -21,8 +21,7 @@ final readonly class ServicioCamposPersonalizados
     public function __construct(
         private EvaluadorReglas $evaluador,
         private ConnectionInterface $db,
-    ) {
-    }
+    ) {}
 
     /**
      * Devuelve los campos personalizados aplicables al ámbito dado (activos, ordenados).
@@ -44,7 +43,7 @@ final readonly class ServicioCamposPersonalizados
     /**
      * Valida y persiste los valores para una entidad (caso/gestión/compromiso).
      *
-     * @param array<string, mixed> $valoresPorCodigo  [codigo_campo => valor]
+     * @param  array<string, mixed>  $valoresPorCodigo  [codigo_campo => valor]
      */
     public function guardarValores(
         int $proyectoId,
@@ -80,7 +79,7 @@ final readonly class ServicioCamposPersonalizados
                 ValorCampoPersonalizadoModel::query()->updateOrCreate(
                     [
                         'campo_personalizado_id' => $campo->id,
-                        'entidad_id'             => $entidadId,
+                        'entidad_id' => $entidadId,
                     ],
                     $payload,
                 );
@@ -104,17 +103,17 @@ final readonly class ServicioCamposPersonalizados
         }
 
         match ($tipo) {
-            TipoCampo::TEXTO_CORTO        => $columnas['valor_texto_corto']   = (string) $valor,
-            TipoCampo::TEXTO_LARGO        => $columnas['valor_texto_largo']   = (string) $valor,
-            TipoCampo::NUMERO_ENTERO      => $columnas['valor_numero_entero'] = (int) $valor,
-            TipoCampo::NUMERO_DECIMAL     => $columnas['valor_numero_decimal']= (string) $valor,
-            TipoCampo::FECHA              => $columnas['valor_fecha']         = (string) $valor,
-            TipoCampo::FECHA_HORA         => $columnas['valor_fecha_hora']    = (string) $valor,
-            TipoCampo::BOOLEANO           => $columnas['valor_booleano']      = (bool) $valor,
-            TipoCampo::SELECCION_UNICA    => $columnas['valor_opcion_id']     = (int) $valor,
-            TipoCampo::SELECCION_MULTIPLE => $columnas['valor_opciones_ids']  = is_array($valor) ? $valor : [$valor],
-            TipoCampo::MONEDA             => [
-                $columnas['valor_moneda_monto']  = is_array($valor) ? (string) ($valor['monto']  ?? '0') : (string) $valor,
+            TipoCampo::TEXTO_CORTO => $columnas['valor_texto_corto'] = (string) $valor,
+            TipoCampo::TEXTO_LARGO => $columnas['valor_texto_largo'] = (string) $valor,
+            TipoCampo::NUMERO_ENTERO => $columnas['valor_numero_entero'] = (int) $valor,
+            TipoCampo::NUMERO_DECIMAL => $columnas['valor_numero_decimal'] = (string) $valor,
+            TipoCampo::FECHA => $columnas['valor_fecha'] = (string) $valor,
+            TipoCampo::FECHA_HORA => $columnas['valor_fecha_hora'] = (string) $valor,
+            TipoCampo::BOOLEANO => $columnas['valor_booleano'] = (bool) $valor,
+            TipoCampo::SELECCION_UNICA => $columnas['valor_opcion_id'] = (int) $valor,
+            TipoCampo::SELECCION_MULTIPLE => $columnas['valor_opciones_ids'] = is_array($valor) ? $valor : [$valor],
+            TipoCampo::MONEDA => [
+                $columnas['valor_moneda_monto'] = is_array($valor) ? (string) ($valor['monto'] ?? '0') : (string) $valor,
                 $columnas['valor_moneda_codigo'] = is_array($valor) ? (string) ($valor['moneda'] ?? 'USD') : 'USD',
             ],
         };

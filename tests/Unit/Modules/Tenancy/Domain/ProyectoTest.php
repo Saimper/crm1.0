@@ -16,15 +16,15 @@ final class ProyectoTest extends TestCase
     public function test_registra_proyecto_con_tipo_operacion_y_rango_valido(): void
     {
         $proyecto = Proyecto::registrar(
-            publicId:      '01HXTENANCY0000000PROY0001',
-            mandanteId:    42,
-            codigo:        new CodigoProyecto('COBRANZA_DEMO_2026'),
-            nombre:        'Cobranza Demo 2026',
-            descripcion:   'Proyecto demo',
+            publicId: '01HXTENANCY0000000PROY0001',
+            mandanteId: 42,
+            codigo: new CodigoProyecto('COBRANZA_DEMO_2026'),
+            nombre: 'Cobranza Demo 2026',
+            descripcion: 'Proyecto demo',
             tipoOperacion: TipoOperacion::COBRANZA,
-            fechaInicio:   new DateTimeImmutable('2026-04-01'),
-            fechaFin:      new DateTimeImmutable('2026-12-31'),
-            creadaEn:      new DateTimeImmutable('2026-04-17'),
+            fechaInicio: new DateTimeImmutable('2026-04-01'),
+            fechaFin: new DateTimeImmutable('2026-12-31'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertSame(TipoOperacion::COBRANZA, $proyecto->tipoOperacion);
@@ -36,30 +36,30 @@ final class ProyectoTest extends TestCase
         $this->expectException(RangoFechasProyectoInvalido::class);
 
         Proyecto::registrar(
-            publicId:      '01HXTENANCY0000000PROY0002',
-            mandanteId:    42,
-            codigo:        new CodigoProyecto('FECHAS_INVALIDAS'),
-            nombre:        'Fechas mal',
-            descripcion:   null,
+            publicId: '01HXTENANCY0000000PROY0002',
+            mandanteId: 42,
+            codigo: new CodigoProyecto('FECHAS_INVALIDAS'),
+            nombre: 'Fechas mal',
+            descripcion: null,
             tipoOperacion: TipoOperacion::VENTA,
-            fechaInicio:   new DateTimeImmutable('2026-06-01'),
-            fechaFin:      new DateTimeImmutable('2026-05-31'),
-            creadaEn:      new DateTimeImmutable('2026-04-17'),
+            fechaInicio: new DateTimeImmutable('2026-06-01'),
+            fechaFin: new DateTimeImmutable('2026-05-31'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
     public function test_acepta_proyecto_sin_fechas(): void
     {
         $proyecto = Proyecto::registrar(
-            publicId:      '01HXTENANCY0000000PROY0003',
-            mandanteId:    42,
-            codigo:        new CodigoProyecto('SIN_FECHA'),
-            nombre:        'Sin fecha',
-            descripcion:   null,
+            publicId: '01HXTENANCY0000000PROY0003',
+            mandanteId: 42,
+            codigo: new CodigoProyecto('SIN_FECHA'),
+            nombre: 'Sin fecha',
+            descripcion: null,
             tipoOperacion: TipoOperacion::CX,
-            fechaInicio:   null,
-            fechaFin:      null,
-            creadaEn:      new DateTimeImmutable('2026-04-17'),
+            fechaInicio: null,
+            fechaFin: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertNull($proyecto->fechaInicio);

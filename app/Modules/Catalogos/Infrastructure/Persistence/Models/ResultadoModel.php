@@ -15,8 +15,8 @@ final class ResultadoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'activo'   => 'boolean',
-        'orden'    => 'integer',
+        'activo' => 'boolean',
+        'orden' => 'integer',
         'metadata' => 'array',
     ];
 }

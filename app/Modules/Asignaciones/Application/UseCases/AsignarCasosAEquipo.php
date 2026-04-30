@@ -32,8 +32,7 @@ final readonly class AsignarCasosAEquipo
     public function __construct(
         private ConnectionInterface $db,
         private GeneradorNotificaciones $notificaciones,
-    ) {
-    }
+    ) {}
 
     public function execute(
         int $proyectoId,
@@ -73,7 +72,7 @@ final readonly class AsignarCasosAEquipo
         $casosQ = DB::table('casos as c')
             ->leftJoin('asignaciones as a', function ($join) use ($campanaId) {
                 $join->on('a.caso_id', '=', 'c.id')
-                     ->where('a.campana_id', '=', $campanaId);
+                    ->where('a.campana_id', '=', $campanaId);
             })
             ->where('c.proyecto_id', $proyectoId)
             ->whereNull('c.cerrado_en')
@@ -92,7 +91,7 @@ final readonly class AsignarCasosAEquipo
             return new AsignacionMasivaResultado(asignadas: 0, omitidas: 0, distribucion: []);
         }
 
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
         $distribucion = array_fill_keys($miembros, 0);
         $asignadas = 0;
         $omitidas = 0;
@@ -108,15 +107,15 @@ final readonly class AsignarCasosAEquipo
                 $idx++;
 
                 $inserted = DB::table('asignaciones')->insertOrIgnore([
-                    'public_id'        => (string) Str::ulid(),
-                    'proyecto_id'      => $proyectoId,
-                    'campana_id'       => $campanaId,
-                    'caso_id'          => $casoId,
-                    'usuario_id'       => $usuarioId,
+                    'public_id' => (string) Str::ulid(),
+                    'proyecto_id' => $proyectoId,
+                    'campana_id' => $campanaId,
+                    'caso_id' => $casoId,
+                    'usuario_id' => $usuarioId,
                     'fecha_asignacion' => $ahora->format('Y-m-d'),
-                    'prioridad'        => 100,
-                    'estado'           => 'pendiente',
-                    'creada_en'        => $ahora->format('Y-m-d H:i:s'),
+                    'prioridad' => 100,
+                    'estado' => 'pendiente',
+                    'creada_en' => $ahora->format('Y-m-d H:i:s'),
                 ]);
 
                 if ($inserted === 1) {

@@ -36,12 +36,12 @@ final class TramosMoraDemoSeeder extends Seeder
 
             DB::table('tramos_mora')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'dias_desde'  => $f['dias_desde'],
-                'dias_hasta'  => $f['dias_hasta'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'dias_desde' => $f['dias_desde'],
+                'dias_hasta' => $f['dias_hasta'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

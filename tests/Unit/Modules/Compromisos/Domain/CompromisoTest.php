@@ -16,10 +16,10 @@ final class CompromisoTest extends TestCase
 {
     public function test_tipo_compromiso_derivable_de_tipo_caso(): void
     {
-        $this->assertSame(TipoCompromiso::PROMESA_PAGO,      TipoCompromiso::desdeTipoCaso(TipoCaso::COBRANZA));
+        $this->assertSame(TipoCompromiso::PROMESA_PAGO, TipoCompromiso::desdeTipoCaso(TipoCaso::COBRANZA));
         $this->assertSame(TipoCompromiso::RESOLUCION_TICKET, TipoCompromiso::desdeTipoCaso(TipoCaso::TICKET_CX));
-        $this->assertSame(TipoCompromiso::CIERRE_VENTA,      TipoCompromiso::desdeTipoCaso(TipoCaso::LEAD_VENTA));
-        $this->assertSame(TipoCompromiso::ACCION_SERVICIO,   TipoCompromiso::desdeTipoCaso(TipoCaso::SERVICIO));
+        $this->assertSame(TipoCompromiso::CIERRE_VENTA, TipoCompromiso::desdeTipoCaso(TipoCaso::LEAD_VENTA));
+        $this->assertSame(TipoCompromiso::ACCION_SERVICIO, TipoCompromiso::desdeTipoCaso(TipoCaso::SERVICIO));
     }
 
     public function test_compromiso_nace_pendiente(): void
@@ -59,17 +59,17 @@ final class CompromisoTest extends TestCase
     public function test_reconstituir_no_revalida_transiciones(): void
     {
         $c = Compromiso::reconstituir(
-            id:               100,
-            publicId:         '01HXCOMPRECON00000000000001',
-            proyectoId:       1,
-            casoId:           2,
-            gestionOrigenId:  3,
-            usuarioId:        4,
-            tipo:             TipoCompromiso::PROMESA_PAGO,
-            estado:           EstadoCompromiso::CUMPLIDO,
+            id: 100,
+            publicId: '01HXCOMPRECON00000000000001',
+            proyectoId: 1,
+            casoId: 2,
+            gestionOrigenId: 3,
+            usuarioId: 4,
+            tipo: TipoCompromiso::PROMESA_PAGO,
+            estado: EstadoCompromiso::CUMPLIDO,
             fechaVencimiento: new DateTimeImmutable('2026-04-20'),
-            fechaResolucion:  new DateTimeImmutable('2026-04-21'),
-            creadaEn:         new DateTimeImmutable('2026-04-17'),
+            fechaResolucion: new DateTimeImmutable('2026-04-21'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertSame(100, $c->id);
@@ -79,14 +79,14 @@ final class CompromisoTest extends TestCase
     private function crear(): Compromiso
     {
         return Compromiso::crear(
-            publicId:         '01HXCOMPCREADO000000000001',
-            proyectoId:       1,
-            casoId:           2,
-            gestionOrigenId:  3,
-            usuarioId:        4,
-            tipo:             TipoCompromiso::PROMESA_PAGO,
+            publicId: '01HXCOMPCREADO000000000001',
+            proyectoId: 1,
+            casoId: 2,
+            gestionOrigenId: 3,
+            usuarioId: 4,
+            tipo: TipoCompromiso::PROMESA_PAGO,
             fechaVencimiento: new DateTimeImmutable('2026-04-25'),
-            creadaEn:         new DateTimeImmutable('2026-04-17 10:00:00'),
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
         );
     }
 }

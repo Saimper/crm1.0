@@ -6,6 +6,4 @@ namespace App\Modules\Personas\Domain\Exceptions;
 
 use RuntimeException;
 
-final class IdentificacionYaRegistradaEnProyecto extends RuntimeException
-{
-}
+final class IdentificacionYaRegistradaEnProyecto extends RuntimeException {}

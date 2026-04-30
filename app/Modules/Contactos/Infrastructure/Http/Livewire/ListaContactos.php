@@ -51,21 +51,21 @@ final class ListaContactos extends Component
         }
 
         $this->validate([
-            'tipo'        => 'required|in:telefono,correo,direccion',
-            'valor'       => 'required|string|max:250',
-            'etiqueta'    => 'nullable|string|max:100',
+            'tipo' => 'required|in:telefono,correo,direccion',
+            'valor' => 'required|string|max:250',
+            'etiqueta' => 'nullable|string|max:100',
             'esPrincipal' => 'boolean',
         ]);
 
         try {
             $useCase->execute(new RegistrarContactoInput(
-                proyectoId:  (int) $proyecto->id,
-                personaId:   (int) $this->personaId,
-                tipo:        TipoContacto::from($this->tipo),
-                valor:       $this->valor,
-                etiqueta:    $this->etiqueta !== '' ? $this->etiqueta : null,
+                proyectoId: (int) $proyecto->id,
+                personaId: (int) $this->personaId,
+                tipo: TipoContacto::from($this->tipo),
+                valor: $this->valor,
+                etiqueta: $this->etiqueta !== '' ? $this->etiqueta : null,
                 esPrincipal: $this->esPrincipal,
-                creadaEn:    new DateTimeImmutable('now'),
+                creadaEn: new DateTimeImmutable('now'),
             ));
         } catch (DatosContactoInvalidos $e) {
             throw ValidationException::withMessages(['valor' => $e->getMessage()]);
@@ -93,8 +93,8 @@ final class ListaContactos extends Component
             : trim((string) ($persona->nombres ?? '').' '.(string) ($persona->apellidos ?? ''));
 
         return view('contactos::livewire.lista-contactos', [
-            'persona'   => $persona,
-            'nombre'    => $nombre,
+            'persona' => $persona,
+            'nombre' => $nombre,
             'contactos' => $contactos,
         ]);
     }

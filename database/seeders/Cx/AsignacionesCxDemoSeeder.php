@@ -39,14 +39,14 @@ final class AsignacionesCxDemoSeeder extends Seeder
             }
 
             DB::table('asignaciones')->insert([
-                'public_id'        => (string) Str::ulid(),
-                'proyecto_id'      => $proyectoId,
-                'campana_id'       => $campanaId,
-                'caso_id'          => $casoId,
-                'usuario_id'       => $gestorId,
+                'public_id' => (string) Str::ulid(),
+                'proyecto_id' => $proyectoId,
+                'campana_id' => $campanaId,
+                'caso_id' => $casoId,
+                'usuario_id' => $gestorId,
                 'fecha_asignacion' => '2026-04-18',
-                'prioridad'        => 100,
-                'estado'           => 'pendiente',
+                'prioridad' => 100,
+                'estado' => 'pendiente',
             ]);
         }
     }

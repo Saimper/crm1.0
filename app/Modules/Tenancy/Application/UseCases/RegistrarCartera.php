@@ -19,8 +19,7 @@ final readonly class RegistrarCartera
         private CarteraRepository $repositorio,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarCarteraInput $input): RegistrarCarteraOutput
     {
@@ -31,32 +30,32 @@ final readonly class RegistrarCartera
         }
 
         $cartera = Cartera::registrar(
-            publicId:    $input->publicId,
-            proyectoId:  $input->proyectoId,
-            codigo:      $input->codigo,
-            nombre:      $input->nombre,
+            publicId: $input->publicId,
+            proyectoId: $input->proyectoId,
+            codigo: $input->codigo,
+            nombre: $input->nombre,
             descripcion: $input->descripcion,
-            creadaEn:    $input->creadaEn,
+            creadaEn: $input->creadaEn,
         );
 
         $persistida = $this->db->transaction(function () use ($cartera): Cartera {
             $guardada = $this->repositorio->save($cartera);
 
             $this->eventos->dispatch(new CarteraCreada(
-                carteraId:  (int) $guardada->id,
-                publicId:   $guardada->publicId,
+                carteraId: (int) $guardada->id,
+                publicId: $guardada->publicId,
                 proyectoId: $guardada->proyectoId,
-                creadaEn:   $guardada->creadaEn,
+                creadaEn: $guardada->creadaEn,
             ));
 
             return $guardada;
         });
 
         return new RegistrarCarteraOutput(
-            id:       (int) $persistida->id,
+            id: (int) $persistida->id,
             publicId: $persistida->publicId,
-            codigo:   $persistida->codigo->asString(),
-            nombre:   $persistida->nombre,
+            codigo: $persistida->codigo->asString(),
+            nombre: $persistida->nombre,
         );
     }
 }

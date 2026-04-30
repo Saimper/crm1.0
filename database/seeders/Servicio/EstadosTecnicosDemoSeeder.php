@@ -32,10 +32,10 @@ final class EstadosTecnicosDemoSeeder extends Seeder
             }
             DB::table('estados_tecnicos')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

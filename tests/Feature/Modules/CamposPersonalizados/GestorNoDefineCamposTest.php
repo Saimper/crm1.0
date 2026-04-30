@@ -192,6 +192,7 @@ final class GestorNoDefineCamposTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 
@@ -206,6 +207,7 @@ final class GestorNoDefineCamposTest extends TestCase
         DB::table('usuario_global_rol')->insert([
             'usuario_id' => $u->id, 'rol_id' => $rolAdminId,
         ]);
+
         return $u;
     }
 }

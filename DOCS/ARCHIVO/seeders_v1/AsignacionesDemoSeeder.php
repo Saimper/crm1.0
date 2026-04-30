@@ -21,13 +21,13 @@ final class AsignacionesDemoSeeder extends Seeder
         $campanaId = (int) DB::table('campanas')->where('codigo', 'CAMP-DEMO-ABR-2026')->value('id');
         if ($campanaId === 0) {
             $campanaId = (int) DB::table('campanas')->insertGetId([
-                'public_id'     => (string) Str::ulid(),
-                'codigo'        => 'CAMP-DEMO-ABR-2026',
-                'nombre'        => 'Cartera vencida abril 2026',
-                'descripcion'   => 'Campaña demo de cobranza temprana sobre cartera en mora.',
-                'fecha_inicio'  => '2026-04-01',
-                'fecha_fin'     => '2026-04-30',
-                'estado'        => 'activa',
+                'public_id' => (string) Str::ulid(),
+                'codigo' => 'CAMP-DEMO-ABR-2026',
+                'nombre' => 'Cartera vencida abril 2026',
+                'descripcion' => 'Campaña demo de cobranza temprana sobre cartera en mora.',
+                'fecha_inicio' => '2026-04-01',
+                'fecha_fin' => '2026-04-30',
+                'estado' => 'activa',
                 'creada_por_id' => $adminId,
             ]);
         }
@@ -45,13 +45,13 @@ final class AsignacionesDemoSeeder extends Seeder
             }
 
             DB::table('asignaciones')->insert([
-                'public_id'        => (string) Str::ulid(),
-                'campana_id'       => $campanaId,
-                'producto_id'      => $p->id,
-                'usuario_id'       => $adminId,
+                'public_id' => (string) Str::ulid(),
+                'campana_id' => $campanaId,
+                'producto_id' => $p->id,
+                'usuario_id' => $adminId,
                 'fecha_asignacion' => '2026-04-17',
-                'prioridad'        => max(10, 200 - (int) $p->dias_mora),
-                'estado'           => 'pendiente',
+                'prioridad' => max(10, 200 - (int) $p->dias_mora),
+                'estado' => 'pendiente',
             ]);
         }
     }

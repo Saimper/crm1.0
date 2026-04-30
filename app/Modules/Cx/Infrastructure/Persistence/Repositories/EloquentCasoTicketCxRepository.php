@@ -16,19 +16,19 @@ final class EloquentCasoTicketCxRepository implements CasoTicketCxRepository
     public function save(CasoTicketCx $ticket): CasoTicketCx
     {
         $model = CasoTicketCxModel::query()->sinScopeProyecto()->find($ticket->casoId)
-            ?? new CasoTicketCxModel();
+            ?? new CasoTicketCxModel;
 
-        $model->caso_id                = $ticket->casoId;
-        $model->proyecto_id            = $ticket->proyectoId;
-        $model->codigo_ticket          = $ticket->codigoTicket->valor;
-        $model->asunto                 = $ticket->asunto->valor;
-        $model->descripcion            = $ticket->descripcion;
-        $model->categoria_ticket_id    = $ticket->categoriaTicketId;
-        $model->prioridad_ticket_id    = $ticket->prioridadTicketId;
-        $model->nivel_sla_id           = $ticket->nivelSlaId;
-        $model->nivel_escalamiento_id  = $ticket->nivelEscalamientoId;
-        $model->fecha_reporte          = $ticket->fechaReporte;
-        $model->fecha_limite_sla       = $ticket->fechaLimiteSla;
+        $model->caso_id = $ticket->casoId;
+        $model->proyecto_id = $ticket->proyectoId;
+        $model->codigo_ticket = $ticket->codigoTicket->valor;
+        $model->asunto = $ticket->asunto->valor;
+        $model->descripcion = $ticket->descripcion;
+        $model->categoria_ticket_id = $ticket->categoriaTicketId;
+        $model->prioridad_ticket_id = $ticket->prioridadTicketId;
+        $model->nivel_sla_id = $ticket->nivelSlaId;
+        $model->nivel_escalamiento_id = $ticket->nivelEscalamientoId;
+        $model->fecha_reporte = $ticket->fechaReporte;
+        $model->fecha_limite_sla = $ticket->fechaLimiteSla;
 
         $model->save();
 
@@ -44,17 +44,17 @@ final class EloquentCasoTicketCxRepository implements CasoTicketCxRepository
         }
 
         return CasoTicketCx::reconstituir(
-            casoId:              (int) $model->caso_id,
-            proyectoId:          (int) $model->proyecto_id,
-            codigoTicket:        new CodigoTicket((string) $model->codigo_ticket),
-            asunto:              new AsuntoTicket((string) $model->asunto),
-            descripcion:         $model->descripcion,
-            categoriaTicketId:   $model->categoria_ticket_id === null ? null : (int) $model->categoria_ticket_id,
-            prioridadTicketId:   $model->prioridad_ticket_id === null ? null : (int) $model->prioridad_ticket_id,
-            nivelSlaId:          $model->nivel_sla_id === null ? null : (int) $model->nivel_sla_id,
+            casoId: (int) $model->caso_id,
+            proyectoId: (int) $model->proyecto_id,
+            codigoTicket: new CodigoTicket((string) $model->codigo_ticket),
+            asunto: new AsuntoTicket((string) $model->asunto),
+            descripcion: $model->descripcion,
+            categoriaTicketId: $model->categoria_ticket_id === null ? null : (int) $model->categoria_ticket_id,
+            prioridadTicketId: $model->prioridad_ticket_id === null ? null : (int) $model->prioridad_ticket_id,
+            nivelSlaId: $model->nivel_sla_id === null ? null : (int) $model->nivel_sla_id,
             nivelEscalamientoId: $model->nivel_escalamiento_id === null ? null : (int) $model->nivel_escalamiento_id,
-            fechaReporte:        $this->hidratarFechaHora($model->fecha_reporte),
-            fechaLimiteSla:      $model->fecha_limite_sla === null ? null : $this->hidratarFechaHora($model->fecha_limite_sla),
+            fechaReporte: $this->hidratarFechaHora($model->fecha_reporte),
+            fechaLimiteSla: $model->fecha_limite_sla === null ? null : $this->hidratarFechaHora($model->fecha_limite_sla),
         );
     }
 

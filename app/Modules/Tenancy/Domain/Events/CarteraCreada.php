@@ -13,6 +13,5 @@ final readonly class CarteraCreada
         public string $publicId,
         public int $proyectoId,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

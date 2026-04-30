@@ -31,7 +31,7 @@ final class ServicioServiceProvider extends ServiceProvider
 
         Livewire::component('servicio.resolver-accion', ResolverAccion::class);
         Livewire::component('servicio.admin-tipos-accion-servicio', AdminTiposAccionServicio::class);
-        Livewire::component('servicio.admin-estados-tecnicos',      AdminEstadosTecnicos::class);
+        Livewire::component('servicio.admin-estados-tecnicos', AdminEstadosTecnicos::class);
 
         Event::listen(GestionRegistrada::class, CrearAccionDesdeGestion::class);
     }

@@ -26,8 +26,8 @@ final class AuditoriaObserver
     public function updated(Model $model): void
     {
         $original = $this->snapshot($model->getOriginal());
-        $despues  = $this->snapshot($model->getAttributes());
-        $cambios  = $this->cambios($model);
+        $despues = $this->snapshot($model->getAttributes());
+        $cambios = $this->cambios($model);
 
         if ($cambios === []) {
             return;
@@ -42,9 +42,9 @@ final class AuditoriaObserver
     }
 
     /**
-     * @param array<string, mixed>|null $antes
-     * @param array<string, mixed>|null $despues
-     * @param array<string, mixed>      $cambios
+     * @param  array<string, mixed>|null  $antes
+     * @param  array<string, mixed>|null  $despues
+     * @param  array<string, mixed>  $cambios
      */
     private function registrar(
         Model $model,
@@ -56,17 +56,17 @@ final class AuditoriaObserver
         $proyectoId = $this->proyectoIdDesdeModelo($model);
 
         AuditoriaModel::query()->create([
-            'public_id'     => (string) Str::ulid(),
-            'proyecto_id'   => $proyectoId,
-            'usuario_id'    => auth()->id(),
-            'entidad_tipo'  => $this->entidadTipo($model),
-            'entidad_id'    => (int) $model->getKey(),
-            'evento'        => $evento,
-            'datos_antes'   => $antes,
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'usuario_id' => auth()->id(),
+            'entidad_tipo' => $this->entidadTipo($model),
+            'entidad_id' => (int) $model->getKey(),
+            'evento' => $evento,
+            'datos_antes' => $antes,
             'datos_despues' => $despues,
-            'cambios'       => $cambios !== [] ? $cambios : null,
-            'ip'            => request()?->ip(),
-            'user_agent'    => mb_substr((string) request()?->userAgent(), 0, 512) ?: null,
+            'cambios' => $cambios !== [] ? $cambios : null,
+            'ip' => request()?->ip(),
+            'user_agent' => mb_substr((string) request()?->userAgent(), 0, 512) ?: null,
         ]);
     }
 
@@ -94,7 +94,7 @@ final class AuditoriaObserver
     }
 
     /**
-     * @param array<string, mixed> $datos
+     * @param  array<string, mixed>  $datos
      * @return array<string, mixed>|null
      */
     private function snapshot(array $datos): ?array
@@ -125,7 +125,7 @@ final class AuditoriaObserver
                 continue;
             }
             $cambios[$campo] = [
-                'antes'   => $model->getOriginal($campo),
+                'antes' => $model->getOriginal($campo),
                 'despues' => $nuevo,
             ];
         }

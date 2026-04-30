@@ -16,6 +16,5 @@ final readonly class RegistrarCarteraInput
         public string $nombre,
         public ?string $descripcion,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

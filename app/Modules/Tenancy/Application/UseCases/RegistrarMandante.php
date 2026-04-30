@@ -16,8 +16,7 @@ final readonly class RegistrarMandante
     public function __construct(
         private MandanteRepository $repositorio,
         private ConnectionInterface $db,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarMandanteInput $input): RegistrarMandanteOutput
     {
@@ -28,20 +27,20 @@ final readonly class RegistrarMandante
         }
 
         $mandante = Mandante::registrar(
-            publicId:  $input->publicId,
-            codigo:    $input->codigo,
-            nombre:    $input->nombre,
+            publicId: $input->publicId,
+            codigo: $input->codigo,
+            nombre: $input->nombre,
             documento: $input->documento,
-            creadaEn:  $input->creadaEn,
+            creadaEn: $input->creadaEn,
         );
 
         $persistido = $this->db->transaction(fn (): Mandante => $this->repositorio->save($mandante));
 
         return new RegistrarMandanteOutput(
-            id:       (int) $persistido->id,
+            id: (int) $persistido->id,
             publicId: $persistido->publicId,
-            codigo:   $persistido->codigo->asString(),
-            nombre:   $persistido->nombre,
+            codigo: $persistido->codigo->asString(),
+            nombre: $persistido->nombre,
         );
     }
 }

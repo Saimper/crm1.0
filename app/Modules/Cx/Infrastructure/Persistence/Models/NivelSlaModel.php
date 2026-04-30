@@ -18,10 +18,10 @@ final class NivelSlaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'         => 'immutable_datetime',
-        'actualizada_en'    => 'immutable_datetime',
-        'activo'            => 'boolean',
-        'horas_resolucion'  => 'integer',
-        'orden'             => 'integer',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'activo' => 'boolean',
+        'horas_resolucion' => 'integer',
+        'orden' => 'integer',
     ];
 }

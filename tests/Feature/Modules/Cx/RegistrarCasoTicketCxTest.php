@@ -50,32 +50,32 @@ final class RegistrarCasoTicketCxTest extends TestCase
         Event::fake([CasoCreado::class]);
 
         $output = $this->app->make(RegistrarCasoTicketCx::class)->execute(new RegistrarCasoTicketCxInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estadoId,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoTicket:        'TKT-TEST-001',
-            asunto:              'Ticket de prueba',
-            descripcion:         'Descripción.',
-            categoriaTicketId:   $this->idProyecto('categorias_ticket', 'ACCESO', $proyectoId),
-            prioridadTicketId:   $this->idProyecto('prioridades_ticket', 'ALTA', $proyectoId),
-            nivelSlaId:          $this->idProyecto('niveles_sla', 'SLA_24H', $proyectoId),
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoTicket: 'TKT-TEST-001',
+            asunto: 'Ticket de prueba',
+            descripcion: 'Descripción.',
+            categoriaTicketId: $this->idProyecto('categorias_ticket', 'ACCESO', $proyectoId),
+            prioridadTicketId: $this->idProyecto('prioridades_ticket', 'ALTA', $proyectoId),
+            nivelSlaId: $this->idProyecto('niveles_sla', 'SLA_24H', $proyectoId),
             nivelEscalamientoId: $this->idProyecto('niveles_escalamiento', 'N1', $proyectoId),
-            fechaReporte:        new DateTimeImmutable('2026-04-18 10:00:00'),
-            fechaLimiteSla:      new DateTimeImmutable('2026-04-19 10:00:00'),
+            fechaReporte: new DateTimeImmutable('2026-04-18 10:00:00'),
+            fechaLimiteSla: new DateTimeImmutable('2026-04-19 10:00:00'),
         ));
 
         $this->assertDatabaseHas('casos', [
-            'id'          => $output->casoId,
+            'id' => $output->casoId,
             'proyecto_id' => $proyectoId,
-            'tipo_caso'   => 'ticket_cx',
+            'tipo_caso' => 'ticket_cx',
         ]);
         $this->assertDatabaseHas('casos_ticket_cx', [
-            'caso_id'       => $output->casoId,
+            'caso_id' => $output->casoId,
             'codigo_ticket' => 'TKT-TEST-001',
-            'asunto'        => 'Ticket de prueba',
+            'asunto' => 'Ticket de prueba',
         ]);
         Event::assertDispatched(CasoCreado::class);
     }
@@ -96,28 +96,28 @@ final class RegistrarCasoTicketCxTest extends TestCase
         [$proyectoIdCx, $carteraIdCx, $personaIdCx, $estadoCx] = $this->contextoCx();
 
         $proyectoCobranzaId = $this->crearProyectoCobranzaParalelo();
-        $carteraCob  = (int) DB::table('carteras')->insertGetId([
-            'public_id'   => (string) Str::ulid(),
+        $carteraCob = (int) DB::table('carteras')->insertGetId([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoCobranzaId,
-            'codigo'      => 'GENERAL',
-            'nombre'      => 'General',
-            'activo'      => true,
+            'codigo' => 'GENERAL',
+            'nombre' => 'General',
+            'activo' => true,
         ]);
         $estadoCob = (int) DB::table('estados_caso')->insertGetId([
             'proyecto_id' => $proyectoCobranzaId,
-            'codigo'      => 'ABIERTO',
-            'nombre'      => 'Abierto',
-            'activo'      => true,
-            'orden'       => 10,
+            'codigo' => 'ABIERTO',
+            'nombre' => 'Abierto',
+            'activo' => true,
+            'orden' => 10,
         ]);
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $personaCob = (int) DB::table('personas')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoCobranzaId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoCobranzaId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Persona Cob',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Persona Cob',
         ]);
 
         $useCase = $this->app->make(RegistrarCasoTicketCx::class);
@@ -128,16 +128,16 @@ final class RegistrarCasoTicketCxTest extends TestCase
         // no por tipo, así que el caso Cx con mismo código en un proyecto cobranza igualmente es válido por schema.
         // (Mantiene la prueba de aislamiento a nivel de unique constraint.)
         DB::table('casos_ticket_cx')->insert([
-            'caso_id'                => (int) DB::table('casos')->insertGetId([
-                'public_id'   => (string) Str::ulid(), 'proyecto_id' => $proyectoCobranzaId,
-                'cartera_id'  => $carteraCob, 'persona_id' => $personaCob,
-                'tipo_caso'   => 'ticket_cx', 'estado_caso_id' => $estadoCob,
+            'caso_id' => (int) DB::table('casos')->insertGetId([
+                'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoCobranzaId,
+                'cartera_id' => $carteraCob, 'persona_id' => $personaCob,
+                'tipo_caso' => 'ticket_cx', 'estado_caso_id' => $estadoCob,
                 'fecha_ingreso' => '2026-04-18', 'prioridad' => 100,
             ]),
-            'proyecto_id'            => $proyectoCobranzaId,
-            'codigo_ticket'          => 'TKT-SHARED',
-            'asunto'                 => 'Otro proyecto',
-            'fecha_reporte'          => '2026-04-18 10:00:00',
+            'proyecto_id' => $proyectoCobranzaId,
+            'codigo_ticket' => 'TKT-SHARED',
+            'asunto' => 'Otro proyecto',
+            'fecha_reporte' => '2026-04-18 10:00:00',
         ]);
 
         $this->assertNotNull($outCx->casoId);
@@ -148,18 +148,18 @@ final class RegistrarCasoTicketCxTest extends TestCase
     private function contextoCx(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId   = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Tester',
-            'apellidos'              => 'CX',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Tester',
+            'apellidos' => 'CX',
         ]);
 
         return [$proyectoId, $carteraId, $personaId, $estadoId];
@@ -170,34 +170,34 @@ final class RegistrarCasoTicketCxTest extends TestCase
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
 
         return (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => (string) Str::ulid(),
-            'mandante_id'    => $mandanteId,
-            'codigo'         => 'COB_PARALELO_2026',
-            'nombre'         => 'Cobranza paralela',
+            'public_id' => (string) Str::ulid(),
+            'mandante_id' => $mandanteId,
+            'codigo' => 'COB_PARALELO_2026',
+            'nombre' => 'Cobranza paralela',
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
-            'fecha_inicio'   => '2026-04-18',
+            'activo' => true,
+            'fecha_inicio' => '2026-04-18',
         ]);
     }
 
     private function inputBase(int $proyectoId, int $carteraId, int $personaId, int $estadoId, string $codigo): RegistrarCasoTicketCxInput
     {
         return new RegistrarCasoTicketCxInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estadoId,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoTicket:        $codigo,
-            asunto:              'Ticket '.$codigo,
-            descripcion:         null,
-            categoriaTicketId:   null,
-            prioridadTicketId:   null,
-            nivelSlaId:          null,
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoTicket: $codigo,
+            asunto: 'Ticket '.$codigo,
+            descripcion: null,
+            categoriaTicketId: null,
+            prioridadTicketId: null,
+            nivelSlaId: null,
             nivelEscalamientoId: null,
-            fechaReporte:        new DateTimeImmutable('2026-04-18 10:00:00'),
-            fechaLimiteSla:      null,
+            fechaReporte: new DateTimeImmutable('2026-04-18 10:00:00'),
+            fechaLimiteSla: null,
         );
     }
 

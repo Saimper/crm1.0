@@ -22,10 +22,10 @@ final class CompromisoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'        => 'immutable_datetime',
-        'actualizada_en'   => 'immutable_datetime',
-        'eliminada_en'     => 'immutable_datetime',
-        'fecha_vencimiento'=> 'immutable_date',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'eliminada_en' => 'immutable_datetime',
+        'fecha_vencimiento' => 'immutable_date',
         'fecha_resolucion' => 'immutable_date',
     ];
 }

@@ -18,11 +18,11 @@ final class ImportacionModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'         => 'immutable_datetime',
-        'actualizada_en'    => 'immutable_datetime',
-        'total_filas'       => 'integer',
-        'filas_ok'          => 'integer',
-        'filas_error'       => 'integer',
-        'filas_importadas'  => 'integer',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'total_filas' => 'integer',
+        'filas_ok' => 'integer',
+        'filas_error' => 'integer',
+        'filas_importadas' => 'integer',
     ];
 }

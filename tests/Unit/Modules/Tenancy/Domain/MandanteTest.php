@@ -15,11 +15,11 @@ final class MandanteTest extends TestCase
     public function test_registra_mandante_activo_con_codigo_normalizado_a_mayusculas(): void
     {
         $mandante = Mandante::registrar(
-            publicId:  '01HXTENANCY0000000MANDANTE1',
-            codigo:    new CodigoMandante('bpo_demo'),
-            nombre:    '  BPO Demo Corp  ',
+            publicId: '01HXTENANCY0000000MANDANTE1',
+            codigo: new CodigoMandante('bpo_demo'),
+            nombre: '  BPO Demo Corp  ',
             documento: '0000000000001',
-            creadaEn:  new DateTimeImmutable('2026-04-17'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertNull($mandante->id);
@@ -43,11 +43,11 @@ final class MandanteTest extends TestCase
     public function test_desactivar_preserva_codigo_y_cambia_estado(): void
     {
         $mandante = Mandante::registrar(
-            publicId:  '01HXTENANCY0000000MANDANTE2',
-            codigo:    new CodigoMandante('BPO_TEST'),
-            nombre:    'BPO Test',
+            publicId: '01HXTENANCY0000000MANDANTE2',
+            codigo: new CodigoMandante('BPO_TEST'),
+            nombre: 'BPO Test',
             documento: null,
-            creadaEn:  new DateTimeImmutable('2026-04-17'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $desactivado = $mandante->desactivar();

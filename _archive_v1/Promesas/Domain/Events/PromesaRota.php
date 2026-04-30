@@ -4,6 +4,4 @@ declare(strict_types=1);
 
 namespace App\Modules\Promesas\Domain\Events;
 
-final readonly class PromesaRota extends EventoPromesaResuelta
-{
-}
+final readonly class PromesaRota extends EventoPromesaResuelta {}

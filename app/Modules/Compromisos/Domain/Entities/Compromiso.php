@@ -23,8 +23,7 @@ final readonly class Compromiso
         public DateTimeImmutable $fechaVencimiento,
         public ?DateTimeImmutable $fechaResolucion,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function crear(
         string $publicId,

@@ -142,6 +142,7 @@ final class ExportarAuditoriaTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 }

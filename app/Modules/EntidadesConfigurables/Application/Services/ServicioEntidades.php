@@ -25,8 +25,7 @@ final readonly class ServicioEntidades
 {
     public function __construct(
         private ServicioCamposPersonalizados $serviciosCampos,
-    ) {
-    }
+    ) {}
 
     /**
      * Crea una entidad configurable en el proyecto (o cartera).
@@ -55,16 +54,16 @@ final readonly class ServicioEntidades
             throw new RuntimeException("Ya existe una entidad con código {$codigo} en el proyecto.");
         }
 
-        $model = new EntidadConfigurableModel();
-        $model->public_id    = (string) Str::ulid();
-        $model->proyecto_id  = $proyectoId;
-        $model->cartera_id   = $carteraId;
-        $model->codigo       = $codigo;
-        $model->nombre       = $nombre;
-        $model->descripcion  = $descripcion;
-        $model->icono        = $icono;
+        $model = new EntidadConfigurableModel;
+        $model->public_id = (string) Str::ulid();
+        $model->proyecto_id = $proyectoId;
+        $model->cartera_id = $carteraId;
+        $model->codigo = $codigo;
+        $model->nombre = $nombre;
+        $model->descripcion = $descripcion;
+        $model->icono = $icono;
         $model->relacion_con = $relacion->value;
-        $model->activo       = true;
+        $model->activo = true;
         $model->save();
 
         return (int) $model->id;
@@ -81,10 +80,10 @@ final readonly class ServicioEntidades
             ->sinScopeProyecto()
             ->where('id', $entidadId)
             ->update([
-                'nombre'      => $nombre,
+                'nombre' => $nombre,
                 'descripcion' => $descripcion,
-                'icono'       => $icono,
-                'activo'      => $activo,
+                'icono' => $icono,
+                'activo' => $activo,
             ]);
     }
 
@@ -121,7 +120,7 @@ final readonly class ServicioEntidades
     /**
      * Crea un registro para la entidad dada, persistiendo valores en `valores_campo_personalizado`.
      *
-     * @param array<string, mixed> $valoresPorCodigo
+     * @param  array<string, mixed>  $valoresPorCodigo
      */
     public function crearRegistro(
         int $proyectoId,
@@ -146,14 +145,14 @@ final readonly class ServicioEntidades
         return DB::transaction(function () use (
             $proyectoId, $entidad, $titulo, $valoresPorCodigo, $casoId, $personaId, $usuarioId,
         ): int {
-            $registro = new EntidadRegistroModel();
-            $registro->public_id                = (string) Str::ulid();
-            $registro->proyecto_id              = $proyectoId;
-            $registro->entidad_configurable_id  = (int) $entidad->id;
-            $registro->caso_id                  = $casoId;
-            $registro->persona_id               = $personaId;
-            $registro->titulo                   = $titulo;
-            $registro->creado_por_id            = $usuarioId;
+            $registro = new EntidadRegistroModel;
+            $registro->public_id = (string) Str::ulid();
+            $registro->proyecto_id = $proyectoId;
+            $registro->entidad_configurable_id = (int) $entidad->id;
+            $registro->caso_id = $casoId;
+            $registro->persona_id = $personaId;
+            $registro->titulo = $titulo;
+            $registro->creado_por_id = $usuarioId;
             $registro->save();
 
             $this->serviciosCampos->guardarValores(

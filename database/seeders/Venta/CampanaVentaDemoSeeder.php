@@ -25,14 +25,14 @@ final class CampanaVentaDemoSeeder extends Seeder
         }
 
         DB::table('campanas')->insert([
-            'public_id'     => (string) Str::ulid(),
-            'proyecto_id'   => $proyectoId,
-            'codigo'        => $codigo,
-            'nombre'        => 'Venta outbound abril 2026',
-            'descripcion'   => 'Campaña demo de venta outbound para validar el tipo Venta (Fase 4).',
-            'estado'        => 'activa',
-            'fecha_inicio'  => '2026-04-18',
-            'fecha_fin'     => '2026-05-31',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => 'Venta outbound abril 2026',
+            'descripcion' => 'Campaña demo de venta outbound para validar el tipo Venta (Fase 4).',
+            'estado' => 'activa',
+            'fecha_inicio' => '2026-04-18',
+            'fecha_fin' => '2026-05-31',
             'creada_por_id' => $adminId > 0 ? $adminId : null,
         ]);
     }

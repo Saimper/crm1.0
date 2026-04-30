@@ -50,8 +50,8 @@ final class AdminUsuariosTest extends TestCase
             ->assertSet('formUsuarioVisible', false);
 
         $this->assertDatabaseHas('users', [
-            'email'  => 'nuevo@crm.local',
-            'name'   => 'Nuevo Tester',
+            'email' => 'nuevo@crm.local',
+            'name' => 'Nuevo Tester',
             'activo' => true,
         ]);
     }
@@ -134,19 +134,19 @@ final class AdminUsuariosTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('usuario_proyecto_rol', [
-            'usuario_id'  => $user->id,
+            'usuario_id' => $user->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolGestorId,
-            'activo'      => true,
+            'rol_id' => $rolGestorId,
+            'activo' => true,
         ]);
 
         Livewire::test(AdminUsuarios::class)
             ->call('quitarAsignacion', $user->id, $proyectoId, $rolGestorId);
 
         $this->assertDatabaseMissing('usuario_proyecto_rol', [
-            'usuario_id'  => $user->id,
+            'usuario_id' => $user->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolGestorId,
+            'rol_id' => $rolGestorId,
         ]);
     }
 

@@ -46,32 +46,32 @@ final class RegistrarCasoLeadVentaTest extends TestCase
         Event::fake([CasoCreado::class]);
 
         $output = $this->app->make(RegistrarCasoLeadVenta::class)->execute(new RegistrarCasoLeadVentaInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estadoId,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoLead:          'LEAD-TEST-001',
-            productoVentaId:     $this->idProyecto('productos_venta', 'SEGURO_VIDA', $proyectoId),
-            etapaEmbudoId:       $this->idProyecto('etapas_embudo', 'CALIFICACION', $proyectoId),
-            valorEstimadoMonto:  '2500.00',
-            moneda:              'USD',
-            origenLead:          'Referido',
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoLead: 'LEAD-TEST-001',
+            productoVentaId: $this->idProyecto('productos_venta', 'SEGURO_VIDA', $proyectoId),
+            etapaEmbudoId: $this->idProyecto('etapas_embudo', 'CALIFICACION', $proyectoId),
+            valorEstimadoMonto: '2500.00',
+            moneda: 'USD',
+            origenLead: 'Referido',
             fechaPrimerContacto: new DateTimeImmutable('2026-04-18'),
             fechaEstimadaCierre: new DateTimeImmutable('2026-05-18'),
         ));
 
         $this->assertDatabaseHas('casos', [
-            'id'          => $output->casoId,
+            'id' => $output->casoId,
             'proyecto_id' => $proyectoId,
-            'tipo_caso'   => 'lead_venta',
+            'tipo_caso' => 'lead_venta',
         ]);
         $this->assertDatabaseHas('casos_lead_venta', [
-            'caso_id'        => $output->casoId,
-            'codigo_lead'    => 'LEAD-TEST-001',
+            'caso_id' => $output->casoId,
+            'codigo_lead' => 'LEAD-TEST-001',
             'valor_estimado' => '2500.00',
-            'moneda'         => 'USD',
+            'moneda' => 'USD',
         ]);
         Event::assertDispatched(CasoCreado::class);
     }
@@ -91,18 +91,18 @@ final class RegistrarCasoLeadVentaTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'VENTA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'PREMIUM')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId   = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'NUEVO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'PREMIUM')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'NUEVO')->value('id');
 
         $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Tester',
-            'apellidos'              => 'Venta',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Tester',
+            'apellidos' => 'Venta',
         ]);
 
         return [$proyectoId, $carteraId, $personaId, $estadoId];
@@ -111,18 +111,18 @@ final class RegistrarCasoLeadVentaTest extends TestCase
     private function inputBase(int $proyectoId, int $carteraId, int $personaId, int $estadoId, string $codigo): RegistrarCasoLeadVentaInput
     {
         return new RegistrarCasoLeadVentaInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estadoId,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoLead:          $codigo,
-            productoVentaId:     null,
-            etapaEmbudoId:       null,
-            valorEstimadoMonto:  '100.00',
-            moneda:              'USD',
-            origenLead:          null,
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoLead: $codigo,
+            productoVentaId: null,
+            etapaEmbudoId: null,
+            valorEstimadoMonto: '100.00',
+            moneda: 'USD',
+            origenLead: null,
             fechaPrimerContacto: new DateTimeImmutable('2026-04-18'),
             fechaEstimadaCierre: null,
         );

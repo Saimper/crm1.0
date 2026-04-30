@@ -12,6 +12,5 @@ final readonly class RegistrarProyectoOutput
         public string $codigo,
         public string $nombre,
         public string $tipoOperacion,
-    ) {
-    }
+    ) {}
 }

@@ -36,10 +36,10 @@ final class CategoriasTicketDemoSeeder extends Seeder
 
             DB::table('categorias_ticket')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

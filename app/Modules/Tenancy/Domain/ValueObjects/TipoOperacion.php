@@ -7,7 +7,7 @@ namespace App\Modules\Tenancy\Domain\ValueObjects;
 enum TipoOperacion: string
 {
     case COBRANZA = 'cobranza';
-    case CX       = 'cx';
-    case VENTA    = 'venta';
+    case CX = 'cx';
+    case VENTA = 'venta';
     case SERVICIO = 'servicio';
 }

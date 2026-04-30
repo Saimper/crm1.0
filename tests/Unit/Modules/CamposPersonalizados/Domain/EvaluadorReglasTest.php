@@ -15,7 +15,7 @@ final class EvaluadorReglasTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->evaluador = new EvaluadorReglas();
+        $this->evaluador = new EvaluadorReglas;
     }
 
     public function test_obligatorio_con_valor_vacio_throws(): void

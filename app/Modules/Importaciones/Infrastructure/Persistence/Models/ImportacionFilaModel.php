@@ -18,9 +18,9 @@ final class ImportacionFilaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'      => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
         'actualizada_en' => 'immutable_datetime',
-        'payload'        => 'array',
-        'numero_fila'    => 'integer',
+        'payload' => 'array',
+        'numero_fila' => 'integer',
     ];
 }

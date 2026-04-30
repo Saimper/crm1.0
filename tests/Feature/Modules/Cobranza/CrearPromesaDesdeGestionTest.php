@@ -57,38 +57,38 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         $ctx = $this->contexto();
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
-            usuarioId:         $ctx['usuarioId'],
-            notas:             'Promesa registrada.',
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:00:00'),
-            datosCompromiso:   new DatosPromesaPago(
-                monto:            new MontoPromesa('1500.00', 'USD'),
+            causaId: $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
+            usuarioId: $ctx['usuarioId'],
+            notas: 'Promesa registrada.',
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
+            datosCompromiso: new DatosPromesaPago(
+                monto: new MontoPromesa('1500.00', 'USD'),
                 fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-04-24')),
-                tipoPagoId:       $this->idProyecto('tipos_pago', 'TRANSFERENCIA', $ctx['proyectoId']),
+                tipoPagoId: $this->idProyecto('tipos_pago', 'TRANSFERENCIA', $ctx['proyectoId']),
             ),
         ));
 
         $this->assertDatabaseHas('compromisos', [
-            'caso_id'         => $ctx['casoId'],
-            'proyecto_id'     => $ctx['proyectoId'],
+            'caso_id' => $ctx['casoId'],
+            'proyecto_id' => $ctx['proyectoId'],
             'tipo_compromiso' => 'promesa_pago',
-            'estado'          => 'pendiente',
+            'estado' => 'pendiente',
         ]);
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
         $this->assertDatabaseHas('compromisos_promesa_pago', [
             'compromiso_id' => $compromisoId,
-            'monto'         => '1500.00',
-            'moneda'        => 'USD',
+            'monto' => '1500.00',
+            'moneda' => 'USD',
         ]);
         // Listener de Casos (ActivarBanderaCompromisoVigente) activa la bandera al escuchar CompromisoCreado.
         $this->assertTrue((bool) DB::table('casos')->where('id', $ctx['casoId'])->value('tiene_compromiso_vigente'));
@@ -100,22 +100,22 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         DB::table('proyectos')->where('id', $ctx['proyectoId'])->update(['tipo_operacion' => 'cx']);
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:00:00'),
-            datosCompromiso:   new DatosPromesaPago(
-                monto:            new MontoPromesa('100.00'),
+            causaId: $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
+            datosCompromiso: new DatosPromesaPago(
+                monto: new MontoPromesa('100.00'),
                 fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-04-24')),
             ),
         ));
@@ -131,7 +131,7 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(MarcarPromesaCumplida::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-20'),
         ));
 
@@ -146,7 +146,7 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(MarcarPromesaRota::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-25'),
         ));
 
@@ -161,7 +161,7 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(CancelarPromesa::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-18'),
         ));
 
@@ -173,22 +173,22 @@ final class CrearPromesaDesdeGestionTest extends TestCase
     private function registrarPromesa(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:00:00'),
-            datosCompromiso:   new DatosPromesaPago(
-                monto:            new MontoPromesa('800.00'),
+            causaId: $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
+            datosCompromiso: new DatosPromesaPago(
+                monto: new MontoPromesa('800.00'),
                 fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-04-24')),
             ),
         ));
@@ -198,8 +198,8 @@ final class CrearPromesaDesdeGestionTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')
             ->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
@@ -216,31 +216,31 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         ]);
 
         $output = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId:       $proyectoId,
-            carteraId:        $carteraId,
-            personaId:        $personaId,
-            estadoCasoId:     $estadoAbiertoId,
-            fechaIngreso:     new DateTimeImmutable('2026-04-17'),
-            prioridad:        100,
-            numeroPrestamo:   'PRST-TEST-'.Str::random(4),
-            moneda:           'USD',
-            montoOriginal:    '5000.00',
-            saldoCapital:     '4500.00',
-            saldoInteres:     '100.00',
-            saldoTotal:       '4600.00',
-            cuotaMensual:     '420.00',
-            cuotasTotales:    12,
-            cuotasPagadas:    1,
-            diasMora:         20,
-            fechaDesembolso:  new DateTimeImmutable('2026-01-01'),
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoAbiertoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            numeroPrestamo: 'PRST-TEST-'.Str::random(4),
+            moneda: 'USD',
+            montoOriginal: '5000.00',
+            saldoCapital: '4500.00',
+            saldoInteres: '100.00',
+            saldoTotal: '4600.00',
+            cuotaMensual: '420.00',
+            cuotasTotales: 12,
+            cuotasPagadas: 1,
+            diasMora: 20,
+            fechaDesembolso: new DateTimeImmutable('2026-01-01'),
             fechaVencimiento: new DateTimeImmutable('2027-01-01'),
         ));
 
         return [
             'proyectoId' => $proyectoId,
-            'casoId'     => $output->casoId,
-            'personaId'  => $personaId,
-            'usuarioId'  => $usuarioId,
+            'casoId' => $output->casoId,
+            'personaId' => $personaId,
+            'usuarioId' => $usuarioId,
         ];
     }
 

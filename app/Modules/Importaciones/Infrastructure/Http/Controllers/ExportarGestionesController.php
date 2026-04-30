@@ -19,12 +19,12 @@ final class ExportarGestionesController
         $filename = "gestiones_{$proyecto->codigo}_".now()->format('Ymd_His').'.csv';
 
         $gestiones = DB::table('gestiones as g')
-            ->leftJoin('casos as c',          'c.id',  '=', 'g.caso_id')
-            ->leftJoin('personas as p',       'p.id',  '=', 'g.persona_id')
-            ->leftJoin('resultados as r',     'r.id',  '=', 'g.resultado_id')
+            ->leftJoin('casos as c', 'c.id', '=', 'g.caso_id')
+            ->leftJoin('personas as p', 'p.id', '=', 'g.persona_id')
+            ->leftJoin('resultados as r', 'r.id', '=', 'g.resultado_id')
             ->leftJoin('tipos_gestion as tg', 'tg.id', '=', 'g.tipo_gestion_id')
-            ->leftJoin('canales as cn',       'cn.id', '=', 'g.canal_id')
-            ->leftJoin('users as u',          'u.id',  '=', 'g.usuario_id')
+            ->leftJoin('canales as cn', 'cn.id', '=', 'g.canal_id')
+            ->leftJoin('users as u', 'u.id', '=', 'g.usuario_id')
             ->where('g.proyecto_id', $proyecto_id)
             ->whereNull('g.eliminada_en')
             ->select([
@@ -65,7 +65,7 @@ final class ExportarGestionesController
             }
             fclose($out);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }

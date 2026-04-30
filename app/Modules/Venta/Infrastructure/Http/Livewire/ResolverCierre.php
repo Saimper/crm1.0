@@ -29,8 +29,8 @@ final class ResolverCierre extends Component
 
     public function mount(int $compromisoId): void
     {
-        $this->compromisoId    = $compromisoId;
-        $this->fechaResolucion = (new DateTimeImmutable())->format('Y-m-d');
+        $this->compromisoId = $compromisoId;
+        $this->fechaResolucion = (new DateTimeImmutable)->format('Y-m-d');
     }
 
     public function abrir(string $accion): void
@@ -39,14 +39,14 @@ final class ResolverCierre extends Component
             return;
         }
 
-        $this->accion       = $accion;
+        $this->accion = $accion;
         $this->modalAbierto = true;
     }
 
     public function cerrar(): void
     {
         $this->modalAbierto = false;
-        $this->accion       = '';
+        $this->accion = '';
         $this->resetErrorBag();
     }
 
@@ -57,22 +57,23 @@ final class ResolverCierre extends Component
     ): void {
         $this->validate([
             'fechaResolucion' => ['required', 'date'],
-            'accion'          => ['required', 'in:ganado,perdido,cancelado'],
+            'accion' => ['required', 'in:ganado,perdido,cancelado'],
         ]);
 
         $input = new ResolverCompromisoInput(
-            compromisoId:    $this->compromisoId,
+            compromisoId: $this->compromisoId,
             fechaResolucion: new DateTimeImmutable($this->fechaResolucion),
         );
 
         try {
             match ($this->accion) {
-                'ganado'    => $ganado->execute($input),
-                'perdido'   => $perdido->execute($input),
+                'ganado' => $ganado->execute($input),
+                'perdido' => $perdido->execute($input),
                 'cancelado' => $cancelado->execute($input),
             };
         } catch (Throwable $e) {
             $this->addError('accion', $e->getMessage());
+
             return;
         }
 

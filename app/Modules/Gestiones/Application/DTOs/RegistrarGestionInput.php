@@ -26,6 +26,5 @@ final readonly class RegistrarGestionInput
         public ?DuracionSegundos $duracion,
         public DateTimeImmutable $creadaEn,
         public ?DatosCompromiso $datosCompromiso = null,
-    ) {
-    }
+    ) {}
 }

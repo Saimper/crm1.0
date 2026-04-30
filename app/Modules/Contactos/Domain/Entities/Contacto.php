@@ -20,8 +20,7 @@ final readonly class Contacto
         public bool $esPrincipal,
         public bool $activo,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $proyectoId,
@@ -95,8 +94,8 @@ final readonly class Contacto
         }
 
         match ($tipo) {
-            TipoContacto::TELEFONO  => self::validarTelefono($limpio),
-            TipoContacto::CORREO    => self::validarCorreo($limpio),
+            TipoContacto::TELEFONO => self::validarTelefono($limpio),
+            TipoContacto::CORREO => self::validarCorreo($limpio),
             TipoContacto::DIRECCION => self::validarDireccion($limpio),
         };
 

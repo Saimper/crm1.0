@@ -30,8 +30,7 @@ final readonly class RegistrarCasoLeadVenta
         private CasoLeadVentaRepository $ventaRepo,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarCasoLeadVentaInput $input): RegistrarCasoLeadVentaOutput
     {
@@ -41,48 +40,48 @@ final readonly class RegistrarCasoLeadVenta
             );
         }
 
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         return $this->db->transaction(function () use ($input, $ahora): RegistrarCasoLeadVentaOutput {
             $caso = Caso::registrar(
-                publicId:     (string) Str::ulid(),
-                proyectoId:   $input->proyectoId,
-                carteraId:    $input->carteraId,
-                personaId:    $input->personaId,
-                tipoCaso:     TipoCaso::LEAD_VENTA,
+                publicId: (string) Str::ulid(),
+                proyectoId: $input->proyectoId,
+                carteraId: $input->carteraId,
+                personaId: $input->personaId,
+                tipoCaso: TipoCaso::LEAD_VENTA,
                 estadoCasoId: $input->estadoCasoId,
                 fechaIngreso: $input->fechaIngreso,
-                prioridad:    $input->prioridad,
-                creadaEn:     $ahora,
+                prioridad: $input->prioridad,
+                creadaEn: $ahora,
             );
             $caso = $this->casoRepo->save($caso);
             $casoId = (int) $caso->id;
 
             $lead = CasoLeadVenta::registrar(
-                casoId:              $casoId,
-                proyectoId:          $input->proyectoId,
-                codigoLead:          new CodigoLead($input->codigoLead),
-                productoVentaId:     $input->productoVentaId,
-                etapaEmbudoId:       $input->etapaEmbudoId,
-                valorEstimado:       new ValorEstimadoVenta($input->valorEstimadoMonto, $input->moneda),
-                origenLead:          $input->origenLead,
+                casoId: $casoId,
+                proyectoId: $input->proyectoId,
+                codigoLead: new CodigoLead($input->codigoLead),
+                productoVentaId: $input->productoVentaId,
+                etapaEmbudoId: $input->etapaEmbudoId,
+                valorEstimado: new ValorEstimadoVenta($input->valorEstimadoMonto, $input->moneda),
+                origenLead: $input->origenLead,
                 fechaPrimerContacto: $input->fechaPrimerContacto,
                 fechaEstimadaCierre: $input->fechaEstimadaCierre,
             );
             $this->ventaRepo->save($lead);
 
             $this->eventos->dispatch(new CasoCreado(
-                casoId:     $casoId,
-                publicId:   $caso->publicId,
+                casoId: $casoId,
+                publicId: $caso->publicId,
                 proyectoId: $caso->proyectoId,
-                carteraId:  $caso->carteraId,
-                personaId:  $caso->personaId,
-                tipoCaso:   TipoCaso::LEAD_VENTA,
-                creadaEn:   $ahora,
+                carteraId: $caso->carteraId,
+                personaId: $caso->personaId,
+                tipoCaso: TipoCaso::LEAD_VENTA,
+                creadaEn: $ahora,
             ));
 
             return new RegistrarCasoLeadVentaOutput(
-                casoId:   $casoId,
+                casoId: $casoId,
                 publicId: $caso->publicId,
             );
         });

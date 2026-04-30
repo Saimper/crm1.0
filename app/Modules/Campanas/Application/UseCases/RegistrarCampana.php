@@ -19,8 +19,7 @@ final readonly class RegistrarCampana
         private CampanaRepository $repositorio,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarCampanaInput $input): RegistrarCampanaOutput
     {
@@ -31,15 +30,15 @@ final readonly class RegistrarCampana
         }
 
         $campana = Campana::registrar(
-            publicId:    $input->publicId,
-            proyectoId:  $input->proyectoId,
-            codigo:      $input->codigo,
-            nombre:      $input->nombre,
+            publicId: $input->publicId,
+            proyectoId: $input->proyectoId,
+            codigo: $input->codigo,
+            nombre: $input->nombre,
             descripcion: $input->descripcion,
             fechaInicio: $input->fechaInicio,
-            fechaFin:    $input->fechaFin,
+            fechaFin: $input->fechaFin,
             creadaPorId: $input->creadaPorId,
-            creadaEn:    $input->creadaEn,
+            creadaEn: $input->creadaEn,
         );
 
         $persistida = $this->db->transaction(function () use ($campana): Campana {
@@ -47,18 +46,18 @@ final readonly class RegistrarCampana
 
             $this->eventos->dispatch(new CampanaCreada(
                 campanaId: (int) $guardada->id,
-                publicId:  $guardada->publicId,
+                publicId: $guardada->publicId,
                 proyectoId: $guardada->proyectoId,
-                creadaEn:  $guardada->creadaEn,
+                creadaEn: $guardada->creadaEn,
             ));
 
             return $guardada;
         });
 
         return new RegistrarCampanaOutput(
-            id:       (int) $persistida->id,
+            id: (int) $persistida->id,
             publicId: $persistida->publicId,
-            codigo:   $persistida->codigo->asString(),
+            codigo: $persistida->codigo->asString(),
         );
     }
 }

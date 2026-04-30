@@ -31,8 +31,7 @@ final readonly class RegistrarCasoTicketCx
         private CasoTicketCxRepository $cxRepo,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarCasoTicketCxInput $input): RegistrarCasoTicketCxOutput
     {
@@ -42,50 +41,50 @@ final readonly class RegistrarCasoTicketCx
             );
         }
 
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         return $this->db->transaction(function () use ($input, $ahora): RegistrarCasoTicketCxOutput {
             $caso = Caso::registrar(
-                publicId:     (string) Str::ulid(),
-                proyectoId:   $input->proyectoId,
-                carteraId:    $input->carteraId,
-                personaId:    $input->personaId,
-                tipoCaso:     TipoCaso::TICKET_CX,
+                publicId: (string) Str::ulid(),
+                proyectoId: $input->proyectoId,
+                carteraId: $input->carteraId,
+                personaId: $input->personaId,
+                tipoCaso: TipoCaso::TICKET_CX,
                 estadoCasoId: $input->estadoCasoId,
                 fechaIngreso: $input->fechaIngreso,
-                prioridad:    $input->prioridad,
-                creadaEn:     $ahora,
+                prioridad: $input->prioridad,
+                creadaEn: $ahora,
             );
             $caso = $this->casoRepo->save($caso);
             $casoId = (int) $caso->id;
 
             $ticket = CasoTicketCx::registrar(
-                casoId:              $casoId,
-                proyectoId:          $input->proyectoId,
-                codigoTicket:        new CodigoTicket($input->codigoTicket),
-                asunto:              new AsuntoTicket($input->asunto),
-                descripcion:         $input->descripcion,
-                categoriaTicketId:   $input->categoriaTicketId,
-                prioridadTicketId:   $input->prioridadTicketId,
-                nivelSlaId:          $input->nivelSlaId,
+                casoId: $casoId,
+                proyectoId: $input->proyectoId,
+                codigoTicket: new CodigoTicket($input->codigoTicket),
+                asunto: new AsuntoTicket($input->asunto),
+                descripcion: $input->descripcion,
+                categoriaTicketId: $input->categoriaTicketId,
+                prioridadTicketId: $input->prioridadTicketId,
+                nivelSlaId: $input->nivelSlaId,
                 nivelEscalamientoId: $input->nivelEscalamientoId,
-                fechaReporte:        $input->fechaReporte,
-                fechaLimiteSla:      $input->fechaLimiteSla,
+                fechaReporte: $input->fechaReporte,
+                fechaLimiteSla: $input->fechaLimiteSla,
             );
             $this->cxRepo->save($ticket);
 
             $this->eventos->dispatch(new CasoCreado(
-                casoId:     $casoId,
-                publicId:   $caso->publicId,
+                casoId: $casoId,
+                publicId: $caso->publicId,
                 proyectoId: $caso->proyectoId,
-                carteraId:  $caso->carteraId,
-                personaId:  $caso->personaId,
-                tipoCaso:   TipoCaso::TICKET_CX,
-                creadaEn:   $ahora,
+                carteraId: $caso->carteraId,
+                personaId: $caso->personaId,
+                tipoCaso: TipoCaso::TICKET_CX,
+                creadaEn: $ahora,
             ));
 
             return new RegistrarCasoTicketCxOutput(
-                casoId:   $casoId,
+                casoId: $casoId,
                 publicId: $caso->publicId,
             );
         });

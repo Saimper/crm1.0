@@ -61,11 +61,11 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         $this->actingAs($this->obtenerAdminGlobal());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-                'proyectoId' => $proyectoId,
-                'ambito'     => 'caso',
-                'ambitoId'   => $carteraId,
-                'entidadId'  => $casoId,
-            ])
+            'proyectoId' => $proyectoId,
+            'ambito' => 'caso',
+            'ambitoId' => $carteraId,
+            'entidadId' => $casoId,
+        ])
             ->set('valores.operador_externo', 'Agente Admin')
             ->call('guardar')
             ->assertHasNoErrors();
@@ -77,8 +77,8 @@ final class FormularioCamposPersonalizadosTest extends TestCase
 
         $this->assertDatabaseHas('valores_campo_personalizado', [
             'campo_personalizado_id' => $campoId,
-            'entidad_id'             => $casoId,
-            'valor_texto_corto'      => 'Agente Admin',
+            'entidad_id' => $casoId,
+            'valor_texto_corto' => 'Agente Admin',
         ]);
     }
 
@@ -88,17 +88,17 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-                'proyectoId' => $proyectoId,
-                'ambito'     => 'caso',
-                'ambitoId'   => $carteraId,
-                'entidadId'  => $casoId,
-            ])
+            'proyectoId' => $proyectoId,
+            'ambito' => 'caso',
+            'ambitoId' => $carteraId,
+            'entidadId' => $casoId,
+        ])
             ->set('valores.operador_externo', 'Supervisor editó')
             ->call('guardar')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('valores_campo_personalizado', [
-            'entidad_id'        => $casoId,
+            'entidad_id' => $casoId,
             'valor_texto_corto' => 'Supervisor editó',
         ]);
     }
@@ -109,17 +109,17 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         $this->actingAs($this->crearUsuarioConRol($proyectoId, 'GESTOR'));
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-                'proyectoId' => $proyectoId,
-                'ambito'     => 'caso',
-                'ambitoId'   => $carteraId,
-                'entidadId'  => $casoId,
-            ])
+            'proyectoId' => $proyectoId,
+            'ambito' => 'caso',
+            'ambitoId' => $carteraId,
+            'entidadId' => $casoId,
+        ])
             ->set('valores.operador_externo', 'Gestor editó')
             ->call('guardar')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('valores_campo_personalizado', [
-            'entidad_id'        => $casoId,
+            'entidad_id' => $casoId,
             'valor_texto_corto' => 'Gestor editó',
         ]);
     }
@@ -130,11 +130,11 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         $this->actingAs($this->crearUsuarioConRol($proyectoId, 'AUDITOR'));
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-                'proyectoId' => $proyectoId,
-                'ambito'     => 'caso',
-                'ambitoId'   => $carteraId,
-                'entidadId'  => $casoId,
-            ])
+            'proyectoId' => $proyectoId,
+            'ambito' => 'caso',
+            'ambitoId' => $carteraId,
+            'entidadId' => $casoId,
+        ])
             ->assertSet('bloqueado', true)
             ->set('valores.operador_externo', 'Intento auditor')
             ->call('guardar')
@@ -149,11 +149,11 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-                'proyectoId' => $proyectoId,
-                'ambito'     => 'caso',
-                'ambitoId'   => $carteraId,
-                'entidadId'  => $casoId,
-            ])
+            'proyectoId' => $proyectoId,
+            'ambito' => 'caso',
+            'ambitoId' => $carteraId,
+            'entidadId' => $casoId,
+        ])
             ->assertSet('bloqueado', true)
             ->call('guardar')
             ->assertStatus(403);
@@ -173,19 +173,19 @@ final class FormularioCamposPersonalizadosTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)).' '.Str::random(4),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)).' '.Str::random(4),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
 
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id'  => $u->id,
+            'usuario_id' => $u->id,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolId,
-            'equipo_id'   => null,
-            'activo'      => true,
+            'rol_id' => $rolId,
+            'equipo_id' => null,
+            'activo' => true,
         ]);
 
         return $u;
@@ -195,9 +195,9 @@ final class FormularioCamposPersonalizadosTest extends TestCase
     private function crearContexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $estado     = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
 
         $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
 
@@ -209,23 +209,23 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         ]);
 
         $out = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId:       $proyectoId,
-            carteraId:        $carteraId,
-            personaId:        $personaId,
-            estadoCasoId:     $estado,
-            fechaIngreso:     new DateTimeImmutable('2026-04-17'),
-            prioridad:        100,
-            numeroPrestamo:   'PRST-CP-'.Str::random(4),
-            moneda:           'USD',
-            montoOriginal:    '1000.00',
-            saldoCapital:     '900.00',
-            saldoInteres:     '10.00',
-            saldoTotal:       '910.00',
-            cuotaMensual:     '100.00',
-            cuotasTotales:    10,
-            cuotasPagadas:    1,
-            diasMora:         0,
-            fechaDesembolso:  new DateTimeImmutable('2026-02-01'),
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estado,
+            fechaIngreso: new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            numeroPrestamo: 'PRST-CP-'.Str::random(4),
+            moneda: 'USD',
+            montoOriginal: '1000.00',
+            saldoCapital: '900.00',
+            saldoInteres: '10.00',
+            saldoTotal: '910.00',
+            cuotaMensual: '100.00',
+            cuotasTotales: 10,
+            cuotasPagadas: 1,
+            diasMora: 0,
+            fechaDesembolso: new DateTimeImmutable('2026-02-01'),
             fechaVencimiento: new DateTimeImmutable('2026-12-01'),
         ));
 

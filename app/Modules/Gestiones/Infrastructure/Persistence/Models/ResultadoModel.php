@@ -18,13 +18,13 @@ final class ResultadoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'            => 'immutable_datetime',
-        'actualizada_en'       => 'immutable_datetime',
-        'activo'               => 'boolean',
-        'orden'                => 'integer',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'activo' => 'boolean',
+        'orden' => 'integer',
         'es_contacto_efectivo' => 'boolean',
-        'requiere_compromiso'  => 'boolean',
-        'requiere_causa'       => 'boolean',
-        'metadata'             => 'array',
+        'requiere_compromiso' => 'boolean',
+        'requiere_causa' => 'boolean',
+        'metadata' => 'array',
     ];
 }

@@ -6,7 +6,7 @@ namespace App\Modules\Contactos\Domain\ValueObjects;
 
 enum TipoContacto: string
 {
-    case TELEFONO  = 'telefono';
-    case CORREO    = 'correo';
+    case TELEFONO = 'telefono';
+    case CORREO = 'correo';
     case DIRECCION = 'direccion';
 }

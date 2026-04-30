@@ -60,9 +60,9 @@ final class AdminEquiposProyectoTest extends TestCase
 
         $this->assertDatabaseHas('equipos', [
             'proyecto_id' => $proyectoId,
-            'codigo'      => 'EQ_TEST',
-            'nombre'      => 'Equipo de prueba',
-            'activo'      => true,
+            'codigo' => 'EQ_TEST',
+            'nombre' => 'Equipo de prueba',
+            'activo' => true,
         ]);
     }
 
@@ -74,16 +74,16 @@ final class AdminEquiposProyectoTest extends TestCase
 
         $c = Livewire::test(AdminEquiposProyecto::class);
         $c->call('abrirFormCrear')
-          ->set('formCodigo', 'DUP')
-          ->set('formNombre', 'Primero')
-          ->call('guardarEquipo')
-          ->assertHasNoErrors();
+            ->set('formCodigo', 'DUP')
+            ->set('formNombre', 'Primero')
+            ->call('guardarEquipo')
+            ->assertHasNoErrors();
 
         $c->call('abrirFormCrear')
-          ->set('formCodigo', 'DUP')
-          ->set('formNombre', 'Segundo')
-          ->call('guardarEquipo')
-          ->assertHasErrors(['formCodigo']);
+            ->set('formCodigo', 'DUP')
+            ->set('formNombre', 'Segundo')
+            ->call('guardarEquipo')
+            ->assertHasErrors(['formCodigo']);
     }
 
     public function test_agregar_y_quitar_miembro(): void
@@ -104,14 +104,14 @@ final class AdminEquiposProyectoTest extends TestCase
             ->where('proyecto_id', $proyectoId)->where('codigo', 'EQ_MIEMBROS')->value('id');
 
         $c->call('gestionarMiembros', $equipoId)
-          ->set('buscarEmail', $gestor->email)
-          ->call('buscarUsuario')
-          ->assertHasNoErrors()
-          ->call('agregarMiembro');
+            ->set('buscarEmail', $gestor->email)
+            ->call('buscarUsuario')
+            ->assertHasNoErrors()
+            ->call('agregarMiembro');
 
         $this->assertDatabaseHas('equipo_usuario', [
-            'equipo_id'   => $equipoId,
-            'usuario_id'  => $gestor->id,
+            'equipo_id' => $equipoId,
+            'usuario_id' => $gestor->id,
             'proyecto_id' => $proyectoId,
         ]);
 
@@ -218,10 +218,10 @@ final class AdminEquiposProyectoTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([

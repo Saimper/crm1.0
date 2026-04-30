@@ -54,11 +54,11 @@ final class AdminProyectosTest extends TestCase
             ->assertSet('formVisible', false);
 
         $this->assertDatabaseHas('proyectos', [
-            'mandante_id'    => $mandanteId,
-            'codigo'         => 'NUEVO_PROYECTO_2026',
-            'nombre'         => 'Proyecto nuevo',
+            'mandante_id' => $mandanteId,
+            'codigo' => 'NUEVO_PROYECTO_2026',
+            'nombre' => 'Proyecto nuevo',
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
     }
 
@@ -90,8 +90,8 @@ final class AdminProyectosTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('proyectos', [
-            'id'             => $id,
-            'nombre'         => 'Cobranza Demo EDITADO',
+            'id' => $id,
+            'nombre' => 'Cobranza Demo EDITADO',
             'tipo_operacion' => 'cobranza',                // se mantiene
         ]);
     }

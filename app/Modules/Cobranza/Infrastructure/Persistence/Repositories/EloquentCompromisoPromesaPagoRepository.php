@@ -17,13 +17,13 @@ final class EloquentCompromisoPromesaPagoRepository implements CompromisoPromesa
     public function save(CompromisoPromesaPago $promesa): CompromisoPromesaPago
     {
         $model = CompromisoPromesaPagoModel::query()->sinScopeProyecto()->find($promesa->compromisoId)
-            ?? new CompromisoPromesaPagoModel();
+            ?? new CompromisoPromesaPagoModel;
 
         $model->compromiso_id = $promesa->compromisoId;
-        $model->proyecto_id   = $promesa->proyectoId;
-        $model->monto         = $promesa->monto->monto;
-        $model->moneda        = $promesa->monto->moneda;
-        $model->tipo_pago_id  = $promesa->tipoPagoId;
+        $model->proyecto_id = $promesa->proyectoId;
+        $model->monto = $promesa->monto->monto;
+        $model->moneda = $promesa->monto->moneda;
+        $model->tipo_pago_id = $promesa->tipoPagoId;
 
         $model->save();
 
@@ -45,11 +45,11 @@ final class EloquentCompromisoPromesaPagoRepository implements CompromisoPromesa
         }
 
         return CompromisoPromesaPago::reconstituir(
-            compromisoId:     (int) $row->compromiso_id,
-            proyectoId:       (int) $row->proyecto_id,
-            monto:            new MontoPromesa((string) $row->monto, (string) $row->moneda),
+            compromisoId: (int) $row->compromiso_id,
+            proyectoId: (int) $row->proyecto_id,
+            monto: new MontoPromesa((string) $row->monto, (string) $row->moneda),
             fechaVencimiento: new FechaPromesa(new DateTimeImmutable((string) $row->fecha_vencimiento)),
-            tipoPagoId:       $row->tipo_pago_id === null ? null : (int) $row->tipo_pago_id,
+            tipoPagoId: $row->tipo_pago_id === null ? null : (int) $row->tipo_pago_id,
         );
     }
 }

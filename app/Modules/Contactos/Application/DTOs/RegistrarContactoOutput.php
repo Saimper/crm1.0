@@ -10,6 +10,5 @@ final readonly class RegistrarContactoOutput
         public int $id,
         public string $valor,
         public string $tipo,
-    ) {
-    }
+    ) {}
 }

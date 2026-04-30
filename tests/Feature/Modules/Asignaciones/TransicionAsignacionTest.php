@@ -52,20 +52,20 @@ final class TransicionAsignacionTest extends TestCase
         ]);
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId:     (int) DB::table('tipos_gestion')->where('proyecto_id', $ctx['proyectoId'])->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
-            resultadoId:       (int) DB::table('resultados')->where('proyecto_id', $ctx['proyectoId'])->where('codigo', 'CONTACTO_TITULAR')->value('id'),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
+            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $ctx['proyectoId'])->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
+            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $ctx['proyectoId'])->where('codigo', 'CONTACTO_TITULAR')->value('id'),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          new DuracionSegundos(60),
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:00:00'),
+            causaId: null,
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: new DuracionSegundos(60),
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
         ));
 
         $this->assertDatabaseHas('asignaciones', [
@@ -107,14 +107,14 @@ final class TransicionAsignacionTest extends TestCase
         ]);
 
         return $this->app->make(RegistrarAsignacion::class)->execute(new RegistrarAsignacionInput(
-            publicId:        (string) Str::ulid(),
-            proyectoId:      $ctx['proyectoId'],
-            campanaId:       $campanaId,
-            casoId:          $ctx['casoId'],
-            usuarioId:       $ctx['usuarioId'],
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            campanaId: $campanaId,
+            casoId: $ctx['casoId'],
+            usuarioId: $ctx['usuarioId'],
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),
-            prioridad:       100,
-            creadaEn:        new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         ));
     }
 
@@ -122,8 +122,8 @@ final class TransicionAsignacionTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([

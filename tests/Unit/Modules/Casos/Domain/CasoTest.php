@@ -15,24 +15,24 @@ final class CasoTest extends TestCase
 {
     public function test_tipo_caso_se_deriva_de_tipo_operacion(): void
     {
-        $this->assertSame(TipoCaso::COBRANZA,   TipoCaso::desdeOperacion(TipoOperacion::COBRANZA));
-        $this->assertSame(TipoCaso::TICKET_CX,  TipoCaso::desdeOperacion(TipoOperacion::CX));
+        $this->assertSame(TipoCaso::COBRANZA, TipoCaso::desdeOperacion(TipoOperacion::COBRANZA));
+        $this->assertSame(TipoCaso::TICKET_CX, TipoCaso::desdeOperacion(TipoOperacion::CX));
         $this->assertSame(TipoCaso::LEAD_VENTA, TipoCaso::desdeOperacion(TipoOperacion::VENTA));
-        $this->assertSame(TipoCaso::SERVICIO,   TipoCaso::desdeOperacion(TipoOperacion::SERVICIO));
+        $this->assertSame(TipoCaso::SERVICIO, TipoCaso::desdeOperacion(TipoOperacion::SERVICIO));
     }
 
     public function test_registra_caso_abierto(): void
     {
         $caso = Caso::registrar(
-            publicId:     '01HXCASO0000000000000CASO01',
-            proyectoId:   1,
-            carteraId:    2,
-            personaId:    3,
-            tipoCaso:     TipoCaso::COBRANZA,
+            publicId: '01HXCASO0000000000000CASO01',
+            proyectoId: 1,
+            carteraId: 2,
+            personaId: 3,
+            tipoCaso: TipoCaso::COBRANZA,
             estadoCasoId: 5,
             fechaIngreso: new DateTimeImmutable('2026-04-17'),
-            prioridad:    100,
-            creadaEn:     new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertFalse($caso->estaCerrado());
@@ -44,15 +44,15 @@ final class CasoTest extends TestCase
     {
         $this->expectException(TransicionCasoInvalida::class);
         Caso::registrar(
-            publicId:     '01HXCASO0000000000000CASO02',
-            proyectoId:   1,
-            carteraId:    2,
-            personaId:    3,
-            tipoCaso:     TipoCaso::COBRANZA,
+            publicId: '01HXCASO0000000000000CASO02',
+            proyectoId: 1,
+            carteraId: 2,
+            personaId: 3,
+            tipoCaso: TipoCaso::COBRANZA,
             estadoCasoId: 5,
             fechaIngreso: new DateTimeImmutable('2026-04-17'),
-            prioridad:    -1,
-            creadaEn:     new DateTimeImmutable('2026-04-17'),
+            prioridad: -1,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
@@ -77,15 +77,15 @@ final class CasoTest extends TestCase
     private function casoBase(): Caso
     {
         return Caso::registrar(
-            publicId:     '01HXCASO0000000000000CASO03',
-            proyectoId:   1,
-            carteraId:    2,
-            personaId:    3,
-            tipoCaso:     TipoCaso::COBRANZA,
+            publicId: '01HXCASO0000000000000CASO03',
+            proyectoId: 1,
+            carteraId: 2,
+            personaId: 3,
+            tipoCaso: TipoCaso::COBRANZA,
             estadoCasoId: 5,
             fechaIngreso: new DateTimeImmutable('2026-04-17'),
-            prioridad:    100,
-            creadaEn:     new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 }

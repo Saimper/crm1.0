@@ -51,7 +51,7 @@ final class GeneradorSlaTest extends TestCase
         $this->assertDatabaseHas('notificaciones', [
             'proyecto_id' => $proyectoId,
             'destinatario_usuario_id' => $gestor->id,
-            'tipo'       => 'sla_en_riesgo',
+            'tipo' => 'sla_en_riesgo',
             'entidad_id' => $compId,
         ]);
         $this->assertDatabaseMissing('notificaciones', [
@@ -115,22 +115,22 @@ final class GeneradorSlaTest extends TestCase
     private function crearCompromisoCx(int $proyectoId, int $casoId, int $usuarioId, Carbon $fechaLimite): int
     {
         $compId = (int) DB::table('compromisos')->insertGetId([
-            'public_id'         => (string) Str::ulid(),
-            'proyecto_id'       => $proyectoId,
-            'caso_id'           => $casoId,
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'caso_id' => $casoId,
             'gestion_origen_id' => null,
-            'tipo_compromiso'   => 'resolucion_ticket',
-            'estado'            => 'pendiente',
+            'tipo_compromiso' => 'resolucion_ticket',
+            'estado' => 'pendiente',
             'fecha_vencimiento' => $fechaLimite->toDateString(),
-            'usuario_id'        => $usuarioId,
+            'usuario_id' => $usuarioId,
         ]);
 
         DB::table('compromisos_resolucion_ticket')->insert([
-            'compromiso_id'         => $compId,
-            'proyecto_id'           => $proyectoId,
+            'compromiso_id' => $compId,
+            'proyecto_id' => $proyectoId,
             'nivel_escalamiento_id' => null,
-            'accion_comprometida'   => 'Resolver ticket de prueba',
-            'fecha_limite_sla'      => $fechaLimite->toDateTimeString(),
+            'accion_comprometida' => 'Resolver ticket de prueba',
+            'fecha_limite_sla' => $fechaLimite->toDateTimeString(),
         ]);
 
         return $compId;
@@ -140,10 +140,10 @@ final class GeneradorSlaTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([

@@ -16,8 +16,7 @@ final readonly class CancelarPromesa
         private PromesaRepository $repositorio,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(ResolverPromesaInput $input): void
     {

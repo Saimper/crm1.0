@@ -104,10 +104,10 @@ final class AccesoProyectoTest extends TestCase
     {
         $rolId = (int) DB::table('roles')->where('codigo', $rolCodigo)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id'  => $usuarioId,
+            'usuario_id' => $usuarioId,
             'proyecto_id' => $proyectoId,
-            'rol_id'      => $rolId,
-            'activo'      => true,
+            'rol_id' => $rolId,
+            'activo' => true,
         ]);
     }
 }

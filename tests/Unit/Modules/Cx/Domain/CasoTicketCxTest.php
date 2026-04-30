@@ -16,17 +16,17 @@ final class CasoTicketCxTest extends TestCase
     public function test_registra_ticket_valido(): void
     {
         $ticket = CasoTicketCx::registrar(
-            casoId:              1,
-            proyectoId:          10,
-            codigoTicket:        new CodigoTicket('TKT-001'),
-            asunto:              new AsuntoTicket('Problema con activación'),
-            descripcion:         'Cliente reporta error al activar.',
-            categoriaTicketId:   2,
-            prioridadTicketId:   3,
-            nivelSlaId:          1,
+            casoId: 1,
+            proyectoId: 10,
+            codigoTicket: new CodigoTicket('TKT-001'),
+            asunto: new AsuntoTicket('Problema con activación'),
+            descripcion: 'Cliente reporta error al activar.',
+            categoriaTicketId: 2,
+            prioridadTicketId: 3,
+            nivelSlaId: 1,
             nivelEscalamientoId: 1,
-            fechaReporte:        new DateTimeImmutable('2026-04-18 09:00:00'),
-            fechaLimiteSla:      new DateTimeImmutable('2026-04-19 17:00:00'),
+            fechaReporte: new DateTimeImmutable('2026-04-18 09:00:00'),
+            fechaLimiteSla: new DateTimeImmutable('2026-04-19 17:00:00'),
         );
 
         $this->assertSame('TKT-001', $ticket->codigoTicket->valor);
@@ -37,17 +37,17 @@ final class CasoTicketCxTest extends TestCase
     {
         $this->expectException(DatosTicketInvalidos::class);
         CasoTicketCx::registrar(
-            casoId:              1,
-            proyectoId:          10,
-            codigoTicket:        new CodigoTicket('TKT-002'),
-            asunto:              new AsuntoTicket('Test'),
-            descripcion:         null,
-            categoriaTicketId:   null,
-            prioridadTicketId:   null,
-            nivelSlaId:          null,
+            casoId: 1,
+            proyectoId: 10,
+            codigoTicket: new CodigoTicket('TKT-002'),
+            asunto: new AsuntoTicket('Test'),
+            descripcion: null,
+            categoriaTicketId: null,
+            prioridadTicketId: null,
+            nivelSlaId: null,
             nivelEscalamientoId: null,
-            fechaReporte:        new DateTimeImmutable('2026-04-18 09:00:00'),
-            fechaLimiteSla:      new DateTimeImmutable('2026-04-17 17:00:00'),
+            fechaReporte: new DateTimeImmutable('2026-04-18 09:00:00'),
+            fechaLimiteSla: new DateTimeImmutable('2026-04-17 17:00:00'),
         );
     }
 

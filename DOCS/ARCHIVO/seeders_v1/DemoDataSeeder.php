@@ -12,11 +12,11 @@ final class DemoDataSeeder extends Seeder
 {
     public function run(): void
     {
-        $tipoCed     = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $tipoRuc     = (int) DB::table('tipos_identificacion')->where('codigo', 'RUC')->value('id');
-        $cartera     = (int) DB::table('carteras')->where('codigo', 'CONSUMO')->value('id');
-        $estadoMora  = (int) DB::table('estados_producto')->where('codigo', 'MORA')->value('id');
-        $tramo3160   = (int) DB::table('tramos_mora')->where('codigo', 'TRAMO_31_60')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $tipoRuc = (int) DB::table('tipos_identificacion')->where('codigo', 'RUC')->value('id');
+        $cartera = (int) DB::table('carteras')->where('codigo', 'CONSUMO')->value('id');
+        $estadoMora = (int) DB::table('estados_producto')->where('codigo', 'MORA')->value('id');
+        $tramo3160 = (int) DB::table('tramos_mora')->where('codigo', 'TRAMO_31_60')->value('id');
 
         $clientes = [
             [
@@ -62,30 +62,30 @@ final class DemoDataSeeder extends Seeder
                 }
 
                 DB::table('productos')->insert([
-                    'public_id'          => (string) Str::ulid(),
-                    'cliente_id'         => $clienteId,
-                    'numero_prestamo'    => $p['numero'],
-                    'cartera_id'         => $cartera,
+                    'public_id' => (string) Str::ulid(),
+                    'cliente_id' => $clienteId,
+                    'numero_prestamo' => $p['numero'],
+                    'cartera_id' => $cartera,
                     'estado_producto_id' => $estadoMora,
-                    'tramo_mora_id'      => $tramo3160,
-                    'monto_original'     => bcmul($p['saldo'], '1.5', 2),
-                    'saldo_capital'      => $p['saldo'],
-                    'saldo_total'        => bcmul($p['saldo'], '1.1', 2),
-                    'cuota_mensual'      => bcmul($p['saldo'], '0.05', 2),
-                    'dias_mora'          => $p['dias'],
-                    'cuotas_totales'     => 24,
-                    'cuotas_pagadas'     => 6,
-                    'moneda'             => 'USD',
-                    'fecha_desembolso'   => '2026-01-15',
-                    'fecha_vencimiento'  => '2028-01-15',
+                    'tramo_mora_id' => $tramo3160,
+                    'monto_original' => bcmul($p['saldo'], '1.5', 2),
+                    'saldo_capital' => $p['saldo'],
+                    'saldo_total' => bcmul($p['saldo'], '1.1', 2),
+                    'cuota_mensual' => bcmul($p['saldo'], '0.05', 2),
+                    'dias_mora' => $p['dias'],
+                    'cuotas_totales' => 24,
+                    'cuotas_pagadas' => 6,
+                    'moneda' => 'USD',
+                    'fecha_desembolso' => '2026-01-15',
+                    'fecha_vencimiento' => '2028-01-15',
                 ]);
             }
 
             $contactosPorIdentificacion = [
-                '0102030405'    => [['tipo' => 'telefono', 'valor' => '+593 98 123 4567', 'es_principal' => true], ['tipo' => 'correo', 'valor' => 'juan.perez@correo.com']],
-                '0203040506'    => [['tipo' => 'telefono', 'valor' => '+593 99 765 4321', 'es_principal' => true], ['tipo' => 'telefono', 'valor' => '+593 2 222 3333']],
+                '0102030405' => [['tipo' => 'telefono', 'valor' => '+593 98 123 4567', 'es_principal' => true], ['tipo' => 'correo', 'valor' => 'juan.perez@correo.com']],
+                '0203040506' => [['tipo' => 'telefono', 'valor' => '+593 99 765 4321', 'es_principal' => true], ['tipo' => 'telefono', 'valor' => '+593 2 222 3333']],
                 '1792345678001' => [['tipo' => 'telefono', 'valor' => '+593 2 444 5566', 'es_principal' => true], ['tipo' => 'correo', 'valor' => 'contacto@austral.com.ec']],
-                '0304050607'    => [['tipo' => 'telefono', 'valor' => '+593 96 111 2233', 'es_principal' => true]],
+                '0304050607' => [['tipo' => 'telefono', 'valor' => '+593 96 111 2233', 'es_principal' => true]],
             ];
 
             $contactos = $contactosPorIdentificacion[$data['identificacion']] ?? [];
@@ -94,11 +94,11 @@ final class DemoDataSeeder extends Seeder
                     continue;
                 }
                 DB::table('contactos')->insert([
-                    'cliente_id'   => $clienteId,
-                    'tipo'         => $c['tipo'],
-                    'valor'        => $c['valor'],
+                    'cliente_id' => $clienteId,
+                    'tipo' => $c['tipo'],
+                    'valor' => $c['valor'],
                     'es_principal' => $c['es_principal'] ?? false,
-                    'activo'       => true,
+                    'activo' => true,
                 ]);
             }
         }

@@ -19,6 +19,5 @@ final readonly class RegistrarCampanaInput
         public ?DateTimeImmutable $fechaFin,
         public ?int $creadaPorId,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

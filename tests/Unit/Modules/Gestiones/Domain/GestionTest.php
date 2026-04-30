@@ -34,7 +34,7 @@ final class GestionTest extends TestCase
         $this->assertSame(5, $g->causaId);
     }
 
-    public function test_conId_persiste_identificadores(): void
+    public function test_con_id_persiste_identificadores(): void
     {
         $g = $this->gestion(new BanderasResultado(false, false, false), null);
         $persistida = $g->conId(777);
@@ -56,21 +56,21 @@ final class GestionTest extends TestCase
     private function gestion(BanderasResultado $banderas, ?int $causaId): Gestion
     {
         return Gestion::registrar(
-            publicId:          '01HXGESTION0000000000000001',
-            proyectoId:        10,
-            casoId:            42,
-            personaId:         7,
-            contactoId:        11,
-            canalId:           1,
-            tipoGestionId:     1,
-            resultadoId:       1,
+            publicId: '01HXGESTION0000000000000001',
+            proyectoId: 10,
+            casoId: 42,
+            personaId: 7,
+            contactoId: 11,
+            canalId: 1,
+            tipoGestionId: 1,
+            resultadoId: 1,
             motivoNoContactoId: null,
-            causaId:           $causaId,
-            usuarioId:         9,
-            notas:             null,
-            duracion:          new DuracionSegundos(120),
-            banderas:          $banderas,
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:30:00'),
+            causaId: $causaId,
+            usuarioId: 9,
+            notas: null,
+            duracion: new DuracionSegundos(120),
+            banderas: $banderas,
+            creadaEn: new DateTimeImmutable('2026-04-17 10:30:00'),
         );
     }
 }

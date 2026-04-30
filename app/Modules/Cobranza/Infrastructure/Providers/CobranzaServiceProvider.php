@@ -37,7 +37,7 @@ final class CobranzaServiceProvider extends ServiceProvider
 
         Livewire::component('cobranza.resolver-promesa', ResolverPromesa::class);
         Livewire::component('cobranza.admin-tramos-mora', AdminTramosMora::class);
-        Livewire::component('cobranza.admin-tipos-pago',  AdminTiposPago::class);
+        Livewire::component('cobranza.admin-tipos-pago', AdminTiposPago::class);
 
         Event::listen(GestionRegistrada::class, CrearPromesaDesdeGestion::class);
     }

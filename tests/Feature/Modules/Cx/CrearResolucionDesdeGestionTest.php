@@ -59,36 +59,36 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         $ctx = $this->contexto();
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_ENTRANTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'ESCALADO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_ENTRANTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'ESCALADO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           $this->idProyecto('causas_gestion', 'CAIDO', $ctx['proyectoId']),
-            usuarioId:         $ctx['usuarioId'],
-            notas:             'Cliente reporta caída general, se escala a nivel 2.',
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-18 10:00:00'),
-            datosCompromiso:   new DatosResolucionTicket(
-                accion:              new AccionComprometida('Revisión de infraestructura y respuesta al cliente'),
-                fechaLimite:         new FechaLimiteSla(new DateTimeImmutable('2026-04-19 10:00:00')),
+            causaId: $this->idProyecto('causas_gestion', 'CAIDO', $ctx['proyectoId']),
+            usuarioId: $ctx['usuarioId'],
+            notas: 'Cliente reporta caída general, se escala a nivel 2.',
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-18 10:00:00'),
+            datosCompromiso: new DatosResolucionTicket(
+                accion: new AccionComprometida('Revisión de infraestructura y respuesta al cliente'),
+                fechaLimite: new FechaLimiteSla(new DateTimeImmutable('2026-04-19 10:00:00')),
                 nivelEscalamientoId: $this->idProyecto('niveles_escalamiento', 'N2', $ctx['proyectoId']),
             ),
         ));
 
         $this->assertDatabaseHas('compromisos', [
-            'caso_id'         => $ctx['casoId'],
-            'proyecto_id'     => $ctx['proyectoId'],
+            'caso_id' => $ctx['casoId'],
+            'proyecto_id' => $ctx['proyectoId'],
             'tipo_compromiso' => 'resolucion_ticket',
-            'estado'          => 'pendiente',
+            'estado' => 'pendiente',
         ]);
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
         $this->assertDatabaseHas('compromisos_resolucion_ticket', [
-            'compromiso_id'       => $compromisoId,
+            'compromiso_id' => $compromisoId,
             'accion_comprometida' => 'Revisión de infraestructura y respuesta al cliente',
         ]);
 
@@ -102,7 +102,7 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(MarcarResolucionCumplida::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-18 18:00:00'),
         ));
 
@@ -117,7 +117,7 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(MarcarResolucionRota::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-19 11:00:00'),
         ));
 
@@ -131,7 +131,7 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         $compromisoId = (int) DB::table('compromisos')->where('caso_id', $ctx['casoId'])->value('id');
 
         $this->app->make(CancelarResolucion::class)->execute(new ResolverCompromisoInput(
-            compromisoId:    $compromisoId,
+            compromisoId: $compromisoId,
             fechaResolucion: new DateTimeImmutable('2026-04-18 16:00:00'),
         ));
 
@@ -142,22 +142,22 @@ final class CrearResolucionDesdeGestionTest extends TestCase
     private function registrarResolucion(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_ENTRANTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'COMPROMISO_SLA', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_ENTRANTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'COMPROMISO_SLA', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-18 10:00:00'),
-            datosCompromiso:   new DatosResolucionTicket(
-                accion:      new AccionComprometida('Resolución estándar'),
+            causaId: null,
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-18 10:00:00'),
+            datosCompromiso: new DatosResolucionTicket(
+                accion: new AccionComprometida('Resolución estándar'),
                 fechaLimite: new FechaLimiteSla(new DateTimeImmutable('2026-04-19 10:00:00')),
             ),
         ));
@@ -167,47 +167,47 @@ final class CrearResolucionDesdeGestionTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId   = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([
             'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
             'password' => bcrypt('x'), 'activo' => true,
         ]);
         $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres'                => 'Tester',
-            'apellidos'              => 'CX',
+            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
+            'nombres' => 'Tester',
+            'apellidos' => 'CX',
         ]);
 
         $out = $this->app->make(RegistrarCasoTicketCx::class)->execute(new RegistrarCasoTicketCxInput(
-            proyectoId:          $proyectoId,
-            carteraId:           $carteraId,
-            personaId:           $personaId,
-            estadoCasoId:        $estadoId,
-            fechaIngreso:        new DateTimeImmutable('2026-04-18'),
-            prioridad:           100,
-            codigoTicket:        'TKT-RES-'.Str::random(4),
-            asunto:              'Ticket para resolver',
-            descripcion:         null,
-            categoriaTicketId:   null,
-            prioridadTicketId:   null,
-            nivelSlaId:          null,
+            proyectoId: $proyectoId,
+            carteraId: $carteraId,
+            personaId: $personaId,
+            estadoCasoId: $estadoId,
+            fechaIngreso: new DateTimeImmutable('2026-04-18'),
+            prioridad: 100,
+            codigoTicket: 'TKT-RES-'.Str::random(4),
+            asunto: 'Ticket para resolver',
+            descripcion: null,
+            categoriaTicketId: null,
+            prioridadTicketId: null,
+            nivelSlaId: null,
             nivelEscalamientoId: null,
-            fechaReporte:        new DateTimeImmutable('2026-04-18 09:00:00'),
-            fechaLimiteSla:      null,
+            fechaReporte: new DateTimeImmutable('2026-04-18 09:00:00'),
+            fechaLimiteSla: null,
         ));
 
         return [
             'proyectoId' => $proyectoId,
-            'casoId'     => $out->casoId,
-            'personaId'  => $personaId,
-            'usuarioId'  => $usuarioId,
+            'casoId' => $out->casoId,
+            'personaId' => $personaId,
+            'usuarioId' => $usuarioId,
         ];
     }
 

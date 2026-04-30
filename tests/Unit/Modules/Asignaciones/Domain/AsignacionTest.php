@@ -24,14 +24,14 @@ final class AsignacionTest extends TestCase
     {
         $this->expectException(TransicionAsignacionInvalida::class);
         Asignacion::registrar(
-            publicId:        '01HXASIG0000000000000ASIG01',
-            proyectoId:      1,
-            campanaId:       2,
-            casoId:          3,
-            usuarioId:       4,
+            publicId: '01HXASIG0000000000000ASIG01',
+            proyectoId: 1,
+            campanaId: 2,
+            casoId: 3,
+            usuarioId: 4,
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),
-            prioridad:       -1,
-            creadaEn:        new DateTimeImmutable('2026-04-17'),
+            prioridad: -1,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
@@ -54,14 +54,14 @@ final class AsignacionTest extends TestCase
     private function base(): Asignacion
     {
         return Asignacion::registrar(
-            publicId:        '01HXASIG0000000000000ASIG02',
-            proyectoId:      1,
-            campanaId:       2,
-            casoId:          3,
-            usuarioId:       4,
+            publicId: '01HXASIG0000000000000ASIG02',
+            proyectoId: 1,
+            campanaId: 2,
+            casoId: 3,
+            usuarioId: 4,
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),
-            prioridad:       100,
-            creadaEn:        new DateTimeImmutable('2026-04-17'),
+            prioridad: 100,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 }

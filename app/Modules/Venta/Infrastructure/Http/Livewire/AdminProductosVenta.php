@@ -18,44 +18,44 @@ final class AdminProductosVenta extends AbstractAdminCatalogo
     protected function formVacio(): array
     {
         return [
-            'codigo'      => '',
-            'nombre'      => '',
+            'codigo' => '',
+            'nombre' => '',
             'descripcion' => '',
-            'orden'       => 100,
-            'activo'      => true,
+            'orden' => 100,
+            'activo' => true,
         ];
     }
 
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo'      => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
-            'form.nombre'      => ['required', 'string', 'max:200'],
+            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.nombre' => ['required', 'string', 'max:200'],
             'form.descripcion' => ['nullable', 'string', 'max:500'],
-            'form.orden'       => ['integer', 'min:0'],
-            'form.activo'      => ['boolean'],
+            'form.orden' => ['integer', 'min:0'],
+            'form.activo' => ['boolean'],
         ];
     }
 
     protected function payloadDesdeForm(): array
     {
         return [
-            'codigo'      => (string) $this->form['codigo'],
-            'nombre'      => (string) $this->form['nombre'],
+            'codigo' => (string) $this->form['codigo'],
+            'nombre' => (string) $this->form['nombre'],
             'descripcion' => ($this->form['descripcion'] ?? '') !== '' ? (string) $this->form['descripcion'] : null,
-            'orden'       => (int) ($this->form['orden'] ?? 100),
-            'activo'      => (bool) ($this->form['activo'] ?? true),
+            'orden' => (int) ($this->form['orden'] ?? 100),
+            'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
 
     protected function formDesdeFila(object $row): array
     {
         return [
-            'codigo'      => (string) $row->codigo,
-            'nombre'      => (string) $row->nombre,
+            'codigo' => (string) $row->codigo,
+            'nombre' => (string) $row->nombre,
             'descripcion' => (string) ($row->descripcion ?? ''),
-            'orden'       => (int) $row->orden,
-            'activo'      => (bool) $row->activo,
+            'orden' => (int) $row->orden,
+            'activo' => (bool) $row->activo,
         ];
     }
 

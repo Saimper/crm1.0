@@ -38,14 +38,14 @@ final class PersonasServicioDemoSeeder extends Seeder
             }
 
             DB::table('personas')->insert([
-                'public_id'              => (string) Str::ulid(),
-                'proyecto_id'            => $proyectoId,
-                'tipo_persona'           => $f['tipo_persona'],
+                'public_id' => (string) Str::ulid(),
+                'proyecto_id' => $proyectoId,
+                'tipo_persona' => $f['tipo_persona'],
                 'tipo_identificacion_id' => $f['tipo_identificacion_id'],
-                'identificacion'         => $f['identificacion'],
-                'nombres'                => $f['nombres']      ?? null,
-                'apellidos'              => $f['apellidos']    ?? null,
-                'razon_social'           => $f['razon_social'] ?? null,
+                'identificacion' => $f['identificacion'],
+                'nombres' => $f['nombres'] ?? null,
+                'apellidos' => $f['apellidos'] ?? null,
+                'razon_social' => $f['razon_social'] ?? null,
             ]);
         }
     }

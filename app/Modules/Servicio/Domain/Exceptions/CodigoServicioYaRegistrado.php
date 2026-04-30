@@ -6,6 +6,4 @@ namespace App\Modules\Servicio\Domain\Exceptions;
 
 use DomainException;
 
-final class CodigoServicioYaRegistrado extends DomainException
-{
-}
+final class CodigoServicioYaRegistrado extends DomainException {}

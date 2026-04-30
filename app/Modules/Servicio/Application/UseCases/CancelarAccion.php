@@ -11,8 +11,7 @@ final readonly class CancelarAccion
 {
     public function __construct(
         private CancelarCompromiso $nucleo,
-    ) {
-    }
+    ) {}
 
     public function execute(ResolverCompromisoInput $input): void
     {

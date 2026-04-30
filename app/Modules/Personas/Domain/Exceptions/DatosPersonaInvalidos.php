@@ -6,6 +6,4 @@ namespace App\Modules\Personas\Domain\Exceptions;
 
 use DomainException;
 
-final class DatosPersonaInvalidos extends DomainException
-{
-}
+final class DatosPersonaInvalidos extends DomainException {}

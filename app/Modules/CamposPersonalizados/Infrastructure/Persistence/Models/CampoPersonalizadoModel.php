@@ -19,12 +19,12 @@ final class CampoPersonalizadoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'      => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
         'actualizada_en' => 'immutable_datetime',
-        'obligatorio'    => 'boolean',
-        'activo'         => 'boolean',
-        'orden'          => 'integer',
-        'reglas'         => 'array',
+        'obligatorio' => 'boolean',
+        'activo' => 'boolean',
+        'orden' => 'integer',
+        'reglas' => 'array',
     ];
 
     public function opciones(): HasMany

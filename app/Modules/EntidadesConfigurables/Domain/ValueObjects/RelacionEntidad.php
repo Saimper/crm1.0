@@ -12,6 +12,6 @@ namespace App\Modules\EntidadesConfigurables\Domain\ValueObjects;
 enum RelacionEntidad: string
 {
     case NINGUNA = 'ninguna';
-    case CASO    = 'caso';
+    case CASO = 'caso';
     case PERSONA = 'persona';
 }

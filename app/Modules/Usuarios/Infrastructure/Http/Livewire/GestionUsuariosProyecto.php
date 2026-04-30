@@ -57,6 +57,7 @@ final class GestionUsuariosProyecto extends Component
         $email = strtolower(trim($this->buscarEmail));
         if ($email === '') {
             $this->addError('buscarEmail', 'Ingresa un correo.');
+
             return;
         }
 
@@ -65,6 +66,7 @@ final class GestionUsuariosProyecto extends Component
             $this->addError('buscarEmail', 'No existe un usuario con ese correo.');
             $this->usuarioBuscadoId = null;
             $this->usuarioBuscadoNombre = '';
+
             return;
         }
 
@@ -72,6 +74,7 @@ final class GestionUsuariosProyecto extends Component
             $this->addError('buscarEmail', 'Este usuario es ADMIN_GLOBAL; no se gestiona desde aquí.');
             $this->usuarioBuscadoId = null;
             $this->usuarioBuscadoNombre = '';
+
             return;
         }
 
@@ -83,15 +86,16 @@ final class GestionUsuariosProyecto extends Component
     {
         $this->validate([
             'usuarioBuscadoId' => ['required', 'integer', 'exists:users,id'],
-            'rolAsignarId'     => ['required', 'integer', 'exists:roles,id'],
+            'rolAsignarId' => ['required', 'integer', 'exists:roles,id'],
         ], [], [
             'usuarioBuscadoId' => 'usuario',
-            'rolAsignarId'     => 'rol',
+            'rolAsignarId' => 'rol',
         ]);
 
         $rol = DB::table('roles')->where('id', $this->rolAsignarId)->first();
         if ($rol === null || ! in_array($rol->codigo, ['SUPERVISOR', 'GESTOR', 'AUDITOR'], true)) {
             $this->addError('rolAsignarId', 'Rol no válido para asignación por proyecto.');
+
             return;
         }
 
@@ -101,11 +105,11 @@ final class GestionUsuariosProyecto extends Component
 
         DB::table('usuario_proyecto_rol')->upsert(
             [[
-                'usuario_id'  => $usuarioId,
+                'usuario_id' => $usuarioId,
                 'proyecto_id' => $proyectoId,
-                'rol_id'      => $rolId,
-                'equipo_id'   => null,
-                'activo'      => true,
+                'rol_id' => $rolId,
+                'equipo_id' => null,
+                'activo' => true,
             ]],
             ['usuario_id', 'proyecto_id', 'rol_id'],
             ['equipo_id', 'activo'],
@@ -128,10 +132,10 @@ final class GestionUsuariosProyecto extends Component
         if ($carterasValidas !== []) {
             $filas = array_map(
                 fn (int $cid) => [
-                    'usuario_id'  => $usuarioId,
+                    'usuario_id' => $usuarioId,
                     'proyecto_id' => $proyectoId,
-                    'rol_id'      => $rolId,
-                    'cartera_id'  => $cid,
+                    'rol_id' => $rolId,
+                    'cartera_id' => $cid,
                 ],
                 $carterasValidas,
             );
@@ -147,6 +151,7 @@ final class GestionUsuariosProyecto extends Component
         // Protección: no auto-revocarse.
         if ($usuarioId === (int) auth()->id()) {
             session()->flash('gestion-usuarios-error', 'No puedes quitarte a ti mismo un rol en este proyecto.');
+
             return;
         }
 
@@ -155,6 +160,7 @@ final class GestionUsuariosProyecto extends Component
         $target = User::query()->find($usuarioId);
         if ($target === null || $target->esAdminGlobal()) {
             session()->flash('gestion-usuarios-error', 'No se puede modificar este usuario desde aquí.');
+
             return;
         }
 
@@ -172,8 +178,8 @@ final class GestionUsuariosProyecto extends Component
         $proyectoId = $this->proyectoActivoId();
 
         $asignaciones = DB::table('usuario_proyecto_rol as upr')
-            ->join('users as u',  'u.id',  '=', 'upr.usuario_id')
-            ->join('roles as r',  'r.id',  '=', 'upr.rol_id')
+            ->join('users as u', 'u.id', '=', 'upr.usuario_id')
+            ->join('roles as r', 'r.id', '=', 'upr.rol_id')
             ->leftJoin('usuario_global_rol as ugr', function ($j): void {
                 $j->on('ugr.usuario_id', '=', 'u.id');
             })
@@ -220,11 +226,11 @@ final class GestionUsuariosProyecto extends Component
             ->groupBy(fn ($r) => $r->usuario_id.'-'.$r->rol_id);
 
         return view('usuarios::admin.gestion-usuarios-proyecto', [
-            'asignaciones'        => $asignaciones,
-            'rolesAsignables'     => $rolesAsignables,
+            'asignaciones' => $asignaciones,
+            'rolesAsignables' => $rolesAsignables,
             'carterasDelProyecto' => $carterasDelProyecto,
-            'restricciones'       => $restricciones,
-            'usuarioActualId'     => (int) auth()->id(),
+            'restricciones' => $restricciones,
+            'usuarioActualId' => (int) auth()->id(),
         ]);
     }
 

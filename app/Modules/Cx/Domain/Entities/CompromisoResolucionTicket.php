@@ -19,8 +19,7 @@ final readonly class CompromisoResolucionTicket
         public AccionComprometida $accion,
         public FechaLimiteSla $fechaLimite,
         public ?int $nivelEscalamientoId,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $compromisoId,
@@ -30,10 +29,10 @@ final readonly class CompromisoResolucionTicket
         ?int $nivelEscalamientoId,
     ): self {
         return new self(
-            compromisoId:        $compromisoId,
-            proyectoId:          $proyectoId,
-            accion:              $accion,
-            fechaLimite:         $fechaLimite,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            accion: $accion,
+            fechaLimite: $fechaLimite,
             nivelEscalamientoId: $nivelEscalamientoId,
         );
     }
@@ -46,10 +45,10 @@ final readonly class CompromisoResolucionTicket
         ?int $nivelEscalamientoId,
     ): self {
         return new self(
-            compromisoId:        $compromisoId,
-            proyectoId:          $proyectoId,
-            accion:              $accion,
-            fechaLimite:         $fechaLimite,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            accion: $accion,
+            fechaLimite: $fechaLimite,
             nivelEscalamientoId: $nivelEscalamientoId,
         );
     }

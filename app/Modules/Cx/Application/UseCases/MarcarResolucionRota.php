@@ -11,8 +11,7 @@ final readonly class MarcarResolucionRota
 {
     public function __construct(
         private MarcarCompromisoRoto $nucleo,
-    ) {
-    }
+    ) {}
 
     public function execute(ResolverCompromisoInput $input): void
     {

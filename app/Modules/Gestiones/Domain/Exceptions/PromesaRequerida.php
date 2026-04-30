@@ -6,6 +6,4 @@ namespace App\Modules\Gestiones\Domain\Exceptions;
 
 use DomainException;
 
-final class PromesaRequerida extends DomainException
-{
-}
+final class PromesaRequerida extends DomainException {}

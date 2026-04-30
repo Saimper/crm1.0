@@ -6,7 +6,6 @@ namespace App\Modules\Promesas\Application\UseCases;
 
 use App\Modules\Promesas\Application\DTOs\ResolverPromesaInput;
 use App\Modules\Promesas\Domain\Contracts\PromesaRepository;
-use App\Modules\Promesas\Domain\Entities\Promesa;
 use App\Modules\Promesas\Domain\Events\PromesaCumplida;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
@@ -17,8 +16,7 @@ final readonly class MarcarPromesaCumplida
         private PromesaRepository $repositorio,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(ResolverPromesaInput $input): void
     {

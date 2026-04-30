@@ -49,7 +49,7 @@ final class SelectorProyecto extends Component
         $proyectos = $query->get();
 
         return view('tenancy::selector-proyecto', [
-            'proyectos'     => $proyectos,
+            'proyectos' => $proyectos,
             'esAdminGlobal' => $esAdminGlobal,
         ]);
     }

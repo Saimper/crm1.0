@@ -13,8 +13,8 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Fase 27: verifica que las pantallas admin/reportes/catálogos/importaciones/auditoría
- * renderizan con el design system aplicado (page-header, tokens ink/brand/surface).
+ * Fase 29: verifica que las pantallas admin/reportes/catálogos/importaciones/auditoría
+ * renderizan con el design system F29 (clase .page + .page-header + .card).
  */
 final class PantallasAdminRefactorTest extends TestCase
 {
@@ -30,7 +30,7 @@ final class PantallasAdminRefactorTest extends TestCase
     {
         $admin = $this->crearAdminGlobal();
         $response = $this->actingAs($admin)->get('/admin')->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
         $response->assertSee('Administración global', false);
     }
 
@@ -38,35 +38,35 @@ final class PantallasAdminRefactorTest extends TestCase
     {
         $admin = $this->crearAdminGlobal();
         $response = $this->actingAs($admin)->get(route('admin.mandantes'))->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_admin_proyectos_refactorizado(): void
     {
         $admin = $this->crearAdminGlobal();
         $response = $this->actingAs($admin)->get(route('admin.proyectos'))->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_admin_usuarios_refactorizado(): void
     {
         $admin = $this->crearAdminGlobal();
         $response = $this->actingAs($admin)->get(route('admin.usuarios'))->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_admin_campos_refactorizado(): void
     {
         $admin = $this->crearAdminGlobal();
         $response = $this->actingAs($admin)->get(route('admin.campos-personalizados'))->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_admin_entidades_refactorizado(): void
     {
         $admin = $this->crearAdminGlobal();
         $response = $this->actingAs($admin)->get(route('admin.entidades-configurables'))->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_reportes_operativos_refactorizado(): void
@@ -76,7 +76,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.reportes.operativos', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_reportes_analiticos_refactorizado(): void
@@ -86,7 +86,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.reportes.analiticos', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_auditoria_refactorizado(): void
@@ -96,7 +96,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($auditor)
             ->get(route('proyectos.auditoria', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_importaciones_refactorizado(): void
@@ -106,7 +106,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.importaciones', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_catalogos_refactorizado(): void
@@ -116,7 +116,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.catalogos', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_asignaciones_masiva_refactorizado(): void
@@ -126,7 +126,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.asignaciones.masiva', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_equipos_del_proyecto_refactorizado(): void
@@ -136,7 +136,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.equipos', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_usuarios_del_proyecto_refactorizado(): void
@@ -146,7 +146,7 @@ final class PantallasAdminRefactorTest extends TestCase
         $response = $this->actingAs($supervisor)
             ->get(route('proyectos.usuarios', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     private function proyectoId(): int
@@ -168,6 +168,7 @@ final class PantallasAdminRefactorTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 
@@ -182,6 +183,7 @@ final class PantallasAdminRefactorTest extends TestCase
         DB::table('usuario_global_rol')->insert([
             'usuario_id' => $u->id, 'rol_id' => $rolAdminId,
         ]);
+
         return $u;
     }
 }

@@ -28,8 +28,7 @@ final readonly class ReasignarCasosEntreEquipos
     public function __construct(
         private ConnectionInterface $db,
         private GeneradorNotificaciones $notificaciones,
-    ) {
-    }
+    ) {}
 
     public function execute(
         int $proyectoId,

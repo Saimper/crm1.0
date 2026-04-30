@@ -23,6 +23,5 @@ final readonly class RegistrarCasoLeadVentaInput
         public ?string $origenLead,
         public DateTimeImmutable $fechaPrimerContacto,
         public ?DateTimeImmutable $fechaEstimadaCierre,
-    ) {
-    }
+    ) {}
 }

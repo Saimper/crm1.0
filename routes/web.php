@@ -1,5 +1,10 @@
 <?php
 
+use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaController;
+use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCasosController;
+use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromisosController;
+use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarGestionesController;
+use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarPersonasController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
@@ -38,7 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
             Route::get('/trabajo/{persona}/{caso?}', fn (int $proyecto_id, string $persona, ?string $caso = null) => view('casos::vista-de-trabajo-page', [
                 'persona' => $persona,
-                'caso'    => $caso,
+                'caso' => $caso,
             ]))
                 ->middleware('can:casos.ver')
                 ->name('proyectos.trabajo');
@@ -60,22 +65,22 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->name('proyectos.importaciones');
 
             Route::get('/importaciones/personas/exportar',
-                \App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarPersonasController::class)
+                ExportarPersonasController::class)
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.exportar-personas');
 
             Route::get('/importaciones/casos/exportar',
-                \App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCasosController::class)
+                ExportarCasosController::class)
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.exportar-casos');
 
             Route::get('/importaciones/gestiones/exportar',
-                \App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarGestionesController::class)
+                ExportarGestionesController::class)
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.exportar-gestiones');
 
             Route::get('/importaciones/compromisos/exportar',
-                \App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromisosController::class)
+                ExportarCompromisosController::class)
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.exportar-compromisos');
 
@@ -96,7 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->name('proyectos.auditoria');
 
             Route::get('/auditoria/exportar',
-                \App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaController::class)
+                ExportarAuditoriaController::class)
                 ->middleware('can:auditoria.ver')
                 ->name('proyectos.auditoria.exportar');
 
@@ -108,7 +113,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 function (int $proyecto_id, int $entidad_id) {
                     return view('entidades::operativo.page', [
                         'proyectoId' => $proyecto_id,
-                        'entidadId'  => (int) $entidad_id,
+                        'entidadId' => (int) $entidad_id,
                     ]);
                 }
             )->middleware('can:entidades.ver')->name('proyectos.entidades.registros');

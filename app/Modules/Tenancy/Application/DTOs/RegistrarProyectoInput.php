@@ -20,6 +20,5 @@ final readonly class RegistrarProyectoInput
         public ?DateTimeImmutable $fechaInicio,
         public ?DateTimeImmutable $fechaFin,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

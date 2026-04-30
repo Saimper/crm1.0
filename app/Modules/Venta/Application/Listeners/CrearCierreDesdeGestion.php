@@ -28,8 +28,7 @@ final readonly class CrearCierreDesdeGestion
         private CompromisoRepository $compromisoRepo,
         private CompromisoCierreVentaRepository $cierreRepo,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function handle(GestionRegistrada $evento): void
     {
@@ -44,38 +43,38 @@ final readonly class CrearCierreDesdeGestion
         }
 
         $datos = $evento->datosCompromiso;
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         $compromiso = Compromiso::crear(
-            publicId:         (string) Str::ulid(),
-            proyectoId:       $evento->proyectoId,
-            casoId:           $evento->casoId,
-            gestionOrigenId:  $evento->gestionId,
-            usuarioId:        $evento->usuarioId,
-            tipo:             TipoCompromiso::CIERRE_VENTA,
+            publicId: (string) Str::ulid(),
+            proyectoId: $evento->proyectoId,
+            casoId: $evento->casoId,
+            gestionOrigenId: $evento->gestionId,
+            usuarioId: $evento->usuarioId,
+            tipo: TipoCompromiso::CIERRE_VENTA,
             fechaVencimiento: $datos->fechaEstimada->fecha,
-            creadaEn:         $ahora,
+            creadaEn: $ahora,
         );
         $persistido = $this->compromisoRepo->save($compromiso);
 
         $this->cierreRepo->save(CompromisoCierreVenta::registrar(
-            compromisoId:  (int) $persistido->id,
-            proyectoId:    $persistido->proyectoId,
-            monto:         $datos->monto,
+            compromisoId: (int) $persistido->id,
+            proyectoId: $persistido->proyectoId,
+            monto: $datos->monto,
             fechaEstimada: $datos->fechaEstimada,
             etapaEmbudoId: $datos->etapaEmbudoId,
         ));
 
         $this->eventos->dispatch(new CompromisoCreado(
-            compromisoId:    (int) $persistido->id,
-            publicId:        $persistido->publicId,
-            proyectoId:      $persistido->proyectoId,
-            casoId:          $persistido->casoId,
+            compromisoId: (int) $persistido->id,
+            publicId: $persistido->publicId,
+            proyectoId: $persistido->proyectoId,
+            casoId: $persistido->casoId,
             gestionOrigenId: $persistido->gestionOrigenId,
-            usuarioId:       $persistido->usuarioId,
-            tipo:            TipoCompromiso::CIERRE_VENTA,
+            usuarioId: $persistido->usuarioId,
+            tipo: TipoCompromiso::CIERRE_VENTA,
             fechaVencimiento: $persistido->fechaVencimiento,
-            creadaEn:        $persistido->creadaEn,
+            creadaEn: $persistido->creadaEn,
         ));
     }
 

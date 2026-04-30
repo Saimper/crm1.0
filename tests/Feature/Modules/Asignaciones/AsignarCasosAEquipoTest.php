@@ -49,9 +49,9 @@ final class AsignarCasosAEquipoTest extends TestCase
 
         $r = app(AsignarCasosAEquipo::class)->execute(
             proyectoId: $proyectoId,
-            campanaId:  $campanaId,
-            equipoId:   $equipoId,
-            limite:     0,
+            campanaId: $campanaId,
+            equipoId: $equipoId,
+            limite: 0,
         );
 
         $this->assertSame(5, $r->asignadas);
@@ -64,8 +64,8 @@ final class AsignarCasosAEquipoTest extends TestCase
         foreach ($casoIds as $caso) {
             $this->assertDatabaseHas('asignaciones', [
                 'campana_id' => $campanaId,
-                'caso_id'    => $caso,
-                'estado'     => 'pendiente',
+                'caso_id' => $caso,
+                'estado' => 'pendiente',
             ]);
         }
     }
@@ -191,6 +191,7 @@ final class AsignarCasosAEquipoTest extends TestCase
                 'creada_en' => Carbon::now(),
             ]);
         }
+
         return $equipoId;
     }
 
@@ -198,16 +199,17 @@ final class AsignarCasosAEquipoTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 }

@@ -22,10 +22,13 @@ use Throwable;
 final class AsignarMasivamente extends Component
 {
     public ?int $campanaId = null;
+
     public ?int $equipoId = null;
+
     public int $limite = 0;
 
     public int $ultAsignadas = 0;
+
     public int $ultOmitidas = 0;
 
     /** @var array<int, int> usuarioId => cantidad */
@@ -37,8 +40,8 @@ final class AsignarMasivamente extends Component
 
         $this->validate([
             'campanaId' => ['required', 'integer'],
-            'equipoId'  => ['required', 'integer'],
-            'limite'    => ['integer', 'min:0'],
+            'equipoId' => ['required', 'integer'],
+            'limite' => ['integer', 'min:0'],
         ]);
 
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
@@ -46,12 +49,13 @@ final class AsignarMasivamente extends Component
         try {
             $r = $useCase->execute(
                 proyectoId: $proyectoId,
-                campanaId:  (int) $this->campanaId,
-                equipoId:   (int) $this->equipoId,
-                limite:     (int) $this->limite,
+                campanaId: (int) $this->campanaId,
+                equipoId: (int) $this->equipoId,
+                limite: (int) $this->limite,
             );
         } catch (Throwable $e) {
             $this->addError('campanaId', $e->getMessage());
+
             return;
         }
 
@@ -83,7 +87,7 @@ final class AsignarMasivamente extends Component
             $casosSinAsignar = (int) DB::table('casos as c')
                 ->leftJoin('asignaciones as a', function ($join) {
                     $join->on('a.caso_id', '=', 'c.id')
-                         ->where('a.campana_id', '=', $this->campanaId);
+                        ->where('a.campana_id', '=', $this->campanaId);
                 })
                 ->where('c.proyecto_id', $proyectoId)
                 ->whereNull('c.cerrado_en')
@@ -108,10 +112,10 @@ final class AsignarMasivamente extends Component
         }
 
         return view('asignaciones::livewire.asignar-masivamente', [
-            'campanas'             => $campanas,
-            'equipos'              => $equipos,
-            'casosSinAsignar'      => $casosSinAsignar,
-            'miembrosActivos'      => $miembrosActivos,
+            'campanas' => $campanas,
+            'equipos' => $equipos,
+            'casosSinAsignar' => $casosSinAsignar,
+            'miembrosActivos' => $miembrosActivos,
             'usuariosDistribucion' => $usuariosDistribucion,
         ]);
     }

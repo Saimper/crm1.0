@@ -13,8 +13,8 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Fase 26: verifica que las pantallas operativas refactorizadas renderizan
- * con los tokens y componentes del design system (tokens brand/ink/surface).
+ * Fase 29: verifica que las pantallas operativas refactorizadas renderizan
+ * con el design system F29 (.page + .page-header + .card).
  */
 final class PantallasOperativasRefactorTest extends TestCase
 {
@@ -36,9 +36,9 @@ final class PantallasOperativasRefactorTest extends TestCase
             ->assertStatus(200);
 
         // Page header con tokens
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
         // Card / shadow del sistema
-        $response->assertSee('shadow-card', false);
+        $response->assertSee('class="card"', false);
     }
 
     public function test_bandeja_equipo_refactorizada(): void
@@ -50,8 +50,8 @@ final class PantallasOperativasRefactorTest extends TestCase
             ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
 
-        $response->assertSee('text-ink-900', false);
-        $response->assertSee('shadow-card', false);
+        $response->assertSee('page-header', false);
+        $response->assertSee('class="card"', false);
     }
 
     public function test_notificaciones_refactorizada(): void
@@ -63,7 +63,7 @@ final class PantallasOperativasRefactorTest extends TestCase
             ->get(route('proyectos.notificaciones', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
 
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     public function test_vista_trabajo_shell_refactorizada(): void
@@ -79,12 +79,12 @@ final class PantallasOperativasRefactorTest extends TestCase
         $response = $this->actingAs($gestor)
             ->get(route('proyectos.trabajo', [
                 'proyecto_id' => $proyectoId,
-                'persona'     => $personaPublicId,
+                'persona' => $personaPublicId,
             ]))
             ->assertStatus(200);
 
         $response->assertSee('Vista de trabajo', false);
-        $response->assertSee('text-ink-900', false);
+        $response->assertSee('page-header', false);
     }
 
     private function proyectoId(): int
@@ -106,6 +106,7 @@ final class PantallasOperativasRefactorTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 }

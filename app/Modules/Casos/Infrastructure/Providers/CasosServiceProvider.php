@@ -34,10 +34,10 @@ final class CasosServiceProvider extends ServiceProvider
         Livewire::component('casos.vista-de-trabajo', VistaDeTrabajo::class);
         Livewire::component('casos.nueva-gestion', NuevaGestion::class);
 
-        Event::listen(GestionRegistrada::class,   ActualizarDesnormalizadosDesdeGestion::class);
-        Event::listen(CompromisoCreado::class,    ActivarBanderaCompromisoVigente::class);
-        Event::listen(CompromisoCumplido::class,  RecalcularBanderaCompromisoVigente::class);
-        Event::listen(CompromisoRoto::class,      RecalcularBanderaCompromisoVigente::class);
+        Event::listen(GestionRegistrada::class, ActualizarDesnormalizadosDesdeGestion::class);
+        Event::listen(CompromisoCreado::class, ActivarBanderaCompromisoVigente::class);
+        Event::listen(CompromisoCumplido::class, RecalcularBanderaCompromisoVigente::class);
+        Event::listen(CompromisoRoto::class, RecalcularBanderaCompromisoVigente::class);
         Event::listen(CompromisoCancelado::class, RecalcularBanderaCompromisoVigente::class);
     }
 }

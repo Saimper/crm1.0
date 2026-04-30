@@ -30,10 +30,10 @@ final class ProductosVentaDemoSeeder extends Seeder
             }
             DB::table('productos_venta')->insert([
                 'proyecto_id' => $proyectoId,
-                'codigo'      => $f['codigo'],
-                'nombre'      => $f['nombre'],
-                'activo'      => true,
-                'orden'       => $f['orden'],
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

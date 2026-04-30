@@ -19,8 +19,7 @@ final readonly class RegistrarProyecto
         private ProyectoRepository $repositorio,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarProyectoInput $input): RegistrarProyectoOutput
     {
@@ -31,36 +30,36 @@ final readonly class RegistrarProyecto
         }
 
         $proyecto = Proyecto::registrar(
-            publicId:      $input->publicId,
-            mandanteId:    $input->mandanteId,
-            codigo:        $input->codigo,
-            nombre:        $input->nombre,
-            descripcion:   $input->descripcion,
+            publicId: $input->publicId,
+            mandanteId: $input->mandanteId,
+            codigo: $input->codigo,
+            nombre: $input->nombre,
+            descripcion: $input->descripcion,
             tipoOperacion: $input->tipoOperacion,
-            fechaInicio:   $input->fechaInicio,
-            fechaFin:      $input->fechaFin,
-            creadaEn:      $input->creadaEn,
+            fechaInicio: $input->fechaInicio,
+            fechaFin: $input->fechaFin,
+            creadaEn: $input->creadaEn,
         );
 
         $persistido = $this->db->transaction(function () use ($proyecto): Proyecto {
             $guardado = $this->repositorio->save($proyecto);
 
             $this->eventos->dispatch(new ProyectoCreado(
-                proyectoId:    (int) $guardado->id,
-                publicId:      $guardado->publicId,
-                mandanteId:    $guardado->mandanteId,
+                proyectoId: (int) $guardado->id,
+                publicId: $guardado->publicId,
+                mandanteId: $guardado->mandanteId,
                 tipoOperacion: $guardado->tipoOperacion,
-                creadaEn:      $guardado->creadaEn,
+                creadaEn: $guardado->creadaEn,
             ));
 
             return $guardado;
         });
 
         return new RegistrarProyectoOutput(
-            id:            (int) $persistido->id,
-            publicId:      $persistido->publicId,
-            codigo:        $persistido->codigo->asString(),
-            nombre:        $persistido->nombre,
+            id: (int) $persistido->id,
+            publicId: $persistido->publicId,
+            codigo: $persistido->codigo->asString(),
+            nombre: $persistido->nombre,
             tipoOperacion: $persistido->tipoOperacion->value,
         );
     }

@@ -16,13 +16,13 @@ final class CasoLeadVentaTest extends TestCase
     public function test_registra_lead_valido(): void
     {
         $lead = CasoLeadVenta::registrar(
-            casoId:              1,
-            proyectoId:          10,
-            codigoLead:          new CodigoLead('LEAD-001'),
-            productoVentaId:     2,
-            etapaEmbudoId:       3,
-            valorEstimado:       new ValorEstimadoVenta('1500.00', 'USD'),
-            origenLead:          'Campaña Google Ads',
+            casoId: 1,
+            proyectoId: 10,
+            codigoLead: new CodigoLead('LEAD-001'),
+            productoVentaId: 2,
+            etapaEmbudoId: 3,
+            valorEstimado: new ValorEstimadoVenta('1500.00', 'USD'),
+            origenLead: 'Campaña Google Ads',
             fechaPrimerContacto: new DateTimeImmutable('2026-04-10'),
             fechaEstimadaCierre: new DateTimeImmutable('2026-05-10'),
         );
@@ -35,13 +35,13 @@ final class CasoLeadVentaTest extends TestCase
     {
         $this->expectException(DatosLeadInvalidos::class);
         CasoLeadVenta::registrar(
-            casoId:              1,
-            proyectoId:          10,
-            codigoLead:          new CodigoLead('LEAD-002'),
-            productoVentaId:     null,
-            etapaEmbudoId:       null,
-            valorEstimado:       new ValorEstimadoVenta('500.00'),
-            origenLead:          null,
+            casoId: 1,
+            proyectoId: 10,
+            codigoLead: new CodigoLead('LEAD-002'),
+            productoVentaId: null,
+            etapaEmbudoId: null,
+            valorEstimado: new ValorEstimadoVenta('500.00'),
+            origenLead: null,
             fechaPrimerContacto: new DateTimeImmutable('2026-04-10'),
             fechaEstimadaCierre: new DateTimeImmutable('2026-04-01'),
         );

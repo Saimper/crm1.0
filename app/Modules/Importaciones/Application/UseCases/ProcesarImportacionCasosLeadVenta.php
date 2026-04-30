@@ -21,9 +21,7 @@ use Throwable;
  */
 final readonly class ProcesarImportacionCasosLeadVenta
 {
-    public function __construct(private RegistrarCasoLeadVenta $registrar)
-    {
-    }
+    public function __construct(private RegistrarCasoLeadVenta $registrar) {}
 
     public function ejecutar(int $importacionId, bool $commit): void
     {
@@ -86,6 +84,7 @@ final readonly class ProcesarImportacionCasosLeadVenta
                 $fila->mensaje_error = implode(' | ', $errores);
                 $fila->save();
                 $errorCount++;
+
                 continue;
             }
 
@@ -94,6 +93,7 @@ final readonly class ProcesarImportacionCasosLeadVenta
                 $fila->mensaje_error = null;
                 $fila->save();
                 $okCount++;
+
                 continue;
             }
 
@@ -102,18 +102,18 @@ final readonly class ProcesarImportacionCasosLeadVenta
                     ? new DateTimeImmutable((string) $payload['fecha_estimada_cierre'])
                     : null;
                 $out = $this->registrar->execute(new RegistrarCasoLeadVentaInput(
-                    proyectoId:          $proyectoId,
-                    carteraId:           (int) $carteraId,
-                    personaId:           (int) $personaId,
-                    estadoCasoId:        (int) $estadoCasoId,
-                    fechaIngreso:        new DateTimeImmutable((string) $payload['fecha_ingreso']),
-                    prioridad:           (int) ($payload['prioridad'] ?? 3),
-                    codigoLead:          (string) $payload['codigo_lead'],
-                    productoVentaId:     $productos[strtoupper((string) ($payload['producto_codigo'] ?? ''))] ?? null,
-                    etapaEmbudoId:       $etapas[strtoupper((string) ($payload['etapa_codigo'] ?? ''))] ?? null,
-                    valorEstimadoMonto:  (string) $payload['valor_estimado_monto'],
-                    moneda:              strtoupper((string) $payload['moneda']),
-                    origenLead:          $this->opcional($payload, 'origen_lead'),
+                    proyectoId: $proyectoId,
+                    carteraId: (int) $carteraId,
+                    personaId: (int) $personaId,
+                    estadoCasoId: (int) $estadoCasoId,
+                    fechaIngreso: new DateTimeImmutable((string) $payload['fecha_ingreso']),
+                    prioridad: (int) ($payload['prioridad'] ?? 3),
+                    codigoLead: (string) $payload['codigo_lead'],
+                    productoVentaId: $productos[strtoupper((string) ($payload['producto_codigo'] ?? ''))] ?? null,
+                    etapaEmbudoId: $etapas[strtoupper((string) ($payload['etapa_codigo'] ?? ''))] ?? null,
+                    valorEstimadoMonto: (string) $payload['valor_estimado_monto'],
+                    moneda: strtoupper((string) $payload['moneda']),
+                    origenLead: $this->opcional($payload, 'origen_lead'),
                     fechaPrimerContacto: new DateTimeImmutable((string) $payload['fecha_primer_contacto']),
                     fechaEstimadaCierre: $fechaEstCierre,
                 ));
@@ -150,6 +150,7 @@ final readonly class ProcesarImportacionCasosLeadVenta
     private function opcional(array $p, string $k): ?string
     {
         $v = trim((string) ($p[$k] ?? ''));
+
         return $v === '' ? null : $v;
     }
 }

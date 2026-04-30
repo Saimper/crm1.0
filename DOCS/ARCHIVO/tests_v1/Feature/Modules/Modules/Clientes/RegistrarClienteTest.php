@@ -31,26 +31,26 @@ final class RegistrarClienteTest extends TestCase
         $tipoId = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
 
         $output = $this->app->make(RegistrarCliente::class)->execute(new RegistrarClienteInput(
-            publicId:             (string) Str::ulid(),
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: (string) Str::ulid(),
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: $tipoId,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         ));
 
         $this->assertGreaterThan(0, $output->id);
         $this->assertSame('Juan Pérez', $output->nombreCompleto);
         $this->assertDatabaseHas('clientes', [
-            'id'             => $output->id,
+            'id' => $output->id,
             'identificacion' => '0102030405',
-            'tipo_persona'   => 'fisica',
-            'nombres'        => 'Juan',
-            'apellidos'      => 'Pérez',
-            'razon_social'   => null,
+            'tipo_persona' => 'fisica',
+            'nombres' => 'Juan',
+            'apellidos' => 'Pérez',
+            'razon_social' => null,
         ]);
     }
 
@@ -59,23 +59,23 @@ final class RegistrarClienteTest extends TestCase
         $tipoId = (int) DB::table('tipos_identificacion')->where('codigo', 'RUC')->value('id');
 
         $output = $this->app->make(RegistrarCliente::class)->execute(new RegistrarClienteInput(
-            publicId:             (string) Str::ulid(),
-            tipoPersona:          TipoPersona::JURIDICA,
+            publicId: (string) Str::ulid(),
+            tipoPersona: TipoPersona::JURIDICA,
             tipoIdentificacionId: $tipoId,
-            identificacion:       new Identificacion('1792345678001'),
-            nombres:              'Ignorado',
-            apellidos:            'Ignorado',
-            razonSocial:          'Comercial Austral S.A.',
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('1792345678001'),
+            nombres: 'Ignorado',
+            apellidos: 'Ignorado',
+            razonSocial: 'Comercial Austral S.A.',
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         ));
 
         $this->assertDatabaseHas('clientes', [
-            'id'           => $output->id,
+            'id' => $output->id,
             'tipo_persona' => 'juridica',
             'razon_social' => 'Comercial Austral S.A.',
-            'nombres'      => null,
-            'apellidos'    => null,
+            'nombres' => null,
+            'apellidos' => null,
         ]);
     }
 
@@ -85,15 +85,15 @@ final class RegistrarClienteTest extends TestCase
         $useCase = $this->app->make(RegistrarCliente::class);
 
         $input = fn (string $id, string $publicId) => new RegistrarClienteInput(
-            publicId:             $publicId,
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: $publicId,
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: $tipoId,
-            identificacion:       new Identificacion($id),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion($id),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $useCase->execute($input('0102030405', (string) Str::ulid()));

@@ -17,12 +17,12 @@ final class EloquentCompromisoCierreVentaRepository implements CompromisoCierreV
     public function save(CompromisoCierreVenta $cierre): CompromisoCierreVenta
     {
         $model = CompromisoCierreVentaModel::query()->sinScopeProyecto()->find($cierre->compromisoId)
-            ?? new CompromisoCierreVentaModel();
+            ?? new CompromisoCierreVentaModel;
 
-        $model->compromiso_id   = $cierre->compromisoId;
-        $model->proyecto_id     = $cierre->proyectoId;
-        $model->monto_cierre    = $cierre->monto->monto;
-        $model->moneda          = $cierre->monto->moneda;
+        $model->compromiso_id = $cierre->compromisoId;
+        $model->proyecto_id = $cierre->proyectoId;
+        $model->monto_cierre = $cierre->monto->monto;
+        $model->moneda = $cierre->monto->moneda;
         $model->etapa_embudo_id = $cierre->etapaEmbudoId;
 
         $model->save();
@@ -45,9 +45,9 @@ final class EloquentCompromisoCierreVentaRepository implements CompromisoCierreV
         }
 
         return CompromisoCierreVenta::reconstituir(
-            compromisoId:  (int) $row->compromiso_id,
-            proyectoId:    (int) $row->proyecto_id,
-            monto:         new MontoCierre((string) $row->monto_cierre, (string) $row->moneda),
+            compromisoId: (int) $row->compromiso_id,
+            proyectoId: (int) $row->proyecto_id,
+            monto: new MontoCierre((string) $row->monto_cierre, (string) $row->moneda),
             fechaEstimada: new FechaCierreEstimada(new DateTimeImmutable((string) $row->fecha_vencimiento)),
             etapaEmbudoId: $row->etapa_embudo_id === null ? null : (int) $row->etapa_embudo_id,
         );

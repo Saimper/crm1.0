@@ -47,13 +47,13 @@ final class NotificacionesTest extends TestCase
         $this->assertDatabaseHas('notificaciones', [
             'proyecto_id' => $proyectoId,
             'destinatario_usuario_id' => $gestor->id,
-            'tipo'       => 'compromiso_por_vencer',
+            'tipo' => 'compromiso_por_vencer',
             'entidad_id' => $porVencerId,
         ]);
         $this->assertDatabaseHas('notificaciones', [
             'proyecto_id' => $proyectoId,
             'destinatario_usuario_id' => $gestor->id,
-            'tipo'       => 'compromiso_vencido',
+            'tipo' => 'compromiso_vencido',
             'entidad_id' => $vencidoId,
         ]);
         $this->assertDatabaseMissing('notificaciones', [
@@ -161,14 +161,14 @@ final class NotificacionesTest extends TestCase
     private function crearCompromiso(int $proyectoId, int $casoId, int $usuarioId, string $fechaVenc): int
     {
         return (int) DB::table('compromisos')->insertGetId([
-            'public_id'         => (string) Str::ulid(),
-            'proyecto_id'       => $proyectoId,
-            'caso_id'           => $casoId,
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'caso_id' => $casoId,
             'gestion_origen_id' => null,
-            'tipo_compromiso'   => 'promesa_pago',
-            'estado'            => 'pendiente',
+            'tipo_compromiso' => 'promesa_pago',
+            'estado' => 'pendiente',
             'fecha_vencimiento' => $fechaVenc,
-            'usuario_id'        => $usuarioId,
+            'usuario_id' => $usuarioId,
         ]);
     }
 
@@ -176,10 +176,10 @@ final class NotificacionesTest extends TestCase
     {
         /** @var User $u */
         $u = User::query()->create([
-            'name'     => ucfirst(strtolower($codigoRol)),
-            'email'    => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
+            'name' => ucfirst(strtolower($codigoRol)),
+            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'),
-            'activo'   => true,
+            'activo' => true,
         ]);
         $this->crearUsuarioProyectoRol($u->id, $proyectoId, $codigoRol);
 

@@ -15,17 +15,17 @@ final class EloquentCasoServicioRepository implements CasoServicioRepository
     public function save(CasoServicio $servicio): CasoServicio
     {
         $model = CasoServicioModel::query()->sinScopeProyecto()->find($servicio->casoId)
-            ?? new CasoServicioModel();
+            ?? new CasoServicioModel;
 
-        $model->caso_id                 = $servicio->casoId;
-        $model->proyecto_id             = $servicio->proyectoId;
-        $model->codigo_servicio         = $servicio->codigoServicio->valor;
+        $model->caso_id = $servicio->casoId;
+        $model->proyecto_id = $servicio->proyectoId;
+        $model->codigo_servicio = $servicio->codigoServicio->valor;
         $model->tipo_accion_servicio_id = $servicio->tipoAccionServicioId;
-        $model->estado_tecnico_id       = $servicio->estadoTecnicoId;
-        $model->direccion_servicio      = $servicio->direccionServicio;
-        $model->tecnico_asignado        = $servicio->tecnicoAsignado;
-        $model->fecha_solicitud         = $servicio->fechaSolicitud;
-        $model->fecha_programada        = $servicio->fechaProgramada;
+        $model->estado_tecnico_id = $servicio->estadoTecnicoId;
+        $model->direccion_servicio = $servicio->direccionServicio;
+        $model->tecnico_asignado = $servicio->tecnicoAsignado;
+        $model->fecha_solicitud = $servicio->fechaSolicitud;
+        $model->fecha_programada = $servicio->fechaProgramada;
 
         $model->save();
 
@@ -41,15 +41,15 @@ final class EloquentCasoServicioRepository implements CasoServicioRepository
         }
 
         return CasoServicio::reconstituir(
-            casoId:               (int) $model->caso_id,
-            proyectoId:           (int) $model->proyecto_id,
-            codigoServicio:       new CodigoServicio((string) $model->codigo_servicio),
+            casoId: (int) $model->caso_id,
+            proyectoId: (int) $model->proyecto_id,
+            codigoServicio: new CodigoServicio((string) $model->codigo_servicio),
             tipoAccionServicioId: $model->tipo_accion_servicio_id === null ? null : (int) $model->tipo_accion_servicio_id,
-            estadoTecnicoId:      $model->estado_tecnico_id === null ? null : (int) $model->estado_tecnico_id,
-            direccionServicio:    $model->direccion_servicio,
-            tecnicoAsignado:      $model->tecnico_asignado,
-            fechaSolicitud:       $this->hidratarFecha($model->fecha_solicitud),
-            fechaProgramada:      $model->fecha_programada === null ? null : $this->hidratarFecha($model->fecha_programada),
+            estadoTecnicoId: $model->estado_tecnico_id === null ? null : (int) $model->estado_tecnico_id,
+            direccionServicio: $model->direccion_servicio,
+            tecnicoAsignado: $model->tecnico_asignado,
+            fechaSolicitud: $this->hidratarFecha($model->fecha_solicitud),
+            fechaProgramada: $model->fecha_programada === null ? null : $this->hidratarFecha($model->fecha_programada),
         );
     }
 

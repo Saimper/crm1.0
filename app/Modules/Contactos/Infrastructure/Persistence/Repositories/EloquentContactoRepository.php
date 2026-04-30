@@ -12,15 +12,15 @@ final class EloquentContactoRepository implements ContactoRepository
 {
     public function save(Contacto $contacto): Contacto
     {
-        $model = new ContactoModel();
-        $model->proyecto_id  = $contacto->proyectoId;
-        $model->persona_id   = $contacto->personaId;
-        $model->tipo         = $contacto->tipo->value;
-        $model->valor        = $contacto->valor;
-        $model->etiqueta     = $contacto->etiqueta;
+        $model = new ContactoModel;
+        $model->proyecto_id = $contacto->proyectoId;
+        $model->persona_id = $contacto->personaId;
+        $model->tipo = $contacto->tipo->value;
+        $model->valor = $contacto->valor;
+        $model->etiqueta = $contacto->etiqueta;
         $model->es_principal = $contacto->esPrincipal;
-        $model->activo       = $contacto->activo;
-        $model->creada_en    = $contacto->creadaEn;
+        $model->activo = $contacto->activo;
+        $model->creada_en = $contacto->creadaEn;
 
         $model->save();
 

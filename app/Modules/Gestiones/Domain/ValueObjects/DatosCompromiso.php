@@ -11,6 +11,4 @@ namespace App\Modules\Gestiones\Domain\ValueObjects;
  * El evento `GestionRegistrada` acarrea un `?DatosCompromiso` y los listeners de cada tipo de
  * operación filtran por `instanceof` antes de actuar.
  */
-interface DatosCompromiso
-{
-}
+interface DatosCompromiso {}

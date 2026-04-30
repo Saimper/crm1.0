@@ -24,8 +24,7 @@ final readonly class CasoLeadVenta
         public ?string $origenLead,
         public DateTimeImmutable $fechaPrimerContacto,
         public ?DateTimeImmutable $fechaEstimadaCierre,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $casoId,
@@ -43,13 +42,13 @@ final readonly class CasoLeadVenta
         }
 
         return new self(
-            casoId:              $casoId,
-            proyectoId:          $proyectoId,
-            codigoLead:          $codigoLead,
-            productoVentaId:     $productoVentaId,
-            etapaEmbudoId:       $etapaEmbudoId,
-            valorEstimado:       $valorEstimado,
-            origenLead:          $origenLead,
+            casoId: $casoId,
+            proyectoId: $proyectoId,
+            codigoLead: $codigoLead,
+            productoVentaId: $productoVentaId,
+            etapaEmbudoId: $etapaEmbudoId,
+            valorEstimado: $valorEstimado,
+            origenLead: $origenLead,
             fechaPrimerContacto: $fechaPrimerContacto,
             fechaEstimadaCierre: $fechaEstimadaCierre,
         );
@@ -67,13 +66,13 @@ final readonly class CasoLeadVenta
         ?DateTimeImmutable $fechaEstimadaCierre,
     ): self {
         return new self(
-            casoId:              $casoId,
-            proyectoId:          $proyectoId,
-            codigoLead:          $codigoLead,
-            productoVentaId:     $productoVentaId,
-            etapaEmbudoId:       $etapaEmbudoId,
-            valorEstimado:       $valorEstimado,
-            origenLead:          $origenLead,
+            casoId: $casoId,
+            proyectoId: $proyectoId,
+            codigoLead: $codigoLead,
+            productoVentaId: $productoVentaId,
+            etapaEmbudoId: $etapaEmbudoId,
+            valorEstimado: $valorEstimado,
+            origenLead: $origenLead,
             fechaPrimerContacto: $fechaPrimerContacto,
             fechaEstimadaCierre: $fechaEstimadaCierre,
         );

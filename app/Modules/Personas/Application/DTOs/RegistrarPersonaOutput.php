@@ -10,6 +10,5 @@ final readonly class RegistrarPersonaOutput
         public int $id,
         public string $publicId,
         public string $nombreCompleto,
-    ) {
-    }
+    ) {}
 }

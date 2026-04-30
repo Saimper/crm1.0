@@ -28,8 +28,7 @@ final readonly class ProcesarImportacionPersonas
     public function __construct(
         private RegistrarPersona $registrarPersona,
         private ConnectionInterface $db,
-    ) {
-    }
+    ) {}
 
     public function ejecutar(int $importacionId, bool $commit): void
     {
@@ -39,7 +38,7 @@ final readonly class ProcesarImportacionPersonas
 
         $tiposIdentificacion = DB::table('tipos_identificacion')->pluck('id', 'codigo')->all();
 
-        $okCount    = 0;
+        $okCount = 0;
         $errorCount = 0;
         $importadasCount = 0;
 
@@ -57,71 +56,73 @@ final readonly class ProcesarImportacionPersonas
             $errores = $this->validarPayload($payload, $tipoIdentificacionId);
 
             if ($errores !== []) {
-                $fila->estado        = 'invalida';
+                $fila->estado = 'invalida';
                 $fila->mensaje_error = implode(' | ', $errores);
                 $fila->save();
                 $errorCount++;
+
                 continue;
             }
 
             if (! $commit) {
-                $fila->estado        = 'valida';
+                $fila->estado = 'valida';
                 $fila->mensaje_error = null;
                 $fila->save();
                 $okCount++;
+
                 continue;
             }
 
             try {
                 $out = $this->registrarPersona->execute(new RegistrarPersonaInput(
-                    publicId:             (string) Str::ulid(),
-                    proyectoId:           $proyectoId,
-                    tipoPersona:          TipoPersona::from((string) $payload['tipo_persona']),
+                    publicId: (string) Str::ulid(),
+                    proyectoId: $proyectoId,
+                    tipoPersona: TipoPersona::from((string) $payload['tipo_persona']),
                     tipoIdentificacionId: (int) $tipoIdentificacionId,
-                    identificacion:       new Identificacion((string) $payload['identificacion']),
-                    nombres:              $this->valorOpcional($payload, 'nombres'),
-                    apellidos:            $this->valorOpcional($payload, 'apellidos'),
-                    razonSocial:          $this->valorOpcional($payload, 'razon_social'),
-                    fechaNacimiento:      $this->fechaOpcional($payload, 'fecha_nacimiento'),
-                    creadaEn:             new DateTimeImmutable(),
+                    identificacion: new Identificacion((string) $payload['identificacion']),
+                    nombres: $this->valorOpcional($payload, 'nombres'),
+                    apellidos: $this->valorOpcional($payload, 'apellidos'),
+                    razonSocial: $this->valorOpcional($payload, 'razon_social'),
+                    fechaNacimiento: $this->fechaOpcional($payload, 'fecha_nacimiento'),
+                    creadaEn: new DateTimeImmutable,
                 ));
 
-                $fila->estado        = 'importada';
-                $fila->entidad_id    = $out->id;
+                $fila->estado = 'importada';
+                $fila->entidad_id = $out->id;
                 $fila->mensaje_error = null;
                 $fila->save();
                 $okCount++;
                 $importadasCount++;
             } catch (IdentificacionYaRegistradaEnProyecto $e) {
-                $fila->estado        = 'omitida';
+                $fila->estado = 'omitida';
                 $fila->mensaje_error = 'Identificación ya registrada en el proyecto.';
                 $fila->save();
                 $errorCount++;
             } catch (DatosPersonaInvalidos $e) {
-                $fila->estado        = 'invalida';
+                $fila->estado = 'invalida';
                 $fila->mensaje_error = $e->getMessage();
                 $fila->save();
                 $errorCount++;
             } catch (Throwable $e) {
-                $fila->estado        = 'invalida';
+                $fila->estado = 'invalida';
                 $fila->mensaje_error = 'Error: '.mb_substr($e->getMessage(), 0, 400);
                 $fila->save();
                 $errorCount++;
             }
         }
 
-        $importacion->total_filas      = (int) $filas->count();
-        $importacion->filas_ok         = $okCount;
-        $importacion->filas_error      = $errorCount;
+        $importacion->total_filas = (int) $filas->count();
+        $importacion->filas_ok = $okCount;
+        $importacion->filas_error = $errorCount;
         $importacion->filas_importadas = $importadasCount;
-        $importacion->estado           = $commit
+        $importacion->estado = $commit
             ? ($errorCount === $filas->count() ? 'fallida' : 'completada')
             : 'validada';
         $importacion->save();
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return list<string>
      */
     private function validarPayload(array $payload, ?int $tipoIdentificacionId): array

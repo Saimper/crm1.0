@@ -18,11 +18,11 @@ final class EstadoCasoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'      => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
         'actualizada_en' => 'immutable_datetime',
-        'activo'         => 'boolean',
-        'es_terminal'    => 'boolean',
-        'orden'          => 'integer',
-        'metadata'       => 'array',
+        'activo' => 'boolean',
+        'es_terminal' => 'boolean',
+        'orden' => 'integer',
+        'metadata' => 'array',
     ];
 }

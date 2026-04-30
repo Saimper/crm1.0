@@ -10,15 +10,15 @@ use App\Modules\Cobranza\Domain\ValueObjects\MontoPromesa;
 use App\Modules\Cx\Domain\ValueObjects\AccionComprometida;
 use App\Modules\Cx\Domain\ValueObjects\DatosResolucionTicket;
 use App\Modules\Cx\Domain\ValueObjects\FechaLimiteSla;
-use App\Modules\Venta\Domain\ValueObjects\DatosCierreVenta;
-use App\Modules\Venta\Domain\ValueObjects\FechaCierreEstimada;
-use App\Modules\Venta\Domain\ValueObjects\MontoCierre;
-use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
-use App\Modules\Servicio\Domain\ValueObjects\DescripcionAccion;
-use App\Modules\Servicio\Domain\ValueObjects\FechaProgramada;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
 use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
+use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
+use App\Modules\Servicio\Domain\ValueObjects\DescripcionAccion;
+use App\Modules\Servicio\Domain\ValueObjects\FechaProgramada;
+use App\Modules\Venta\Domain\ValueObjects\DatosCierreVenta;
+use App\Modules\Venta\Domain\ValueObjects\FechaCierreEstimada;
+use App\Modules\Venta\Domain\ValueObjects\MontoCierre;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -84,9 +84,9 @@ final class NuevaGestion extends Component
 
     public function mount(int $casoId, int $personaId, string $tipoCaso): void
     {
-        $this->casoId    = $casoId;
+        $this->casoId = $casoId;
         $this->personaId = $personaId;
-        $this->tipoCaso  = $tipoCaso;
+        $this->tipoCaso = $tipoCaso;
     }
 
     public function guardar(RegistrarGestion $useCase): void
@@ -94,39 +94,40 @@ final class NuevaGestion extends Component
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
         $reglas = [
-            'canalId'       => ['required', 'integer'],
+            'canalId' => ['required', 'integer'],
             'tipoGestionId' => ['required', 'integer'],
-            'resultadoId'   => ['required', 'integer'],
-            'notas'         => ['nullable', 'string', 'max:2000'],
+            'resultadoId' => ['required', 'integer'],
+            'notas' => ['nullable', 'string', 'max:2000'],
         ];
 
         $resultado = $this->resultadoSeleccionado($proyectoId);
         if ($resultado === null) {
             $this->addError('resultadoId', 'Selecciona un resultado válido.');
+
             return;
         }
 
         if ((bool) $resultado->requiere_causa) {
             $reglas['causaId'] = ['required', 'integer'];
         }
-        $esCobranzaConPromesa = $this->tipoCaso === 'cobranza'    && (bool) $resultado->requiere_compromiso;
-        $esCxConResolucion    = $this->tipoCaso === 'ticket_cx'   && (bool) $resultado->requiere_compromiso;
-        $esVentaConCierre     = $this->tipoCaso === 'lead_venta'  && (bool) $resultado->requiere_compromiso;
-        $esServicioConAccion  = $this->tipoCaso === 'servicio'    && (bool) $resultado->requiere_compromiso;
+        $esCobranzaConPromesa = $this->tipoCaso === 'cobranza' && (bool) $resultado->requiere_compromiso;
+        $esCxConResolucion = $this->tipoCaso === 'ticket_cx' && (bool) $resultado->requiere_compromiso;
+        $esVentaConCierre = $this->tipoCaso === 'lead_venta' && (bool) $resultado->requiere_compromiso;
+        $esServicioConAccion = $this->tipoCaso === 'servicio' && (bool) $resultado->requiere_compromiso;
         if ($esCobranzaConPromesa) {
             $reglas['promesaMonto'] = ['required', 'regex:/^\d+(\.\d{1,2})?$/'];
             $reglas['promesaFecha'] = ['required', 'date'];
         }
         if ($esCxConResolucion) {
-            $reglas['resolucionAccion']      = ['required', 'string', 'max:500'];
+            $reglas['resolucionAccion'] = ['required', 'string', 'max:500'];
             $reglas['resolucionFechaLimite'] = ['required', 'date'];
         }
         if ($esVentaConCierre) {
-            $reglas['cierreMonto']         = ['required', 'regex:/^\d+(\.\d{1,2})?$/'];
+            $reglas['cierreMonto'] = ['required', 'regex:/^\d+(\.\d{1,2})?$/'];
             $reglas['cierreFechaEstimada'] = ['required', 'date'];
         }
         if ($esServicioConAccion) {
-            $reglas['accionDescripcion']     = ['required', 'string', 'max:500'];
+            $reglas['accionDescripcion'] = ['required', 'string', 'max:500'];
             $reglas['accionFechaProgramada'] = ['required', 'date'];
         }
 
@@ -136,50 +137,51 @@ final class NuevaGestion extends Component
             $datosCompromiso = null;
             if ($esCobranzaConPromesa) {
                 $datosCompromiso = new DatosPromesaPago(
-                    monto:            new MontoPromesa((string) $this->promesaMonto, 'USD'),
+                    monto: new MontoPromesa((string) $this->promesaMonto, 'USD'),
                     fechaVencimiento: new FechaPromesa(new DateTimeImmutable((string) $this->promesaFecha)),
-                    tipoPagoId:       $this->promesaTipoPagoId,
+                    tipoPagoId: $this->promesaTipoPagoId,
                 );
             } elseif ($esCxConResolucion) {
                 $datosCompromiso = new DatosResolucionTicket(
-                    accion:              new AccionComprometida((string) $this->resolucionAccion),
-                    fechaLimite:         new FechaLimiteSla(new DateTimeImmutable((string) $this->resolucionFechaLimite)),
+                    accion: new AccionComprometida((string) $this->resolucionAccion),
+                    fechaLimite: new FechaLimiteSla(new DateTimeImmutable((string) $this->resolucionFechaLimite)),
                     nivelEscalamientoId: $this->resolucionNivelEscalamientoId,
                 );
             } elseif ($esVentaConCierre) {
                 $datosCompromiso = new DatosCierreVenta(
-                    monto:         new MontoCierre((string) $this->cierreMonto, 'USD'),
+                    monto: new MontoCierre((string) $this->cierreMonto, 'USD'),
                     fechaEstimada: new FechaCierreEstimada(new DateTimeImmutable((string) $this->cierreFechaEstimada)),
                     etapaEmbudoId: $this->cierreEtapaEmbudoId,
                 );
             } elseif ($esServicioConAccion) {
                 $datosCompromiso = new DatosAccionServicio(
-                    descripcion:          new DescripcionAccion((string) $this->accionDescripcion),
-                    fechaProgramada:      new FechaProgramada(new DateTimeImmutable((string) $this->accionFechaProgramada)),
+                    descripcion: new DescripcionAccion((string) $this->accionDescripcion),
+                    fechaProgramada: new FechaProgramada(new DateTimeImmutable((string) $this->accionFechaProgramada)),
                     tipoAccionServicioId: $this->accionTipoAccionId,
-                    tecnicoAsignado:      $this->accionTecnicoAsignado !== '' ? $this->accionTecnicoAsignado : null,
+                    tecnicoAsignado: $this->accionTecnicoAsignado !== '' ? $this->accionTecnicoAsignado : null,
                 );
             }
 
             $useCase->execute(new RegistrarGestionInput(
-                publicId:          (string) Str::ulid(),
-                proyectoId:        $proyectoId,
-                casoId:            $this->casoId,
-                personaId:         $this->personaId,
-                contactoId:        $this->contactoId,
-                canalId:           (int) $this->canalId,
-                tipoGestionId:     (int) $this->tipoGestionId,
-                resultadoId:       (int) $this->resultadoId,
+                publicId: (string) Str::ulid(),
+                proyectoId: $proyectoId,
+                casoId: $this->casoId,
+                personaId: $this->personaId,
+                contactoId: $this->contactoId,
+                canalId: (int) $this->canalId,
+                tipoGestionId: (int) $this->tipoGestionId,
+                resultadoId: (int) $this->resultadoId,
                 motivoNoContactoId: $this->motivoNoContactoId,
-                causaId:           $this->causaId,
-                usuarioId:         (int) auth()->id(),
-                notas:             $this->notas !== '' ? $this->notas : null,
-                duracion:          $this->duracionSegundos ? new DuracionSegundos((int) $this->duracionSegundos) : null,
-                creadaEn:          new DateTimeImmutable(),
-                datosCompromiso:   $datosCompromiso,
+                causaId: $this->causaId,
+                usuarioId: (int) auth()->id(),
+                notas: $this->notas !== '' ? $this->notas : null,
+                duracion: $this->duracionSegundos ? new DuracionSegundos((int) $this->duracionSegundos) : null,
+                creadaEn: new DateTimeImmutable,
+                datosCompromiso: $datosCompromiso,
             ));
         } catch (Throwable $e) {
             $this->addError('general', $e->getMessage());
+
             return;
         }
 
@@ -203,17 +205,17 @@ final class NuevaGestion extends Component
         $resultadoActual = $this->resultadoSeleccionado($proyectoId);
 
         return view('casos::livewire.nueva-gestion', [
-            'canales'          => $this->canales(),
-            'tiposGestion'     => $this->tiposGestion($proyectoId),
-            'resultados'       => $this->resultados($proyectoId),
-            'motivos'          => $this->motivos($proyectoId),
-            'causas'           => $this->causas($proyectoId),
-            'tiposPago'        => $this->tipoCaso === 'cobranza'   ? $this->tiposPago($proyectoId)       : collect(),
+            'canales' => $this->canales(),
+            'tiposGestion' => $this->tiposGestion($proyectoId),
+            'resultados' => $this->resultados($proyectoId),
+            'motivos' => $this->motivos($proyectoId),
+            'causas' => $this->causas($proyectoId),
+            'tiposPago' => $this->tipoCaso === 'cobranza' ? $this->tiposPago($proyectoId) : collect(),
             'nivelesEscalamiento' => $this->tipoCaso === 'ticket_cx' ? $this->nivelesEscalamiento($proyectoId) : collect(),
-            'etapasEmbudo'     => $this->tipoCaso === 'lead_venta' ? $this->etapasEmbudo($proyectoId)    : collect(),
-            'tiposAccionServicio' => $this->tipoCaso === 'servicio'   ? $this->tiposAccionServicio($proyectoId) : collect(),
-            'contactos'        => $this->contactos($proyectoId),
-            'requiereCausa'    => $resultadoActual ? (bool) $resultadoActual->requiere_causa : false,
+            'etapasEmbudo' => $this->tipoCaso === 'lead_venta' ? $this->etapasEmbudo($proyectoId) : collect(),
+            'tiposAccionServicio' => $this->tipoCaso === 'servicio' ? $this->tiposAccionServicio($proyectoId) : collect(),
+            'contactos' => $this->contactos($proyectoId),
+            'requiereCausa' => $resultadoActual ? (bool) $resultadoActual->requiere_causa : false,
             'requiereCompromiso' => $resultadoActual ? (bool) $resultadoActual->requiere_compromiso : false,
             'esContactoEfectivo' => $resultadoActual ? (bool) $resultadoActual->es_contacto_efectivo : false,
         ]);

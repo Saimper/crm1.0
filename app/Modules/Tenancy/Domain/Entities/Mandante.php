@@ -17,8 +17,7 @@ final readonly class Mandante
         public ?string $documento,
         public bool $activo,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

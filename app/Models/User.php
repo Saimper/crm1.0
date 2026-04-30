@@ -32,8 +32,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'activo'            => 'boolean',
+            'password' => 'hashed',
+            'activo' => 'boolean',
         ];
     }
 
@@ -111,9 +111,9 @@ class User extends Authenticatable
         }
 
         $rolesConPermiso = DB::table('usuario_proyecto_rol as upr')
-            ->join('roles as r',        'r.id',     '=', 'upr.rol_id')
-            ->join('rol_permiso as rp', 'rp.rol_id','=', 'upr.rol_id')
-            ->join('permisos as p',     'p.id',     '=', 'rp.permiso_id')
+            ->join('roles as r', 'r.id', '=', 'upr.rol_id')
+            ->join('rol_permiso as rp', 'rp.rol_id', '=', 'upr.rol_id')
+            ->join('permisos as p', 'p.id', '=', 'rp.permiso_id')
             ->where('upr.usuario_id', $this->id)
             ->where('upr.proyecto_id', $proyectoId)
             ->where('upr.activo', true)

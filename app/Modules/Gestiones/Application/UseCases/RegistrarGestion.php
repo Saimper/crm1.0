@@ -21,8 +21,7 @@ final readonly class RegistrarGestion
         private ConsultaResultado $consulta,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function execute(RegistrarGestionInput $input): RegistrarGestionOutput
     {
@@ -35,38 +34,38 @@ final readonly class RegistrarGestion
         }
 
         $gestion = Gestion::registrar(
-            publicId:          $input->publicId,
-            proyectoId:        $input->proyectoId,
-            casoId:            $input->casoId,
-            personaId:         $input->personaId,
-            contactoId:        $input->contactoId,
-            canalId:           $input->canalId,
-            tipoGestionId:     $input->tipoGestionId,
-            resultadoId:       $input->resultadoId,
+            publicId: $input->publicId,
+            proyectoId: $input->proyectoId,
+            casoId: $input->casoId,
+            personaId: $input->personaId,
+            contactoId: $input->contactoId,
+            canalId: $input->canalId,
+            tipoGestionId: $input->tipoGestionId,
+            resultadoId: $input->resultadoId,
             motivoNoContactoId: $input->motivoNoContactoId,
-            causaId:           $input->causaId,
-            usuarioId:         $input->usuarioId,
-            notas:             $input->notas,
-            duracion:          $input->duracion,
-            banderas:          $banderas,
-            creadaEn:          $input->creadaEn,
+            causaId: $input->causaId,
+            usuarioId: $input->usuarioId,
+            notas: $input->notas,
+            duracion: $input->duracion,
+            banderas: $banderas,
+            creadaEn: $input->creadaEn,
         );
 
         $persistida = $this->db->transaction(function () use ($gestion, $input): Gestion {
             $guardada = $this->repositorio->save($gestion);
 
             $this->eventos->dispatch(new GestionRegistrada(
-                gestionId:       (int) $guardada->id,
-                publicId:        $guardada->publicId,
-                proyectoId:      $guardada->proyectoId,
-                casoId:          $guardada->casoId,
-                personaId:       $guardada->personaId,
-                usuarioId:       $guardada->usuarioId,
-                resultadoId:     $guardada->resultadoId,
-                tipoGestionId:   $guardada->tipoGestionId,
-                canalId:         $guardada->canalId,
-                banderas:        $guardada->banderas,
-                creadaEn:        $guardada->creadaEn,
+                gestionId: (int) $guardada->id,
+                publicId: $guardada->publicId,
+                proyectoId: $guardada->proyectoId,
+                casoId: $guardada->casoId,
+                personaId: $guardada->personaId,
+                usuarioId: $guardada->usuarioId,
+                resultadoId: $guardada->resultadoId,
+                tipoGestionId: $guardada->tipoGestionId,
+                canalId: $guardada->canalId,
+                banderas: $guardada->banderas,
+                creadaEn: $guardada->creadaEn,
                 datosCompromiso: $input->datosCompromiso,
             ));
 
@@ -74,7 +73,7 @@ final readonly class RegistrarGestion
         });
 
         return new RegistrarGestionOutput(
-            id:       (int) $persistida->id,
+            id: (int) $persistida->id,
             publicId: $persistida->publicId,
             creadaEn: $persistida->creadaEn,
         );

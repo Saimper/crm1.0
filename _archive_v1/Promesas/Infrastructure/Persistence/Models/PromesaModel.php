@@ -20,11 +20,11 @@ final class PromesaModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'        => 'immutable_datetime',
-        'actualizada_en'   => 'immutable_datetime',
-        'eliminada_en'     => 'immutable_datetime',
-        'fecha_promesa'    => 'immutable_date',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'eliminada_en' => 'immutable_datetime',
+        'fecha_promesa' => 'immutable_date',
         'fecha_resolucion' => 'immutable_date',
-        'monto_promesa'    => 'decimal:2',
+        'monto_promesa' => 'decimal:2',
     ];
 }

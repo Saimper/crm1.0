@@ -19,6 +19,5 @@ final readonly class CompromisoCreado
         public TipoCompromiso $tipo,
         public DateTimeImmutable $fechaVencimiento,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

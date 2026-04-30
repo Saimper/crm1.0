@@ -17,15 +17,15 @@ final class ClienteTest extends TestCase
     public function test_crea_persona_fisica_con_nombres_y_apellidos(): void
     {
         $cliente = Cliente::registrar(
-            publicId:             '01HXTEST0000000000000CLI01',
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: '01HXTEST0000000000000CLI01',
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              'Juan',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: 'Juan',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertNull($cliente->id);
@@ -37,30 +37,30 @@ final class ClienteTest extends TestCase
     {
         $this->expectException(DatosClienteInvalidos::class);
         Cliente::registrar(
-            publicId:             '01HXTEST0000000000000CLI02',
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: '01HXTEST0000000000000CLI02',
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
-            identificacion:       new Identificacion('0102030405'),
-            nombres:              '   ',
-            apellidos:            'Pérez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0102030405'),
+            nombres: '   ',
+            apellidos: 'Pérez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
     public function test_crea_persona_juridica_con_razon_social(): void
     {
         $cliente = Cliente::registrar(
-            publicId:             '01HXTEST0000000000000CLI03',
-            tipoPersona:          TipoPersona::JURIDICA,
+            publicId: '01HXTEST0000000000000CLI03',
+            tipoPersona: TipoPersona::JURIDICA,
             tipoIdentificacionId: 2,
-            identificacion:       new Identificacion('1792345678001'),
-            nombres:              'Ignorado',
-            apellidos:            'Ignorado',
-            razonSocial:          'Comercial Austral S.A.',
-            fechaNacimiento:      new DateTimeImmutable('1980-01-01'),
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('1792345678001'),
+            nombres: 'Ignorado',
+            apellidos: 'Ignorado',
+            razonSocial: 'Comercial Austral S.A.',
+            fechaNacimiento: new DateTimeImmutable('1980-01-01'),
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $this->assertSame('Comercial Austral S.A.', $cliente->nombreCompleto());
@@ -73,15 +73,15 @@ final class ClienteTest extends TestCase
     {
         $this->expectException(DatosClienteInvalidos::class);
         Cliente::registrar(
-            publicId:             '01HXTEST0000000000000CLI04',
-            tipoPersona:          TipoPersona::JURIDICA,
+            publicId: '01HXTEST0000000000000CLI04',
+            tipoPersona: TipoPersona::JURIDICA,
             tipoIdentificacionId: 2,
-            identificacion:       new Identificacion('1792345678001'),
-            nombres:              null,
-            apellidos:            null,
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('1792345678001'),
+            nombres: null,
+            apellidos: null,
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
     }
 
@@ -94,15 +94,15 @@ final class ClienteTest extends TestCase
     public function test_con_id_produce_cliente_persistido(): void
     {
         $cliente = Cliente::registrar(
-            publicId:             '01HXTEST0000000000000CLI05',
-            tipoPersona:          TipoPersona::FISICA,
+            publicId: '01HXTEST0000000000000CLI05',
+            tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
-            identificacion:       new Identificacion('0304050607'),
-            nombres:              'Carlos',
-            apellidos:            'Ramírez',
-            razonSocial:          null,
-            fechaNacimiento:      null,
-            creadaEn:             new DateTimeImmutable('2026-04-17'),
+            identificacion: new Identificacion('0304050607'),
+            nombres: 'Carlos',
+            apellidos: 'Ramírez',
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
         );
 
         $persistido = $cliente->conId(42);

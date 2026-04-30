@@ -56,11 +56,11 @@ final class Bandeja extends Component
         $usuarioId = (int) auth()->id();
 
         $query = DB::table('asignaciones as a')
-            ->join('productos as p',        'p.id',  '=', 'a.producto_id')
-            ->join('clientes as c',         'c.id',  '=', 'p.cliente_id')
-            ->join('estados_producto as ep','ep.id', '=', 'p.estado_producto_id')
-            ->leftJoin('resultados as ru',  'ru.id', '=', 'p.resultado_ultima_gestion_id')
-            ->leftJoin('campanas as cm',    'cm.id', '=', 'a.campana_id')
+            ->join('productos as p', 'p.id', '=', 'a.producto_id')
+            ->join('clientes as c', 'c.id', '=', 'p.cliente_id')
+            ->join('estados_producto as ep', 'ep.id', '=', 'p.estado_producto_id')
+            ->leftJoin('resultados as ru', 'ru.id', '=', 'p.resultado_ultima_gestion_id')
+            ->leftJoin('campanas as cm', 'cm.id', '=', 'a.campana_id')
             ->where('a.usuario_id', $usuarioId)
             ->whereNull('p.eliminada_en');
 
@@ -74,8 +74,8 @@ final class Bandeja extends Component
             $query->where(function ($w) use ($like): void {
                 $w->where('p.numero_prestamo', 'like', $like)
                     ->orWhere('c.identificacion', 'like', $like)
-                    ->orWhere('c.nombres',      'like', $like)
-                    ->orWhere('c.apellidos',    'like', $like)
+                    ->orWhere('c.nombres', 'like', $like)
+                    ->orWhere('c.apellidos', 'like', $like)
                     ->orWhere('c.razon_social', 'like', $like);
             });
         }
@@ -104,9 +104,9 @@ final class Bandeja extends Component
             ->pluck('total', 'estado');
 
         return view('asignaciones::livewire.bandeja', [
-            'asignaciones'     => $asignaciones,
-            'conteoPorEstado'  => $conteoPorEstado,
-            'totalGeneral'     => (int) $conteoPorEstado->sum(),
+            'asignaciones' => $asignaciones,
+            'conteoPorEstado' => $conteoPorEstado,
+            'totalGeneral' => (int) $conteoPorEstado->sum(),
         ]);
     }
 }

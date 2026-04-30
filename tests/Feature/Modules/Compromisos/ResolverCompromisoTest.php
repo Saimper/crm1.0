@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Compromisos;
 
-use App\Modules\Casos\Domain\Events\CasoCerrado;
 use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
 use App\Modules\Compromisos\Application\UseCases\CancelarCompromiso;
 use App\Modules\Compromisos\Application\UseCases\MarcarCompromisoCumplido;
@@ -49,7 +48,7 @@ final class ResolverCompromisoTest extends TestCase
         );
 
         $this->assertDatabaseHas('compromisos', [
-            'id'     => $compromisoId,
+            'id' => $compromisoId,
             'estado' => 'cumplido',
         ]);
         $this->assertSame(0, (int) DB::table('casos')->where('id', $casoId)->value('tiene_compromiso_vigente'));
@@ -110,8 +109,8 @@ final class ResolverCompromisoTest extends TestCase
     private function crearCasoConCompromisoVigente(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([

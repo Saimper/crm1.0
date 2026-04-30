@@ -13,6 +13,5 @@ final readonly class CasoCerrado
         public int $proyectoId,
         public int $estadoCasoId,
         public DateTimeImmutable $cerradoEn,
-    ) {
-    }
+    ) {}
 }

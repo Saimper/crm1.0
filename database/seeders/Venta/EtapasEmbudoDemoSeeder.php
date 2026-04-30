@@ -29,13 +29,13 @@ final class EtapasEmbudoDemoSeeder extends Seeder
                 continue;
             }
             DB::table('etapas_embudo')->insert([
-                'proyecto_id'         => $proyectoId,
-                'codigo'              => $f['codigo'],
-                'nombre'              => $f['nombre'],
-                'nivel'               => $f['nivel'],
+                'proyecto_id' => $proyectoId,
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
+                'nivel' => $f['nivel'],
                 'probabilidad_cierre' => $f['probabilidad'],
-                'activo'              => true,
-                'orden'               => $f['orden'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

@@ -28,8 +28,7 @@ final readonly class CrearResolucionDesdeGestion
         private CompromisoRepository $compromisoRepo,
         private CompromisoResolucionTicketRepository $resolucionRepo,
         private Dispatcher $eventos,
-    ) {
-    }
+    ) {}
 
     public function handle(GestionRegistrada $evento): void
     {
@@ -44,38 +43,38 @@ final readonly class CrearResolucionDesdeGestion
         }
 
         $datos = $evento->datosCompromiso;
-        $ahora = new DateTimeImmutable();
+        $ahora = new DateTimeImmutable;
 
         $compromiso = Compromiso::crear(
-            publicId:         (string) Str::ulid(),
-            proyectoId:       $evento->proyectoId,
-            casoId:           $evento->casoId,
-            gestionOrigenId:  $evento->gestionId,
-            usuarioId:        $evento->usuarioId,
-            tipo:             TipoCompromiso::RESOLUCION_TICKET,
+            publicId: (string) Str::ulid(),
+            proyectoId: $evento->proyectoId,
+            casoId: $evento->casoId,
+            gestionOrigenId: $evento->gestionId,
+            usuarioId: $evento->usuarioId,
+            tipo: TipoCompromiso::RESOLUCION_TICKET,
             fechaVencimiento: $datos->fechaLimite->fechaLimite,
-            creadaEn:         $ahora,
+            creadaEn: $ahora,
         );
         $persistido = $this->compromisoRepo->save($compromiso);
 
         $this->resolucionRepo->save(CompromisoResolucionTicket::registrar(
-            compromisoId:        (int) $persistido->id,
-            proyectoId:          $persistido->proyectoId,
-            accion:              $datos->accion,
-            fechaLimite:         $datos->fechaLimite,
+            compromisoId: (int) $persistido->id,
+            proyectoId: $persistido->proyectoId,
+            accion: $datos->accion,
+            fechaLimite: $datos->fechaLimite,
             nivelEscalamientoId: $datos->nivelEscalamientoId,
         ));
 
         $this->eventos->dispatch(new CompromisoCreado(
-            compromisoId:    (int) $persistido->id,
-            publicId:        $persistido->publicId,
-            proyectoId:      $persistido->proyectoId,
-            casoId:          $persistido->casoId,
+            compromisoId: (int) $persistido->id,
+            publicId: $persistido->publicId,
+            proyectoId: $persistido->proyectoId,
+            casoId: $persistido->casoId,
             gestionOrigenId: $persistido->gestionOrigenId,
-            usuarioId:       $persistido->usuarioId,
-            tipo:            TipoCompromiso::RESOLUCION_TICKET,
+            usuarioId: $persistido->usuarioId,
+            tipo: TipoCompromiso::RESOLUCION_TICKET,
             fechaVencimiento: $persistido->fechaVencimiento,
-            creadaEn:        $persistido->creadaEn,
+            creadaEn: $persistido->creadaEn,
         ));
     }
 

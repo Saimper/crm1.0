@@ -19,8 +19,7 @@ final readonly class CompromisoAccionServicio
         public FechaProgramada $fechaProgramada,
         public ?int $tipoAccionServicioId,
         public ?string $tecnicoAsignado,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $compromisoId,
@@ -31,12 +30,12 @@ final readonly class CompromisoAccionServicio
         ?string $tecnicoAsignado,
     ): self {
         return new self(
-            compromisoId:         $compromisoId,
-            proyectoId:           $proyectoId,
-            descripcion:          $descripcion,
-            fechaProgramada:      $fechaProgramada,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            descripcion: $descripcion,
+            fechaProgramada: $fechaProgramada,
             tipoAccionServicioId: $tipoAccionServicioId,
-            tecnicoAsignado:      $tecnicoAsignado,
+            tecnicoAsignado: $tecnicoAsignado,
         );
     }
 
@@ -49,12 +48,12 @@ final readonly class CompromisoAccionServicio
         ?string $tecnicoAsignado,
     ): self {
         return new self(
-            compromisoId:         $compromisoId,
-            proyectoId:           $proyectoId,
-            descripcion:          $descripcion,
-            fechaProgramada:      $fechaProgramada,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            descripcion: $descripcion,
+            fechaProgramada: $fechaProgramada,
             tipoAccionServicioId: $tipoAccionServicioId,
-            tecnicoAsignado:      $tecnicoAsignado,
+            tecnicoAsignado: $tecnicoAsignado,
         );
     }
 }

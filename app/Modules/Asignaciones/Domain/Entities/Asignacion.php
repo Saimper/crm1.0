@@ -22,8 +22,7 @@ final readonly class Asignacion
         public EstadoAsignacion $estado,
         public ?DateTimeImmutable $cerradaEn,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         string $publicId,

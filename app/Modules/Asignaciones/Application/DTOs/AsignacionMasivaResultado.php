@@ -7,12 +7,11 @@ namespace App\Modules\Asignaciones\Application\DTOs;
 final readonly class AsignacionMasivaResultado
 {
     /**
-     * @param array<int, int> $distribucion usuarioId => cantidad asignada
+     * @param  array<int, int>  $distribucion  usuarioId => cantidad asignada
      */
     public function __construct(
         public int $asignadas,
         public int $omitidas,
         public array $distribucion,
-    ) {
-    }
+    ) {}
 }

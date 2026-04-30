@@ -10,6 +10,5 @@ final readonly class RegistrarCampanaOutput
         public int $id,
         public string $publicId,
         public string $codigo,
-    ) {
-    }
+    ) {}
 }

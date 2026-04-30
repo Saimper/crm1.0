@@ -14,23 +14,23 @@ final class UsuariosDemoSeeder extends Seeder
     public function run(): void
     {
         $rolSupervisorId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        $rolGestorId     = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
+        $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
 
         $supervisor = User::query()->updateOrCreate(
             ['email' => 'supervisor.demo@crm.local'],
             [
-                'name'     => 'Supervisor Demo',
+                'name' => 'Supervisor Demo',
                 'password' => Hash::make('password'),
-                'activo'   => true,
+                'activo' => true,
             ],
         );
 
         $gestor = User::query()->updateOrCreate(
             ['email' => 'gestor.demo@crm.local'],
             [
-                'name'     => 'Gestor Demo',
+                'name' => 'Gestor Demo',
                 'password' => Hash::make('password'),
-                'activo'   => true,
+                'activo' => true,
             ],
         );
 
@@ -45,20 +45,20 @@ final class UsuariosDemoSeeder extends Seeder
 
             if ($rolSupervisorId > 0) {
                 $rows[] = [
-                    'usuario_id'  => $supervisor->id,
+                    'usuario_id' => $supervisor->id,
                     'proyecto_id' => $proyectoId,
-                    'rol_id'      => $rolSupervisorId,
-                    'equipo_id'   => null,
-                    'activo'      => true,
+                    'rol_id' => $rolSupervisorId,
+                    'equipo_id' => null,
+                    'activo' => true,
                 ];
             }
             if ($rolGestorId > 0) {
                 $rows[] = [
-                    'usuario_id'  => $gestor->id,
+                    'usuario_id' => $gestor->id,
                     'proyecto_id' => $proyectoId,
-                    'rol_id'      => $rolGestorId,
-                    'equipo_id'   => null,
-                    'activo'      => true,
+                    'rol_id' => $rolGestorId,
+                    'equipo_id' => null,
+                    'activo' => true,
                 ];
             }
         }

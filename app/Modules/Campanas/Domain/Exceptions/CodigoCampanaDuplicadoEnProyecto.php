@@ -6,6 +6,4 @@ namespace App\Modules\Campanas\Domain\Exceptions;
 
 use DomainException;
 
-final class CodigoCampanaDuplicadoEnProyecto extends DomainException
-{
-}
+final class CodigoCampanaDuplicadoEnProyecto extends DomainException {}

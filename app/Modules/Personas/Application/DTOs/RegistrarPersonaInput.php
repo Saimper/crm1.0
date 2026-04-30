@@ -21,6 +21,5 @@ final readonly class RegistrarPersonaInput
         public ?string $razonSocial,
         public ?DateTimeImmutable $fechaNacimiento,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

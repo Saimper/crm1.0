@@ -13,8 +13,7 @@ final readonly class CrearPromesaAlRegistrarGestion
 {
     public function __construct(
         private CrearPromesaDesdeGestion $crearPromesa,
-    ) {
-    }
+    ) {}
 
     public function handle(GestionRegistrada $evento): void
     {

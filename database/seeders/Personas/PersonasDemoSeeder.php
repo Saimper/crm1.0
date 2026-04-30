@@ -24,7 +24,7 @@ final class PersonasDemoSeeder extends Seeder
             ['tipo_persona' => 'fisica',   'tipo_identificacion_id' => $tipoCed, 'identificacion' => '0102030405',    'nombres' => 'Juan',  'apellidos' => 'Pérez'],
             ['tipo_persona' => 'fisica',   'tipo_identificacion_id' => $tipoCed, 'identificacion' => '0203040506',    'nombres' => 'María', 'apellidos' => 'González'],
             ['tipo_persona' => 'juridica', 'tipo_identificacion_id' => $tipoRuc, 'identificacion' => '1792345678001', 'razon_social' => 'Comercial Austral S.A.'],
-            ['tipo_persona' => 'fisica',   'tipo_identificacion_id' => $tipoCed, 'identificacion' => '0304050607',    'nombres' => 'Carlos','apellidos' => 'Ramírez'],
+            ['tipo_persona' => 'fisica',   'tipo_identificacion_id' => $tipoCed, 'identificacion' => '0304050607',    'nombres' => 'Carlos', 'apellidos' => 'Ramírez'],
         ];
 
         foreach ($filas as $f) {
@@ -38,14 +38,14 @@ final class PersonasDemoSeeder extends Seeder
             }
 
             DB::table('personas')->insert([
-                'public_id'              => (string) Str::ulid(),
-                'proyecto_id'            => $proyectoId,
-                'tipo_persona'           => $f['tipo_persona'],
+                'public_id' => (string) Str::ulid(),
+                'proyecto_id' => $proyectoId,
+                'tipo_persona' => $f['tipo_persona'],
                 'tipo_identificacion_id' => $f['tipo_identificacion_id'],
-                'identificacion'         => $f['identificacion'],
-                'nombres'                => $f['nombres']      ?? null,
-                'apellidos'              => $f['apellidos']    ?? null,
-                'razon_social'           => $f['razon_social'] ?? null,
+                'identificacion' => $f['identificacion'],
+                'nombres' => $f['nombres'] ?? null,
+                'apellidos' => $f['apellidos'] ?? null,
+                'razon_social' => $f['razon_social'] ?? null,
             ]);
         }
     }

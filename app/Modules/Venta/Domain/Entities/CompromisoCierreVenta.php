@@ -18,8 +18,7 @@ final readonly class CompromisoCierreVenta
         public MontoCierre $monto,
         public FechaCierreEstimada $fechaEstimada,
         public ?int $etapaEmbudoId,
-    ) {
-    }
+    ) {}
 
     public static function registrar(
         int $compromisoId,
@@ -29,9 +28,9 @@ final readonly class CompromisoCierreVenta
         ?int $etapaEmbudoId,
     ): self {
         return new self(
-            compromisoId:  $compromisoId,
-            proyectoId:    $proyectoId,
-            monto:         $monto,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            monto: $monto,
             fechaEstimada: $fechaEstimada,
             etapaEmbudoId: $etapaEmbudoId,
         );
@@ -45,9 +44,9 @@ final readonly class CompromisoCierreVenta
         ?int $etapaEmbudoId,
     ): self {
         return new self(
-            compromisoId:  $compromisoId,
-            proyectoId:    $proyectoId,
-            monto:         $monto,
+            compromisoId: $compromisoId,
+            proyectoId: $proyectoId,
+            monto: $monto,
             fechaEstimada: $fechaEstimada,
             etapaEmbudoId: $etapaEmbudoId,
         );

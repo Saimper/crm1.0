@@ -20,11 +20,11 @@ final class ProyectoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'      => 'immutable_datetime',
+        'creada_en' => 'immutable_datetime',
         'actualizada_en' => 'immutable_datetime',
-        'eliminada_en'   => 'immutable_datetime',
-        'fecha_inicio'   => 'immutable_date',
-        'fecha_fin'      => 'immutable_date',
-        'activo'         => 'boolean',
+        'eliminada_en' => 'immutable_datetime',
+        'fecha_inicio' => 'immutable_date',
+        'fecha_fin' => 'immutable_date',
+        'activo' => 'boolean',
     ];
 }

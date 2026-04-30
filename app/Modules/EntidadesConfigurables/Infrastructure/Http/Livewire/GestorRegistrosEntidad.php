@@ -27,11 +27,15 @@ use Throwable;
 final class GestorRegistrosEntidad extends Component
 {
     public int $proyectoId = 0;
+
     public int $entidadId = 0;
+
     public ?int $casoId = null;
+
     public ?int $personaId = null;
 
     public bool $formVisible = false;
+
     public ?int $registroEditandoId = null;
 
     public string $titulo = '';
@@ -138,6 +142,7 @@ final class GestorRegistrosEntidad extends Component
             }
         } catch (Throwable $e) {
             $this->addError('titulo', $e->getMessage());
+
             return;
         }
 
@@ -168,17 +173,18 @@ final class GestorRegistrosEntidad extends Component
         $valores = [];
         foreach ($filas as $f) {
             $valores[(string) $f->codigo] = match ((string) $f->tipo) {
-                'texto_corto'    => $f->valor_texto_corto,
-                'texto_largo'    => $f->valor_texto_largo,
-                'numero_entero'  => $f->valor_numero_entero === null ? null : (int) $f->valor_numero_entero,
+                'texto_corto' => $f->valor_texto_corto,
+                'texto_largo' => $f->valor_texto_largo,
+                'numero_entero' => $f->valor_numero_entero === null ? null : (int) $f->valor_numero_entero,
                 'numero_decimal' => $f->valor_numero_decimal,
-                'fecha'          => $f->valor_fecha,
-                'fecha_hora'     => $f->valor_fecha_hora,
-                'booleano'       => $f->valor_booleano === null ? null : (bool) $f->valor_booleano,
-                'moneda'         => $f->valor_moneda_monto,
-                default          => null,
+                'fecha' => $f->valor_fecha,
+                'fecha_hora' => $f->valor_fecha_hora,
+                'booleano' => $f->valor_booleano === null ? null : (bool) $f->valor_booleano,
+                'moneda' => $f->valor_moneda_monto,
+                default => null,
             };
         }
+
         return $valores;
     }
 
@@ -208,9 +214,9 @@ final class GestorRegistrosEntidad extends Component
             );
 
         return view('entidades::operativo.gestor-registros-entidad', [
-            'entidad'    => $entidad,
-            'campos'     => $campos,
-            'registros'  => $registros,
+            'entidad' => $entidad,
+            'campos' => $campos,
+            'registros' => $registros,
         ]);
     }
 }

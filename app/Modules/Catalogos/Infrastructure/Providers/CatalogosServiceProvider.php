@@ -26,10 +26,10 @@ final class CatalogosServiceProvider extends ServiceProvider
     {
         View::addNamespace('catalogos', resource_path('views/modules/catalogos'));
 
-        Livewire::component('catalogos.admin-resultados',        AdminResultadosProyecto::class);
-        Livewire::component('catalogos.admin-tipos-gestion',     AdminTiposGestion::class);
-        Livewire::component('catalogos.admin-causas-gestion',    AdminCausasGestion::class);
+        Livewire::component('catalogos.admin-resultados', AdminResultadosProyecto::class);
+        Livewire::component('catalogos.admin-tipos-gestion', AdminTiposGestion::class);
+        Livewire::component('catalogos.admin-causas-gestion', AdminCausasGestion::class);
         Livewire::component('catalogos.admin-motivos-no-contacto', AdminMotivosNoContacto::class);
-        Livewire::component('catalogos.admin-estados-caso',      AdminEstadosCaso::class);
+        Livewire::component('catalogos.admin-estados-caso', AdminEstadosCaso::class);
     }
 }

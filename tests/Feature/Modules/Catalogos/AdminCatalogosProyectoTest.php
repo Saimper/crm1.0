@@ -45,10 +45,10 @@ final class AdminCatalogosProyectoTest extends TestCase
             ->assertSet('formVisible', false);
 
         $this->assertDatabaseHas('resultados', [
-            'proyecto_id'          => $proyectoId,
-            'codigo'               => 'RES_TEST',
+            'proyecto_id' => $proyectoId,
+            'codigo' => 'RES_TEST',
             'es_contacto_efectivo' => true,
-            'requiere_compromiso'  => true,
+            'requiere_compromiso' => true,
         ]);
     }
 
@@ -81,7 +81,7 @@ final class AdminCatalogosProyectoTest extends TestCase
 
         $this->assertDatabaseHas('tipos_gestion', [
             'proyecto_id' => $proyectoId,
-            'codigo'      => 'SMS',
+            'codigo' => 'SMS',
         ]);
     }
 
@@ -121,7 +121,7 @@ final class AdminCatalogosProyectoTest extends TestCase
 
         $this->assertDatabaseHas('motivos_no_contacto', [
             'proyecto_id' => $proyectoId,
-            'codigo'      => 'NUEVO_MOTIVO',
+            'codigo' => 'NUEVO_MOTIVO',
         ]);
     }
 
@@ -141,7 +141,7 @@ final class AdminCatalogosProyectoTest extends TestCase
 
         $this->assertDatabaseHas('estados_caso', [
             'proyecto_id' => $proyectoId,
-            'codigo'      => 'EN_REVISION',
+            'codigo' => 'EN_REVISION',
             'es_terminal' => false,
         ]);
     }

@@ -16,10 +16,13 @@ use Throwable;
 final class ReasignarEntreEquipos extends Component
 {
     public ?int $equipoOrigenId = null;
+
     public ?int $equipoDestinoId = null;
+
     public int $limite = 0;
 
     public int $ultMovidas = 0;
+
     /** @var array<int, int> */
     public array $ultDistribucion = [];
 
@@ -28,9 +31,9 @@ final class ReasignarEntreEquipos extends Component
         abort_unless(auth()->user()?->tienePermiso('asignaciones.reasignar') === true, 403);
 
         $this->validate([
-            'equipoOrigenId'  => ['required', 'integer'],
+            'equipoOrigenId' => ['required', 'integer'],
             'equipoDestinoId' => ['required', 'integer', 'different:equipoOrigenId'],
-            'limite'          => ['integer', 'min:0'],
+            'limite' => ['integer', 'min:0'],
         ], [
             'equipoDestinoId.different' => 'Origen y destino deben ser distintos.',
         ]);
@@ -39,13 +42,14 @@ final class ReasignarEntreEquipos extends Component
 
         try {
             $r = $useCase->execute(
-                proyectoId:       $proyectoId,
-                equipoOrigenId:   (int) $this->equipoOrigenId,
-                equipoDestinoId:  (int) $this->equipoDestinoId,
-                limite:           (int) $this->limite,
+                proyectoId: $proyectoId,
+                equipoOrigenId: (int) $this->equipoOrigenId,
+                equipoDestinoId: (int) $this->equipoDestinoId,
+                limite: (int) $this->limite,
             );
         } catch (Throwable $e) {
             $this->addError('equipoOrigenId', $e->getMessage());
+
             return;
         }
 
@@ -99,9 +103,9 @@ final class ReasignarEntreEquipos extends Component
         }
 
         return view('asignaciones::livewire.reasignar-entre-equipos', [
-            'equipos'              => $equipos,
-            'pendientesOrigen'     => $pendientesOrigen,
-            'miembrosDestino'      => $miembrosDestino,
+            'equipos' => $equipos,
+            'pendientesOrigen' => $pendientesOrigen,
+            'miembrosDestino' => $miembrosDestino,
             'usuariosDistribucion' => $usuariosDistribucion,
         ]);
     }

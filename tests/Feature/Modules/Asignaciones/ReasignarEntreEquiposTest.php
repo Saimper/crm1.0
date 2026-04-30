@@ -195,6 +195,7 @@ final class ReasignarEntreEquiposTest extends TestCase
                 'creada_en' => Carbon::now(),
             ]);
         }
+
         return $equipoId;
     }
 
@@ -226,6 +227,7 @@ final class ReasignarEntreEquiposTest extends TestCase
             'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
             'rol_id' => $rolId, 'activo' => true,
         ]);
+
         return $u;
     }
 }

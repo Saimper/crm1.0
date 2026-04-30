@@ -76,16 +76,16 @@ final class VistaDeTrabajo extends Component
 
         $productoActivo = $productos->firstWhere('public_id', $this->productoPublicIdSeleccionado);
 
-        $historial      = collect();
+        $historial = collect();
         $promesaVigente = null;
 
         if ($productoActivo !== null) {
             $historial = DB::table('gestiones as g')
-                ->leftJoin('resultados as r',      'r.id',  '=', 'g.resultado_id')
-                ->leftJoin('tipos_gestion as tg',  'tg.id', '=', 'g.tipo_gestion_id')
-                ->leftJoin('canales as cn',        'cn.id', '=', 'g.canal_id')
-                ->leftJoin('causas_mora as cm',    'cm.id', '=', 'g.causa_mora_id')
-                ->leftJoin('users as u',           'u.id',  '=', 'g.usuario_id')
+                ->leftJoin('resultados as r', 'r.id', '=', 'g.resultado_id')
+                ->leftJoin('tipos_gestion as tg', 'tg.id', '=', 'g.tipo_gestion_id')
+                ->leftJoin('canales as cn', 'cn.id', '=', 'g.canal_id')
+                ->leftJoin('causas_mora as cm', 'cm.id', '=', 'g.causa_mora_id')
+                ->leftJoin('users as u', 'u.id', '=', 'g.usuario_id')
                 ->where('g.producto_id', $productoActivo->id)
                 ->whereNull('g.eliminada_en')
                 ->select([
@@ -120,13 +120,13 @@ final class VistaDeTrabajo extends Component
             : trim((string) ($cliente->nombres ?? '').' '.(string) ($cliente->apellidos ?? ''));
 
         return view('gestiones::livewire.vista-trabajo', [
-            'cliente'         => $cliente,
-            'nombreCliente'   => $nombreCliente,
-            'productos'       => $productos,
-            'productoActivo'  => $productoActivo,
-            'historial'       => $historial,
-            'promesaVigente'  => $promesaVigente,
-            'contactos'       => $contactos,
+            'cliente' => $cliente,
+            'nombreCliente' => $nombreCliente,
+            'productos' => $productos,
+            'productoActivo' => $productoActivo,
+            'historial' => $historial,
+            'promesaVigente' => $promesaVigente,
+            'contactos' => $contactos,
         ]);
     }
 }

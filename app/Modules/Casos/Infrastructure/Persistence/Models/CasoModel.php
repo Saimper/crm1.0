@@ -22,13 +22,13 @@ final class CasoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'                => 'immutable_datetime',
-        'actualizada_en'           => 'immutable_datetime',
-        'eliminada_en'             => 'immutable_datetime',
-        'cerrado_en'               => 'immutable_datetime',
-        'fecha_ingreso'            => 'immutable_date',
-        'fecha_ultima_gestion'     => 'immutable_datetime',
-        'prioridad'                => 'integer',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'eliminada_en' => 'immutable_datetime',
+        'cerrado_en' => 'immutable_datetime',
+        'fecha_ingreso' => 'immutable_date',
+        'fecha_ultima_gestion' => 'immutable_datetime',
+        'prioridad' => 'integer',
         'tiene_compromiso_vigente' => 'boolean',
     ];
 }

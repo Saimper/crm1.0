@@ -13,16 +13,16 @@ final class EloquentClienteRepository implements ClienteRepository
 {
     public function save(Cliente $cliente): Cliente
     {
-        $model = new ClienteModel();
-        $model->public_id              = $cliente->publicId;
-        $model->tipo_persona           = $cliente->tipoPersona->value;
+        $model = new ClienteModel;
+        $model->public_id = $cliente->publicId;
+        $model->tipo_persona = $cliente->tipoPersona->value;
         $model->tipo_identificacion_id = $cliente->tipoIdentificacionId;
-        $model->identificacion         = $cliente->identificacion->asString();
-        $model->nombres                = $cliente->nombres;
-        $model->apellidos              = $cliente->apellidos;
-        $model->razon_social           = $cliente->razonSocial;
-        $model->fecha_nacimiento       = $cliente->fechaNacimiento;
-        $model->creada_en              = $cliente->creadaEn;
+        $model->identificacion = $cliente->identificacion->asString();
+        $model->nombres = $cliente->nombres;
+        $model->apellidos = $cliente->apellidos;
+        $model->razon_social = $cliente->razonSocial;
+        $model->fecha_nacimiento = $cliente->fechaNacimiento;
+        $model->creada_en = $cliente->creadaEn;
 
         $model->save();
 

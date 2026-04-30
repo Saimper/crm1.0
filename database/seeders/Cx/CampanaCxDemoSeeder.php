@@ -29,14 +29,14 @@ final class CampanaCxDemoSeeder extends Seeder
         }
 
         DB::table('campanas')->insert([
-            'public_id'     => (string) Str::ulid(),
-            'proyecto_id'   => $proyectoId,
-            'codigo'        => $codigo,
-            'nombre'        => 'Soporte demo abril 2026',
-            'descripcion'   => 'Campaña demo de atención al cliente para validar el tipo CX (Fase 3).',
-            'estado'        => 'activa',
-            'fecha_inicio'  => '2026-04-15',
-            'fecha_fin'     => '2026-05-15',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => 'Soporte demo abril 2026',
+            'descripcion' => 'Campaña demo de atención al cliente para validar el tipo CX (Fase 3).',
+            'estado' => 'activa',
+            'fecha_inicio' => '2026-04-15',
+            'fecha_fin' => '2026-05-15',
             'creada_por_id' => $adminId > 0 ? $adminId : null,
         ]);
     }

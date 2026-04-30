@@ -24,7 +24,7 @@ final class VistaDeTrabajo extends Component
 
     public function mount(string $persona, ?string $caso = null): void
     {
-        $this->personaPublicId          = $persona;
+        $this->personaPublicId = $persona;
         $this->casoPublicIdSeleccionado = $caso;
     }
 
@@ -43,7 +43,7 @@ final class VistaDeTrabajo extends Component
     public function render(): View
     {
         $proyectoActivo = app('tenancy.proyecto_activo');
-        $proyectoId     = (int) $proyectoActivo->id;
+        $proyectoId = (int) $proyectoActivo->id;
 
         $persona = DB::table('personas as p')
             ->leftJoin('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
@@ -62,8 +62,8 @@ final class VistaDeTrabajo extends Component
 
         $casos = DB::table('casos as c')
             ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
-            ->leftJoin('carteras as ca',     'ca.id', '=', 'c.cartera_id')
-            ->leftJoin('resultados as ru',   'ru.id', '=', 'c.resultado_ultima_gestion_id')
+            ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
+            ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
             ->where('c.proyecto_id', $proyectoId)
             ->where('c.persona_id', $persona->id)
             ->whereNull('c.eliminada_en')
@@ -89,15 +89,15 @@ final class VistaDeTrabajo extends Component
 
         $casoActivo = $casos->firstWhere('public_id', $this->casoPublicIdSeleccionado);
 
-        $historial        = collect();
+        $historial = collect();
         $compromisoActivo = null;
 
         if ($casoActivo !== null) {
             $historial = DB::table('gestiones as g')
-                ->leftJoin('resultados as r',     'r.id',  '=', 'g.resultado_id')
+                ->leftJoin('resultados as r', 'r.id', '=', 'g.resultado_id')
                 ->leftJoin('tipos_gestion as tg', 'tg.id', '=', 'g.tipo_gestion_id')
-                ->leftJoin('canales as cn',       'cn.id', '=', 'g.canal_id')
-                ->leftJoin('users as u',          'u.id',  '=', 'g.usuario_id')
+                ->leftJoin('canales as cn', 'cn.id', '=', 'g.canal_id')
+                ->leftJoin('users as u', 'u.id', '=', 'g.usuario_id')
                 ->where('g.proyecto_id', $proyectoId)
                 ->where('g.caso_id', $casoActivo->id)
                 ->whereNull('g.eliminada_en')
@@ -167,7 +167,7 @@ final class VistaDeTrabajo extends Component
         if ($casoActivo !== null && $casoActivo->tipo_caso === 'lead_venta') {
             $casoLeadVenta = DB::table('casos_lead_venta as clv')
                 ->leftJoin('productos_venta as pv', 'pv.id', '=', 'clv.producto_venta_id')
-                ->leftJoin('etapas_embudo as ee',   'ee.id', '=', 'clv.etapa_embudo_id')
+                ->leftJoin('etapas_embudo as ee', 'ee.id', '=', 'clv.etapa_embudo_id')
                 ->where('clv.caso_id', $casoActivo->id)
                 ->select([
                     'clv.codigo_lead', 'clv.valor_estimado', 'clv.moneda',
@@ -181,9 +181,9 @@ final class VistaDeTrabajo extends Component
         $casoTicketCx = null;
         if ($casoActivo !== null && $casoActivo->tipo_caso === 'ticket_cx') {
             $casoTicketCx = DB::table('casos_ticket_cx as ct')
-                ->leftJoin('categorias_ticket as cat',    'cat.id', '=', 'ct.categoria_ticket_id')
-                ->leftJoin('prioridades_ticket as pr',    'pr.id',  '=', 'ct.prioridad_ticket_id')
-                ->leftJoin('niveles_sla as sla',          'sla.id', '=', 'ct.nivel_sla_id')
+                ->leftJoin('categorias_ticket as cat', 'cat.id', '=', 'ct.categoria_ticket_id')
+                ->leftJoin('prioridades_ticket as pr', 'pr.id', '=', 'ct.prioridad_ticket_id')
+                ->leftJoin('niveles_sla as sla', 'sla.id', '=', 'ct.nivel_sla_id')
                 ->leftJoin('niveles_escalamiento as esc', 'esc.id', '=', 'ct.nivel_escalamiento_id')
                 ->where('ct.caso_id', $casoActivo->id)
                 ->select([
@@ -201,7 +201,7 @@ final class VistaDeTrabajo extends Component
         if ($casoActivo !== null && $casoActivo->tipo_caso === 'servicio') {
             $casoServicio = DB::table('casos_servicio as cs')
                 ->leftJoin('tipos_accion_servicio as tas', 'tas.id', '=', 'cs.tipo_accion_servicio_id')
-                ->leftJoin('estados_tecnicos as et',       'et.id',  '=', 'cs.estado_tecnico_id')
+                ->leftJoin('estados_tecnicos as et', 'et.id', '=', 'cs.estado_tecnico_id')
                 ->where('cs.caso_id', $casoActivo->id)
                 ->select([
                     'cs.codigo_servicio', 'cs.direccion_servicio', 'cs.tecnico_asignado',
@@ -225,18 +225,18 @@ final class VistaDeTrabajo extends Component
             : trim((string) ($persona->nombres ?? '').' '.(string) ($persona->apellidos ?? ''));
 
         return view('casos::livewire.vista-de-trabajo', [
-            'proyectoActivo'   => $proyectoActivo,
-            'persona'          => $persona,
-            'nombrePersona'    => $nombrePersona,
-            'casos'            => $casos,
-            'casoActivo'       => $casoActivo,
-            'casoCobranza'     => $casoCobranza,
-            'casoTicketCx'     => $casoTicketCx,
-            'casoLeadVenta'    => $casoLeadVenta,
-            'casoServicio'     => $casoServicio,
-            'historial'        => $historial,
+            'proyectoActivo' => $proyectoActivo,
+            'persona' => $persona,
+            'nombrePersona' => $nombrePersona,
+            'casos' => $casos,
+            'casoActivo' => $casoActivo,
+            'casoCobranza' => $casoCobranza,
+            'casoTicketCx' => $casoTicketCx,
+            'casoLeadVenta' => $casoLeadVenta,
+            'casoServicio' => $casoServicio,
+            'historial' => $historial,
             'compromisoActivo' => $compromisoActivo,
-            'contactos'        => $contactos,
+            'contactos' => $contactos,
         ]);
     }
 }

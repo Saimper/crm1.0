@@ -6,6 +6,4 @@ namespace App\Modules\Clientes\Application\Exceptions;
 
 use RuntimeException;
 
-final class IdentificacionYaExistente extends RuntimeException
-{
-}
+final class IdentificacionYaExistente extends RuntimeException {}

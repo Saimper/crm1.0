@@ -18,11 +18,11 @@ final class EtapaEmbudoModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'creada_en'           => 'immutable_datetime',
-        'actualizada_en'      => 'immutable_datetime',
-        'activo'              => 'boolean',
-        'nivel'               => 'integer',
+        'creada_en' => 'immutable_datetime',
+        'actualizada_en' => 'immutable_datetime',
+        'activo' => 'boolean',
+        'nivel' => 'integer',
         'probabilidad_cierre' => 'integer',
-        'orden'               => 'integer',
+        'orden' => 'integer',
     ];
 }

@@ -31,7 +31,7 @@ final class VentaServiceProvider extends ServiceProvider
 
         Livewire::component('venta.resolver-cierre', ResolverCierre::class);
         Livewire::component('venta.admin-productos-venta', AdminProductosVenta::class);
-        Livewire::component('venta.admin-etapas-embudo',   AdminEtapasEmbudo::class);
+        Livewire::component('venta.admin-etapas-embudo', AdminEtapasEmbudo::class);
 
         Event::listen(GestionRegistrada::class, CrearCierreDesdeGestion::class);
     }

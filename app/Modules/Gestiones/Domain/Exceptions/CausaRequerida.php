@@ -6,6 +6,4 @@ namespace App\Modules\Gestiones\Domain\Exceptions;
 
 use DomainException;
 
-final class CausaRequerida extends DomainException
-{
-}
+final class CausaRequerida extends DomainException {}

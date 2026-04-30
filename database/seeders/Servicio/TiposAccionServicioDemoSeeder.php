@@ -30,12 +30,12 @@ final class TiposAccionServicioDemoSeeder extends Seeder
                 continue;
             }
             DB::table('tipos_accion_servicio')->insert([
-                'proyecto_id'             => $proyectoId,
-                'codigo'                  => $f['codigo'],
-                'nombre'                  => $f['nombre'],
+                'proyecto_id' => $proyectoId,
+                'codigo' => $f['codigo'],
+                'nombre' => $f['nombre'],
                 'duracion_estimada_horas' => $f['duracion'],
-                'activo'                  => true,
-                'orden'                   => $f['orden'],
+                'activo' => true,
+                'orden' => $f['orden'],
             ]);
         }
     }

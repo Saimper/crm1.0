@@ -6,6 +6,4 @@ namespace App\Modules\Casos\Domain\Exceptions;
 
 use DomainException;
 
-final class TransicionCasoInvalida extends DomainException
-{
-}
+final class TransicionCasoInvalida extends DomainException {}

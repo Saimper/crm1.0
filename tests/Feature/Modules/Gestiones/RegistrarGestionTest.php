@@ -51,28 +51,28 @@ final class RegistrarGestionTest extends TestCase
         Event::fake([GestionRegistrada::class]);
 
         $output = $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'CONTACTO_TITULAR', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'CONTACTO_TITULAR', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             'Cliente confirma recepción.',
-            duracion:          new DuracionSegundos(120),
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:00:00'),
+            causaId: null,
+            usuarioId: $ctx['usuarioId'],
+            notas: 'Cliente confirma recepción.',
+            duracion: new DuracionSegundos(120),
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
         ));
 
         $this->assertGreaterThan(0, $output->id);
         $this->assertDatabaseHas('gestiones', [
-            'id'           => $output->id,
-            'proyecto_id'  => $ctx['proyectoId'],
-            'caso_id'      => $ctx['casoId'],
-            'causa_id'     => null,
+            'id' => $output->id,
+            'proyecto_id' => $ctx['proyectoId'],
+            'caso_id' => $ctx['casoId'],
+            'causa_id' => null,
         ]);
         Event::assertDispatched(GestionRegistrada::class);
     }
@@ -83,20 +83,20 @@ final class RegistrarGestionTest extends TestCase
 
         $this->expectException(CausaRequerida::class);
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'NEGOCIACION', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'NEGOCIACION', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           null,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-17 10:00:00'),
+            causaId: null,
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),
         ));
     }
 
@@ -106,31 +106,31 @@ final class RegistrarGestionTest extends TestCase
         $causaId = $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']);
 
         $output = $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           $causaId,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             'Promete pagar el viernes.',
-            duracion:          new DuracionSegundos(240),
-            creadaEn:          new DateTimeImmutable('2026-04-17 11:30:00'),
-            datosCompromiso:   new DatosPromesaPago(
-                monto:            new MontoPromesa('500.00', 'USD'),
+            causaId: $causaId,
+            usuarioId: $ctx['usuarioId'],
+            notas: 'Promete pagar el viernes.',
+            duracion: new DuracionSegundos(240),
+            creadaEn: new DateTimeImmutable('2026-04-17 11:30:00'),
+            datosCompromiso: new DatosPromesaPago(
+                monto: new MontoPromesa('500.00', 'USD'),
                 fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-04-24')),
-                tipoPagoId:       null,
+                tipoPagoId: null,
             ),
         ));
 
         $this->assertDatabaseHas('gestiones', [
-            'id'           => $output->id,
+            'id' => $output->id,
             'resultado_id' => $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
-            'causa_id'     => $causaId,
+            'causa_id' => $causaId,
         ]);
     }
 
@@ -141,21 +141,21 @@ final class RegistrarGestionTest extends TestCase
 
         $this->expectException(PromesaRequerida::class);
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
-            publicId:          (string) Str::ulid(),
-            proyectoId:        $ctx['proyectoId'],
-            casoId:            $ctx['casoId'],
-            personaId:         $ctx['personaId'],
-            contactoId:        null,
-            canalId:           $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId:     $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId:       $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            publicId: (string) Str::ulid(),
+            proyectoId: $ctx['proyectoId'],
+            casoId: $ctx['casoId'],
+            personaId: $ctx['personaId'],
+            contactoId: null,
+            canalId: $this->idGlobal('canales', 'TELEFONO'),
+            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
+            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
             motivoNoContactoId: null,
-            causaId:           $causaId,
-            usuarioId:         $ctx['usuarioId'],
-            notas:             null,
-            duracion:          null,
-            creadaEn:          new DateTimeImmutable('2026-04-17 11:30:00'),
-            datosCompromiso:   null,
+            causaId: $causaId,
+            usuarioId: $ctx['usuarioId'],
+            notas: null,
+            duracion: null,
+            creadaEn: new DateTimeImmutable('2026-04-17 11:30:00'),
+            datosCompromiso: null,
         ));
     }
 
@@ -163,8 +163,8 @@ final class RegistrarGestionTest extends TestCase
     private function contexto(): array
     {
         $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId  = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed    = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $estadoAbiertoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
 
         $usuarioId = (int) DB::table('users')->insertGetId([

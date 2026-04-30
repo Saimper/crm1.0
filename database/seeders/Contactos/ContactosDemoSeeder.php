@@ -17,11 +17,11 @@ final class ContactosDemoSeeder extends Seeder
         }
 
         $contactosPorIdentificacion = [
-            '0102030405'    => [
+            '0102030405' => [
                 ['tipo' => 'telefono', 'valor' => '+593 98 123 4567', 'etiqueta' => 'móvil', 'es_principal' => true],
                 ['tipo' => 'correo',   'valor' => 'juan.perez@correo.com'],
             ],
-            '0203040506'    => [
+            '0203040506' => [
                 ['tipo' => 'telefono', 'valor' => '+593 99 765 4321', 'etiqueta' => 'móvil', 'es_principal' => true],
                 ['tipo' => 'telefono', 'valor' => '+593 2 222 3333',  'etiqueta' => 'casa'],
             ],
@@ -29,7 +29,7 @@ final class ContactosDemoSeeder extends Seeder
                 ['tipo' => 'telefono', 'valor' => '+593 2 444 5566', 'etiqueta' => 'oficina', 'es_principal' => true],
                 ['tipo' => 'correo',   'valor' => 'contacto@austral.com.ec'],
             ],
-            '0304050607'    => [
+            '0304050607' => [
                 ['tipo' => 'telefono', 'valor' => '+593 96 111 2233', 'etiqueta' => 'móvil', 'es_principal' => true],
             ],
         ];
@@ -55,13 +55,13 @@ final class ContactosDemoSeeder extends Seeder
                 }
 
                 DB::table('contactos')->insert([
-                    'proyecto_id'  => $proyectoId,
-                    'persona_id'   => $personaId,
-                    'tipo'         => $c['tipo'],
-                    'valor'        => $c['valor'],
-                    'etiqueta'     => $c['etiqueta']     ?? null,
+                    'proyecto_id' => $proyectoId,
+                    'persona_id' => $personaId,
+                    'tipo' => $c['tipo'],
+                    'valor' => $c['valor'],
+                    'etiqueta' => $c['etiqueta'] ?? null,
                     'es_principal' => $c['es_principal'] ?? false,
-                    'activo'       => true,
+                    'activo' => true,
                 ]);
             }
         }

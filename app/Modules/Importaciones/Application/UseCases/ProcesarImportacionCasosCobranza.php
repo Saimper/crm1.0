@@ -22,9 +22,7 @@ use Throwable;
  */
 final readonly class ProcesarImportacionCasosCobranza
 {
-    public function __construct(private RegistrarCasoCobranza $registrar)
-    {
-    }
+    public function __construct(private RegistrarCasoCobranza $registrar) {}
 
     public function ejecutar(int $importacionId, bool $commit): void
     {
@@ -87,6 +85,7 @@ final readonly class ProcesarImportacionCasosCobranza
                 $fila->mensaje_error = implode(' | ', $errores);
                 $fila->save();
                 $errorCount++;
+
                 continue;
             }
 
@@ -95,28 +94,29 @@ final readonly class ProcesarImportacionCasosCobranza
                 $fila->mensaje_error = null;
                 $fila->save();
                 $okCount++;
+
                 continue;
             }
 
             try {
                 $out = $this->registrar->execute(new RegistrarCasoCobranzaInput(
-                    proyectoId:       $proyectoId,
-                    carteraId:        (int) $carteraId,
-                    personaId:        (int) $personaId,
-                    estadoCasoId:     (int) $estadoCasoId,
-                    fechaIngreso:     new DateTimeImmutable((string) $payload['fecha_ingreso']),
-                    prioridad:        (int) ($payload['prioridad'] ?? 3),
-                    numeroPrestamo:   (string) $payload['numero_prestamo'],
-                    moneda:           strtoupper((string) $payload['moneda']),
-                    montoOriginal:    (string) $payload['monto_original'],
-                    saldoCapital:     (string) $payload['saldo_capital'],
-                    saldoInteres:     (string) ($payload['saldo_interes'] ?? '0'),
-                    saldoTotal:       (string) $payload['saldo_total'],
-                    cuotaMensual:     (string) ($payload['cuota_mensual'] ?? '0'),
-                    cuotasTotales:    (int) ($payload['cuotas_totales'] ?? 0),
-                    cuotasPagadas:    (int) ($payload['cuotas_pagadas'] ?? 0),
-                    diasMora:         (int) ($payload['dias_mora'] ?? 0),
-                    fechaDesembolso:  new DateTimeImmutable((string) $payload['fecha_desembolso']),
+                    proyectoId: $proyectoId,
+                    carteraId: (int) $carteraId,
+                    personaId: (int) $personaId,
+                    estadoCasoId: (int) $estadoCasoId,
+                    fechaIngreso: new DateTimeImmutable((string) $payload['fecha_ingreso']),
+                    prioridad: (int) ($payload['prioridad'] ?? 3),
+                    numeroPrestamo: (string) $payload['numero_prestamo'],
+                    moneda: strtoupper((string) $payload['moneda']),
+                    montoOriginal: (string) $payload['monto_original'],
+                    saldoCapital: (string) $payload['saldo_capital'],
+                    saldoInteres: (string) ($payload['saldo_interes'] ?? '0'),
+                    saldoTotal: (string) $payload['saldo_total'],
+                    cuotaMensual: (string) ($payload['cuota_mensual'] ?? '0'),
+                    cuotasTotales: (int) ($payload['cuotas_totales'] ?? 0),
+                    cuotasPagadas: (int) ($payload['cuotas_pagadas'] ?? 0),
+                    diasMora: (int) ($payload['dias_mora'] ?? 0),
+                    fechaDesembolso: new DateTimeImmutable((string) $payload['fecha_desembolso']),
                     fechaVencimiento: new DateTimeImmutable((string) $payload['fecha_vencimiento']),
                 ));
                 $fila->estado = 'importada';

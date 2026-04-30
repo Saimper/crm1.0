@@ -43,23 +43,23 @@ final class RegistrarContactoTest extends TestCase
         $useCase = $this->app->make(RegistrarContacto::class);
 
         $useCase->execute(new RegistrarContactoInput(
-            proyectoId:  $proyectoA,
-            personaId:   $personaA,
-            tipo:        TipoContacto::CORREO,
-            valor:       'juan.a@correo.com',
-            etiqueta:    null,
+            proyectoId: $proyectoA,
+            personaId: $personaA,
+            tipo: TipoContacto::CORREO,
+            valor: 'juan.a@correo.com',
+            etiqueta: null,
             esPrincipal: true,
-            creadaEn:    new DateTimeImmutable(),
+            creadaEn: new DateTimeImmutable,
         ));
 
         $useCase->execute(new RegistrarContactoInput(
-            proyectoId:  $proyectoB,
-            personaId:   $personaB,
-            tipo:        TipoContacto::CORREO,
-            valor:       'juan.b@correo.com',
-            etiqueta:    null,
+            proyectoId: $proyectoB,
+            personaId: $personaB,
+            tipo: TipoContacto::CORREO,
+            valor: 'juan.b@correo.com',
+            etiqueta: null,
             esPrincipal: true,
-            creadaEn:    new DateTimeImmutable(),
+            creadaEn: new DateTimeImmutable,
         ));
 
         // Global scope filtra por proyecto activo.
@@ -76,13 +76,13 @@ final class RegistrarContactoTest extends TestCase
         $useCase = $this->app->make(RegistrarContacto::class);
 
         $input = fn () => new RegistrarContactoInput(
-            proyectoId:  $proyectoId,
-            personaId:   $personaId,
-            tipo:        TipoContacto::TELEFONO,
-            valor:       '+593 98 123 4567',
-            etiqueta:    null,
+            proyectoId: $proyectoId,
+            personaId: $personaId,
+            tipo: TipoContacto::TELEFONO,
+            valor: '+593 98 123 4567',
+            etiqueta: null,
             esPrincipal: false,
-            creadaEn:    new DateTimeImmutable(),
+            creadaEn: new DateTimeImmutable,
         );
 
         $useCase->execute($input());
@@ -101,12 +101,12 @@ final class RegistrarContactoTest extends TestCase
         $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
 
         return (int) DB::table('proyectos')->insertGetId([
-            'public_id'      => (string) Str::ulid(),
-            'mandante_id'    => $mandanteId,
-            'codigo'         => $codigo,
-            'nombre'         => "Proyecto extra {$codigo}",
+            'public_id' => (string) Str::ulid(),
+            'mandante_id' => $mandanteId,
+            'codigo' => $codigo,
+            'nombre' => "Proyecto extra {$codigo}",
             'tipo_operacion' => 'cobranza',
-            'activo'         => true,
+            'activo' => true,
         ]);
     }
 
@@ -115,13 +115,13 @@ final class RegistrarContactoTest extends TestCase
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
 
         return (int) DB::table('personas')->insertGetId([
-            'public_id'              => (string) Str::ulid(),
-            'proyecto_id'            => $proyectoId,
-            'tipo_persona'           => 'fisica',
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
-            'identificacion'         => $identificacion,
-            'nombres'                => 'Test',
-            'apellidos'              => 'User',
+            'identificacion' => $identificacion,
+            'nombres' => 'Test',
+            'apellidos' => 'User',
         ]);
     }
 

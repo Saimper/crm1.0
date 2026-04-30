@@ -30,14 +30,14 @@ final class CamposPersonalizadosDemoSeeder extends Seeder
         if ($carteraId > 0) {
             $this->upsertCampo(
                 proyectoId: $proyectoId,
-                ambito:     'caso',
-                ambitoId:   $carteraId,
-                codigo:     'operador_externo',
-                etiqueta:   'Operador externo que originó la cuenta',
-                tipo:       'texto_corto',
+                ambito: 'caso',
+                ambitoId: $carteraId,
+                codigo: 'operador_externo',
+                etiqueta: 'Operador externo que originó la cuenta',
+                tipo: 'texto_corto',
                 obligatorio: false,
-                orden:      10,
-                reglas:     ['longitud_max' => 150],
+                orden: 10,
+                reglas: ['longitud_max' => 150],
             );
         }
 
@@ -46,14 +46,14 @@ final class CamposPersonalizadosDemoSeeder extends Seeder
         if ($tipoConfirmacionId > 0) {
             $this->upsertCampo(
                 proyectoId: $proyectoId,
-                ambito:     'gestion',
-                ambitoId:   $tipoConfirmacionId,
-                codigo:     'numero_referencia_bancaria',
-                etiqueta:   'Número de referencia bancaria',
-                tipo:       'texto_corto',
+                ambito: 'gestion',
+                ambitoId: $tipoConfirmacionId,
+                codigo: 'numero_referencia_bancaria',
+                etiqueta: 'Número de referencia bancaria',
+                tipo: 'texto_corto',
                 obligatorio: true,
-                orden:      10,
-                reglas:     ['longitud_max' => 80],
+                orden: 10,
+                reglas: ['longitud_max' => 80],
             );
         }
     }
@@ -70,10 +70,10 @@ final class CamposPersonalizadosDemoSeeder extends Seeder
 
         DB::table('tipos_gestion')->insert([
             'proyecto_id' => $proyectoId,
-            'codigo'      => 'CONFIRMACION_PAGO',
-            'nombre'      => 'Confirmación de pago',
-            'activo'      => true,
-            'orden'       => 50,
+            'codigo' => 'CONFIRMACION_PAGO',
+            'nombre' => 'Confirmación de pago',
+            'activo' => true,
+            'orden' => 50,
         ]);
     }
 
@@ -101,15 +101,15 @@ final class CamposPersonalizadosDemoSeeder extends Seeder
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
-            'ambito'      => $ambito,
-            'ambito_id'   => $ambitoId,
-            'tipo'        => $tipo,
-            'codigo'      => $codigo,
-            'etiqueta'    => $etiqueta,
+            'ambito' => $ambito,
+            'ambito_id' => $ambitoId,
+            'tipo' => $tipo,
+            'codigo' => $codigo,
+            'etiqueta' => $etiqueta,
             'obligatorio' => $obligatorio,
-            'activo'      => true,
-            'orden'       => $orden,
-            'reglas'      => json_encode($reglas),
+            'activo' => true,
+            'orden' => $orden,
+            'reglas' => json_encode($reglas),
         ]);
     }
 }

@@ -18,17 +18,17 @@ final class EloquentProyectoRepository implements ProyectoRepository
     {
         $model = $proyecto->id !== null
             ? ProyectoModel::query()->findOrFail($proyecto->id)
-            : new ProyectoModel();
+            : new ProyectoModel;
 
-        $model->public_id      = $proyecto->publicId;
-        $model->mandante_id    = $proyecto->mandanteId;
-        $model->codigo         = $proyecto->codigo->asString();
-        $model->nombre         = $proyecto->nombre;
-        $model->descripcion    = $proyecto->descripcion;
+        $model->public_id = $proyecto->publicId;
+        $model->mandante_id = $proyecto->mandanteId;
+        $model->codigo = $proyecto->codigo->asString();
+        $model->nombre = $proyecto->nombre;
+        $model->descripcion = $proyecto->descripcion;
         $model->tipo_operacion = $proyecto->tipoOperacion->value;
-        $model->activo         = $proyecto->activo;
-        $model->fecha_inicio   = $proyecto->fechaInicio;
-        $model->fecha_fin      = $proyecto->fechaFin;
+        $model->activo = $proyecto->activo;
+        $model->fecha_inicio = $proyecto->fechaInicio;
+        $model->fecha_fin = $proyecto->fechaFin;
         if ($proyecto->id === null) {
             $model->creada_en = $proyecto->creadaEn;
         }
@@ -47,17 +47,17 @@ final class EloquentProyectoRepository implements ProyectoRepository
         }
 
         return Proyecto::reconstituir(
-            id:            (int) $model->id,
-            publicId:      (string) $model->public_id,
-            mandanteId:    (int) $model->mandante_id,
-            codigo:        new CodigoProyecto((string) $model->codigo),
-            nombre:        (string) $model->nombre,
-            descripcion:   $model->descripcion !== null ? (string) $model->descripcion : null,
+            id: (int) $model->id,
+            publicId: (string) $model->public_id,
+            mandanteId: (int) $model->mandante_id,
+            codigo: new CodigoProyecto((string) $model->codigo),
+            nombre: (string) $model->nombre,
+            descripcion: $model->descripcion !== null ? (string) $model->descripcion : null,
             tipoOperacion: TipoOperacion::from((string) $model->tipo_operacion),
-            activo:        (bool) $model->activo,
-            fechaInicio:   $model->fecha_inicio instanceof DateTimeImmutable ? $model->fecha_inicio : null,
-            fechaFin:      $model->fecha_fin    instanceof DateTimeImmutable ? $model->fecha_fin    : null,
-            creadaEn:      $this->hidratarFecha($model->creada_en),
+            activo: (bool) $model->activo,
+            fechaInicio: $model->fecha_inicio instanceof DateTimeImmutable ? $model->fecha_inicio : null,
+            fechaFin: $model->fecha_fin    instanceof DateTimeImmutable ? $model->fecha_fin : null,
+            creadaEn: $this->hidratarFecha($model->creada_en),
         );
     }
 

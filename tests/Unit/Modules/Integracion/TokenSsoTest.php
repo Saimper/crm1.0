@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Modules\Integracion;
 
 use App\Modules\Integracion\Domain\Entities\TokenSso;
+use App\Modules\Integracion\Domain\Events\TokenSsoEmitido;
 use App\Modules\Integracion\Domain\Exceptions\TokenSsoExpiradoException;
 use App\Modules\Integracion\Domain\Exceptions\TokenSsoYaConsumidoException;
 use App\Modules\Integracion\Domain\ValueObjects\TokenClaroHash;
@@ -64,7 +65,7 @@ final class TokenSsoTest extends TestCase
 
     public function test_token_crear_emite_evento(): void
     {
-        $hash  = TokenClaroHash::generar('mi-token-claro');
+        $hash = TokenClaroHash::generar('mi-token-claro');
         $token = TokenSso::crear(
             publicId: 'pub-3',
             usuarioId: 42,
@@ -75,14 +76,14 @@ final class TokenSsoTest extends TestCase
 
         $eventos = $token->pullEventos();
         $this->assertCount(1, $eventos);
-        $this->assertInstanceOf(\App\Modules\Integracion\Domain\Events\TokenSsoEmitido::class, $eventos[0]);
+        $this->assertInstanceOf(TokenSsoEmitido::class, $eventos[0]);
         $this->assertSame(42, $eventos[0]->usuarioId);
     }
 
     public function test_token_claro_hash_hashea_con_sha256(): void
     {
         $claro = 'test_token_12345';
-        $vo    = TokenClaroHash::generar($claro);
+        $vo = TokenClaroHash::generar($claro);
 
         $this->assertSame(hash('sha256', $claro), $vo->hash);
         $this->assertSame($claro, $vo->claro);

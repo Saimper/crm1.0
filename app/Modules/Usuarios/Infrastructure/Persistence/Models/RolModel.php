@@ -16,9 +16,9 @@ final class RolModel extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'activo'    => 'boolean',
+        'activo' => 'boolean',
         'es_global' => 'boolean',
-        'orden'     => 'integer',
+        'orden' => 'integer',
     ];
 
     public function permisos(): BelongsToMany

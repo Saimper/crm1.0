@@ -22,9 +22,7 @@ use Throwable;
  */
 final readonly class ProcesarImportacionCasosServicio
 {
-    public function __construct(private RegistrarCasoServicio $registrar)
-    {
-    }
+    public function __construct(private RegistrarCasoServicio $registrar) {}
 
     public function ejecutar(int $importacionId, bool $commit): void
     {
@@ -87,6 +85,7 @@ final readonly class ProcesarImportacionCasosServicio
                 $fila->mensaje_error = implode(' | ', $errores);
                 $fila->save();
                 $errorCount++;
+
                 continue;
             }
 
@@ -95,6 +94,7 @@ final readonly class ProcesarImportacionCasosServicio
                 $fila->mensaje_error = null;
                 $fila->save();
                 $okCount++;
+
                 continue;
             }
 
@@ -103,19 +103,19 @@ final readonly class ProcesarImportacionCasosServicio
                     ? new DateTimeImmutable((string) $payload['fecha_programada'])
                     : null;
                 $out = $this->registrar->execute(new RegistrarCasoServicioInput(
-                    proyectoId:           $proyectoId,
-                    carteraId:            (int) $carteraId,
-                    personaId:            (int) $personaId,
-                    estadoCasoId:         (int) $estadoCasoId,
-                    fechaIngreso:         new DateTimeImmutable((string) $payload['fecha_ingreso']),
-                    prioridad:            (int) ($payload['prioridad'] ?? 3),
-                    codigoServicio:       (string) $payload['codigo_servicio'],
+                    proyectoId: $proyectoId,
+                    carteraId: (int) $carteraId,
+                    personaId: (int) $personaId,
+                    estadoCasoId: (int) $estadoCasoId,
+                    fechaIngreso: new DateTimeImmutable((string) $payload['fecha_ingreso']),
+                    prioridad: (int) ($payload['prioridad'] ?? 3),
+                    codigoServicio: (string) $payload['codigo_servicio'],
                     tipoAccionServicioId: $tiposAccion[strtoupper((string) ($payload['tipo_accion_codigo'] ?? ''))] ?? null,
-                    estadoTecnicoId:      $estadosTec[strtoupper((string) ($payload['estado_tecnico_codigo'] ?? ''))] ?? null,
-                    direccionServicio:    $this->opcional($payload, 'direccion_servicio'),
-                    tecnicoAsignado:      $this->opcional($payload, 'tecnico_asignado'),
-                    fechaSolicitud:       new DateTimeImmutable((string) $payload['fecha_solicitud']),
-                    fechaProgramada:      $fechaProg,
+                    estadoTecnicoId: $estadosTec[strtoupper((string) ($payload['estado_tecnico_codigo'] ?? ''))] ?? null,
+                    direccionServicio: $this->opcional($payload, 'direccion_servicio'),
+                    tecnicoAsignado: $this->opcional($payload, 'tecnico_asignado'),
+                    fechaSolicitud: new DateTimeImmutable((string) $payload['fecha_solicitud']),
+                    fechaProgramada: $fechaProg,
                 ));
                 $fila->estado = 'importada';
                 $fila->entidad_id = $out->casoId;
@@ -150,6 +150,7 @@ final readonly class ProcesarImportacionCasosServicio
     private function opcional(array $p, string $k): ?string
     {
         $v = trim((string) ($p[$k] ?? ''));
+
         return $v === '' ? null : $v;
     }
 }

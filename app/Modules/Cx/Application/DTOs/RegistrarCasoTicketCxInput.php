@@ -24,6 +24,5 @@ final readonly class RegistrarCasoTicketCxInput
         public ?int $nivelEscalamientoId,
         public DateTimeImmutable $fechaReporte,
         public ?DateTimeImmutable $fechaLimiteSla,
-    ) {
-    }
+    ) {}
 }

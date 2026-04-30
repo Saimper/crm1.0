@@ -84,7 +84,7 @@ final class GestionesCatalogosVentaDemoSeeder extends Seeder
         $rows = [
             ['codigo' => 'PRECIO_ALTO',       'nombre' => 'Precio alto',                'orden' => 10],
             ['codigo' => 'NO_NECESITA',       'nombre' => 'No lo necesita',             'orden' => 20],
-            ['codigo' => 'COMPETENCIA',       'nombre' => 'Ya tiene con la competencia','orden' => 30],
+            ['codigo' => 'COMPETENCIA',       'nombre' => 'Ya tiene con la competencia', 'orden' => 30],
             ['codigo' => 'SIN_PRESUPUESTO',   'nombre' => 'Sin presupuesto',            'orden' => 40],
             ['codigo' => 'FALTA_INFORMACION', 'nombre' => 'Falta información',          'orden' => 50],
             ['codigo' => 'OTRA',              'nombre' => 'Otra razón',                 'orden' => 999],
@@ -95,8 +95,8 @@ final class GestionesCatalogosVentaDemoSeeder extends Seeder
             }
             DB::table('causas_gestion')->insert(array_merge($r, [
                 'proyecto_id' => $proyectoId,
-                'activo'      => true,
-                'metadata'    => json_encode(['tipo' => 'rechazo']),
+                'activo' => true,
+                'metadata' => json_encode(['tipo' => 'rechazo']),
             ]));
         }
     }

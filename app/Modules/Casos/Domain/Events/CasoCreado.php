@@ -17,6 +17,5 @@ final readonly class CasoCreado
         public int $personaId,
         public TipoCaso $tipoCaso,
         public DateTimeImmutable $creadaEn,
-    ) {
-    }
+    ) {}
 }

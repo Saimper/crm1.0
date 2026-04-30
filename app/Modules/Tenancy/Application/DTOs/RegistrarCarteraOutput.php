@@ -11,6 +11,5 @@ final readonly class RegistrarCarteraOutput
         public string $publicId,
         public string $codigo,
         public string $nombre,
-    ) {
-    }
+    ) {}
 }
