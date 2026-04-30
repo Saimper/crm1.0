@@ -7,6 +7,7 @@ namespace App\Modules\Tenancy\Infrastructure\Providers;
 use App\Modules\Tenancy\Domain\Contracts\CarteraRepository;
 use App\Modules\Tenancy\Domain\Contracts\MandanteRepository;
 use App\Modules\Tenancy\Domain\Contracts\ProyectoRepository;
+use App\Modules\Tenancy\Infrastructure\Http\Livewire\AdminCarterasProyecto;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\AdminMandantes;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\AdminProyectos;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorProyecto;
@@ -43,5 +44,6 @@ final class TenancyServiceProvider extends ServiceProvider
         Livewire::component('tenancy.selector-proyecto', SelectorProyecto::class);
         Livewire::component('tenancy.admin-mandantes', AdminMandantes::class);
         Livewire::component('tenancy.admin-proyectos', AdminProyectos::class);
+        Livewire::component('tenancy.admin-carteras-proyecto', AdminCarterasProyecto::class);
     }
 }

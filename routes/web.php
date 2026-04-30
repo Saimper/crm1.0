@@ -110,6 +110,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:catalogos.gestionar')
                 ->name('proyectos.catalogos');
 
+            Route::view('/carteras', 'tenancy::admin.carteras-proyecto-page')
+                ->middleware('can:catalogos.gestionar')
+                ->name('proyectos.carteras');
+
             Route::view('/usuarios', 'usuarios::admin.gestion-usuarios-proyecto-page')
                 ->middleware('can:usuarios.gestionar')
                 ->name('proyectos.usuarios');

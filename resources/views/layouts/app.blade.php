@@ -165,6 +165,11 @@
                             <x-ui.icon name="tag" :size="15" />
                             <span>Catálogos</span>
                         </a>
+                        <a href="{{ route('proyectos.carteras', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.carteras')) active @endif">
+                            <x-ui.icon name="folder" :size="15" />
+                            <span>Carteras</span>
+                        </a>
                     @endcan
                     @can('importaciones.crear', $proyectoActivo->id)
                         <a href="{{ route('proyectos.importaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
