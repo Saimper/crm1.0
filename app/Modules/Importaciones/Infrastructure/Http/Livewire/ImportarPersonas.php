@@ -14,6 +14,7 @@ use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaM
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -182,8 +183,8 @@ final class ImportarPersonas extends Component
      * Mapea numero_fila → persona public_id para filas procesadas/duplicadas, permitiendo
      * link "ver" desde la tabla preview hacia Vista de Trabajo de la persona resultante.
      *
-     * @param  \Illuminate\Support\Collection<int, object>  $preview
-     * @return array<int, string>                                    numero_fila → public_id
+     * @param  Collection<int, object>  $preview
+     * @return array<int, string> numero_fila → public_id
      */
     private function resolverPersonasDePreview(int $proyectoId, $preview): array
     {

@@ -77,7 +77,7 @@ final class ListadoNotificaciones extends Component
     /**
      * @param  array<int, object>  $notificaciones
      * @return array<int, array{caso_id: int, persona_public_id: string, caso_public_id: string}>
-     *                                                                                          Map de notificacion_id → datos para construir route('proyectos.trabajo').
+     *                                                                                            Map de notificacion_id → datos para construir route('proyectos.trabajo').
      */
     private function resolverRutasPorCaso(int $proyectoId, array $notificaciones): array
     {
