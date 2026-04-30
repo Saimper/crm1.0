@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\CamposPersonalizados\Domain\Services;
 
 use App\Modules\CamposPersonalizados\Domain\Exceptions\ReglaViolada;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\AutoFill;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\MarcadorTemporal;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 
 /**
@@ -12,11 +15,13 @@ use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
  * Si algún dato viola una regla lanza ReglaViolada con el motivo.
  *
  * Reglas soportadas (JSON):
- *   obligatorio       → bool
- *   min / max         → números/fechas
- *   longitud_min      → textos
- *   longitud_max      → textos
- *   regex             → string (solo textos)
+ *   obligatorio                  → bool
+ *   min / max                    → números/fechas (legacy literal)
+ *   longitud_min / longitud_max  → textos
+ *   regex                        → string (solo textos)
+ *   fecha_minima / fecha_maxima  → tokens MarcadorTemporal (hoy|ahora|±Nd|ISO)
+ *   auto_fill                    → token AutoFill (no participa en validación)
+ *   solo_lectura_tras_guardar    → bool (no participa en validación)
  */
 final class EvaluadorReglas
 {
@@ -127,6 +132,64 @@ final class EvaluadorReglas
                 throw new ReglaViolada("El campo «{$etiqueta}» no puede ser posterior a {$reglas['max']}.");
             }
         }
+        $this->validarMarcadoresTemporales($timestamp, $reglas, $etiqueta, $valor);
+    }
+
+    /** @param array<string, mixed> $reglas */
+    private function validarMarcadoresTemporales(int $timestamp, array $reglas, string $etiqueta, string $valor): void
+    {
+        $tipo = str_contains($valor, 'T') || str_contains($valor, ':')
+            ? TipoCampo::FECHA_HORA
+            : TipoCampo::FECHA;
+
+        if (isset($reglas['fecha_minima']) && is_string($reglas['fecha_minima']) && $reglas['fecha_minima'] !== '') {
+            $minimo = MarcadorTemporal::desde($reglas['fecha_minima']);
+            if ($timestamp < $minimo->paraComparar($tipo)) {
+                throw ReglaViolada::fechaAnteriorAMinimo($etiqueta, $this->describirMarcador($reglas['fecha_minima']));
+            }
+        }
+        if (isset($reglas['fecha_maxima']) && is_string($reglas['fecha_maxima']) && $reglas['fecha_maxima'] !== '') {
+            $maximo = MarcadorTemporal::desde($reglas['fecha_maxima']);
+            if ($timestamp > $maximo->paraComparar($tipo)) {
+                throw ReglaViolada::fechaPosteriorAMaximo($etiqueta, $this->describirMarcador($reglas['fecha_maxima']));
+            }
+        }
+    }
+
+    private function describirMarcador(string $token): string
+    {
+        return match ($token) {
+            'hoy' => 'hoy',
+            'ahora' => 'ahora',
+            default => $token,
+        };
+    }
+
+    /**
+     * Resuelve el token `auto_fill` a un valor concreto según el contexto actual.
+     * Devuelve `null` cuando no hay regla, el token es desconocido o el tipo no admite el token.
+     *
+     * @param  array<string, mixed>  $reglas
+     */
+    public function valorAutoFill(TipoCampo $tipo, array $reglas, ContextoUsuarioProyecto $ctx): ?string
+    {
+        $token = $reglas['auto_fill'] ?? null;
+        if (! is_string($token) || $token === '') {
+            return null;
+        }
+
+        $auto = AutoFill::tryFrom($token);
+        if ($auto === null || ! $auto->tipoCompatible($tipo)) {
+            return null;
+        }
+
+        return match ($auto) {
+            AutoFill::NOW => MarcadorTemporal::desde('ahora')->paraAutoFill($tipo),
+            AutoFill::TODAY => MarcadorTemporal::desde('hoy')->paraAutoFill($tipo),
+            AutoFill::USUARIO_NOMBRE => $ctx->usuarioNombre,
+            AutoFill::USUARIO_EMAIL => $ctx->usuarioEmail,
+            AutoFill::PROYECTO_CODIGO => $ctx->proyectoCodigo,
+        };
     }
 
     private function validarBooleano(mixed $valor, string $etiqueta): void

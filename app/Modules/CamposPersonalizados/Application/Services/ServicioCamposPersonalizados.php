@@ -6,6 +6,7 @@ namespace App\Modules\CamposPersonalizados\Application\Services;
 
 use App\Modules\CamposPersonalizados\Domain\Services\EvaluadorReglas;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\CamposPersonalizados\Infrastructure\Persistence\Models\CampoPersonalizadoModel;
 use App\Modules\CamposPersonalizados\Infrastructure\Persistence\Models\ValorCampoPersonalizadoModel;
@@ -85,6 +86,33 @@ final readonly class ServicioCamposPersonalizados
                 );
             }
         });
+    }
+
+    /**
+     * Resuelve los valores iniciales auto-rellenados para los campos del ámbito (§7.4).
+     * Solo aplica a campos con `reglas.auto_fill` declarada y tipo compatible.
+     *
+     * @return array<string, mixed> [codigo => valor]
+     */
+    public function valoresAutoRelleno(
+        int $proyectoId,
+        AmbitoCampo $ambito,
+        int $ambitoId,
+        ContextoUsuarioProyecto $ctx,
+    ): array {
+        $resultado = [];
+        foreach ($this->campos($proyectoId, $ambito, $ambitoId) as $campo) {
+            $valor = $this->evaluador->valorAutoFill(
+                TipoCampo::from((string) $campo->tipo),
+                is_array($campo->reglas) ? $campo->reglas : [],
+                $ctx,
+            );
+            if ($valor !== null) {
+                $resultado[(string) $campo->codigo] = $valor;
+            }
+        }
+
+        return $resultado;
     }
 
     /** @return array<string, mixed> */
