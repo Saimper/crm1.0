@@ -177,7 +177,16 @@ No hay campos personalizados en Persona, Contacto, Campaña, Cartera, Usuario, P
 - `valores_campo_personalizado`: una fila por `(campo_id, entidad_id)`. Solo la columna del tipo correspondiente llena.
 
 ### Validaciones
-En el dominio (entidad `Gestion`/`Caso`/`Compromiso`), no en Form Request ni Livewire. Reglas JSON: `obligatorio`, `min`, `max`, `longitud_min/max`, `regex`, `depende_de` (dependencias simples).
+En el dominio (entidad `Gestion`/`Caso`/`Compromiso`), no en Form Request ni Livewire. Reglas JSON declarativas:
+
+**Base:** `obligatorio`, `min`, `max`, `longitud_min/max`, `regex`, `depende_de` (dependencias simples).
+
+**Avanzadas (F30):**
+- `fecha_minima` / `fecha_maxima` — solo tipos `fecha`/`fecha_hora`. Tokens: `"hoy"`, `"ahora"` (solo `fecha_hora`), offset `"+Nd"` o `"-Nd"`, ISO literal (`"2026-12-31"`). Resuelve via VO `MarcadorTemporal`.
+- `auto_fill` — render inicial (no participa en validación). Tokens: `"now"` (→ `fecha_hora`), `"today"` (→ `fecha`/`fecha_hora`), `"usuario_nombre"` / `"usuario_email"` / `"proyecto_codigo"` (→ `texto_corto`/`texto_largo`). Si tipo no es compatible con el token, se ignora silenciosamente.
+- `solo_lectura_tras_guardar` (bool) — el campo se renderiza `disabled` cuando ya existe valor persistido. Útil para timestamps auto-rellenados que no deben mutar.
+
+Ninguna regla nueva ejecuta lógica de usuario, abre dependencias dinámicas ni introduce tipos. Cero migraciones; todo vive en `campos_personalizados.reglas` (JSON).
 
 ### Qué NO pueden hacer
 Modificar flujos de estado, crear entidades, ejecutar lógica al cambiar valor, visibilidad dinámica por rol.
@@ -308,9 +317,9 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ---
 
-## 15. Estado actual (2026-04-29)
+## 15. Estado actual (2026-04-30)
 
-**66 migraciones | 22 módulos activos | 415 tests / 903 assertions verdes**
+**66 migraciones | 22 módulos activos | 433 tests / 938 assertions verdes**
 
 Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion, Clientes.
 
@@ -345,6 +354,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Capa integración wrapper SSO (Sanctum, token one-time) | ✅ F28 |
 | Refactor visual a HTML standalone (intento previo, superado) | ⚠️ F29 (revertido en parte) |
 | Refactor literal admin (mandantes, proyectos, usuarios, campos personalizados, entidades configurables, dashboard) — `AdminTablePattern`: page-header + search-row + table-compact-clickable + drawer | ✅ F29-bis |
+| Validaciones avanzadas y auto-fill en campos personalizados (`fecha_minima`/`fecha_maxima`, `auto_fill`, `solo_lectura_tras_guardar`) — VO `MarcadorTemporal`, enum `AutoFill`, `ContextoUsuarioProyecto`, `ServicioCamposPersonalizados::valoresAutoRelleno()`. Cero migraciones, todo vive en JSON `reglas` existente. | ✅ F30 |
 
 ### Módulo Integracion (F28)
 
