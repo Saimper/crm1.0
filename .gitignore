@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Workspace temporales (auditorías F29-bis y experimentos locales)
+/.tmp_audit/
+/.tmp_jsx/
+/.tmp_extract*.cjs
+/.tmp_template.html
+/N_cleo CRM _standalone_.html
+/Núcleo CRM (standalone).html
+/.claude/worktrees/
