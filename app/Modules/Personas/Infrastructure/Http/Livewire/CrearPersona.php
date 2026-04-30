@@ -88,7 +88,10 @@ final class CrearPersona extends Component
             'nombre' => $output->nombreCompleto,
         ]);
 
-        $this->redirectRoute('proyectos.dashboard', ['proyecto_id' => $proyecto->id], navigate: true);
+        $this->redirectRoute('proyectos.trabajo', [
+            'proyecto_id' => $proyecto->id,
+            'persona' => $output->publicId,
+        ], navigate: true);
     }
 
     public function render(): View
