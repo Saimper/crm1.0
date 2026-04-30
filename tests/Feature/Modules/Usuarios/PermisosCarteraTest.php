@@ -131,7 +131,7 @@ final class PermisosCarteraTest extends TestCase
             ->call('abrirFormAsignar')
             ->set('buscarEmail', $nuevo->email)
             ->call('buscarUsuario')
-            ->set('rolAsignarId', $rolGestorId)
+            ->set('rolAsignarValor', 'base:'.$rolGestorId)
             ->set('carterasSeleccionadas', [(int) $carteras[0]])
             ->call('asignar')
             ->assertHasNoErrors();
@@ -167,7 +167,7 @@ final class PermisosCarteraTest extends TestCase
             ->call('abrirFormAsignar')
             ->set('buscarEmail', $u->email)
             ->call('buscarUsuario')
-            ->set('rolAsignarId', $rolGestorId)
+            ->set('rolAsignarValor', 'base:'.$rolGestorId)
             ->set('carterasSeleccionadas', [(int) $carteras[0]])
             ->call('asignar');
 
@@ -176,7 +176,7 @@ final class PermisosCarteraTest extends TestCase
             ->call('abrirFormAsignar')
             ->set('buscarEmail', $u->email)
             ->call('buscarUsuario')
-            ->set('rolAsignarId', $rolGestorId)
+            ->set('rolAsignarValor', 'base:'.$rolGestorId)
             ->set('carterasSeleccionadas', [])
             ->call('asignar');
 

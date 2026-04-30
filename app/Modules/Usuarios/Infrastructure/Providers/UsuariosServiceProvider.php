@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Usuarios\Infrastructure\Providers;
 
 use App\Models\User;
+use App\Modules\Usuarios\Domain\RolesCustom\Contracts\RepositorioRolCustom;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminEquiposProyecto;
+use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminRolesCustom;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminUsuarios;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\GestionUsuariosProyecto;
+use App\Modules\Usuarios\Infrastructure\Http\Livewire\MatrizPermisos;
 use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminGlobal;
+use App\Modules\Usuarios\Infrastructure\Persistence\Repositories\RepositorioRolCustomEloquent;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -17,7 +21,10 @@ use Livewire\Livewire;
 
 final class UsuariosServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->bind(RepositorioRolCustom::class, RepositorioRolCustomEloquent::class);
+    }
 
     public function boot(Router $router): void
     {
@@ -27,6 +34,8 @@ final class UsuariosServiceProvider extends ServiceProvider
         Livewire::component('usuarios.admin-usuarios', AdminUsuarios::class);
         Livewire::component('usuarios.gestion-usuarios-proyecto', GestionUsuariosProyecto::class);
         Livewire::component('usuarios.admin-equipos-proyecto', AdminEquiposProyecto::class);
+        Livewire::component('usuarios.admin-roles-custom', AdminRolesCustom::class);
+        Livewire::component('usuarios.matriz-permisos', MatrizPermisos::class);
 
         Gate::before(function (User $user, string $ability, array $arguments): bool {
             if ($user->esAdminGlobal()) {

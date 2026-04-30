@@ -101,7 +101,7 @@ final class GestionUsuariosProyectoTest extends TestCase
             ->call('abrirFormAsignar')
             ->set('buscarEmail', 'nuevo@crm.local')
             ->call('buscarUsuario')
-            ->set('rolAsignarId', $rolGestorId)
+            ->set('rolAsignarValor', 'base:'.$rolGestorId)
             ->call('asignar')
             ->assertHasNoErrors();
 
@@ -126,9 +126,9 @@ final class GestionUsuariosProyectoTest extends TestCase
 
         Livewire::test(GestionUsuariosProyecto::class)
             ->set('usuarioBuscadoId', $target->id)
-            ->set('rolAsignarId', $rolAdminId)
+            ->set('rolAsignarValor', 'base:'.$rolAdminId)
             ->call('asignar')
-            ->assertHasErrors(['rolAsignarId']);
+            ->assertHasErrors(['rolAsignarValor']);
 
         $this->assertDatabaseMissing('usuario_proyecto_rol', [
             'usuario_id' => $target->id,

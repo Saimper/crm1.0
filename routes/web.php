@@ -114,6 +114,14 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:usuarios.gestionar')
                 ->name('proyectos.usuarios');
 
+            Route::view('/admin/roles-custom', 'usuarios::admin.roles-custom-page')
+                ->middleware('can:roles.gestionar')
+                ->name('proyectos.admin.roles-custom');
+
+            Route::view('/admin/matriz-permisos', 'usuarios::admin.matriz-permisos-page')
+                ->middleware('can:roles.gestionar')
+                ->name('proyectos.admin.matriz-permisos');
+
             Route::view('/equipos', 'usuarios::admin.equipos-proyecto-page')
                 ->middleware('can:usuarios.gestionar')
                 ->name('proyectos.equipos');

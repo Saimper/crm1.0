@@ -45,25 +45,32 @@
                             <div class="mt-2 space-y-1">
                                 @foreach($rolesUsuario as $a)
                                     @php
-                                        $rolBadge = match ($a->rol_codigo) {
+                                        $esCustom = ($a->tipo_rol ?? 'base') === 'custom';
+                                        $rolBadge = $esCustom ? 'badge-info' : match ($a->rol_codigo) {
                                             'SUPERVISOR' => 'badge-primary',
                                             'GESTOR'     => 'badge-success',
                                             'AUDITOR'    => 'badge-warning',
                                             default      => 'badge-neutral',
                                         };
                                         $claveRestr = $a->usuario_id.'-'.$a->rol_id;
-                                        $carterasRol = $restricciones->get($claveRestr, collect());
+                                        $carterasRol = $esCustom ? collect() : $restricciones->get($claveRestr, collect());
+                                        $accionQuitar = $esCustom
+                                            ? "quitarCustom({$a->usuario_id}, {$a->rol_id})"
+                                            : "quitar({$a->usuario_id}, {$a->rol_id})";
                                     @endphp
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="badge {{ $rolBadge }}" style="font-weight:600;gap:6px;">
+                                            @if($esCustom)<span style="font-size:9px;opacity:0.8;">CUSTOM</span>@endif
                                             {{ $a->rol_codigo }}
                                             <button type="button"
-                                                    wire:click="quitar({{ $a->usuario_id }}, {{ $a->rol_id }})"
+                                                    wire:click="{{ $accionQuitar }}"
                                                     wire:confirm="¿Quitar el rol {{ $a->rol_codigo }} a {{ $primero->name }}?"
                                                     style="background:transparent;border:0;cursor:pointer;color:inherit;line-height:1;font-size:14px;padding:0;"
                                                     title="Quitar rol">×</button>
                                         </span>
-                                        @if($carterasRol->isEmpty())
+                                        @if($esCustom)
+                                            <span class="label-xs">todo el proyecto (custom)</span>
+                                        @elseif($carterasRol->isEmpty())
                                             <span class="label-xs">todo el proyecto</span>
                                         @else
                                             <span class="label-xs">carteras:</span>
@@ -111,16 +118,33 @@
 
                     <div class="field">
                         <label class="field-label">Rol</label>
-                        <select wire:model="rolAsignarId" class="select @error('rolAsignarId') input-error @enderror">
+                        <select wire:model.live="rolAsignarValor" class="select @error('rolAsignarValor') input-error @enderror">
                             <option value="">—</option>
-                            @foreach($rolesAsignables as $r)
-                                <option value="{{ $r->id }}">{{ $r->codigo }} — {{ $r->nombre }}</option>
-                            @endforeach
+                            <optgroup label="Roles base">
+                                @foreach($rolesAsignablesBase as $r)
+                                    <option value="base:{{ $r->id }}">{{ $r->codigo }} — {{ $r->nombre }}</option>
+                                @endforeach
+                            </optgroup>
+                            @if($rolesAsignablesCustom->isNotEmpty())
+                                <optgroup label="Roles custom del proyecto">
+                                    @foreach($rolesAsignablesCustom as $rc)
+                                        <option value="custom:{{ $rc->id }}">{{ $rc->codigo }} — {{ $rc->nombre }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
                         </select>
-                        @error('rolAsignarId')<div class="field-error">{{ $message }}</div>@enderror
+                        @error('rolAsignarValor')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
 
-                    @if($carterasDelProyecto->isNotEmpty())
+                    @php $esRolCustom = str_starts_with($rolAsignarValor, 'custom:'); @endphp
+
+                    @if($esRolCustom)
+                        <div class="alert alert-info" style="font-size:12px;">
+                            Los roles custom aplican a todo el proyecto. La restricción por cartera no aplica en esta versión.
+                        </div>
+                    @endif
+
+                    @if(! $esRolCustom && $carterasDelProyecto->isNotEmpty())
                         <div class="field">
                             <label class="field-label">Restringir a carteras (opcional)</label>
                             <div class="field-help" style="margin-top:0;margin-bottom:6px;">
