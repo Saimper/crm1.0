@@ -103,9 +103,12 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'catalogos.administrar',   'nombre' => 'Administrar catálogos',                   'grupo' => 'catalogos',     'activo' => true],
 
             // Reportes
-            ['codigo' => 'reportes.operativos',     'nombre' => 'Ver reportes operativos',                 'grupo' => 'reportes',      'activo' => true],
-            ['codigo' => 'reportes.analiticos',     'nombre' => 'Ver reportes analíticos',                 'grupo' => 'reportes',      'activo' => true],
-            ['codigo' => 'reportes.exportar',       'nombre' => 'Exportar reportes',                       'grupo' => 'reportes',      'activo' => true],
+            ['codigo' => 'reportes.operativos',              'nombre' => 'Ver reportes operativos',                          'grupo' => 'reportes',      'activo' => true],
+            ['codigo' => 'reportes.analiticos',              'nombre' => 'Ver reportes analíticos',                          'grupo' => 'reportes',      'activo' => true],
+            ['codigo' => 'reportes.exportar',                'nombre' => 'Exportar reportes',                                'grupo' => 'reportes',      'activo' => true],
+            ['codigo' => 'reportes.constructor.gestionar',   'nombre' => 'Crear/editar definiciones de reportes custom',     'grupo' => 'reportes',      'activo' => true],
+            ['codigo' => 'reportes.constructor.ejecutar',    'nombre' => 'Ejecutar y previsualizar reportes custom',         'grupo' => 'reportes',      'activo' => true],
+            ['codigo' => 'reportes.constructor.exportar',    'nombre' => 'Exportar reportes custom (CSV/XLSX)',              'grupo' => 'reportes',      'activo' => true],
 
             // Importaciones
             ['codigo' => 'importaciones.ver',       'nombre' => 'Ver importaciones',                       'grupo' => 'importaciones', 'activo' => true],
