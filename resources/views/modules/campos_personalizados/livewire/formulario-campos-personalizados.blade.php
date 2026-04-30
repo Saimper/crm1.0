@@ -20,6 +20,7 @@
     @else
         <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
             @foreach($campos as $campo)
+                @php($soloLectura = $bloqueado || ! empty($camposSoloLectura[$campo->codigo]))
                 <div>
                     <label class="block text-xs font-medium text-blue-900">
                         {{ $campo->etiqueta }}
@@ -29,38 +30,38 @@
                     @switch($campo->tipo)
                         @case('texto_corto')
                             <input type="text" wire:model="valores.{{ $campo->codigo }}"
-                                   @disabled($bloqueado)
+                                   @disabled($soloLectura)
                                    class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"/>
                             @break
                         @case('texto_largo')
                             <textarea wire:model="valores.{{ $campo->codigo }}" rows="2"
-                                      @disabled($bloqueado)
+                                      @disabled($soloLectura)
                                       class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"></textarea>
                             @break
                         @case('numero_entero')
                             <input type="number" step="1" wire:model="valores.{{ $campo->codigo }}"
-                                   @disabled($bloqueado)
+                                   @disabled($soloLectura)
                                    class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('numero_decimal')
                         @case('moneda')
                             <input type="text" wire:model="valores.{{ $campo->codigo }}" placeholder="0.00"
-                                   @disabled($bloqueado)
+                                   @disabled($soloLectura)
                                    class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('fecha')
                             <input type="date" wire:model="valores.{{ $campo->codigo }}"
-                                   @disabled($bloqueado)
+                                   @disabled($soloLectura)
                                    class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('fecha_hora')
                             <input type="datetime-local" wire:model="valores.{{ $campo->codigo }}"
-                                   @disabled($bloqueado)
+                                   @disabled($soloLectura)
                                    class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('booleano')
                             <select wire:model="valores.{{ $campo->codigo }}"
-                                    @disabled($bloqueado)
+                                    @disabled($soloLectura)
                                     class="mt-1 block w-full text-sm rounded border-blue-300">
                                 <option value="">—</option>
                                 <option value="1">Sí</option>
@@ -69,7 +70,7 @@
                             @break
                         @default
                             <input type="text" wire:model="valores.{{ $campo->codigo }}"
-                                   @disabled($bloqueado)
+                                   @disabled($soloLectura)
                                    class="mt-1 block w-full text-sm rounded border-blue-300"/>
                     @endswitch
                 </div>

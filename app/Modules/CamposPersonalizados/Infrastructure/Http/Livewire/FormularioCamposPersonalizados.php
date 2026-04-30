@@ -6,6 +6,7 @@ namespace App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire;
 
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +35,9 @@ final class FormularioCamposPersonalizados extends Component
     /** @var array<string, mixed> */
     public array $valores = [];
 
+    /** @var array<string, bool> */
+    public array $camposSoloLectura = [];
+
     public bool $bloqueado = false;
 
     public function mount(int $proyectoId, string $ambito, int $ambitoId, int $entidadId, ?bool $bloqueado = null): void
@@ -44,7 +48,12 @@ final class FormularioCamposPersonalizados extends Component
         $this->entidadId = $entidadId;
         $this->bloqueado = $bloqueado ?? ! $this->puedeEditar();
 
-        $this->cargarValores();
+        $teniaValores = $this->cargarValores();
+        $this->aplicarSoloLecturaTrasGuardar();
+
+        if (! $teniaValores) {
+            $this->aplicarAutoRelleno();
+        }
     }
 
     public function guardar(ServicioCamposPersonalizados $servicio): void
@@ -106,7 +115,7 @@ final class FormularioCamposPersonalizados extends Component
         return (bool) $user->tienePermiso('campos.editar', $this->proyectoId);
     }
 
-    private function cargarValores(): void
+    private function cargarValores(): bool
     {
         $filas = DB::table('valores_campo_personalizado as v')
             ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
@@ -119,6 +128,56 @@ final class FormularioCamposPersonalizados extends Component
 
         foreach ($filas as $f) {
             $this->valores[(string) $f->codigo] = $this->leerValor($f, (string) $f->tipo);
+        }
+
+        return $filas->isNotEmpty();
+    }
+
+    private function aplicarSoloLecturaTrasGuardar(): void
+    {
+        $campos = DB::table('campos_personalizados')
+            ->where('proyecto_id', $this->proyectoId)
+            ->where('ambito', $this->ambito)
+            ->where('ambito_id', $this->ambitoId)
+            ->where('activo', true)
+            ->select(['codigo', 'reglas'])
+            ->get();
+
+        foreach ($campos as $c) {
+            $reglas = is_string($c->reglas) ? (array) json_decode((string) $c->reglas, true) : [];
+            if (! empty($reglas['solo_lectura_tras_guardar']) && array_key_exists((string) $c->codigo, $this->valores)) {
+                $this->camposSoloLectura[(string) $c->codigo] = true;
+            }
+        }
+    }
+
+    private function aplicarAutoRelleno(): void
+    {
+        $user = auth()->user();
+        if ($user === null) {
+            return;
+        }
+        $codigoProyecto = (string) (DB::table('proyectos')->where('id', $this->proyectoId)->value('codigo') ?? '');
+
+        $ctx = new ContextoUsuarioProyecto(
+            usuarioId: (int) $user->getAuthIdentifier(),
+            usuarioNombre: (string) ($user->name ?? ''),
+            usuarioEmail: (string) ($user->email ?? ''),
+            proyectoCodigo: $codigoProyecto,
+        );
+
+        /** @var ServicioCamposPersonalizados $servicio */
+        $servicio = app(ServicioCamposPersonalizados::class);
+        $valores = $servicio->valoresAutoRelleno(
+            $this->proyectoId,
+            AmbitoCampo::from($this->ambito),
+            $this->ambitoId,
+            $ctx,
+        );
+        foreach ($valores as $codigo => $valor) {
+            if (! array_key_exists($codigo, $this->valores) || $this->valores[$codigo] === null || $this->valores[$codigo] === '') {
+                $this->valores[$codigo] = $valor;
+            }
         }
     }
 
