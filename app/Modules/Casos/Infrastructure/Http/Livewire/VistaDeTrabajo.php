@@ -98,6 +98,8 @@ final class VistaDeTrabajo extends Component
                 ->leftJoin('tipos_gestion as tg', 'tg.id', '=', 'g.tipo_gestion_id')
                 ->leftJoin('canales as cn', 'cn.id', '=', 'g.canal_id')
                 ->leftJoin('users as u', 'u.id', '=', 'g.usuario_id')
+                ->leftJoin('motivos_no_contacto as mnc', 'mnc.id', '=', 'g.motivo_no_contacto_id')
+                ->leftJoin('causas_gestion as cg', 'cg.id', '=', 'g.causa_id')
                 ->where('g.proyecto_id', $proyectoId)
                 ->where('g.caso_id', $casoActivo->id)
                 ->whereNull('g.eliminada_en')
@@ -107,6 +109,8 @@ final class VistaDeTrabajo extends Component
                     'tg.nombre as tipo_gestion_nombre',
                     'cn.nombre as canal_nombre',
                     'u.name as usuario_nombre',
+                    'mnc.nombre as motivo_no_contacto_nombre',
+                    'cg.nombre as causa_nombre',
                 ])
                 ->orderByDesc('g.creada_en')
                 ->limit(30)
@@ -146,6 +150,18 @@ final class VistaDeTrabajo extends Component
                     ->select(['cas.descripcion_accion', 'cas.fecha_programada', 'cas.tecnico_asignado', 'tas.nombre as tipo_accion_nombre'])
                     ->first();
             }
+
+            $compromisosResueltos = DB::table('compromisos')
+                ->where('proyecto_id', $proyectoId)
+                ->where('caso_id', $casoActivo->id)
+                ->whereIn('estado', ['cumplido', 'roto', 'cancelado'])
+                ->whereNull('eliminada_en')
+                ->orderByDesc('fecha_resolucion')
+                ->select(['id', 'tipo_compromiso', 'estado', 'fecha_vencimiento', 'fecha_resolucion'])
+                ->limit(20)
+                ->get();
+        } else {
+            $compromisosResueltos = collect();
         }
 
         $casoCobranza = null;
@@ -236,6 +252,7 @@ final class VistaDeTrabajo extends Component
             'casoServicio' => $casoServicio,
             'historial' => $historial,
             'compromisoActivo' => $compromisoActivo,
+            'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,
         ]);
     }

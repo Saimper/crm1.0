@@ -197,11 +197,59 @@
                                         · {{ (int) floor($g->duracion_segundos / 60) }}m {{ $g->duracion_segundos % 60 }}s
                                     @endif
                                 </div>
+                                @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
+                                    <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
+                                        @if($g->motivo_no_contacto_nombre)
+                                            <x-ui.badge tone="warning" size="sm">No contacto: {{ $g->motivo_no_contacto_nombre }}</x-ui.badge>
+                                        @endif
+                                        @if($g->causa_nombre)
+                                            <x-ui.badge tone="info" size="sm">Causa: {{ $g->causa_nombre }}</x-ui.badge>
+                                        @endif
+                                    </div>
+                                @endif
                             </x-ui.timeline-item>
                         @endforeach
                     </x-ui.timeline>
                 @endif
             </x-ui.card>
+
+            @if($casoActivo && isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
+                <x-ui.card title="Compromisos resueltos ({{ $compromisosResueltos->count() }})" style="margin-top:12px;">
+                    <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                        @foreach($compromisosResueltos as $c)
+                            @php
+                                $estadoTone = match ($c->estado) {
+                                    'cumplido' => 'success',
+                                    'roto' => 'danger',
+                                    'cancelado' => 'neutral',
+                                    default => 'neutral',
+                                };
+                            @endphp
+                            <li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+                                <div style="min-width:0;">
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        <x-ui.badge :tone="$estadoTone" size="sm">{{ ucfirst($c->estado) }}</x-ui.badge>
+                                        <span style="font-size:11px;color:var(--text-tertiary);">
+                                            {{ str_replace('_', ' ', $c->tipo_compromiso) }}
+                                        </span>
+                                    </div>
+                                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                                        Vencimiento: {{ \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y') }}
+                                    </div>
+                                </div>
+                                <div style="font-size:11px;color:var(--text-secondary);text-align:right;">
+                                    @if($c->fecha_resolucion)
+                                        Resuelto<br>
+                                        <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
+                                    @else
+                                        <span style="color:var(--text-tertiary);">sin fecha</span>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                </x-ui.card>
+            @endif
         </div>
     </div>
 </div>
