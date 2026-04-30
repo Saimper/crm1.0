@@ -39,7 +39,6 @@
         </div>
         <div class="mt-3 flex justify-end items-center gap-2">
             @php
-                $pid = (int) app('tenancy.proyecto_activo')->id;
                 $qs = array_filter([
                     'entidad_tipo' => $entidadTipo,
                     'usuario_id'   => $usuarioId,
@@ -48,10 +47,13 @@
                     'hasta'        => $hasta,
                 ], fn ($v) => $v !== '' && $v !== null);
             @endphp
-            <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
-               class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
-                Exportar CSV
-            </a>
+            @if(! $modoGlobal)
+                @php $pid = (int) app('tenancy.proyecto_activo')->id; @endphp
+                <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
+                   class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
+                    Exportar CSV
+                </a>
+            @endif
             <button type="button" wire:click="limpiarFiltros"
                     class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
                 Limpiar filtros
@@ -70,6 +72,7 @@
                 <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-600">
                     <tr>
                         <th class="px-3 py-2 text-left">Fecha</th>
+                        @if($modoGlobal)<th class="px-3 py-2 text-left">Proyecto</th>@endif
                         <th class="px-3 py-2 text-left">Usuario</th>
                         <th class="px-3 py-2 text-left">Entidad</th>
                         <th class="px-3 py-2 text-left">ID</th>
@@ -90,6 +93,15 @@
                         @endphp
                         <tr>
                             <td class="px-3 py-2 text-xs">{{ \Illuminate\Support\Carbon::parse($r->creada_en)->format('d/m/Y H:i:s') }}</td>
+                            @if($modoGlobal)
+                                <td class="px-3 py-2 text-xs">
+                                    @if($r->proyecto_id)
+                                        <span class="font-mono text-gray-600">{{ $r->proyecto_codigo }}</span>
+                                    @else
+                                        <span class="text-gray-400 italic">global</span>
+                                    @endif
+                                </td>
+                            @endif
                             <td class="px-3 py-2 text-xs">{{ $r->usuario_nombre ?? '—' }}</td>
                             <td class="px-3 py-2 text-xs font-mono">{{ $r->entidad_tipo }}</td>
                             <td class="px-3 py-2 text-xs font-mono">{{ $r->entidad_id }}</td>

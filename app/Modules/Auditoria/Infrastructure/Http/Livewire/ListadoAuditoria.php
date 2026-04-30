@@ -52,15 +52,24 @@ final class ListadoAuditoria extends Component
 
     public function render(): View
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $modoGlobal = ! app()->bound('tenancy.proyecto_activo');
+        $proyectoId = $modoGlobal ? null : (int) app('tenancy.proyecto_activo')->id;
 
         $q = DB::table('auditorias as a')
             ->leftJoin('users as u', 'u.id', '=', 'a.usuario_id')
-            ->where('a.proyecto_id', $proyectoId)
+            ->leftJoin('proyectos as p', 'p.id', '=', 'a.proyecto_id')
             ->select([
                 'a.id', 'a.entidad_tipo', 'a.entidad_id', 'a.evento',
-                'a.ip', 'a.creada_en', 'u.name as usuario_nombre',
+                'a.ip', 'a.creada_en', 'a.proyecto_id',
+                'u.name as usuario_nombre',
+                'p.codigo as proyecto_codigo', 'p.nombre as proyecto_nombre',
             ]);
+
+        if ($modoGlobal) {
+            // Sin scope de proyecto: ADMIN_GLOBAL ve todo (incluyendo nullables).
+        } else {
+            $q->where('a.proyecto_id', $proyectoId);
+        }
 
         if ($this->entidadTipo !== '') {
             $q->where('a.entidad_tipo', $this->entidadTipo);
@@ -80,25 +89,30 @@ final class ListadoAuditoria extends Component
 
         $registros = $q->orderByDesc('a.creada_en')->paginate(25);
 
-        $tiposEntidad = DB::table('auditorias')
-            ->where('proyecto_id', $proyectoId)
-            ->distinct()->orderBy('entidad_tipo')
+        $tiposQ = DB::table('auditorias');
+        if (! $modoGlobal) {
+            $tiposQ->where('proyecto_id', $proyectoId);
+        }
+        $tiposEntidad = $tiposQ->distinct()->orderBy('entidad_tipo')
             ->pluck('entidad_tipo')->all();
 
-        $usuarios = DB::table('auditorias as a')
-            ->join('users as u', 'u.id', '=', 'a.usuario_id')
-            ->where('a.proyecto_id', $proyectoId)
-            ->distinct()
+        $usuariosQ = DB::table('auditorias as a')
+            ->join('users as u', 'u.id', '=', 'a.usuario_id');
+        if (! $modoGlobal) {
+            $usuariosQ->where('a.proyecto_id', $proyectoId);
+        }
+        $usuarios = $usuariosQ->distinct()
             ->select(['u.id', 'u.name'])
             ->orderBy('u.name')
             ->get();
 
         $detalle = null;
         if ($this->detalleId !== null) {
-            $detalle = DB::table('auditorias')
-                ->where('proyecto_id', $proyectoId)
-                ->where('id', $this->detalleId)
-                ->first();
+            $detalleQ = DB::table('auditorias')->where('id', $this->detalleId);
+            if (! $modoGlobal) {
+                $detalleQ->where('proyecto_id', $proyectoId);
+            }
+            $detalle = $detalleQ->first();
         }
 
         return view('auditoria::livewire.listado-auditoria', [
@@ -106,6 +120,7 @@ final class ListadoAuditoria extends Component
             'tiposEntidad' => $tiposEntidad,
             'usuarios' => $usuarios,
             'detalle' => $detalle,
+            'modoGlobal' => $modoGlobal,
         ]);
     }
 }

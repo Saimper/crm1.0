@@ -109,6 +109,13 @@
                             <span>Casos</span>
                         </a>
                     @endcan
+                    @can('compromisos.ver', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.compromisos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.compromisos.lista')) active @endif">
+                            <x-ui.icon name="tag" :size="15" />
+                            <span>Compromisos</span>
+                        </a>
+                    @endcan
                     @can('asignaciones.ver_equipo', $proyectoActivo->id)
                         <a href="{{ route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja.equipo')) active @endif">
@@ -272,6 +279,11 @@
                        class="sb-item @if($rid('admin.entidades-configurables')) active @endif">
                         <x-ui.icon name="layers" :size="15" />
                         <span>Entidades Configurables</span>
+                    </a>
+                    <a href="{{ route('admin.auditoria') }}" wire:navigate
+                       class="sb-item @if($rid('admin.auditoria')) active @endif">
+                        <x-ui.icon name="shield" :size="15" />
+                        <span>Auditoría global</span>
                     </a>
                 </div>
             @endif

@@ -30,6 +30,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:casos.crear')
                 ->name('proyectos.casos.crear');
 
+            Route::view('/compromisos', 'compromisos::listado-page')
+                ->middleware('can:compromisos.ver')
+                ->name('proyectos.compromisos.lista');
+
             Route::view('/personas/crear', 'personas::crear-page')
                 ->middleware('can:personas.crear')
                 ->name('proyectos.personas.crear');
@@ -179,6 +183,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->name('admin.usuarios');
             Route::view('/entidades-configurables', 'entidades::admin.page')
                 ->name('admin.entidades-configurables');
+            Route::view('/auditoria', 'auditoria::page')
+                ->name('admin.auditoria');
         });
 });
 
