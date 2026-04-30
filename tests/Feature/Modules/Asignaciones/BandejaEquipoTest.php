@@ -145,6 +145,41 @@ final class BandejaEquipoTest extends TestCase
         $this->assertSame(0, $c->viewData('asignaciones')->total());
     }
 
+    public function test_supervisor_cambia_prioridad_de_asignacion(): void
+    {
+        $proyectoId = $this->proyectoId();
+        $this->bindProyectoActivo($proyectoId);
+        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $g1 = $this->crearConRol($proyectoId, 'GESTOR');
+        $equipoId = $this->crearEquipoConMiembros($proyectoId, 'EQ_PRIO', [$g1->id]);
+        $campanaId = $this->crearCampana($proyectoId, 'CAMP_PRIO');
+        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->value('id');
+        $this->asignar($proyectoId, $campanaId, $casoId, $g1->id);
+
+        $asignacionId = (int) DB::table('asignaciones')
+            ->where('proyecto_id', $proyectoId)
+            ->where('caso_id', $casoId)
+            ->value('id');
+
+        $this->actingAs($supervisor);
+        Livewire::test(BandejaEquipo::class)
+            ->set('equipoId', $equipoId)
+            ->call('cambiarPrioridad', $asignacionId, 5);
+
+        $this->assertSame(5, (int) DB::table('asignaciones')->where('id', $asignacionId)->value('prioridad'));
+
+        // Clamp: prioridad fuera de rango se ajusta a [0, 9].
+        Livewire::test(BandejaEquipo::class)
+            ->set('equipoId', $equipoId)
+            ->call('cambiarPrioridad', $asignacionId, 99);
+        $this->assertSame(9, (int) DB::table('asignaciones')->where('id', $asignacionId)->value('prioridad'));
+
+        Livewire::test(BandejaEquipo::class)
+            ->set('equipoId', $equipoId)
+            ->call('cambiarPrioridad', $asignacionId, -3);
+        $this->assertSame(0, (int) DB::table('asignaciones')->where('id', $asignacionId)->value('prioridad'));
+    }
+
     private function proyectoId(): int
     {
         return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');

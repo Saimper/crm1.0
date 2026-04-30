@@ -47,6 +47,27 @@ final class BandejaEquipo extends Component
         $this->resetPage();
     }
 
+    /**
+     * Ajusta la prioridad de una asignación. Solo SUPERVISOR + ADMIN_GLOBAL
+     * (mismo permiso que ver_equipo + reasignar para no abrir un permiso nuevo).
+     * Rango 0..9.
+     */
+    public function cambiarPrioridad(int $asignacionId, int $nuevaPrioridad): void
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        if (auth()->user()?->tienePermiso('asignaciones.reasignar', $proyectoId) !== true) {
+            abort(403, 'No tienes permiso para cambiar prioridades en este proyecto.');
+        }
+
+        $nuevaPrioridad = max(0, min(9, $nuevaPrioridad));
+
+        DB::table('asignaciones')
+            ->where('id', $asignacionId)
+            ->where('proyecto_id', $proyectoId)
+            ->update(['prioridad' => $nuevaPrioridad]);
+    }
+
     public function render(): View
     {
         abort_unless(auth()->user()?->tienePermiso('asignaciones.ver_equipo') === true, 403);

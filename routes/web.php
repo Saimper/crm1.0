@@ -38,6 +38,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:personas.crear')
                 ->name('proyectos.personas.crear');
 
+            Route::get('/personas/{persona}/editar', fn (int $proyecto_id, string $persona) => view('personas::editar-page', [
+                'persona' => $persona,
+            ]))
+                ->middleware('can:personas.editar')
+                ->name('proyectos.personas.editar');
+
             Route::get('/personas/{persona}/contactos', fn (int $proyecto_id, string $persona) => view('contactos::lista-page', [
                 'persona' => $persona,
             ]))->name('proyectos.personas.contactos');

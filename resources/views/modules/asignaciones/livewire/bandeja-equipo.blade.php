@@ -129,7 +129,18 @@
                             <x-ui.td>
                                 <x-ui.badge :tone="$asigTone">{{ $a->estado }}</x-ui.badge>
                             </x-ui.td>
-                            <x-ui.td align="right" mono>{{ $a->prioridad }}</x-ui.td>
+                            <x-ui.td align="right" mono>
+                                @can('asignaciones.reasignar', $proyectoActivo->id)
+                                    <select wire:change="cambiarPrioridad({{ $a->id }}, $event.target.value)"
+                                            class="text-xs border-gray-300 rounded font-mono w-12 text-right">
+                                        @for($p = 0; $p <= 9; $p++)
+                                            <option value="{{ $p }}" @if((int) $a->prioridad === $p) selected @endif>{{ $p }}</option>
+                                        @endfor
+                                    </select>
+                                @else
+                                    {{ $a->prioridad }}
+                                @endcan
+                            </x-ui.td>
                             <x-ui.td>
                                 {{ $a->fecha_ultima_gestion ? \Illuminate\Support\Carbon::parse($a->fecha_ultima_gestion)->format('d/m/Y H:i') : '—' }}
                             </x-ui.td>

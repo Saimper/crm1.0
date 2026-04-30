@@ -62,11 +62,20 @@
                             @endif
                         </div>
                     </div>
-                    <a href="{{ route('proyectos.personas.contactos', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                       wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
-                        <x-ui.icon name="phone" :size="14" />
-                        <span>Contactos</span>
-                    </a>
+                    <div style="display:flex;gap:6px;">
+                        @can('personas.editar', $proyectoActivo->id)
+                            <a href="{{ route('proyectos.personas.editar', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
+                               wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                                <x-ui.icon name="edit" :size="14" />
+                                <span>Editar</span>
+                            </a>
+                        @endcan
+                        <a href="{{ route('proyectos.personas.contactos', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
+                           wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                            <x-ui.icon name="phone" :size="14" />
+                            <span>Contactos</span>
+                        </a>
+                    </div>
                 </div>
 
                 @if($contactos->isNotEmpty())
