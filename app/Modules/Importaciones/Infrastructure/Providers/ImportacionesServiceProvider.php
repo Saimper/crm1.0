@@ -12,7 +12,10 @@ use Livewire\Livewire;
 
 final class ImportacionesServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->mergeConfigFrom(config_path('imports.php'), 'imports');
+    }
 
     public function boot(): void
     {
