@@ -319,7 +319,7 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ## 15. Estado actual (2026-04-30)
 
-**66 migraciones | 22 módulos activos | 433 tests / 938 assertions verdes**
+**68 migraciones | 22 módulos activos | 450 tests / 993 assertions verdes**
 
 Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion, Clientes.
 
@@ -355,6 +355,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Refactor visual a HTML standalone (intento previo, superado) | ⚠️ F29 (revertido en parte) |
 | Refactor literal admin (mandantes, proyectos, usuarios, campos personalizados, entidades configurables, dashboard) — `AdminTablePattern`: page-header + search-row + table-compact-clickable + drawer | ✅ F29-bis |
 | Validaciones avanzadas y auto-fill en campos personalizados (`fecha_minima`/`fecha_maxima`, `auto_fill`, `solo_lectura_tras_guardar`) — VO `MarcadorTemporal`, enum `AutoFill`, `ContextoUsuarioProyecto`, `ServicioCamposPersonalizados::valoresAutoRelleno()`. Cero migraciones, todo vive en JSON `reglas` existente. | ✅ F30 |
+| Importaciones async + 3 modos (`merge`/`skip_duplicados`/`overwrite`) — `EjecutarImportacionJob` en cola `imports`, lock advisory `GET_LOCK("import:{id}")`, chunks `IMPORTS_BATCH_SIZE` (default 1000), polling Livewire 2s. Enums `ModoImportacion`/`EstadoImportacion`/`EstadoFila`, VO `ResumenChunk`, eventos `ImportacionEncolada`/`Iniciada`/`Terminada`/`Fallada`. Rename estados (`borrador→pendiente`, `validada→preparada`) y contadores (`procesadas/validas/invalidas/omitidas/duplicadas`). | ✅ F31 |
 
 ### Módulo Integracion (F28)
 
@@ -364,6 +365,23 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 - `GET /api/integracion/persona` (auth:sanctum) → JSON preview: persona + casos + compromiso vigente + última gestión.
 - Middleware `CspFrameAncestors`: agrega `frame-ancestors 'self' <WRAPPER_DOMAIN>` cuando env seteado.
 - `SESSION_SAMESITE=none` necesario en producción si el CRM opera dentro de iframe cross-origin (requiere HTTPS).
+
+### Módulo Importaciones — async F31
+
+- **Modos** (`importaciones.modo`):
+  - `merge`: si existe el registro (mismo unique compuesto), rellena solo columnas nulas/vacías.
+  - `skip_duplicados`: si existe, marca fila `duplicada` con razón "ya existe en proyecto" y continúa el batch. **No** inserta filas literales — el unique compuesto §4.5 lo prohíbe; el comportamiento real es "no detenerse por duplicado".
+  - `overwrite`: si existe, actualiza todas las columnas mutables con valores no-null del CSV (vacío del CSV no pisa a null).
+- **Estados importación**: `pendiente → preparada → procesando → completada | fallida | cancelada`. Solo `preparada` puede encolarse.
+- **Estados fila**: `pendiente → procesada | duplicada | invalida | omitida`.
+- **Contadores en `importaciones`**: `total_filas`, `procesadas`, `validas`, `invalidas`, `omitidas`, `duplicadas`. Job incrementa atómicamente tras cada chunk vía `DB::raw('procesadas + N')`.
+- **Concurrencia**: lock advisory `GET_LOCK("import:{id}", 0)` por `importacion_id`. Dos imports distintos del mismo proyecto corren en paralelo; el lock impide solo doble procesamiento del mismo batch.
+- **Idempotencia**: Job es `ShouldBeUnique` con `uniqueId = importacion_id`. Las filas se procesan filtrando por `estado = pendiente` y se actualizan a estado terminal en la misma iteración; re-ejecutar el Job no duplica inserts.
+- **Cancelación**: `CancelarImportacion` marca `estado = cancelada`. Job revisa estado entre chunks y abandona en próxima iteración.
+- **Worker**: `php artisan queue:work --queue=imports`. Múltiples workers OK — el lock advisory los serializa por importación.
+- **Configuración** (`config/imports.php`): `IMPORTS_BATCH_SIZE`, `IMPORTS_QUEUE`, `IMPORTS_MAX_FILAS`, `IMPORTS_JOB_TIMEOUT`.
+- **UPDATE en merge/overwrite**: realizado vía `DB::table()` directo sobre tablas CTI (`personas`, `casos_*`). Respeta §3 (no se importan modelos Eloquent de otros módulos) y §13.4 (lógica de orquestación en Application/UseCase, no en Livewire/Blade). Inserts nuevos siempre delegan al UseCase de origen (`RegistrarPersona`, `RegistrarCasoCobranza`, etc.) preservando invariantes.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F31, con acuerdo previo.
 
 ### Design system — F29-bis (en re-ejecución)
 
