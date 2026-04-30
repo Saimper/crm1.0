@@ -319,7 +319,7 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ## 15. Estado actual (2026-04-30)
 
-**68 migraciones | 22 módulos activos | 450 tests / 993 assertions verdes**
+**70 migraciones | 22 módulos activos | tests F32 verdes (37 nuevos: 13 unit + 24 feature)**
 
 Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion, Clientes.
 
@@ -356,6 +356,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Refactor literal admin (mandantes, proyectos, usuarios, campos personalizados, entidades configurables, dashboard) — `AdminTablePattern`: page-header + search-row + table-compact-clickable + drawer | ✅ F29-bis |
 | Validaciones avanzadas y auto-fill en campos personalizados (`fecha_minima`/`fecha_maxima`, `auto_fill`, `solo_lectura_tras_guardar`) — VO `MarcadorTemporal`, enum `AutoFill`, `ContextoUsuarioProyecto`, `ServicioCamposPersonalizados::valoresAutoRelleno()`. Cero migraciones, todo vive en JSON `reglas` existente. | ✅ F30 |
 | Importaciones async + 3 modos (`merge`/`skip_duplicados`/`overwrite`) — `EjecutarImportacionJob` en cola `imports`, lock advisory `GET_LOCK("import:{id}")`, chunks `IMPORTS_BATCH_SIZE` (default 1000), polling Livewire 2s. Enums `ModoImportacion`/`EstadoImportacion`/`EstadoFila`, VO `ResumenChunk`, eventos `ImportacionEncolada`/`Iniciada`/`Terminada`/`Fallada`. Rename estados (`borrador→pendiente`, `validada→preparada`) y contadores (`procesadas/validas/invalidas/omitidas/duplicadas`). | ✅ F31 |
+| Constructor de reportes custom + export streaming sin límite — DSL declarativo `DefinicionReporte` (entidad raíz + columnas + filtros + agrupaciones + orden), persistido en `reportes_definiciones`. Whitelist server-side `CatalogoCamposReporte` por entidad. Ejecutor `EjecutarReporte` traduce DSL a Eloquent Query Builder con joins predeclarados y bindings parametrizados (cero SQL injection). Streaming CSV nativo (BOM + fputcsv) y XLSX vía OpenSpout `^4.28`. Permisos nuevos `reportes.constructor.{gestionar,ejecutar,exportar}`. Auditoría `reportes_ejecuciones`. Livewire `ConstructorReporte` (preview live LIMIT 50) + `ListadoReportesCustom`. | ✅ F32 |
 
 ### Módulo Integracion (F28)
 
@@ -382,6 +383,31 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 - **Configuración** (`config/imports.php`): `IMPORTS_BATCH_SIZE`, `IMPORTS_QUEUE`, `IMPORTS_MAX_FILAS`, `IMPORTS_JOB_TIMEOUT`.
 - **UPDATE en merge/overwrite**: realizado vía `DB::table()` directo sobre tablas CTI (`personas`, `casos_*`). Respeta §3 (no se importan modelos Eloquent de otros módulos) y §13.4 (lógica de orquestación en Application/UseCase, no en Livewire/Blade). Inserts nuevos siempre delegan al UseCase de origen (`RegistrarPersona`, `RegistrarCasoCobranza`, etc.) preservando invariantes.
 - **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F31, con acuerdo previo.
+
+### Módulo Reportes — constructor custom F32
+
+- **Entrada por proyecto**: `reportes_definiciones` guarda DSL declarativo (entidad raíz, columnas, filtros, agrupaciones, orden). Único `(proyecto_id, codigo)`. Soft delete `eliminada_en`.
+- **Auditoría de ejecuciones**: `reportes_ejecuciones` registra `definicion_id`, `usuario_id`, `formato` (`vista`/`csv`/`xlsx`), `total_filas`, `duracion_ms`.
+- **Whitelist server-side** (`Domain/Constructor/Catalogo/CatalogoCamposReporte`): cada entidad raíz declara su lista cerrada de `CampoDisponible` (clave canónica + etiqueta + tipo + SQL ya calificado + joinKey predeclarada). El usuario nunca aporta SQL: solo selecciona claves; el ejecutor traduce. Joins predeclarados como descriptores estructurados `{tabla, alias, col_a, col_b}` — nada de raw SQL en la API pública.
+- **Tipos cerrados**: `EntidadRaiz` (`casos`/`gestiones`/`compromisos`/`personas`), `OperadorFiltro` (11 ops), `Agregacion` (5 ops), `TipoCampoReporte` (8 tipos). Validación `aceptaOperador()` chequea compatibilidad tipo↔operador.
+- **Reglas Domain** (`DefinicionReporte::validar(CatalogoCamposReporte)`): código/nombre no vacíos, ≥1 columna, todo campo en catálogo, operador compatible con tipo, agregación → ≥1 agrupación, columnas no agregadas deben estar en agrupaciones. Lanza `CampoNoPermitidoEnReporte` / `OperadorIncompatibleConTipo` / `AgregacionRequiereAgrupacion` / `DefinicionReporteInvalida`.
+- **Ejecutor** (`Application/UseCases/EjecutarReporte`): aplica `where {tabla}.proyecto_id = X` SIEMPRE primero (§5 §10), luego `whereNull(eliminada_en)` para entidades históricas, luego filtros DSL como bindings parametrizados. Devuelve generator lazy (`cursor()` Eloquent), `O(1)` memoria por fila. Headers como `[{clave,etiqueta}]` aliasados `col_0..col_N`.
+- **Campos personalizados §7** (`ServicioCamposPersonalizadosReporte`): inyectados al catálogo por proyecto+ámbito (`caso`/`gestion`/`compromiso`). Solo tipos directamente reportables: textos, números, fechas, booleano. Selección única/múltiple/moneda quedan fuera por requerir joins extra contra `opciones_campo_personalizado`. Joins generados dinámicamente como `LEFT JOIN valores_campo_personalizado vcp_{id} ON vcp_{id}.entidad_id = {tabla}.id AND vcp_{id}.campo_personalizado_id = {id}`.
+- **Streaming sin límite** (precedente F19):
+  - **CSV** (`StreamerReporteCsv`): `StreamedResponse` + `fopen('php://output', 'w')` + BOM `\xEF\xBB\xBF` + `fputcsv` por fila. Header `X-Accel-Buffering: no` para nginx.
+  - **XLSX** (`StreamerReporteXlsx`): OpenSpout `^4.28` `Writer::openToFile('php://output')` + `Row::fromValues()` por fila. Sin límite de 64K filas (era el problema del XLS legacy reportado por cliente). Memoria O(1).
+- **Permisos** (granulares por proyecto):
+  - `reportes.constructor.gestionar` → SUPERVISOR + ADMIN_GLOBAL: crear/editar/eliminar definiciones.
+  - `reportes.constructor.ejecutar` → SUPERVISOR + AUDITOR + ADMIN_GLOBAL: previsualizar y abrir constructor.
+  - `reportes.constructor.exportar` → SUPERVISOR + ADMIN_GLOBAL: descargar CSV/XLSX. AUDITOR puede ejecutar lectura pero no exportar.
+  - GESTOR no tiene ninguno por defecto (overridable vía F22 si supervisor lo otorga por cartera).
+- **Rutas**:
+  - `GET /proyectos/{id}/reportes/custom` (listado, `can:reportes.constructor.ejecutar`).
+  - `GET /proyectos/{id}/reportes/custom/nuevo` y `.../{def}/editar` (`can:reportes.constructor.gestionar`).
+  - `GET /proyectos/{id}/reportes/custom/{def}/exportar?formato=csv|xlsx` (`can:reportes.constructor.exportar`).
+- **UI**: Livewire `ConstructorReporte` ofrece selector entidad → catálogo lateral filtrable → +columna/+filtro/+agrupación/+orden → preview live (LIMIT 50) → guardar. `ListadoReportesCustom` lista definiciones del proyecto con acciones inline.
+- **Dependencia nueva**: `openspout/openspout ^4.28.5` — librería liviana MIT-licensed, streaming nativo XLSX/ODS/CSV. Justificación: alternativa única para escribir XLSX sin cargar todo el archivo en memoria (PhpSpreadsheet no soporta streaming real). Sin Horizon, sin colas extra.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F32, con acuerdo previo.
 
 ### Design system — F29-bis (en re-ejecución)
 
