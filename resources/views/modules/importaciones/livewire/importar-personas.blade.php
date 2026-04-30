@@ -24,7 +24,7 @@
                 </div>
                 <div>
                     <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
                         Subir y validar
                     </button>
                 </div>
@@ -108,7 +108,7 @@
                     @if(($importacionActual->estado ?? null) === 'validada')
                         <button type="button" wire:click="confirmar"
                                 wire:confirm="¿Confirmar importación? Se crearán las personas válidas."
-                                class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                                class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
                             Confirmar importación
                         </button>
                     @elseif(($importacionActual->estado ?? null) === 'completada')
@@ -158,24 +158,24 @@
         @endif
     </section>
 
-    <section class="rounded-lg border border-indigo-200 bg-indigo-50 p-4 space-y-3">
-        <div class="text-sm font-semibold text-indigo-900">Exportaciones CSV del proyecto</div>
+    <section class="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+        <div class="text-sm font-semibold text-blue-900">Exportaciones CSV del proyecto</div>
         @php $pid = app('tenancy.proyecto_activo')->id; @endphp
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
             <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700">
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
                 Personas
             </a>
             <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700">
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
                 Casos
             </a>
             <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700">
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
                 Gestiones
             </a>
             <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700">
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
                 Compromisos
             </a>
         </div>

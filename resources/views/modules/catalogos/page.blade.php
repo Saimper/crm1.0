@@ -1,14 +1,6 @@
 <x-app-layout>
-    <x-slot name="header">
-        @php $proyecto = app('tenancy.proyecto_activo'); @endphp
-        <x-ui.page-header
-            title="Catálogos del proyecto"
-            :subtitle="$proyecto->nombre"
-            :back="route('proyectos.dashboard', ['proyecto_id' => $proyecto->id])"
-            back-label="← Volver al proyecto" />
-    </x-slot>
-
     @php
+        $proyecto = app('tenancy.proyecto_activo');
         $tipoOperacion = (string) $proyecto->tipo_operacion;
 
         $tabsComunes = [
@@ -44,9 +36,19 @@
         $tabs = $tabsComunes + $tabsTipo;
     @endphp
 
-    <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4"
-             x-data="{ tab: 'resultados' }">
+    <div class="page">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Catálogos del proyecto</h1>
+                <div class="page-subtitle">{{ $proyecto->nombre }}</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]) }}"
+                   wire:navigate class="btn btn-ghost btn-sm">← Volver al proyecto</a>
+            </div>
+        </div>
+
+        <div class="space-y-4" x-data="{ tab: 'resultados' }">
 
             <nav class="flex items-center flex-wrap gap-1 border-b border-surface-border text-sm bg-white rounded-t-xl px-2 pt-1">
                 @foreach($tabs as $key => $label)

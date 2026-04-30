@@ -25,7 +25,7 @@
     <div class="flex items-center justify-between">
         <div class="text-xs text-gray-500">Total: <span class="font-semibold text-gray-800">{{ $items->count() }}</span></div>
         <button type="button" wire:click="abrirFormCrear"
-                class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700">
+                class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700">
             Nuevo {{ $singular }}
         </button>
     </div>
@@ -60,7 +60,7 @@
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-right text-xs">
-                                <button wire:click="abrirFormEditar({{ $it->id }})" class="text-indigo-700 hover:underline">Editar</button>
+                                <button wire:click="abrirFormEditar({{ $it->id }})" class="text-blue-700 hover:underline">Editar</button>
                                 @if($it->activo)
                                     <button wire:click="desactivar({{ $it->id }})" wire:confirm="¿Desactivar?"
                                             class="ml-2 text-red-700 hover:underline">Desactivar</button>
@@ -119,7 +119,7 @@
 
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button wire:click="cerrarForm" class="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50">Cancelar</button>
-                    <button wire:click="guardar" class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">Guardar</button>
+                    <button wire:click="guardar" class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">Guardar</button>
                 </div>
             </div>
         </div>

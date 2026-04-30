@@ -56,7 +56,7 @@
             <div class="md:col-span-3 flex justify-end">
                 <button type="submit"
                         wire:confirm="¿Confirmar re-asignación? Se moverán las asignaciones pendientes entre equipos."
-                        class="px-4 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                        class="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">
                     Re-asignar
                 </button>
             </div>

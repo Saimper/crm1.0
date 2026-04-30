@@ -1,16 +1,18 @@
 <x-app-layout>
-    <x-slot name="header">
-        @php $proyecto = app('tenancy.proyecto_activo'); @endphp
-        <x-ui.page-header
-            title="Bandeja del equipo"
-            :subtitle="$proyecto->nombre"
-            :back="route('proyectos.dashboard', ['proyecto_id' => $proyecto->id])"
-            back-label="← Volver al proyecto" />
-    </x-slot>
+    @php $proyecto = app('tenancy.proyecto_activo'); @endphp
 
-    <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <livewire:asignaciones.bandeja-equipo />
+    <div class="page">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Bandeja del equipo</h1>
+                <div class="page-subtitle">{{ $proyecto->nombre }}</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]) }}"
+                   wire:navigate class="btn btn-ghost btn-sm">← Volver al proyecto</a>
+            </div>
         </div>
+
+        <livewire:asignaciones.bandeja-equipo />
     </div>
 </x-app-layout>

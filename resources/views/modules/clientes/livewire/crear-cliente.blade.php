@@ -12,11 +12,11 @@
                 <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-2">Tipo de persona</label>
                 <div class="flex items-center gap-3">
                     <label class="inline-flex items-center gap-2">
-                        <input type="radio" wire:model.live="tipoPersona" value="fisica" class="text-indigo-600 focus:ring-indigo-500">
+                        <input type="radio" wire:model.live="tipoPersona" value="fisica" class="text-blue-600 focus:ring-blue-500">
                         <span class="text-sm text-gray-800">Persona física</span>
                     </label>
                     <label class="inline-flex items-center gap-2">
-                        <input type="radio" wire:model.live="tipoPersona" value="juridica" class="text-indigo-600 focus:ring-indigo-500">
+                        <input type="radio" wire:model.live="tipoPersona" value="juridica" class="text-blue-600 focus:ring-blue-500">
                         <span class="text-sm text-gray-800">Persona jurídica</span>
                     </label>
                 </div>
@@ -27,7 +27,7 @@
                 <div class="sm:col-span-1">
                     <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Tipo ID <span class="text-red-600">*</span></label>
                     <select wire:model="tipoIdentificacionId"
-                            class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="">— Selecciona —</option>
                         @foreach($tiposIdentificacion as $t)
                             <option value="{{ $t->id }}">{{ $t->codigo }} · {{ $t->nombre }}</option>
@@ -39,7 +39,7 @@
                     <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Número de identificación <span class="text-red-600">*</span></label>
                     <input type="text"
                            wire:model="identificacion"
-                           class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                            placeholder="Ej: 0102030405 o 1792345678001">
                     @error('identificacion') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -52,7 +52,7 @@
                         <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Nombres <span class="text-red-600">*</span></label>
                         <input type="text"
                                wire:model="nombres"
-                               class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                               class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                                placeholder="Nombre(s) de pila">
                         @error('nombres') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -60,7 +60,7 @@
                         <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Apellidos</label>
                         <input type="text"
                                wire:model="apellidos"
-                               class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                               class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                                placeholder="Apellidos">
                         @error('apellidos') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -71,7 +71,7 @@
                     <input type="date"
                            wire:model="fechaNacimiento"
                            max="{{ now()->format('Y-m-d') }}"
-                           class="w-full sm:w-60 rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                           class="w-full sm:w-60 rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
                     @error('fechaNacimiento') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
             @else
@@ -79,7 +79,7 @@
                     <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Razón social <span class="text-red-600">*</span></label>
                     <input type="text"
                            wire:model="razonSocial"
-                           class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                            placeholder="Nombre comercial o razón social">
                     @error('razonSocial') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                 </div>
@@ -90,7 +90,7 @@
                 <a href="{{ route('bandeja') }}" wire:navigate class="text-sm text-gray-600 hover:text-gray-900">Cancelar</a>
                 <button type="submit"
                         wire:loading.attr="disabled"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
                     <span wire:loading.remove>Crear cliente</span>
                     <span wire:loading>Guardando…</span>
                 </button>

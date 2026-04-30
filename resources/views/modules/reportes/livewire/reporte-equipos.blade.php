@@ -36,7 +36,7 @@
                 <tbody class="divide-y divide-gray-100">
                     @foreach($filas as $f)
                         @php $eq = $f['equipo']; $expandido = $detalle !== null && $equipoExpandidoId === (int) $eq->id; @endphp
-                        <tr class="{{ $expandido ? 'bg-indigo-50/50' : '' }}">
+                        <tr class="{{ $expandido ? 'bg-blue-50/50' : '' }}">
                             <td class="px-3 py-2">
                                 <div class="font-medium text-gray-900">{{ $eq->nombre }}</div>
                                 <div class="text-[10px] text-gray-500 font-mono">{{ $eq->codigo }}</div>
@@ -50,13 +50,13 @@
                             <td class="px-3 py-2 text-right font-mono text-red-700">{{ number_format($f['compromisos_vencidos']) }}</td>
                             <td class="px-3 py-2 text-center">
                                 <button type="button" wire:click="expandir({{ $eq->id }})"
-                                        class="text-xs text-indigo-700 hover:underline">
+                                        class="text-xs text-blue-700 hover:underline">
                                     {{ $expandido ? 'Ocultar' : 'Miembros' }}
                                 </button>
                             </td>
                         </tr>
                         @if($expandido && $detalle !== null)
-                            <tr class="bg-indigo-50/30">
+                            <tr class="bg-blue-50/30">
                                 <td colspan="9" class="px-6 py-3">
                                     @if(empty($detalle))
                                         <div class="text-xs text-gray-500">El equipo no tiene miembros activos.</div>

@@ -52,7 +52,7 @@
                             <input type="date"
                                    wire:model="fechaResolucion"
                                    max="{{ now()->format('Y-m-d') }}"
-                                   class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                   class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
                             @error('fechaResolucion') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 

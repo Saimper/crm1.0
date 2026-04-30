@@ -15,15 +15,15 @@
             </div>
             @if(auth()->user()->tienePermiso('entidades.crear', $proyectoId) && ! $formVisible)
                 <button type="button" wire:click="abrirFormCrear"
-                        class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                        class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
                     Nuevo registro
                 </button>
             @endif
         </section>
 
         @if($formVisible)
-            <section class="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                <h4 class="text-sm font-semibold text-indigo-900 mb-3">
+            <section class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 class="text-sm font-semibold text-blue-900 mb-3">
                     {{ $registroEditandoId === null ? 'Crear registro' : 'Editar registro' }}
                 </h4>
                 <form wire:submit.prevent="guardar" class="space-y-3 text-sm">
@@ -80,7 +80,7 @@
                         <button type="button" wire:click="cerrarForm"
                                 class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">Cancelar</button>
                         <button type="submit"
-                                class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">Guardar</button>
+                                class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">Guardar</button>
                     </div>
                 </form>
             </section>

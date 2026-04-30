@@ -49,7 +49,7 @@
                 ], fn ($v) => $v !== '' && $v !== null);
             @endphp
             <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
-               class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
+               class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
                 Exportar CSV
             </a>
             <button type="button" wire:click="limpiarFiltros"
@@ -99,7 +99,7 @@
                             <td class="px-3 py-2 text-xs font-mono text-gray-500">{{ $r->ip ?? '—' }}</td>
                             <td class="px-3 py-2 text-right">
                                 <button type="button" wire:click="verDetalle({{ $r->id }})"
-                                        class="text-xs text-indigo-700 hover:underline">Detalle</button>
+                                        class="text-xs text-blue-700 hover:underline">Detalle</button>
                             </td>
                         </tr>
                     @endforeach

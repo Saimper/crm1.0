@@ -54,7 +54,7 @@
             <div class="md:col-span-3 flex justify-end">
                 <button type="submit"
                         wire:confirm="¿Confirmar distribución round-robin?"
-                        class="px-4 py-2 text-sm text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                        class="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">
                     Asignar
                 </button>
             </div>

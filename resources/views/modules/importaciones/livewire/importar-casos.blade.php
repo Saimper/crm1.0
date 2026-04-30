@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <button type="submit"
-                            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
+                            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
                         Subir y validar
                     </button>
                 </div>
@@ -117,7 +117,7 @@
                     @if(($importacionActual->estado ?? null) === 'validada')
                         <button type="button" wire:click="confirmar"
                                 wire:confirm="¿Confirmar importación? Se crearán los casos válidos."
-                                class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                                class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
                             Confirmar importación
                         </button>
                     @elseif(($importacionActual->estado ?? null) === 'completada')

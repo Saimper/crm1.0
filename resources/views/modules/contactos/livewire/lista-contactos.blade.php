@@ -44,7 +44,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Tipo</label>
-                    <select wire:model.live="tipo" class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <select wire:model.live="tipo" class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="telefono">Teléfono</option>
                         <option value="correo">Correo</option>
                         <option value="direccion">Dirección</option>
@@ -56,7 +56,7 @@
                     </label>
                     <input type="text"
                            wire:model="valor"
-                           class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                            placeholder="@switch($tipo)
                                @case('telefono')+593 98 123 4567@break
                                @case('correo')persona@correo.com@break
@@ -71,12 +71,12 @@
                     <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Etiqueta</label>
                     <input type="text"
                            wire:model="etiqueta"
-                           class="w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                           class="w-full rounded-md border-gray-300 text-sm focus:border-blue-500 focus:ring-blue-500"
                            placeholder="Casa, trabajo, móvil…">
                 </div>
                 <div class="flex items-end">
                     <label class="inline-flex items-center gap-2">
-                        <input type="checkbox" wire:model="esPrincipal" class="text-indigo-600 focus:ring-indigo-500">
+                        <input type="checkbox" wire:model="esPrincipal" class="text-blue-600 focus:ring-blue-500">
                         <span class="text-sm text-gray-800">Marcar como principal</span>
                     </label>
                 </div>
@@ -85,7 +85,7 @@
             <div class="flex justify-end">
                 <button type="submit"
                         wire:loading.attr="disabled"
-                        class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50">
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
                     <span wire:loading.remove>Agregar contacto</span>
                     <span wire:loading>Guardando…</span>
                 </button>

@@ -22,7 +22,7 @@
                                     'cobranza'   => 'bg-amber-100 text-amber-800',
                                     'ticket_cx'  => 'bg-sky-100 text-sky-800',
                                     'lead_venta' => 'bg-emerald-100 text-emerald-800',
-                                    'servicio'   => 'bg-violet-100 text-violet-800',
+                                    'servicio'   => 'bg-blue-100 text-blue-800',
                                     default      => 'bg-gray-100 text-gray-700',
                                 };
                             @endphp
@@ -94,7 +94,7 @@
                     <div class="flex items-center gap-3 text-xs">
                         <div class="w-16 font-mono text-gray-600">{{ $m->mes }}</div>
                         <div class="flex-1 bg-gray-100 rounded h-4 overflow-hidden">
-                            <div class="bg-indigo-500 h-4" style="width: {{ $porcent }}%"></div>
+                            <div class="bg-blue-600 h-4" style="width: {{ $porcent }}%"></div>
                         </div>
                         <div class="w-16 text-right font-mono">{{ number_format($m->total) }}</div>
                     </div>
@@ -132,7 +132,7 @@
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-right font-mono">{{ number_format($r->total) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-indigo-700">{{ $pct }}%</td>
+                            <td class="px-3 py-2 text-right font-mono text-blue-700">{{ $pct }}%</td>
                         </tr>
                     @endforeach
                 </tbody>

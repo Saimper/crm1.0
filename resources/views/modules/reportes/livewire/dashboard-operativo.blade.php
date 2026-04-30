@@ -9,7 +9,7 @@
         <div class="flex items-center gap-2 text-xs">
             @foreach(['hoy' => 'Hoy', 'ayer' => 'Ayer', 'semana' => 'Semana', 'mes' => 'Mes'] as $valor => $label)
                 <button type="button" wire:click="$set('rango', '{{ $valor }}')"
-                        class="px-3 py-1.5 rounded border {{ $rango === $valor ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                        class="px-3 py-1.5 rounded border {{ $rango === $valor ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
                     {{ $label }}
                 </button>
             @endforeach
@@ -27,7 +27,7 @@
         </div>
         <div class="rounded-lg border border-gray-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-gray-500">Efectividad</div>
-            <div class="text-2xl font-semibold text-indigo-700 mt-1">{{ number_format($efectividad, 1) }}%</div>
+            <div class="text-2xl font-semibold text-blue-700 mt-1">{{ number_format($efectividad, 1) }}%</div>
         </div>
         <div class="rounded-lg border border-gray-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-gray-500">Total gestiones</div>
@@ -70,7 +70,7 @@
                             <td class="px-3 py-2 text-right font-mono">{{ number_format($r->total_gestiones) }}</td>
                             <td class="px-3 py-2 text-right font-mono">{{ number_format($r->cuentas_intentadas) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-emerald-700">{{ number_format($r->cuentas_gestionadas) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-indigo-700">{{ number_format($ef, 1) }}%</td>
+                            <td class="px-3 py-2 text-right font-mono text-blue-700">{{ number_format($ef, 1) }}%</td>
                         </tr>
                     @endforeach
                 </tbody>

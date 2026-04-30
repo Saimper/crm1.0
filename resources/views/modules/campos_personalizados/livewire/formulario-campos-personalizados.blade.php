@@ -1,6 +1,6 @@
-<div class="rounded-md border border-indigo-200 bg-indigo-50 p-4">
+<div class="rounded-md border border-blue-200 bg-blue-50 p-4">
     <div class="flex items-center justify-between">
-        <h4 class="text-xs font-semibold uppercase tracking-wider text-indigo-800">
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-blue-800">
             Campos personalizados
         </h4>
         @if(session('campos-ok'))
@@ -16,12 +16,12 @@
     @enderror
 
     @if($campos->isEmpty())
-        <div class="mt-2 text-xs text-indigo-700">No hay campos personalizados definidos para este ámbito.</div>
+        <div class="mt-2 text-xs text-blue-700">No hay campos personalizados definidos para este ámbito.</div>
     @else
         <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
             @foreach($campos as $campo)
                 <div>
-                    <label class="block text-xs font-medium text-indigo-900">
+                    <label class="block text-xs font-medium text-blue-900">
                         {{ $campo->etiqueta }}
                         @if($campo->obligatorio)<span class="text-red-600">*</span>@endif
                     </label>
@@ -30,38 +30,38 @@
                         @case('texto_corto')
                             <input type="text" wire:model="valores.{{ $campo->codigo }}"
                                    @disabled($bloqueado)
-                                   class="mt-1 block w-full text-sm rounded border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"/>
+                                   class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"/>
                             @break
                         @case('texto_largo')
                             <textarea wire:model="valores.{{ $campo->codigo }}" rows="2"
                                       @disabled($bloqueado)
-                                      class="mt-1 block w-full text-sm rounded border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                                      class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"></textarea>
                             @break
                         @case('numero_entero')
                             <input type="number" step="1" wire:model="valores.{{ $campo->codigo }}"
                                    @disabled($bloqueado)
-                                   class="mt-1 block w-full text-sm rounded border-indigo-300"/>
+                                   class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('numero_decimal')
                         @case('moneda')
                             <input type="text" wire:model="valores.{{ $campo->codigo }}" placeholder="0.00"
                                    @disabled($bloqueado)
-                                   class="mt-1 block w-full text-sm rounded border-indigo-300"/>
+                                   class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('fecha')
                             <input type="date" wire:model="valores.{{ $campo->codigo }}"
                                    @disabled($bloqueado)
-                                   class="mt-1 block w-full text-sm rounded border-indigo-300"/>
+                                   class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('fecha_hora')
                             <input type="datetime-local" wire:model="valores.{{ $campo->codigo }}"
                                    @disabled($bloqueado)
-                                   class="mt-1 block w-full text-sm rounded border-indigo-300"/>
+                                   class="mt-1 block w-full text-sm rounded border-blue-300"/>
                             @break
                         @case('booleano')
                             <select wire:model="valores.{{ $campo->codigo }}"
                                     @disabled($bloqueado)
-                                    class="mt-1 block w-full text-sm rounded border-indigo-300">
+                                    class="mt-1 block w-full text-sm rounded border-blue-300">
                                 <option value="">—</option>
                                 <option value="1">Sí</option>
                                 <option value="0">No</option>
@@ -70,7 +70,7 @@
                         @default
                             <input type="text" wire:model="valores.{{ $campo->codigo }}"
                                    @disabled($bloqueado)
-                                   class="mt-1 block w-full text-sm rounded border-indigo-300"/>
+                                   class="mt-1 block w-full text-sm rounded border-blue-300"/>
                     @endswitch
                 </div>
             @endforeach
@@ -79,7 +79,7 @@
         @if(! $bloqueado)
             <div class="mt-3 flex items-center justify-end">
                 <button type="button" wire:click="guardar"
-                        class="inline-flex items-center px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                        class="inline-flex items-center px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
                     Guardar campos
                 </button>
             </div>

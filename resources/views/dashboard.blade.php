@@ -1,9 +1,12 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Seleccionar proyecto
-        </h2>
-    </x-slot>
+    <div class="page">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Mis Proyectos</h1>
+                <div class="page-subtitle">Selecciona un proyecto para operar</div>
+            </div>
+        </div>
 
-    <livewire:tenancy.selector-proyecto />
+        <livewire:tenancy.selector-proyecto />
+    </div>
 </x-app-layout>

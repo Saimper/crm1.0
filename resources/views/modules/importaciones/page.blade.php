@@ -1,14 +1,6 @@
 <x-app-layout>
-    <x-slot name="header">
-        @php $proyecto = app('tenancy.proyecto_activo'); @endphp
-        <x-ui.page-header
-            title="Importaciones"
-            :subtitle="$proyecto->nombre"
-            :back="route('proyectos.dashboard', ['proyecto_id' => $proyecto->id])"
-            back-label="← Volver al proyecto" />
-    </x-slot>
-
     @php
+        $proyecto = app('tenancy.proyecto_activo');
         $tipoOperacion = (string) $proyecto->tipo_operacion;
         $labelTipo = match ($tipoOperacion) {
             'cobranza' => 'Casos de cobranza',
@@ -19,32 +11,54 @@
         };
     @endphp
 
-    <div class="py-6" x-data="{ tab: 'personas' }">
-        <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white border border-surface-border rounded-xl shadow-card overflow-hidden">
-                <nav class="flex gap-1 border-b border-surface-border px-4 pt-3" aria-label="Tabs">
-                    <button type="button"
-                            @click="tab = 'personas'"
-                            :class="tab === 'personas' ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-700'"
-                            class="px-4 py-2.5 -mb-px border-b-2 text-sm font-medium focus:outline-none">
-                        Personas
-                    </button>
-                    <button type="button"
-                            @click="tab = 'casos'"
-                            :class="tab === 'casos' ? 'border-brand-600 text-brand-700' : 'border-transparent text-ink-500 hover:text-ink-700'"
-                            class="px-4 py-2.5 -mb-px border-b-2 text-sm font-medium focus:outline-none">
-                        {{ $labelTipo }}
-                    </button>
-                </nav>
-
-                <div class="p-6" x-show="tab === 'personas'" x-cloak>
-                    <livewire:importaciones.importar-personas />
-                </div>
-
-                <div class="p-6" x-show="tab === 'casos'" x-cloak>
-                    <livewire:importaciones.importar-casos />
-                </div>
+    <div class="page" x-data="{ tab: 'personas' }">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Importaciones</h1>
+                <div class="page-subtitle">{{ $proyecto->nombre }}</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]) }}"
+                   wire:navigate class="btn btn-ghost btn-sm">← Volver al proyecto</a>
             </div>
         </div>
+
+        <div class="card" style="padding:0;">
+            <nav style="display:flex;gap:4px;border-bottom:1px solid var(--border);padding:8px 12px 0;" aria-label="Tabs">
+                <button type="button"
+                        @click="tab = 'personas'"
+                        :class="tab === 'personas' ? 'tab-active' : ''"
+                        class="tab-btn">Personas</button>
+                <button type="button"
+                        @click="tab = 'casos'"
+                        :class="tab === 'casos' ? 'tab-active' : ''"
+                        class="tab-btn">{{ $labelTipo }}</button>
+            </nav>
+
+            <div style="padding:16px;" x-show="tab === 'personas'" x-cloak>
+                <livewire:importaciones.importar-personas />
+            </div>
+            <div style="padding:16px;" x-show="tab === 'casos'" x-cloak>
+                <livewire:importaciones.importar-casos />
+            </div>
+        </div>
+
+        <style>
+            .tab-btn {
+                padding: 8px 14px;
+                margin-bottom: -1px;
+                border-bottom: 2px solid transparent;
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--text-secondary);
+                background: transparent;
+                cursor: pointer;
+            }
+            .tab-btn:hover { color: var(--text); }
+            .tab-active {
+                color: var(--primary-text) !important;
+                border-bottom-color: var(--primary) !important;
+            }
+        </style>
     </div>
 </x-app-layout>

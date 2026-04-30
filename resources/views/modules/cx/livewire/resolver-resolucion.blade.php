@@ -30,7 +30,7 @@
                 </div>
                 <label class="block text-xs font-medium text-gray-700">Fecha de resolución</label>
                 <input type="date" wire:model="fechaResolucion"
-                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"/>
+                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
                 @error('fechaResolucion')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                 @error('accion')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
 
@@ -40,7 +40,7 @@
                         Cancelar
                     </button>
                     <button type="button" wire:click="confirmar"
-                            class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
+                            class="px-3 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700">
                         Confirmar
                     </button>
                 </div>

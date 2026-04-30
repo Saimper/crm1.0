@@ -18,7 +18,7 @@
         <div>
             <label class="block text-xs font-medium text-gray-700">Canal</label>
             <select wire:model.live="canalId"
-                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <option value="">—</option>
                 @foreach($canales as $c)
                     <option value="{{ $c->id }}">{{ $c->nombre }}</option>
@@ -30,7 +30,7 @@
         <div>
             <label class="block text-xs font-medium text-gray-700">Tipo de gestión</label>
             <select wire:model.live="tipoGestionId"
-                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <option value="">—</option>
                 @foreach($tiposGestion as $t)
                     <option value="{{ $t->id }}">{{ $t->nombre }}</option>
@@ -42,7 +42,7 @@
         <div>
             <label class="block text-xs font-medium text-gray-700">Resultado</label>
             <select wire:model.live="resultadoId"
-                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <option value="">—</option>
                 @foreach($resultados as $r)
                     <option value="{{ $r->id }}">{{ $r->nombre }}</option>
@@ -54,7 +54,7 @@
         <div>
             <label class="block text-xs font-medium text-gray-700">Contacto usado</label>
             <select wire:model="contactoId"
-                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                 <option value="">—</option>
                 @foreach($contactos as $co)
                     <option value="{{ $co->id }}">{{ ucfirst($co->tipo) }} · {{ $co->valor }}</option>
@@ -66,7 +66,7 @@
             <div>
                 <label class="block text-xs font-medium text-gray-700">Motivo no contacto</label>
                 <select wire:model="motivoNoContactoId"
-                        class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                        class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                     <option value="">—</option>
                     @foreach($motivos as $m)
                         <option value="{{ $m->id }}">{{ $m->nombre }}</option>
@@ -81,7 +81,7 @@
                     Causa <span class="text-red-600">*</span>
                 </label>
                 <select wire:model="causaId"
-                        class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                        class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                     <option value="">—</option>
                     @foreach($causas as $ca)
                         <option value="{{ $ca->id }}">{{ $ca->nombre }}</option>
@@ -94,14 +94,14 @@
         <div>
             <label class="block text-xs font-medium text-gray-700">Duración (seg)</label>
             <input type="number" min="0" step="1" wire:model="duracionSegundos"
-                   class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"/>
+                   class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
         </div>
     </div>
 
     <div class="mt-3">
         <label class="block text-xs font-medium text-gray-700">Notas (opcional)</label>
         <textarea wire:model="notas" rows="2"
-                  class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                  class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Complemento libre. No extraigas datos de aquí, usa los campos estructurados."></textarea>
     </div>
 
@@ -174,30 +174,30 @@
     @endif
 
     @if($requiereCompromiso && $tipoCaso === 'servicio')
-        <div class="mt-3 rounded-md border border-violet-200 bg-violet-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-violet-800">Acción de servicio programada</div>
+        <div class="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3">
+            <div class="text-xs font-semibold uppercase tracking-wider text-blue-800">Acción de servicio programada</div>
             <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-violet-900">
+                    <label class="block text-xs font-medium text-blue-900">
                         Descripción de la acción <span class="text-red-600">*</span>
                     </label>
                     <input type="text" wire:model="accionDescripcion" maxlength="500"
                            placeholder="Ej. Instalación de equipos en domicilio"
-                           class="mt-1 block w-full text-sm rounded border-violet-300 focus:border-violet-500 focus:ring-violet-500"/>
+                           class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"/>
                     @error('accionDescripcion')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-violet-900">
+                    <label class="block text-xs font-medium text-blue-900">
                         Fecha programada <span class="text-red-600">*</span>
                     </label>
                     <input type="datetime-local" wire:model="accionFechaProgramada"
-                           class="mt-1 block w-full text-sm rounded border-violet-300 focus:border-violet-500 focus:ring-violet-500"/>
+                           class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"/>
                     @error('accionFechaProgramada')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-violet-900">Tipo de acción</label>
+                    <label class="block text-xs font-medium text-blue-900">Tipo de acción</label>
                     <select wire:model="accionTipoAccionId"
-                            class="mt-1 block w-full text-sm rounded border-violet-300 focus:border-violet-500 focus:ring-violet-500">
+                            class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500">
                         <option value="">—</option>
                         @foreach($tiposAccionServicio as $ta)
                             <option value="{{ $ta->id }}">{{ $ta->nombre }}</option>
@@ -205,10 +205,10 @@
                     </select>
                 </div>
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-violet-900">Técnico asignado</label>
+                    <label class="block text-xs font-medium text-blue-900">Técnico asignado</label>
                     <input type="text" wire:model="accionTecnicoAsignado" maxlength="150"
                            placeholder="Nombre del técnico"
-                           class="mt-1 block w-full text-sm rounded border-violet-300 focus:border-violet-500 focus:ring-violet-500"/>
+                           class="mt-1 block w-full text-sm rounded border-blue-300 focus:border-blue-500 focus:ring-blue-500"/>
                 </div>
             </div>
         </div>
@@ -252,7 +252,7 @@
     <div class="mt-4 flex items-center justify-between">
         <div class="text-[10px] text-gray-500">Ctrl+Enter para guardar.</div>
         <button type="button" wire:click="guardar"
-                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
             Registrar gestión
         </button>
     </div>
