@@ -95,6 +95,13 @@
                             <span>Mi Bandeja</span>
                         </a>
                     @endcan
+                    @can('personas.ver', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.personas.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.personas.lista', 'proyectos.personas.crear')) active @endif">
+                            <x-ui.icon name="user" :size="15" />
+                            <span>Personas</span>
+                        </a>
+                    @endcan
                     @can('asignaciones.ver_equipo', $proyectoActivo->id)
                         <a href="{{ route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja.equipo')) active @endif">

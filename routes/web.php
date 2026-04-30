@@ -18,6 +18,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->group(function (): void {
             Route::view('/', 'tenancy::proyecto-dashboard')->name('proyectos.dashboard');
 
+            Route::view('/personas', 'personas::listado-page')
+                ->middleware('can:personas.ver')
+                ->name('proyectos.personas.lista');
+
             Route::view('/personas/crear', 'personas::crear-page')
                 ->middleware('can:personas.crear')
                 ->name('proyectos.personas.crear');
