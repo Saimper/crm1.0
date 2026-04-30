@@ -11,6 +11,7 @@ use App\Modules\Contactos\Domain\ValueObjects\TipoContacto;
 use App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -30,6 +31,8 @@ final class ListaContactos extends Component
     public bool $esPrincipal = false;
 
     public ?string $mensajeExito = null;
+
+    public ?int $editandoId = null;
 
     public function mount(string $persona): void
     {
@@ -73,6 +76,103 @@ final class ListaContactos extends Component
 
         $this->mensajeExito = 'Contacto agregado.';
         $this->reset(['valor', 'etiqueta', 'esPrincipal']);
+    }
+
+    public function abrirEditar(int $id): void
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $row = DB::table('contactos')
+            ->where('id', $id)
+            ->where('proyecto_id', $proyectoId)
+            ->where('persona_id', $this->personaId)
+            ->whereNull('eliminada_en')
+            ->first();
+        if ($row === null) {
+            return;
+        }
+
+        $this->editandoId = (int) $row->id;
+        $this->tipo = (string) $row->tipo;
+        $this->valor = (string) $row->valor;
+        $this->etiqueta = (string) ($row->etiqueta ?? '');
+        $this->esPrincipal = (bool) $row->es_principal;
+        $this->resetErrorBag();
+    }
+
+    public function cancelarEdicion(): void
+    {
+        $this->editandoId = null;
+        $this->reset(['valor', 'etiqueta', 'esPrincipal']);
+        $this->tipo = 'telefono';
+        $this->resetErrorBag();
+    }
+
+    public function guardarEdicion(): void
+    {
+        $proyecto = app('tenancy.proyecto_activo');
+        if (auth()->user()?->tienePermiso('contactos.editar', (int) $proyecto->id) !== true) {
+            abort(403, 'No tienes permiso para editar contactos en este proyecto.');
+        }
+
+        if ($this->editandoId === null) {
+            return;
+        }
+
+        $this->validate([
+            'tipo' => 'required|in:telefono,correo,direccion',
+            'valor' => 'required|string|max:250',
+            'etiqueta' => 'nullable|string|max:100',
+            'esPrincipal' => 'boolean',
+        ]);
+
+        $proyectoId = (int) $proyecto->id;
+        $ahora = Carbon::now();
+
+        DB::transaction(function () use ($proyectoId, $ahora): void {
+            // Si marca como principal, degradar otros del mismo tipo de la persona.
+            if ($this->esPrincipal) {
+                DB::table('contactos')
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('persona_id', $this->personaId)
+                    ->where('tipo', $this->tipo)
+                    ->where('id', '!=', $this->editandoId)
+                    ->whereNull('eliminada_en')
+                    ->update(['es_principal' => false, 'actualizada_en' => $ahora]);
+            }
+
+            DB::table('contactos')
+                ->where('id', $this->editandoId)
+                ->where('proyecto_id', $proyectoId)
+                ->update([
+                    'tipo' => $this->tipo,
+                    'valor' => $this->valor,
+                    'etiqueta' => $this->etiqueta !== '' ? $this->etiqueta : null,
+                    'es_principal' => $this->esPrincipal,
+                    'actualizada_en' => $ahora,
+                ]);
+        });
+
+        $this->mensajeExito = 'Contacto actualizado.';
+        $this->editandoId = null;
+        $this->reset(['valor', 'etiqueta', 'esPrincipal']);
+        $this->tipo = 'telefono';
+    }
+
+    public function eliminar(int $id): void
+    {
+        $proyecto = app('tenancy.proyecto_activo');
+        if (auth()->user()?->tienePermiso('contactos.eliminar', (int) $proyecto->id) !== true) {
+            abort(403, 'No tienes permiso para eliminar contactos en este proyecto.');
+        }
+
+        DB::table('contactos')
+            ->where('id', $id)
+            ->where('proyecto_id', (int) $proyecto->id)
+            ->where('persona_id', $this->personaId)
+            ->whereNull('eliminada_en')
+            ->update(['eliminada_en' => Carbon::now()]);
+
+        $this->mensajeExito = 'Contacto eliminado.';
     }
 
     public function render(): View

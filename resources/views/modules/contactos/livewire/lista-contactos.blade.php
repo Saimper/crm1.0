@@ -29,8 +29,18 @@
                             <span class="text-xs text-gray-500">· {{ $c->etiqueta }}</span>
                         @endif
                         @if($c->es_principal)
-                            <span class="ms-auto text-[10px] uppercase text-emerald-700 font-semibold">principal</span>
+                            <span class="text-[10px] uppercase text-emerald-700 font-semibold">principal</span>
                         @endif
+                        <div class="ms-auto flex items-center gap-2 text-xs">
+                            @can('contactos.editar', app('tenancy.proyecto_activo')->id)
+                                <button type="button" wire:click="abrirEditar({{ $c->id }})" class="text-blue-600 hover:underline">Editar</button>
+                            @endcan
+                            @can('contactos.eliminar', app('tenancy.proyecto_activo')->id)
+                                <button type="button" wire:click="eliminar({{ $c->id }})"
+                                        wire:confirm="¿Eliminar este contacto?"
+                                        class="text-red-600 hover:underline">Eliminar</button>
+                            @endcan
+                        </div>
                     </li>
                 @endforeach
             </ul>
@@ -38,9 +48,11 @@
     </section>
 
     <section class="bg-white shadow rounded-lg p-5">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-700 mb-3">Agregar contacto</h3>
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-700 mb-3">
+            {{ $editandoId === null ? 'Agregar contacto' : 'Editar contacto' }}
+        </h3>
 
-        <form wire:submit.prevent="agregar" class="space-y-3">
+        <form wire:submit.prevent="{{ $editandoId === null ? 'agregar' : 'guardarEdicion' }}" class="space-y-3">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-medium uppercase tracking-wider text-gray-600 mb-1">Tipo</label>
@@ -82,11 +94,17 @@
                 </div>
             </div>
 
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2">
+                @if($editandoId !== null)
+                    <button type="button" wire:click="cancelarEdicion"
+                            class="inline-flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 text-sm font-medium rounded-md hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                @endif
                 <button type="submit"
                         wire:loading.attr="disabled"
                         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50">
-                    <span wire:loading.remove>Agregar contacto</span>
+                    <span wire:loading.remove>{{ $editandoId === null ? 'Agregar contacto' : 'Guardar cambios' }}</span>
                     <span wire:loading>Guardando…</span>
                 </button>
             </div>

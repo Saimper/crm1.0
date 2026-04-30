@@ -30,7 +30,7 @@ final class RolPermisoSeeder extends Seeder
             // Casos
             'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar',
             // Contactos
-            'contactos.ver', 'contactos.crear', 'contactos.editar',
+            'contactos.ver', 'contactos.crear', 'contactos.editar', 'contactos.eliminar',
             // Campañas
             'campanas.ver', 'campanas.crear', 'campanas.editar', 'campanas.gestionar', 'campanas.administrar',
             // Asignaciones
