@@ -72,18 +72,25 @@ final class AdminCamposPersonalizados extends Component
         $reglas = is_string($row->reglas) ? (array) json_decode($row->reglas, true) : [];
         $this->form = [
             'proyecto_id' => (int) $row->proyecto_id,
-            'ambito'      => (string) $row->ambito,
-            'ambito_id'   => (int) $row->ambito_id,
-            'codigo'      => (string) $row->codigo,
-            'etiqueta'    => (string) $row->etiqueta,
-            'tipo'        => (string) $row->tipo,
+            'ambito' => (string) $row->ambito,
+            'ambito_id' => (int) $row->ambito_id,
+            'codigo' => (string) $row->codigo,
+            'etiqueta' => (string) $row->etiqueta,
+            'tipo' => (string) $row->tipo,
             'obligatorio' => (bool) $row->obligatorio,
-            'activo'      => (bool) $row->activo,
-            'orden'       => (int) $row->orden,
+            'activo' => (bool) $row->activo,
+            'orden' => (int) $row->orden,
             'longitud_max' => isset($reglas['longitud_max']) ? (int) $reglas['longitud_max'] : null,
         ];
+        $this->proyectoSeleccionadoId = (int) $row->proyecto_id;
         $this->campoEditandoId = $campoId;
         $this->formVisible = true;
+    }
+
+    public function updatedFormProyectoId(mixed $value): void
+    {
+        $this->proyectoSeleccionadoId = $value === null || $value === '' ? null : (int) $value;
+        $this->form['ambito_id'] = null;
     }
 
     public function cerrarForm(): void
@@ -100,22 +107,22 @@ final class AdminCamposPersonalizados extends Component
 
         $this->validate([
             'form.proyecto_id' => ['required', 'integer', 'exists:proyectos,id'],
-            'form.ambito'      => ['required', 'in:caso,gestion'],
-            'form.ambito_id'   => ['required', 'integer'],
-            'form.codigo'      => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/'],
-            'form.etiqueta'    => ['required', 'string', 'max:200'],
-            'form.tipo'        => ['required', 'in:texto_corto,texto_largo,numero_entero,numero_decimal,fecha,fecha_hora,booleano,moneda'],
+            'form.ambito' => ['required', 'in:caso,gestion'],
+            'form.ambito_id' => ['required', 'integer'],
+            'form.codigo' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/'],
+            'form.etiqueta' => ['required', 'string', 'max:200'],
+            'form.tipo' => ['required', 'in:texto_corto,texto_largo,numero_entero,numero_decimal,fecha,fecha_hora,booleano,moneda'],
             'form.obligatorio' => ['boolean'],
-            'form.activo'      => ['boolean'],
-            'form.orden'       => ['integer', 'min:0'],
+            'form.activo' => ['boolean'],
+            'form.orden' => ['integer', 'min:0'],
             'form.longitud_max' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ], [], [
-            'form.proyecto_id'  => 'proyecto',
-            'form.ambito'       => 'ámbito',
-            'form.ambito_id'    => 'ámbito_id',
-            'form.codigo'       => 'código',
-            'form.etiqueta'     => 'etiqueta',
-            'form.tipo'         => 'tipo',
+            'form.proyecto_id' => 'proyecto',
+            'form.ambito' => 'ámbito',
+            'form.ambito_id' => 'ámbito_id',
+            'form.codigo' => 'código',
+            'form.etiqueta' => 'etiqueta',
+            'form.tipo' => 'tipo',
             'form.longitud_max' => 'longitud máxima',
         ]);
 
@@ -130,15 +137,15 @@ final class AdminCamposPersonalizados extends Component
 
         $payload = [
             'proyecto_id' => (int) $this->form['proyecto_id'],
-            'ambito'      => (string) $this->form['ambito'],
-            'ambito_id'   => (int) $this->form['ambito_id'],
-            'codigo'      => (string) $this->form['codigo'],
-            'etiqueta'    => (string) $this->form['etiqueta'],
-            'tipo'        => (string) $this->form['tipo'],
+            'ambito' => (string) $this->form['ambito'],
+            'ambito_id' => (int) $this->form['ambito_id'],
+            'codigo' => (string) $this->form['codigo'],
+            'etiqueta' => (string) $this->form['etiqueta'],
+            'tipo' => (string) $this->form['tipo'],
             'obligatorio' => (bool) $this->form['obligatorio'],
-            'activo'      => (bool) ($this->form['activo'] ?? true),
-            'orden'       => (int) ($this->form['orden'] ?? 100),
-            'reglas'      => $reglas === [] ? null : json_encode($reglas),
+            'activo' => (bool) ($this->form['activo'] ?? true),
+            'orden' => (int) ($this->form['orden'] ?? 100),
+            'reglas' => $reglas === [] ? null : json_encode($reglas),
         ];
 
         if ($this->campoEditandoId === null) {
@@ -150,6 +157,7 @@ final class AdminCamposPersonalizados extends Component
                 ->exists();
             if ($duplicado) {
                 $this->addError('form.codigo', 'Ya existe un campo con ese código en el ámbito indicado.');
+
                 return;
             }
             DB::table('campos_personalizados')->insert($payload);
@@ -182,28 +190,27 @@ final class AdminCamposPersonalizados extends Component
             ->orderBy('codigo')
             ->get();
 
-        $campos = collect();
+        $camposTodos = DB::table('campos_personalizados as c')
+            ->leftJoin('carteras as ca', function ($join): void {
+                $join->on('ca.id', '=', 'c.ambito_id')->where('c.ambito', 'caso');
+            })
+            ->leftJoin('tipos_gestion as tg', function ($join): void {
+                $join->on('tg.id', '=', 'c.ambito_id')->where('c.ambito', 'gestion');
+            })
+            ->select([
+                'c.id', 'c.proyecto_id', 'c.ambito', 'c.ambito_id', 'c.codigo', 'c.etiqueta',
+                'c.tipo', 'c.obligatorio', 'c.activo', 'c.orden',
+                'ca.nombre as cartera_nombre',
+                'tg.nombre as tipo_gestion_nombre',
+            ])
+            ->orderBy('c.ambito')
+            ->orderBy('c.orden')
+            ->get()
+            ->groupBy('proyecto_id');
+
         $carteras = collect();
         $tiposGestion = collect();
         if ($this->proyectoSeleccionadoId !== null) {
-            $campos = DB::table('campos_personalizados as c')
-                ->leftJoin('carteras as ca',       function ($join): void {
-                    $join->on('ca.id', '=', 'c.ambito_id')->where('c.ambito', 'caso');
-                })
-                ->leftJoin('tipos_gestion as tg',  function ($join): void {
-                    $join->on('tg.id', '=', 'c.ambito_id')->where('c.ambito', 'gestion');
-                })
-                ->where('c.proyecto_id', $this->proyectoSeleccionadoId)
-                ->select([
-                    'c.id', 'c.ambito', 'c.ambito_id', 'c.codigo', 'c.etiqueta',
-                    'c.tipo', 'c.obligatorio', 'c.activo', 'c.orden',
-                    'ca.nombre as cartera_nombre',
-                    'tg.nombre as tipo_gestion_nombre',
-                ])
-                ->orderBy('c.ambito')
-                ->orderBy('c.orden')
-                ->get();
-
             $carteras = DB::table('carteras')
                 ->where('proyecto_id', $this->proyectoSeleccionadoId)
                 ->where('activo', true)
@@ -219,11 +226,11 @@ final class AdminCamposPersonalizados extends Component
         }
 
         return view('campos_personalizados::admin.lista', [
-            'proyectos'    => $proyectos,
-            'campos'       => $campos,
-            'carteras'     => $carteras,
+            'proyectos' => $proyectos,
+            'camposPorProyecto' => $camposTodos,
+            'carteras' => $carteras,
             'tiposGestion' => $tiposGestion,
-            'tiposCampo'   => $this->tiposCampoDisponibles(),
+            'tiposCampo' => $this->tiposCampoDisponibles(),
         ]);
     }
 
@@ -245,16 +252,17 @@ final class AdminCamposPersonalizados extends Component
     private function validarAmbitoId(): bool
     {
         $proyectoId = (int) $this->form['proyecto_id'];
-        $ambito     = (string) $this->form['ambito'];
-        $ambitoId   = (int) $this->form['ambito_id'];
+        $ambito = (string) $this->form['ambito'];
+        $ambitoId = (int) $this->form['ambito_id'];
 
         $tabla = match ($ambito) {
-            'caso'    => 'carteras',
+            'caso' => 'carteras',
             'gestion' => 'tipos_gestion',
-            default   => null,
+            default => null,
         };
         if ($tabla === null) {
             $this->addError('form.ambito', 'Ámbito inválido.');
+
             return false;
         }
 
@@ -264,6 +272,7 @@ final class AdminCamposPersonalizados extends Component
             ->exists();
         if (! $existe) {
             $this->addError('form.ambito_id', 'El ámbito seleccionado no pertenece al proyecto elegido.');
+
             return false;
         }
 
@@ -273,15 +282,15 @@ final class AdminCamposPersonalizados extends Component
     private function reiniciarForm(): void
     {
         $this->form = [
-            'proyecto_id'  => $this->proyectoSeleccionadoId,
-            'ambito'       => 'caso',
-            'ambito_id'    => null,
-            'codigo'       => '',
-            'etiqueta'     => '',
-            'tipo'         => 'texto_corto',
-            'obligatorio'  => false,
-            'activo'       => true,
-            'orden'        => 100,
+            'proyecto_id' => $this->proyectoSeleccionadoId,
+            'ambito' => 'caso',
+            'ambito_id' => null,
+            'codigo' => '',
+            'etiqueta' => '',
+            'tipo' => 'texto_corto',
+            'obligatorio' => false,
+            'activo' => true,
+            'orden' => 100,
             'longitud_max' => null,
         ];
     }

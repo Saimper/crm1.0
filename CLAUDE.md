@@ -310,9 +310,9 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ## 15. Estado actual (2026-04-29)
 
-**65 migraciones | 19 módulos activos | 415 tests / 896 assertions verdes**
+**66 migraciones | 22 módulos activos | 415 tests / 903 assertions verdes**
 
-Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, **Integracion** (F28).
+Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion, Clientes.
 
 **4 proyectos demo** bajo mandante `BPO_DEMO`: COBRANZA_DEMO_2026, SOPORTE_DEMO_2026, VENTA_DEMO_2026, SERVICIO_DEMO_2026.
 
@@ -340,9 +340,11 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Permisos granulares CRUD × módulo × cartera | ✅ F22 |
 | Hardening: gestor/supervisor no definen campos (3 capas) | ✅ F23 |
 | Entidades configurables por proyecto/cartera | ✅ F24 |
-| Design system (tokens Tailwind + Inter + x-ui.*) | ✅ F25 |
+| Design system inicial (tokens Tailwind + Inter + x-ui.*) | ✅ F25 |
 | Refactor visual pantallas operativas y admin | ✅ F26–F27 |
 | Capa integración wrapper SSO (Sanctum, token one-time) | ✅ F28 |
+| Refactor visual a HTML standalone (intento previo, superado) | ⚠️ F29 (revertido en parte) |
+| Refactor literal admin (mandantes, proyectos, usuarios, campos personalizados, entidades configurables, dashboard) — `AdminTablePattern`: page-header + search-row + table-compact-clickable + drawer | ✅ F29-bis |
 
 ### Módulo Integracion (F28)
 
@@ -352,6 +354,20 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 - `GET /api/integracion/persona` (auth:sanctum) → JSON preview: persona + casos + compromiso vigente + última gestión.
 - Middleware `CspFrameAncestors`: agrega `frame-ancestors 'self' <WRAPPER_DOMAIN>` cuando env seteado.
 - `SESSION_SAMESITE=none` necesario en producción si el CRM opera dentro de iframe cross-origin (requiere HTTPS).
+
+### Design system — F29-bis (en re-ejecución)
+
+**Fuente de verdad visual única:** `Núcleo CRM (standalone).html` en la raíz del proyecto. Paleta, tipografía, espaciado, radios, sombras, iconos, estructura de markup y nombres/órdenes de clases se copian **literal** desde ese archivo. Si el mockup y este archivo discrepan, manda el mockup.
+
+**Reglas de implementación durante F29-bis (sustituyen al diseño F29 anterior):**
+
+- Permitido y preferente: **Tailwind arbitrary values** (`bg-[#xxxxxx]`, `p-[18px]`, `rounded-[10px]`) y tokens semánticos en `tailwind.config.js` derivados 1:1 del mockup.
+- Permitido: clases semánticas en `app.css` solo si reproducen literalmente lo que el mockup expresa; no como abstracción del autor.
+- Prohibido durante F29-bis: sustituir colores, espaciados, iconos, fuentes o pesos por "equivalentes" Tailwind/heroicons; reorganizar el markup; descartar clases del mockup por considerarlas redundantes.
+- Iconos: SVG inline copiados literalmente desde el mockup. Sin librerías externas (`blade-heroicons`, `blade-lucide`, etc.).
+- Tipografía, paleta, layout grid, anatomía de cada componente y tamaños: se determinan en la **auditoría literal del mockup** (Etapa 1 del prompt F29-bis) y se documentan aquí al cierre de la fase.
+
+El bloque "Design system F29" anterior (clases semánticas sobre CSS custom properties, IBM Plex + cool-gray como inferencia) queda **suspendido y no normativo** mientras F29-bis está en curso. Al cierre de F29-bis se reescribe esta sección con los valores efectivamente aplicados.
 
 ### Decisiones arquitectónicas vigentes
 

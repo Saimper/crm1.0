@@ -1,85 +1,88 @@
-<div class="space-y-4">
-    @if(session('admin-proyectos-ok'))
-        <div class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {{ session('admin-proyectos-ok') }}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Proyectos</h1>
+            <div class="page-subtitle">Configuración de proyectos por mandante</div>
         </div>
-    @endif
-
-    <div class="flex items-center justify-between">
-        <div class="text-xs text-gray-500">
-            Total: <span class="font-semibold text-gray-800">{{ $proyectos->count() }}</span>
+        <div style="display:flex;gap:8px;">
+            <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">← Volver al panel</a>
+            <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
+                <x-ui.icon name="plus" :size="14" />
+                Nuevo proyecto
+            </button>
         </div>
-        <button type="button" wire:click="abrirFormCrear"
-                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            Nuevo proyecto
-        </button>
     </div>
 
-    <div class="rounded-md border border-gray-200 bg-white overflow-hidden">
+    @if(session('admin-proyectos-ok'))
+        <div class="alert alert-success" style="margin-bottom:14px;">{{ session('admin-proyectos-ok') }}</div>
+    @endif
+
+    <div class="card" style="padding:0;">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;width:280px;">
+                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
+                    <x-ui.icon name="search" :size="13" />
+                </span>
+                <input type="text" wire:model.live.debounce.300ms="busqueda"
+                       class="input" placeholder="Buscar…" style="padding-left:28px;"/>
+            </div>
+            <select wire:model.live="filtroTipo" class="select" style="width:160px;">
+                <option value="">Todos los tipos</option>
+                <option value="cobranza">Cobranza</option>
+                <option value="cx">CX</option>
+                <option value="venta">Venta</option>
+                <option value="servicio">Servicio</option>
+            </select>
+            <span style="flex:1;"></span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ $proyectos->count() }} registros</span>
+        </div>
+
         @if($proyectos->isEmpty())
-            <div class="p-6 text-sm text-gray-500 text-center">Sin proyectos registrados.</div>
+            <div class="empty">
+                <div class="empty-icon"><x-ui.icon name="folder" :size="32" /></div>
+                <div class="empty-title">Sin proyectos</div>
+                <div class="empty-desc">Aún no hay proyectos registrados.</div>
+            </div>
         @else
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-600">
+            <table class="table table-compact table-clickable">
+                <thead>
                     <tr>
-                        <th class="px-3 py-2 text-left">Mandante</th>
-                        <th class="px-3 py-2 text-left">Código</th>
-                        <th class="px-3 py-2 text-left">Nombre</th>
-                        <th class="px-3 py-2 text-left">Tipo</th>
-                        <th class="px-3 py-2 text-left">Vigencia</th>
-                        <th class="px-3 py-2 text-right">Carteras</th>
-                        <th class="px-3 py-2 text-left">Estado</th>
-                        <th class="px-3 py-2 text-right">Acciones</th>
+                        <th style="width:120px;">Código</th>
+                        <th>Nombre</th>
+                        <th style="width:200px;">Mandante</th>
+                        <th style="width:110px;">Tipo</th>
+                        <th class="num" style="width:100px;">Carteras</th>
+                        <th style="width:110px;">Estado</th>
+                        <th style="width:60px;"></th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody>
                     @foreach($proyectos as $p)
                         @php
-                            $tipoColor = match ($p->tipo_operacion) {
-                                'cobranza' => 'bg-amber-100 text-amber-800',
-                                'cx'       => 'bg-sky-100 text-sky-800',
-                                'venta'    => 'bg-emerald-100 text-emerald-800',
-                                'servicio' => 'bg-violet-100 text-violet-800',
-                                default    => 'bg-gray-100 text-gray-700',
+                            $tipoBadge = match ($p->tipo_operacion) {
+                                'cobranza' => 'badge-warning',
+                                'cx'       => 'badge-info',
+                                'venta'    => 'badge-success',
+                                'servicio' => 'badge-primary',
+                                default    => 'badge-neutral',
                             };
                         @endphp
-                        <tr>
-                            <td class="px-3 py-2 text-xs">
-                                <div class="text-gray-800">{{ $p->mandante_codigo }}</div>
-                                <div class="text-[10px] text-gray-500">{{ $p->mandante_nombre }}</div>
+                        <tr wire:key="proyecto-{{ $p->id }}" wire:click="abrirFormEditar({{ $p->id }})">
+                            <td><span class="font-mono" style="font-size:12px;">{{ $p->codigo }}</span></td>
+                            <td><span style="font-weight:500;">{{ $p->nombre }}</span></td>
+                            <td>
+                                <div style="font-size:13px;color:var(--text);">{{ $p->mandante_codigo }}</div>
+                                <div style="font-size:11px;color:var(--text-tertiary);">{{ $p->mandante_nombre }}</div>
                             </td>
-                            <td class="px-3 py-2 font-mono text-xs">{{ $p->codigo }}</td>
-                            <td class="px-3 py-2">{{ $p->nombre }}</td>
-                            <td class="px-3 py-2">
-                                <span class="inline-block rounded px-2 py-0.5 text-xs font-medium {{ $tipoColor }}">
-                                    {{ $p->tipo_operacion }}
+                            <td><span class="badge {{ $tipoBadge }}">{{ $p->tipo_operacion }}</span></td>
+                            <td class="num">{{ $p->total_carteras }}</td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                    <span class="dot dot-{{ $p->activo ? 'success' : 'neutral' }}"></span>
+                                    {{ $p->activo ? 'Activo' : 'Inactivo' }}
                                 </span>
                             </td>
-                            <td class="px-3 py-2 text-[10px] text-gray-600">
-                                {{ $p->fecha_inicio ? \Illuminate\Support\Carbon::parse($p->fecha_inicio)->format('d/m/Y') : '—' }}
-                                →
-                                {{ $p->fecha_fin ? \Illuminate\Support\Carbon::parse($p->fecha_fin)->format('d/m/Y') : '∞' }}
-                            </td>
-                            <td class="px-3 py-2 text-right font-mono">{{ $p->total_carteras }}</td>
-                            <td class="px-3 py-2">
-                                @if($p->activo)
-                                    <span class="inline-block rounded px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800">activo</span>
-                                @else
-                                    <span class="inline-block rounded px-2 py-0.5 text-xs bg-gray-100 text-gray-600">inactivo</span>
-                                @endif
-                            </td>
-                            <td class="px-3 py-2 text-right">
-                                <button type="button" wire:click="abrirFormEditar({{ $p->id }})"
-                                        class="text-xs text-indigo-700 hover:underline">Editar</button>
-                                @if($p->activo)
-                                    <button type="button" wire:click="desactivar({{ $p->id }})"
-                                            wire:confirm="¿Desactivar este proyecto?"
-                                            class="ml-2 text-xs text-red-700 hover:underline">Desactivar</button>
-                                @else
-                                    <button type="button" wire:click="activar({{ $p->id }})"
-                                            class="ml-2 text-xs text-emerald-700 hover:underline">Activar</button>
-                                @endif
-                            </td>
+                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -88,84 +91,99 @@
     </div>
 
     @if($formVisible)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40"
-             wire:key="form-proyecto">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 space-y-3">
-                <div class="text-lg font-semibold text-gray-900">
+        <div class="scrim" wire:click="cerrarForm" wire:key="form-proyecto-scrim"></div>
+        <div class="drawer" wire:key="form-proyecto">
+            <div class="drawer-header">
+                <div style="font-size:14px;font-weight:600;">
                     {{ $editandoId === null ? 'Nuevo proyecto' : 'Editar proyecto' }}
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-gray-700">Mandante</label>
-                        <select wire:model="form.mandante_id"
-                                class="mt-1 block w-full text-sm rounded border-gray-300">
+                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="Cerrar">
+                    <x-ui.icon name="x" :size="14" />
+                </button>
+            </div>
+            <div class="drawer-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div style="grid-column:1 / -1;">
+                        <label class="field-label">Mandante</label>
+                        <select wire:model="form.mandante_id" class="select @error('form.mandante_id') input-error @enderror">
                             <option value="">—</option>
                             @foreach($mandantes as $m)
                                 <option value="{{ $m->id }}">{{ $m->codigo }} — {{ $m->nombre }}</option>
                             @endforeach
                         </select>
-                        @error('form.mandante_id')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
+                        @error('form.mandante_id')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Código (A-Z, 0-9, _)</label>
+                        <label class="field-label">Código</label>
                         <input type="text" wire:model="form.codigo" placeholder="COBRANZA_2026"
-                               class="mt-1 block w-full text-sm rounded border-gray-300 font-mono uppercase"/>
-                        @error('form.codigo')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
+                               class="input mono uppercase @error('form.codigo') input-error @enderror"/>
+                        @error('form.codigo')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Nombre</label>
-                        <input type="text" wire:model="form.nombre"
-                               class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                        @error('form.nombre')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium text-gray-700">Descripción (opcional)</label>
-                        <textarea wire:model="form.descripcion" rows="2"
-                                  class="mt-1 block w-full text-sm rounded border-gray-300"></textarea>
-                        @error('form.descripcion')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Tipo de operación</label>
-                        <select wire:model="form.tipo_operacion"
-                                @disabled($editandoId !== null)
-                                class="mt-1 block w-full text-sm rounded border-gray-300 {{ $editandoId !== null ? 'bg-gray-100 cursor-not-allowed' : '' }}">
-                            <option value="cobranza">Cobranza</option>
-                            <option value="cx">CX / Tickets</option>
-                            <option value="venta">Venta</option>
-                            <option value="servicio">Servicio técnico</option>
-                        </select>
+                        <label class="field-label">
+                            Tipo
+                            @if($editandoId !== null)
+                                <span style="color:var(--text-tertiary);font-weight:400;">(bloqueado tras creación)</span>
+                            @endif
+                        </label>
                         @if($editandoId !== null)
-                            <div class="text-[10px] text-gray-500 mt-0.5">El tipo de operación no se puede cambiar después de crear el proyecto.</div>
+                            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
+                                <span class="badge badge-neutral">{{ $form['tipo_operacion'] }}</span>
+                                <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;" title="No editable">No editable</span>
+                            </div>
+                        @else
+                            <select wire:model="form.tipo_operacion"
+                                    class="select @error('form.tipo_operacion') input-error @enderror">
+                                <option value="cobranza">Cobranza</option>
+                                <option value="cx">CX / Tickets</option>
+                                <option value="venta">Venta</option>
+                                <option value="servicio">Servicio técnico</option>
+                            </select>
+                            @error('form.tipo_operacion')<div class="field-error">{{ $message }}</div>@enderror
                         @endif
-                        @error('form.tipo_operacion')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700">Fecha inicio</label>
-                            <input type="date" wire:model="form.fecha_inicio"
-                                   class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                            @error('form.fecha_inicio')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700">Fecha fin</label>
-                            <input type="date" wire:model="form.fecha_fin"
-                                   class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                            @error('form.fecha_fin')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                        </div>
+                    <div style="grid-column:1 / -1;">
+                        <label class="field-label">Nombre</label>
+                        <input type="text" wire:model="form.nombre"
+                               class="input @error('form.nombre') input-error @enderror"/>
+                        @error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div style="grid-column:1 / -1;">
+                        <label class="field-label">Descripción (opcional)</label>
+                        <textarea wire:model="form.descripcion" rows="2"
+                                  class="textarea @error('form.descripcion') input-error @enderror"></textarea>
+                        @error('form.descripcion')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label">Fecha inicio</label>
+                        <input type="date" wire:model="form.fecha_inicio"
+                               class="input @error('form.fecha_inicio') input-error @enderror"/>
+                        @error('form.fecha_inicio')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label">Fecha fin</label>
+                        <input type="date" wire:model="form.fecha_fin"
+                               class="input @error('form.fecha_fin') input-error @enderror"/>
+                        @error('form.fecha_fin')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                 </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" wire:click="cerrarForm"
-                            class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
-                        Cancelar
-                    </button>
-                    <button type="button" wire:click="guardar"
-                            class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
-                        Guardar
-                    </button>
-                </div>
+            </div>
+            <div class="drawer-footer">
+                @if($editandoId !== null)
+                    @php
+                        $row = \App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel::query()->find($editandoId);
+                    @endphp
+                    @if($row && $row->activo)
+                        <button type="button" wire:click="desactivar({{ $editandoId }})"
+                                wire:confirm="¿Desactivar este proyecto?"
+                                class="btn btn-ghost" style="color:var(--danger-text);margin-right:auto;">Desactivar</button>
+                    @elseif($row)
+                        <button type="button" wire:click="activar({{ $editandoId }})"
+                                class="btn btn-ghost" style="color:var(--success-text);margin-right:auto;">Activar</button>
+                    @endif
+                @endif
+                <button type="button" wire:click="cerrarForm" class="btn btn-ghost">Cancelar</button>
+                <button type="button" wire:click="guardar" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     @endif

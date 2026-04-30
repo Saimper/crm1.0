@@ -1,179 +1,269 @@
-<div class="space-y-4">
-    @if(session('admin-usuarios-ok'))
-        <div class="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-            {{ session('admin-usuarios-ok') }}
+<div class="page">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Usuarios</h1>
+            <div class="page-subtitle">Gestiona accesos y roles por proyecto</div>
         </div>
-    @endif
-    @if(session('admin-usuarios-error'))
-        <div class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            {{ session('admin-usuarios-error') }}
+        <div style="display:flex;gap:8px;">
+            <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">← Volver al panel</a>
+            <button type="button" wire:click="abrirFormCrearUsuario" class="btn btn-primary">
+                <x-ui.icon name="plus" :size="14" />
+                Nuevo usuario
+            </button>
         </div>
-    @endif
-
-    <div class="flex items-center justify-between">
-        <div class="text-xs text-gray-500">
-            Total: <span class="font-semibold text-gray-800">{{ $usuarios->count() }}</span>
-        </div>
-        <button type="button" wire:click="abrirFormCrearUsuario"
-                class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700">
-            Nuevo usuario
-        </button>
     </div>
 
-    <div class="space-y-3">
-        @foreach($usuarios as $u)
-            <div class="rounded-md border border-gray-200 bg-white p-4">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <div class="font-semibold text-gray-900">{{ $u->name }}</div>
-                            @if($u->activo)
-                                <span class="inline-block rounded px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800">activo</span>
-                            @else
-                                <span class="inline-block rounded px-2 py-0.5 text-xs bg-gray-100 text-gray-600">inactivo</span>
-                            @endif
-                            @if($u->es_admin_global)
-                                <span class="inline-block rounded px-2 py-0.5 text-xs bg-red-100 text-red-800 font-semibold">ADMIN_GLOBAL</span>
-                            @endif
-                        </div>
-                        <div class="text-xs text-gray-500 mt-0.5 font-mono">{{ $u->email }}</div>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs">
-                        <button type="button" wire:click="abrirFormEditarUsuario({{ $u->id }})"
-                                class="text-indigo-700 hover:underline">Editar</button>
-                        @if($u->es_admin_global)
-                            <button type="button" wire:click="revocarAdminGlobal({{ $u->id }})"
-                                    wire:confirm="¿Revocar ADMIN_GLOBAL a este usuario?"
-                                    class="text-red-700 hover:underline">Revocar admin</button>
-                        @else
-                            <button type="button" wire:click="promoverAdminGlobal({{ $u->id }})"
-                                    wire:confirm="¿Promover a ADMIN_GLOBAL? Tendrá acceso cross-project total."
-                                    class="text-amber-700 hover:underline">Promover admin</button>
-                        @endif
-                        <button type="button" wire:click="abrirFormAsignacion({{ $u->id }})"
-                                class="text-emerald-700 hover:underline">Asignar rol</button>
-                    </div>
-                </div>
+    @if(session('admin-usuarios-ok'))
+        <div class="alert alert-success" style="margin-bottom:14px;">{{ session('admin-usuarios-ok') }}</div>
+    @endif
+    @if(session('admin-usuarios-error'))
+        <div class="alert alert-danger" style="margin-bottom:14px;">{{ session('admin-usuarios-error') }}</div>
+    @endif
 
-                @if(isset($asignaciones[$u->id]) && $asignaciones[$u->id]->isNotEmpty())
-                    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        @foreach($asignaciones[$u->id] as $a)
-                            <div class="rounded border border-gray-200 px-3 py-2 text-xs">
-                                <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <div class="font-medium text-gray-800">{{ $a->proyecto_codigo }}</div>
-                                        <div class="text-[10px] text-gray-500">{{ $a->proyecto_nombre }} · {{ $a->tipo_operacion }}</div>
-                                        <div class="mt-1">
-                                            <span class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-indigo-100 text-indigo-800 font-semibold">
-                                                {{ $a->rol_codigo }}
-                                            </span>
-                                        </div>
+    {{-- Listado --}}
+    <div class="card" style="padding:0;margin-bottom:14px;">
+        <div class="card-header">
+            <span class="card-title">Listado</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ $usuarios->count() }} usuarios</span>
+        </div>
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;width:280px;">
+                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
+                    <x-ui.icon name="search" :size="13" />
+                </span>
+                <input type="text" wire:model.live.debounce.300ms="busqueda"
+                       class="input" placeholder="Buscar nombre o correo…" style="padding-left:28px;"/>
+            </div>
+        </div>
+        @if($usuarios->isEmpty())
+            <div class="empty">
+                <div class="empty-icon"><x-ui.icon name="users" :size="32" /></div>
+                <div class="empty-title">Sin usuarios</div>
+                <div class="empty-desc">No hay usuarios que coincidan con la búsqueda.</div>
+            </div>
+        @else
+            <table class="table table-compact">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th style="width:240px;">Email</th>
+                        <th style="width:160px;">Rol global</th>
+                        <th class="num" style="width:100px;">Asignaciones</th>
+                        <th style="width:110px;">Estado</th>
+                        <th style="width:120px;text-align:right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($usuarios as $u)
+                        <tr wire:key="usuario-{{ $u->id }}">
+                            <td>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div class="avatar" style="background:var(--bg-subtle);color:var(--text-secondary);border-color:var(--border);">
+                                        {{ \Illuminate\Support\Str::of($u->name)->explode(' ')->map(fn($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}
                                     </div>
+                                    <span style="font-weight:500;">{{ $u->name }}</span>
+                                </div>
+                            </td>
+                            <td><span class="font-mono" style="font-size:12px;">{{ $u->email }}</span></td>
+                            <td>
+                                @if($u->es_admin_global)
+                                    <span class="badge badge-danger">ADMIN_GLOBAL</span>
+                                @else
+                                    <span style="color:var(--text-tertiary);font-size:12px;">—</span>
+                                @endif
+                            </td>
+                            <td class="num">{{ isset($asignaciones[$u->id]) ? $asignaciones[$u->id]->count() : 0 }}</td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                    <span class="dot dot-{{ $u->activo ? 'success' : 'neutral' }}"></span>
+                                    {{ $u->activo ? 'Activo' : 'Inactivo' }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;">
+                                <button type="button" wire:click="abrirFormAsignacion({{ $u->id }})"
+                                        class="icon-btn" title="Asignar rol">
+                                    <x-ui.icon name="plus" :size="12" />
+                                </button>
+                                <button type="button" wire:click="abrirFormEditarUsuario({{ $u->id }})"
+                                        class="icon-btn" title="Editar">
+                                    <x-ui.icon name="edit" :size="12" />
+                                </button>
+                                @if($u->es_admin_global)
+                                    <button type="button" wire:click="revocarAdminGlobal({{ $u->id }})"
+                                            wire:confirm="¿Revocar ADMIN_GLOBAL a este usuario?"
+                                            class="icon-btn" style="color:var(--danger-text);" title="Revocar admin">
+                                        <x-ui.icon name="shield" :size="12" />
+                                    </button>
+                                @else
+                                    <button type="button" wire:click="promoverAdminGlobal({{ $u->id }})"
+                                            wire:confirm="¿Promover a ADMIN_GLOBAL? Tendrá acceso cross-project total."
+                                            class="icon-btn" style="color:var(--warning-text);" title="Promover admin">
+                                        <x-ui.icon name="shield" :size="12" />
+                                    </button>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+
+    {{-- Matriz de acceso --}}
+    @if($proyectos->isNotEmpty() && $usuarios->isNotEmpty())
+        <div class="card" style="padding:0;">
+            <div class="card-header">
+                <span class="card-title">Matriz de acceso · proyecto × rol</span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="table table-compact">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            @foreach($proyectos as $p)
+                                <th style="width:140px;"><span class="font-mono" style="font-size:11px;">{{ $p->codigo }}</span></th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($usuarios as $u)
+                            <tr wire:key="matriz-{{ $u->id }}">
+                                <td style="font-weight:500;">{{ $u->name }}</td>
+                                @foreach($proyectos as $p)
+                                    @php
+                                        $rolesDelUsuarioEnProyecto = isset($asignaciones[$u->id])
+                                            ? $asignaciones[$u->id]->where('proyecto_id', $p->id)
+                                            : collect();
+                                    @endphp
+                                    <td>
+                                        @if($u->es_admin_global)
+                                            <span class="badge badge-danger">Admin</span>
+                                        @elseif($rolesDelUsuarioEnProyecto->isEmpty())
+                                            <span style="color:var(--text-muted);">—</span>
+                                        @else
+                                            @foreach($rolesDelUsuarioEnProyecto as $a)
+                                                @php
+                                                    $rolBadge = match ($a->rol_codigo) {
+                                                        'SUPERVISOR' => 'badge-warning',
+                                                        'GESTOR'     => 'badge-primary',
+                                                        'AUDITOR'    => 'badge-info',
+                                                        default      => 'badge-neutral',
+                                                    };
+                                                @endphp
+                                                <span class="badge {{ $rolBadge }}">{{ $a->rol_codigo }}</span>
+                                            @endforeach
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    {{-- Drawer: usuario --}}
+    @if($formUsuarioVisible)
+        <div class="scrim" wire:click="cerrarFormUsuario" wire:key="form-usuario-scrim"></div>
+        <div class="drawer" wire:key="form-usuario">
+            <div class="drawer-header">
+                <div style="font-size:14px;font-weight:600;">
+                    {{ $editandoUsuarioId === null ? 'Nuevo usuario' : 'Editar usuario' }}
+                </div>
+                <button type="button" wire:click="cerrarFormUsuario" class="icon-btn" aria-label="Cerrar">
+                    <x-ui.icon name="x" :size="14" />
+                </button>
+            </div>
+            <div class="drawer-body">
+                <div class="field">
+                    <label class="field-label">Nombre</label>
+                    <input type="text" wire:model="formUsuario.name"
+                           class="input @error('formUsuario.name') input-error @enderror"/>
+                    @error('formUsuario.name')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+                <div class="field">
+                    <label class="field-label">Correo</label>
+                    <input type="email" wire:model="formUsuario.email"
+                           class="input mono @error('formUsuario.email') input-error @enderror"/>
+                    @error('formUsuario.email')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+                <div class="field">
+                    <label class="field-label">
+                        Contraseña {{ $editandoUsuarioId !== null ? '(dejar vacía para no cambiar)' : '' }}
+                    </label>
+                    <input type="password" wire:model="formUsuario.password"
+                           class="input @error('formUsuario.password') input-error @enderror"/>
+                    @error('formUsuario.password')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+                <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+                    <input type="checkbox" wire:model="formUsuario.activo" class="checkbox"/>
+                    <span>Activo</span>
+                </label>
+
+                @if($editandoUsuarioId !== null && isset($asignaciones[$editandoUsuarioId]))
+                    <div style="margin-top:20px;">
+                        <div class="label-xs">Asignaciones por proyecto</div>
+                        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                            @foreach($asignaciones[$editandoUsuarioId] as $a)
+                                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;">
+                                    <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $a->proyecto_codigo }}</span>
+                                    <span style="flex:1;font-size:12px;">{{ $a->proyecto_nombre }}</span>
+                                    <span class="badge badge-primary">{{ $a->rol_codigo }}</span>
                                     <button type="button"
                                             wire:click="quitarAsignacion({{ $a->usuario_id }}, {{ $a->proyecto_id }}, {{ $a->rol_id }})"
                                             wire:confirm="¿Quitar esta asignación?"
-                                            class="text-[10px] text-red-700 hover:underline">Quitar</button>
+                                            class="icon-btn" style="color:var(--danger-text);" title="Quitar">
+                                        <x-ui.icon name="x" :size="12" />
+                                    </button>
                                 </div>
-                            </div>
-                        @endforeach
+                            @endforeach
+                        </div>
                     </div>
-                @else
-                    <div class="mt-3 text-[11px] text-gray-500">Sin asignaciones por proyecto.</div>
                 @endif
             </div>
-        @endforeach
-    </div>
-
-    {{-- Form usuario --}}
-    @if($formUsuarioVisible)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40" wire:key="form-usuario">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-6 space-y-3">
-                <div class="text-lg font-semibold text-gray-900">
-                    {{ $editandoUsuarioId === null ? 'Nuevo usuario' : 'Editar usuario' }}
-                </div>
-
-                <div class="space-y-3 text-sm">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Nombre</label>
-                        <input type="text" wire:model="formUsuario.name"
-                               class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                        @error('formUsuario.name')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Correo</label>
-                        <input type="email" wire:model="formUsuario.email"
-                               class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                        @error('formUsuario.email')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">
-                            Contraseña {{ $editandoUsuarioId !== null ? '(dejar vacía para no cambiar)' : '' }}
-                        </label>
-                        <input type="password" wire:model="formUsuario.password"
-                               class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                        @error('formUsuario.password')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
-                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                        <input type="checkbox" wire:model="formUsuario.activo" class="rounded"/>
-                        <span>Activo</span>
-                    </label>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" wire:click="cerrarFormUsuario"
-                            class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
-                        Cancelar
-                    </button>
-                    <button type="button" wire:click="guardarUsuario"
-                            class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
-                        Guardar
-                    </button>
-                </div>
+            <div class="drawer-footer">
+                <button type="button" wire:click="cerrarFormUsuario" class="btn btn-ghost">Cancelar</button>
+                <button type="button" wire:click="guardarUsuario" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     @endif
 
-    {{-- Form asignación --}}
+    {{-- Drawer: asignación rol --}}
     @if($formAsignacionVisible)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40" wire:key="form-asignacion">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-3">
-                <div class="text-lg font-semibold text-gray-900">Asignar rol en proyecto</div>
-
-                <div class="space-y-3 text-sm">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Proyecto</label>
-                        <select wire:model="asignarProyectoId"
-                                class="mt-1 block w-full text-sm rounded border-gray-300">
-                            <option value="">—</option>
-                            @foreach($proyectos as $p)
-                                <option value="{{ $p->id }}">{{ $p->codigo }} — {{ $p->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('asignarProyectoId')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Rol</label>
-                        <select wire:model="asignarRolId"
-                                class="mt-1 block w-full text-sm rounded border-gray-300">
-                            <option value="">—</option>
-                            @foreach($roles as $r)
-                                <option value="{{ $r->id }}">{{ $r->codigo }} — {{ $r->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('asignarRolId')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                    </div>
+        <div class="scrim" wire:click="cerrarFormAsignacion" wire:key="form-asignacion-scrim"></div>
+        <div class="drawer" wire:key="form-asignacion">
+            <div class="drawer-header">
+                <div style="font-size:14px;font-weight:600;">Asignar rol en proyecto</div>
+                <button type="button" wire:click="cerrarFormAsignacion" class="icon-btn" aria-label="Cerrar">
+                    <x-ui.icon name="x" :size="14" />
+                </button>
+            </div>
+            <div class="drawer-body">
+                <div class="field">
+                    <label class="field-label">Proyecto</label>
+                    <select wire:model="asignarProyectoId" class="select @error('asignarProyectoId') input-error @enderror">
+                        <option value="">—</option>
+                        @foreach($proyectos as $p)
+                            <option value="{{ $p->id }}">{{ $p->codigo }} — {{ $p->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('asignarProyectoId')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
-
-                <div class="flex items-center justify-end gap-2 pt-2">
-                    <button type="button" wire:click="cerrarFormAsignacion"
-                            class="px-3 py-1.5 text-xs text-gray-700 border border-gray-300 rounded hover:bg-gray-50">
-                        Cancelar
-                    </button>
-                    <button type="button" wire:click="guardarAsignacion"
-                            class="px-3 py-1.5 text-xs text-white bg-indigo-600 rounded hover:bg-indigo-700">
-                        Asignar
-                    </button>
+                <div class="field">
+                    <label class="field-label">Rol</label>
+                    <select wire:model="asignarRolId" class="select @error('asignarRolId') input-error @enderror">
+                        <option value="">—</option>
+                        @foreach($roles as $r)
+                            <option value="{{ $r->id }}">{{ $r->codigo }} — {{ $r->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('asignarRolId')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
+            </div>
+            <div class="drawer-footer">
+                <button type="button" wire:click="cerrarFormAsignacion" class="btn btn-ghost">Cancelar</button>
+                <button type="button" wire:click="guardarAsignacion" class="btn btn-primary">Asignar</button>
             </div>
         </div>
     @endif

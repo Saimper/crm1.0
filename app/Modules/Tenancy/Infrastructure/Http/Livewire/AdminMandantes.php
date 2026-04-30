@@ -26,10 +26,12 @@ final class AdminMandantes extends Component
 
     public ?int $editandoId = null;
 
+    public string $busqueda = '';
+
     /** @var array<string, mixed> */
     public array $form = [
-        'codigo'    => '',
-        'nombre'    => '',
+        'codigo' => '',
+        'nombre' => '',
         'documento' => '',
     ];
 
@@ -50,8 +52,8 @@ final class AdminMandantes extends Component
 
         $this->editandoId = $id;
         $this->form = [
-            'codigo'    => (string) $row->codigo,
-            'nombre'    => (string) $row->nombre,
+            'codigo' => (string) $row->codigo,
+            'nombre' => (string) $row->nombre,
             'documento' => (string) ($row->documento ?? ''),
         ];
         $this->formVisible = true;
@@ -68,34 +70,36 @@ final class AdminMandantes extends Component
     public function guardar(RegistrarMandante $useCase): void
     {
         $this->validate([
-            'form.codigo'    => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
-            'form.nombre'    => ['required', 'string', 'max:200'],
+            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.nombre' => ['required', 'string', 'max:200'],
             'form.documento' => ['nullable', 'string', 'max:80'],
         ], [], [
-            'form.codigo'    => 'código',
-            'form.nombre'    => 'nombre',
+            'form.codigo' => 'código',
+            'form.nombre' => 'nombre',
             'form.documento' => 'documento',
         ]);
 
         if ($this->editandoId === null) {
             try {
                 $useCase->execute(new RegistrarMandanteInput(
-                    publicId:  (string) Str::ulid(),
-                    codigo:    new CodigoMandante((string) $this->form['codigo']),
-                    nombre:    (string) $this->form['nombre'],
+                    publicId: (string) Str::ulid(),
+                    codigo: new CodigoMandante((string) $this->form['codigo']),
+                    nombre: (string) $this->form['nombre'],
                     documento: $this->documentoOpcional(),
-                    creadaEn:  new DateTimeImmutable(),
+                    creadaEn: new DateTimeImmutable,
                 ));
             } catch (CodigoMandanteDuplicado $e) {
                 $this->addError('form.codigo', $e->getMessage());
+
                 return;
             } catch (Throwable $e) {
                 $this->addError('form.codigo', $e->getMessage());
+
                 return;
             }
         } else {
             $codigoAnterior = (string) MandanteModel::query()->where('id', $this->editandoId)->value('codigo');
-            $codigoNuevo    = (string) $this->form['codigo'];
+            $codigoNuevo = (string) $this->form['codigo'];
             if ($codigoAnterior !== $codigoNuevo) {
                 $duplicado = MandanteModel::query()
                     ->where('codigo', $codigoNuevo)
@@ -103,13 +107,14 @@ final class AdminMandantes extends Component
                     ->exists();
                 if ($duplicado) {
                     $this->addError('form.codigo', 'Ya existe un mandante con ese código.');
+
                     return;
                 }
             }
 
             MandanteModel::query()->where('id', $this->editandoId)->update([
-                'codigo'    => $codigoNuevo,
-                'nombre'    => (string) $this->form['nombre'],
+                'codigo' => $codigoNuevo,
+                'nombre' => (string) $this->form['nombre'],
                 'documento' => $this->documentoOpcional(),
             ]);
         }
@@ -132,11 +137,23 @@ final class AdminMandantes extends Component
 
     public function render(): View
     {
-        $mandantes = DB::table('mandantes as m')
+        $busqueda = trim($this->busqueda);
+        $query = DB::table('mandantes as m')
             ->leftJoin('proyectos as p', function ($join): void {
                 $join->on('p.mandante_id', '=', 'm.id')->whereNull('p.eliminada_en');
             })
-            ->whereNull('m.eliminada_en')
+            ->whereNull('m.eliminada_en');
+
+        if ($busqueda !== '') {
+            $like = '%'.$busqueda.'%';
+            $query->where(function ($q) use ($like): void {
+                $q->where('m.codigo', 'like', $like)
+                    ->orWhere('m.nombre', 'like', $like)
+                    ->orWhere('m.documento', 'like', $like);
+            });
+        }
+
+        $mandantes = $query
             ->select([
                 'm.id', 'm.public_id', 'm.codigo', 'm.nombre', 'm.documento', 'm.activo', 'm.creada_en',
                 DB::raw('count(p.id) as total_proyectos'),

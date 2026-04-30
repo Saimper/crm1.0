@@ -23,12 +23,14 @@ final class AdminUsuarios extends Component
 
     public ?int $editandoUsuarioId = null;
 
+    public string $busqueda = '';
+
     /** @var array<string, mixed> */
     public array $formUsuario = [
-        'name'     => '',
-        'email'    => '',
+        'name' => '',
+        'email' => '',
         'password' => '',
-        'activo'   => true,
+        'activo' => true,
     ];
 
     public bool $formAsignacionVisible = false;
@@ -55,10 +57,10 @@ final class AdminUsuarios extends Component
         }
         $this->editandoUsuarioId = $id;
         $this->formUsuario = [
-            'name'     => $u->name,
-            'email'    => $u->email,
+            'name' => $u->name,
+            'email' => $u->email,
             'password' => '',
-            'activo'   => (bool) ($u->activo ?? true),
+            'activo' => (bool) ($u->activo ?? true),
         ];
         $this->formUsuarioVisible = true;
         $this->resetErrorBag();
@@ -82,27 +84,27 @@ final class AdminUsuarios extends Component
             : ['required', 'email', 'max:255', 'unique:users,email,'.$this->editandoUsuarioId];
 
         $this->validate([
-            'formUsuario.name'     => ['required', 'string', 'max:255'],
-            'formUsuario.email'    => $reglasEmail,
+            'formUsuario.name' => ['required', 'string', 'max:255'],
+            'formUsuario.email' => $reglasEmail,
             'formUsuario.password' => $reglasPassword,
-            'formUsuario.activo'   => ['boolean'],
+            'formUsuario.activo' => ['boolean'],
         ], [], [
-            'formUsuario.name'     => 'nombre',
-            'formUsuario.email'    => 'correo',
+            'formUsuario.name' => 'nombre',
+            'formUsuario.email' => 'correo',
             'formUsuario.password' => 'contraseña',
         ]);
 
         if ($this->editandoUsuarioId === null) {
             User::query()->create([
-                'name'     => (string) $this->formUsuario['name'],
-                'email'    => strtolower((string) $this->formUsuario['email']),
+                'name' => (string) $this->formUsuario['name'],
+                'email' => strtolower((string) $this->formUsuario['email']),
                 'password' => Hash::make((string) $this->formUsuario['password']),
-                'activo'   => (bool) ($this->formUsuario['activo'] ?? true),
+                'activo' => (bool) ($this->formUsuario['activo'] ?? true),
             ]);
         } else {
             $u = User::query()->findOrFail($this->editandoUsuarioId);
-            $u->name   = (string) $this->formUsuario['name'];
-            $u->email  = strtolower((string) $this->formUsuario['email']);
+            $u->name = (string) $this->formUsuario['name'];
+            $u->email = strtolower((string) $this->formUsuario['email']);
             $u->activo = (bool) ($this->formUsuario['activo'] ?? true);
             if (! empty($this->formUsuario['password'])) {
                 $u->password = Hash::make((string) $this->formUsuario['password']);
@@ -131,7 +133,7 @@ final class AdminUsuarios extends Component
 
         DB::table('usuario_global_rol')->insert([
             'usuario_id' => $usuarioId,
-            'rol_id'     => $rolAdminGlobalId,
+            'rol_id' => $rolAdminGlobalId,
         ]);
         session()->flash('admin-usuarios-ok', 'Usuario promovido a ADMIN_GLOBAL.');
     }
@@ -146,6 +148,7 @@ final class AdminUsuarios extends Component
         // Protección: evitar que el admin se revoque a sí mismo.
         if ($usuarioId === (int) auth()->id()) {
             session()->flash('admin-usuarios-error', 'No puedes revocar tu propio rol ADMIN_GLOBAL.');
+
             return;
         }
 
@@ -156,6 +159,7 @@ final class AdminUsuarios extends Component
             ->exists();
         if (! $otrosAdmin) {
             session()->flash('admin-usuarios-error', 'No se puede revocar al último ADMIN_GLOBAL del sistema.');
+
             return;
         }
 
@@ -188,22 +192,22 @@ final class AdminUsuarios extends Component
     {
         $this->validate([
             'usuarioAsignandoId' => ['required', 'integer', 'exists:users,id'],
-            'asignarProyectoId'  => ['required', 'integer', 'exists:proyectos,id'],
-            'asignarRolId'       => ['required', 'integer', 'exists:roles,id'],
+            'asignarProyectoId' => ['required', 'integer', 'exists:proyectos,id'],
+            'asignarRolId' => ['required', 'integer', 'exists:roles,id'],
         ], [], [
             'asignarProyectoId' => 'proyecto',
-            'asignarRolId'      => 'rol',
+            'asignarRolId' => 'rol',
         ]);
 
         // Un usuario puede tener múltiples roles en el mismo proyecto (PK compuesta usuario+proyecto+rol).
         // Upsert para reactivar si ya existía en inactivo.
         DB::table('usuario_proyecto_rol')->upsert(
             [[
-                'usuario_id'  => (int) $this->usuarioAsignandoId,
+                'usuario_id' => (int) $this->usuarioAsignandoId,
                 'proyecto_id' => (int) $this->asignarProyectoId,
-                'rol_id'      => (int) $this->asignarRolId,
-                'equipo_id'   => null,
-                'activo'      => true,
+                'rol_id' => (int) $this->asignarRolId,
+                'equipo_id' => null,
+                'activo' => true,
             ]],
             ['usuario_id', 'proyecto_id', 'rol_id'],
             ['equipo_id', 'activo'],
@@ -225,11 +229,22 @@ final class AdminUsuarios extends Component
 
     public function render(): View
     {
-        $usuarios = DB::table('users as u')
+        $busqueda = trim($this->busqueda);
+        $queryUsuarios = DB::table('users as u')
             ->leftJoin('usuario_global_rol as ugr', 'ugr.usuario_id', '=', 'u.id')
             ->leftJoin('roles as rg', function ($j): void {
                 $j->on('rg.id', '=', 'ugr.rol_id')->where('rg.codigo', 'ADMIN_GLOBAL');
-            })
+            });
+
+        if ($busqueda !== '') {
+            $like = '%'.$busqueda.'%';
+            $queryUsuarios->where(function ($q) use ($like): void {
+                $q->where('u.name', 'like', $like)
+                    ->orWhere('u.email', 'like', $like);
+            });
+        }
+
+        $usuarios = $queryUsuarios
             ->select([
                 'u.id', 'u.name', 'u.email', 'u.activo',
                 DB::raw('max(case when rg.codigo = "ADMIN_GLOBAL" then 1 else 0 end) as es_admin_global'),
@@ -240,7 +255,7 @@ final class AdminUsuarios extends Component
 
         $asignaciones = DB::table('usuario_proyecto_rol as upr')
             ->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
-            ->join('roles as r',     'r.id', '=', 'upr.rol_id')
+            ->join('roles as r', 'r.id', '=', 'upr.rol_id')
             ->select([
                 'upr.usuario_id', 'upr.proyecto_id', 'upr.rol_id', 'upr.activo',
                 'p.codigo as proyecto_codigo', 'p.nombre as proyecto_nombre',
@@ -264,11 +279,11 @@ final class AdminUsuarios extends Component
             ->get(['id', 'codigo', 'nombre']);
 
         return view('usuarios::admin.lista', [
-            'usuarios'       => $usuarios,
-            'asignaciones'   => $asignaciones,
-            'proyectos'      => $proyectos,
-            'roles'          => $roles,
-            'usuarioActual'  => auth()->id(),
+            'usuarios' => $usuarios,
+            'asignaciones' => $asignaciones,
+            'proyectos' => $proyectos,
+            'roles' => $roles,
+            'usuarioActual' => auth()->id(),
         ]);
     }
 }

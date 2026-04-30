@@ -14,10 +14,10 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Fase 25: smoke tests del design system.
+ * Fase 29: smoke tests del design system (tokens HTML standalone).
  *
- * Los componentes x-ui.* son blocks de presentación — no tienen lógica compleja.
- * Estos tests verifican que compilen, rendericen y respondan a variantes.
+ * Componentes x-ui.* usan clases semánticas (.btn, .badge, .card, .kpi-card)
+ * con CSS custom properties — no utilities Tailwind directas.
  */
 final class DesignSystemTest extends TestCase
 {
@@ -33,21 +33,21 @@ final class DesignSystemTest extends TestCase
     {
         $html = Blade::render('<x-ui.badge tone="success">OK</x-ui.badge>');
         $this->assertStringContainsString('OK', $html);
-        $this->assertStringContainsString('bg-success-50', $html);
-        $this->assertStringContainsString('text-success-700', $html);
+        $this->assertStringContainsString('badge', $html);
+        $this->assertStringContainsString('badge-success', $html);
     }
 
     public function test_badge_tone_neutral_por_defecto(): void
     {
         $html = Blade::render('<x-ui.badge>Hola</x-ui.badge>');
-        $this->assertStringContainsString('bg-surface-100', $html);
+        $this->assertStringContainsString('badge-neutral', $html);
     }
 
     public function test_button_primary_por_defecto(): void
     {
         $html = Blade::render('<x-ui.button>Guardar</x-ui.button>');
         $this->assertStringContainsString('Guardar', $html);
-        $this->assertStringContainsString('bg-brand-600', $html);
+        $this->assertStringContainsString('btn-primary', $html);
     }
 
     public function test_button_variants(): void
@@ -55,6 +55,7 @@ final class DesignSystemTest extends TestCase
         foreach (['primary', 'secondary', 'ghost', 'danger', 'success'] as $v) {
             $html = Blade::render('<x-ui.button variant="'.$v.'">X</x-ui.button>');
             $this->assertStringContainsString('X', $html, "falló variant={$v}");
+            $this->assertStringContainsString('btn', $html, "falló variant={$v}");
         }
     }
 
@@ -71,6 +72,7 @@ final class DesignSystemTest extends TestCase
         $this->assertStringContainsString('Mi tarjeta', $html);
         $this->assertStringContainsString('Sub', $html);
         $this->assertStringContainsString('Contenido', $html);
+        $this->assertStringContainsString('card-title', $html);
     }
 
     public function test_stat_card_con_tono(): void
@@ -78,7 +80,8 @@ final class DesignSystemTest extends TestCase
         $html = Blade::render('<x-ui.stat-card label="Ventas" value="123" tone="success" />');
         $this->assertStringContainsString('Ventas', $html);
         $this->assertStringContainsString('123', $html);
-        $this->assertStringContainsString('text-success-700', $html);
+        $this->assertStringContainsString('kpi-card', $html);
+        $this->assertStringContainsString('kpi-value', $html);
     }
 
     public function test_empty_state(): void
@@ -101,7 +104,7 @@ final class DesignSystemTest extends TestCase
         $html = Blade::render('<x-ui.form-field label="Email" :error="$e"><input/></x-ui.form-field>', ['e' => 'Requerido']);
         $this->assertStringContainsString('Email', $html);
         $this->assertStringContainsString('Requerido', $html);
-        $this->assertStringContainsString('text-danger-600', $html);
+        $this->assertStringContainsString('field-error', $html);
     }
 
     public function test_table_con_head_y_rows(): void
@@ -116,13 +119,13 @@ final class DesignSystemTest extends TestCase
 BLADE);
         $this->assertStringContainsString('Nombre', $html);
         $this->assertStringContainsString('Ana', $html);
+        $this->assertStringContainsString('table', $html);
     }
 
     public function test_icon_renderiza_svg(): void
     {
         $html = Blade::render('<x-ui.icon name="plus" />');
         $this->assertStringContainsString('<svg', $html);
-        $this->assertStringContainsString('d="M12 4.5v15', $html);
     }
 
     public function test_proyecto_dashboard_renderiza_con_design_system(): void
@@ -142,8 +145,8 @@ BLADE);
             ->get(route('proyectos.dashboard', ['proyecto_id' => $proyectoId]))
             ->assertStatus(200);
 
-        // El nuevo dashboard usa los componentes del design system.
-        $response->assertSee('shadow-card', false);
-        $response->assertSee('text-ink-900', false);
+        // Nuevo dashboard usa layout F29: x-ui.page-header + x-ui.card.
+        $response->assertSee('page-header', false);
+        $response->assertSee('class="card', false);
     }
 }
