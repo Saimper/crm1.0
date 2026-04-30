@@ -110,6 +110,7 @@ class User extends Authenticatable
             return false;
         }
 
+        // Roles base — pasan por la matriz F22 (cartera-scoping aplicable).
         $rolesConPermiso = DB::table('usuario_proyecto_rol as upr')
             ->join('roles as r', 'r.id', '=', 'upr.rol_id')
             ->join('rol_permiso as rp', 'rp.rol_id', '=', 'upr.rol_id')
@@ -126,39 +127,50 @@ class User extends Authenticatable
             ->values()
             ->all();
 
-        if ($rolesConPermiso === []) {
-            return false;
-        }
-
-        if ($carteraId === null) {
-            return true;
-        }
-
-        // Al menos uno de los roles que aportan el permiso debe aplicar a esta cartera.
-        foreach ($rolesConPermiso as $rolId) {
-            $tieneRestriccion = DB::table('usuario_proyecto_rol_cartera')
-                ->where('usuario_id', $this->id)
-                ->where('proyecto_id', $proyectoId)
-                ->where('rol_id', $rolId)
-                ->exists();
-
-            if (! $tieneRestriccion) {
+        if ($rolesConPermiso !== []) {
+            if ($carteraId === null) {
                 return true;
             }
 
-            $autorizaCartera = DB::table('usuario_proyecto_rol_cartera')
-                ->where('usuario_id', $this->id)
-                ->where('proyecto_id', $proyectoId)
-                ->where('rol_id', $rolId)
-                ->where('cartera_id', $carteraId)
-                ->exists();
+            foreach ($rolesConPermiso as $rolId) {
+                $tieneRestriccion = DB::table('usuario_proyecto_rol_cartera')
+                    ->where('usuario_id', $this->id)
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('rol_id', $rolId)
+                    ->exists();
 
-            if ($autorizaCartera) {
-                return true;
+                if (! $tieneRestriccion) {
+                    return true;
+                }
+
+                $autorizaCartera = DB::table('usuario_proyecto_rol_cartera')
+                    ->where('usuario_id', $this->id)
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('rol_id', $rolId)
+                    ->where('cartera_id', $carteraId)
+                    ->exists();
+
+                if ($autorizaCartera) {
+                    return true;
+                }
             }
         }
 
-        return false;
+        // Roles custom F33 — siempre aplican a todo el proyecto (sin cartera-scoping en F33).
+        $tienePermisoCustom = DB::table('usuario_proyecto_rol_custom as uprc')
+            ->join('roles_custom as rc', 'rc.id', '=', 'uprc.rol_custom_id')
+            ->join('rol_custom_permiso as rcp', 'rcp.rol_custom_id', '=', 'uprc.rol_custom_id')
+            ->join('permisos as p', 'p.id', '=', 'rcp.permiso_id')
+            ->where('uprc.usuario_id', $this->id)
+            ->where('uprc.proyecto_id', $proyectoId)
+            ->where('uprc.activo', true)
+            ->where('rc.activo', true)
+            ->whereNull('rc.eliminada_en')
+            ->where('p.codigo', $codigo)
+            ->where('p.activo', true)
+            ->exists();
+
+        return $tienePermisoCustom;
     }
 
     public function tieneRolEnProyecto(string $rolCodigo, int $proyectoId): bool
