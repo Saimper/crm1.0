@@ -22,6 +22,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:personas.ver')
                 ->name('proyectos.personas.lista');
 
+            Route::view('/casos', 'casos::listado-page')
+                ->middleware('can:casos.ver')
+                ->name('proyectos.casos.lista');
+
             Route::view('/personas/crear', 'personas::crear-page')
                 ->middleware('can:personas.crear')
                 ->name('proyectos.personas.crear');
