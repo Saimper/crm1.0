@@ -223,10 +223,12 @@ Pantalla única del gestor: identidad de persona + selector de casos (pestañas)
 
 - Global Scope Eloquent agrega `WHERE proyecto_id = {activo}` automáticamente.
 - Desactivar solo con `sinScopeProyecto()` en reportes consolidados de ADMIN_GLOBAL.
-- Roles base por proyecto: `SUPERVISOR`, `GESTOR`, `AUDITOR`.
+- Roles base por proyecto: `SUPERVISOR`, `GESTOR`, `AUDITOR`. Inmutables desde UI.
+- **Roles custom (F33)**: ADMIN_GLOBAL define roles adicionales por proyecto combinando permisos existentes. Se persisten en `roles_custom` + `rol_custom_permiso`. Asignación a usuario en `usuario_proyecto_rol_custom` (tabla simétrica a la base, sin tocar `usuario_proyecto_rol`). Permisos `*.definir` y `roles.gestionar` están vetados (`RolCustom::PERMISOS_VETADOS`).
 - Permisos granulares CRUD: `gestiones.crear`, `campos.editar`, `entidades.definir`, etc. (~70 en total).
-- Scope por cartera opcional: `usuario_proyecto_rol_cartera`. Sin filas = rol aplica a todo el proyecto.
-- `User::tienePermiso($codigo, $proyectoId, $carteraId)` es la API de verificación.
+- Scope por cartera opcional: `usuario_proyecto_rol_cartera` (solo aplica a roles base; F33 no introduce cartera-scoping para custom).
+- `User::tienePermiso($codigo, $proyectoId, $carteraId)` es la API de verificación. Evalúa rol base (con cartera-scoping) y rol custom (sin cartera-scoping) en una sola llamada; basta con que cualquiera de los dos lo aporte.
+- Permiso `roles.gestionar`: exclusivo ADMIN_GLOBAL. Vive en la lista vetada para impedir que un rol custom pueda crearse a sí mismo.
 
 ---
 
@@ -319,7 +321,7 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ## 15. Estado actual (2026-04-30)
 
-**70 migraciones | 22 módulos activos | tests F32 verdes (37 nuevos: 13 unit + 24 feature)**
+**73 migraciones | 22 módulos activos | tests F33 verdes (522 totales, 35 nuevos en F33: 19 unit + 16 feature)**
 
 Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion, Clientes.
 
@@ -357,6 +359,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Validaciones avanzadas y auto-fill en campos personalizados (`fecha_minima`/`fecha_maxima`, `auto_fill`, `solo_lectura_tras_guardar`) — VO `MarcadorTemporal`, enum `AutoFill`, `ContextoUsuarioProyecto`, `ServicioCamposPersonalizados::valoresAutoRelleno()`. Cero migraciones, todo vive en JSON `reglas` existente. | ✅ F30 |
 | Importaciones async + 3 modos (`merge`/`skip_duplicados`/`overwrite`) — `EjecutarImportacionJob` en cola `imports`, lock advisory `GET_LOCK("import:{id}")`, chunks `IMPORTS_BATCH_SIZE` (default 1000), polling Livewire 2s. Enums `ModoImportacion`/`EstadoImportacion`/`EstadoFila`, VO `ResumenChunk`, eventos `ImportacionEncolada`/`Iniciada`/`Terminada`/`Fallada`. Rename estados (`borrador→pendiente`, `validada→preparada`) y contadores (`procesadas/validas/invalidas/omitidas/duplicadas`). | ✅ F31 |
 | Constructor de reportes custom + export streaming sin límite — DSL declarativo `DefinicionReporte` (entidad raíz + columnas + filtros + agrupaciones + orden), persistido en `reportes_definiciones`. Whitelist server-side `CatalogoCamposReporte` por entidad. Ejecutor `EjecutarReporte` traduce DSL a Eloquent Query Builder con joins predeclarados y bindings parametrizados (cero SQL injection). Streaming CSV nativo (BOM + fputcsv) y XLSX vía OpenSpout `^4.28`. Permisos nuevos `reportes.constructor.{gestionar,ejecutar,exportar}`. Auditoría `reportes_ejecuciones`. Livewire `ConstructorReporte` (preview live LIMIT 50) + `ListadoReportesCustom`. | ✅ F32 |
+| Constructor de roles custom por proyecto — ADMIN_GLOBAL combina permisos existentes en roles nombrados sin desplegar código. VO `CodigoRolCustom` regex `[A-Z][A-Z0-9_]*`. Entidad `RolCustom` con lista vetada `PERMISOS_VETADOS = ['campos.definir','entidades.definir','roles.gestionar']`. Tablas separadas (`roles_custom`, `rol_custom_permiso`, `usuario_proyecto_rol_custom`) sin tocar la base; `User::tienePermiso` une rol base (con cartera-scoping F22) + rol custom (sin cartera-scoping). Permiso nuevo `roles.gestionar` exclusivo ADMIN_GLOBAL. Livewire `AdminRolesCustom` (CRUD + filtro defensivo de permisos vetados) y `MatrizPermisos` read-only. Roles base permanecen inmutables desde UI. | ✅ F33 |
 
 ### Módulo Integracion (F28)
 
@@ -408,6 +411,27 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 - **UI**: Livewire `ConstructorReporte` ofrece selector entidad → catálogo lateral filtrable → +columna/+filtro/+agrupación/+orden → preview live (LIMIT 50) → guardar. `ListadoReportesCustom` lista definiciones del proyecto con acciones inline.
 - **Dependencia nueva**: `openspout/openspout ^4.28.5` — librería liviana MIT-licensed, streaming nativo XLSX/ODS/CSV. Justificación: alternativa única para escribir XLSX sin cargar todo el archivo en memoria (PhpSpreadsheet no soporta streaming real). Sin Horizon, sin colas extra.
 - **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F32, con acuerdo previo.
+
+### Módulo Usuarios — roles custom F33
+
+- **Tablas nuevas (3, aditivas)**: `roles_custom` (proyecto_id, codigo único por proyecto, nombre, descripcion, activo, soft delete `eliminada_en`), `rol_custom_permiso` (pivot rol_custom ↔ permiso), `usuario_proyecto_rol_custom` (asignación usuario↔rol custom↔proyecto, simétrica a `usuario_proyecto_rol`).
+- **No se modificó `usuario_proyecto_rol`** — descartado el ALTER + XOR descrito originalmente: rompía la PK compuesta `(usuario_id, proyecto_id, rol_id)` y obligaba a rebuild en prod. La separación en tabla nueva mantiene F1–F32 intactos a costo de un UNION lógico en `tienePermiso`.
+- **Domain** (`app/Modules/Usuarios/Domain/RolesCustom/`):
+  - VO `CodigoRolCustom` regex `^[A-Z][A-Z0-9_]*$`, longitud 2..40 (coherente con codigos de roles base).
+  - Entidad `RolCustom` con factories `nuevo()`/`reconstituir()`/`actualizar()`/`desactivar()`. Invariantes: ≥1 permiso, nombre no vacío, ningún permiso en `PERMISOS_VETADOS`.
+  - `RolCustom::PERMISOS_VETADOS = ['campos.definir', 'entidades.definir', 'roles.gestionar']` — lista cerrada. Cualquier permiso aquí no puede asignarse a un rol custom. `roles.gestionar` está vetado a propósito: previene que un rol custom pueda crear más roles custom.
+  - Excepciones: `PermisoNoAsignableARolCustom`, `RolCustomNoEditable`, `CodigoRolCustomDuplicado`, `RolCustomSinPermisos`.
+- **Application UseCases** (`app/Modules/Usuarios/Application/RolesCustom/UseCases/`): `CrearRolCustom`, `ActualizarRolCustom`, `EliminarRolCustom` (soft, bloquea si tiene asignaciones activas), `AsignarRolCustomAUsuario`, `RevocarRolCustomDeUsuario`. DTO `EntradaRolCustom`.
+- **`User::tienePermiso` ahora dos rutas**:
+  1. Rol base (sin cambios respecto a F22): `usuario_proyecto_rol` join `rol_permiso`. Si encuentra match, evalúa cartera-scoping y devuelve true si pasa.
+  2. Si rol base no aporta el permiso, evalúa rol custom: `usuario_proyecto_rol_custom` join `rol_custom_permiso` (sin cartera-scoping). Devuelve true si match.
+- **Permiso `roles.gestionar`**: nuevo, grupo `roles`. NO se asigna a roles base — solo ADMIN_GLOBAL lo gana vía `Gate::before`. La asignación explícita en `RolPermisoSeeder` (loop sobre todos los permisos para ADMIN_GLOBAL) lo cubre por consistencia de tabla.
+- **UI** (Livewire en `app/Modules/Usuarios/Infrastructure/Http/Livewire/`):
+  - `AdminRolesCustom` — ruta `/proyectos/{id}/admin/roles-custom`, middleware `can:roles.gestionar`. CRUD modal. Defensa en profundidad (patrón F23): cada acción mutadora invoca `$this->authorize('roles.gestionar', $proyectoId)`. Filtra `PERMISOS_VETADOS` de la lista mostrada y, si el front intenta enviarlos vía payload manipulado, los descarta antes del UseCase (`array_filter` con `RolCustom::puedeAsignarPermiso`).
+  - `MatrizPermisos` — ruta `/proyectos/{id}/admin/matriz-permisos`, mismo permiso. Tabla read-only filas=permisos × columnas=roles base + roles custom del proyecto. Filtro por `grupo`.
+  - `GestionUsuariosProyecto` (F10) extendido: la property `rolAsignarId` se reemplazó por `rolAsignarValor` con formato `"base:{id}"` o `"custom:{id}"`. El selector usa `<optgroup>`. Para roles custom, la sección de cartera-scoping se oculta (cartera-scoping no aplica en F33). Listado consolidado (UNION de `usuario_proyecto_rol` + `usuario_proyecto_rol_custom`); cada fila trae `tipo_rol` (`base`/`custom`) y la acción `quitar` o `quitarCustom` correspondiente.
+- **Multi-tenancy**: rol custom siempre scoped por `proyecto_id`. `AsignarRolCustomAUsuario` valida que el rol pertenece al proyecto destino antes de insertar — un rol custom de proyecto A nunca se asigna a usuario en proyecto B.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F33, con acuerdo previo.
 
 ### Design system — F29-bis (en re-ejecución)
 
