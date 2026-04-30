@@ -87,6 +87,13 @@
             </x-ui.card>
 
             <x-ui.card title="Casos ({{ $casos->count() }})" style="margin-top:12px;">
+                @can('casos.crear', $proyectoActivo->id)
+                    <a href="{{ route('proyectos.casos.crear', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
+                       wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;text-decoration:none;">
+                        <x-ui.icon name="plus" :size="13" />
+                        <span>Nuevo caso</span>
+                    </a>
+                @endcan
                 @if($casos->isEmpty())
                     <x-ui.empty-state title="Sin casos abiertos" message="Esta persona aún no tiene casos en este proyecto." />
                 @else
