@@ -120,6 +120,7 @@
                                 <th class="px-2 py-2 text-left">Identificación</th>
                                 <th class="px-2 py-2 text-left">Nombre / Razón</th>
                                 <th class="px-2 py-2 text-left">Detalle</th>
+                                <th class="px-2 py-2 text-left">Acción</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
@@ -137,6 +138,7 @@
                                         default     => 'bg-gray-100 text-gray-700',
                                     };
                                     $detalle = $f->mensaje_error ?: $f->razon_omision;
+                                    $personaPublicId = $personasResueltas[$f->numero_fila] ?? null;
                                 @endphp
                                 <tr>
                                     <td class="px-2 py-1 font-mono">{{ $f->numero_fila }}</td>
@@ -149,6 +151,12 @@
                                     </td>
                                     <td class="px-2 py-1">{{ $nombre }}</td>
                                     <td class="px-2 py-1 text-gray-700">{{ $detalle }}</td>
+                                    <td class="px-2 py-1">
+                                        @if($personaPublicId !== null)
+                                            <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId]) }}"
+                                               wire:navigate class="text-blue-600 hover:underline">Ver</a>
+                                        @endif
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -43,13 +43,29 @@
                             default                               => 'neutral',
                         };
                     @endphp
+                    @php
+                        $ruta = $rutas[$n->id] ?? null;
+                        $linkUrl = $ruta !== null
+                            ? route('proyectos.trabajo', [
+                                'proyecto_id' => app('tenancy.proyecto_activo')->id,
+                                'persona' => $ruta['persona_public_id'],
+                                'caso' => $ruta['caso_public_id'],
+                            ])
+                            : null;
+                    @endphp
                     <li class="p-4 flex items-start gap-3 {{ $esLeida ? 'bg-white' : 'bg-brand-50/40' }}">
                         <div class="flex-shrink-0 mt-1">
                             <span class="inline-block h-2 w-2 rounded-full {{ $esLeida ? 'bg-ink-400/40' : $dotTone }}"></span>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-4">
-                                <div class="text-sm font-semibold text-ink-900">{{ $n->titulo }}</div>
+                                @if($linkUrl)
+                                    <a href="{{ $linkUrl }}" wire:navigate class="text-sm font-semibold text-ink-900 hover:text-brand-700 hover:underline">
+                                        {{ $n->titulo }}
+                                    </a>
+                                @else
+                                    <div class="text-sm font-semibold text-ink-900">{{ $n->titulo }}</div>
+                                @endif
                                 <div class="text-xs text-ink-500 whitespace-nowrap">
                                     {{ \Illuminate\Support\Carbon::parse($n->creada_en)->diffForHumans() }}
                                 </div>
@@ -58,7 +74,13 @@
                             <div class="mt-2 flex items-center gap-2">
                                 <x-ui.badge :tone="$tipoTone" size="sm">{{ $n->tipo }}</x-ui.badge>
                                 @if(!empty($meta['caso_id']))
-                                    <span class="text-[11px] text-ink-500">caso #{{ $meta['caso_id'] }}</span>
+                                    @if($linkUrl)
+                                        <a href="{{ $linkUrl }}" wire:navigate class="text-[11px] text-brand-700 hover:underline">
+                                            Ver caso #{{ $meta['caso_id'] }}
+                                        </a>
+                                    @else
+                                        <span class="text-[11px] text-ink-500">caso #{{ $meta['caso_id'] }}</span>
+                                    @endif
                                 @endif
                             </div>
                         </div>

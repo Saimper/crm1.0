@@ -154,6 +154,8 @@ final class ImportarPersonas extends Component
         $importacionActual = null;
         $preview = collect();
 
+        $personasResueltas = [];
+
         if ($this->importacionId !== null) {
             $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
             $importacionActual = DB::table('importaciones')->where('id', $this->importacionId)->first();
@@ -163,6 +165,8 @@ final class ImportarPersonas extends Component
                 $q->where('estado', $this->filtroFilas);
             }
             $preview = $q->orderBy('numero_fila')->limit(200)->get();
+
+            $personasResueltas = $this->resolverPersonasDePreview($proyectoId, $preview);
         }
 
         return view('importaciones::livewire.importar-personas', [
@@ -170,7 +174,66 @@ final class ImportarPersonas extends Component
             'preview' => $preview,
             'importacionActual' => $importacionActual,
             'progreso' => $progreso,
+            'personasResueltas' => $personasResueltas,
         ]);
+    }
+
+    /**
+     * Mapea numero_fila → persona public_id para filas procesadas/duplicadas, permitiendo
+     * link "ver" desde la tabla preview hacia Vista de Trabajo de la persona resultante.
+     *
+     * @param  \Illuminate\Support\Collection<int, object>  $preview
+     * @return array<int, string>                                    numero_fila → public_id
+     */
+    private function resolverPersonasDePreview(int $proyectoId, $preview): array
+    {
+        $clavesPorFila = [];
+        $codigos = [];
+        $identificaciones = [];
+
+        foreach ($preview as $f) {
+            if (! in_array($f->estado, ['procesada', 'duplicada'], true)) {
+                continue;
+            }
+            $payload = is_array($f->payload) ? $f->payload : json_decode((string) $f->payload, true);
+            if (! is_array($payload)) {
+                continue;
+            }
+            $codigo = (string) ($payload['tipo_identificacion_codigo'] ?? '');
+            $ident = (string) ($payload['identificacion'] ?? '');
+            if ($codigo === '' || $ident === '') {
+                continue;
+            }
+            $clavesPorFila[(int) $f->numero_fila] = $codigo.'|'.$ident;
+            $codigos[$codigo] = true;
+            $identificaciones[$ident] = true;
+        }
+
+        if ($clavesPorFila === []) {
+            return [];
+        }
+
+        $rows = DB::table('personas as p')
+            ->join('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
+            ->where('p.proyecto_id', $proyectoId)
+            ->whereIn('ti.codigo', array_keys($codigos))
+            ->whereIn('p.identificacion', array_keys($identificaciones))
+            ->select(['ti.codigo as tipo_codigo', 'p.identificacion', 'p.public_id'])
+            ->get();
+
+        $byClave = [];
+        foreach ($rows as $r) {
+            $byClave[$r->tipo_codigo.'|'.$r->identificacion] = (string) $r->public_id;
+        }
+
+        $out = [];
+        foreach ($clavesPorFila as $numFila => $clave) {
+            if (isset($byClave[$clave])) {
+                $out[$numFila] = $byClave[$clave];
+            }
+        }
+
+        return $out;
     }
 
     /**
