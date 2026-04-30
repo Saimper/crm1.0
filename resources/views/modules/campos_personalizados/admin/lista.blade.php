@@ -216,6 +216,81 @@
                             <span>Activo</span>
                         </label>
                     </div>
+
+                    <div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:10px;">
+                        <div class="label-xs" style="margin-bottom:8px;">Reglas avanzadas (§7.4)</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            @if(in_array($form['tipo'] ?? '', ['fecha','fecha_hora'], true))
+                                <div>
+                                    <label class="field-label">Fecha mínima</label>
+                                    <select wire:model.live="form.fecha_minima_preset"
+                                            class="select @error('form.fecha_minima_preset') input-error @enderror">
+                                        <option value="">Sin restricción</option>
+                                        <option value="hoy">Hoy</option>
+                                        @if($form['tipo'] === 'fecha_hora')<option value="ahora">Ahora</option>@endif
+                                        <option value="+1d">+1 día</option>
+                                        <option value="+7d">+7 días</option>
+                                        <option value="custom">Personalizada</option>
+                                    </select>
+                                    @if(($form['fecha_minima_preset'] ?? '') === 'custom')
+                                        <input type="text" wire:model="form.fecha_minima_custom"
+                                               placeholder="2026-12-31 o -3d"
+                                               class="input mono"
+                                               style="margin-top:6px;"/>
+                                    @endif
+                                    @error('form.fecha_minima_preset')<div class="field-error">{{ $message }}</div>@enderror
+                                    @error('form.fecha_minima_custom')<div class="field-error">{{ $message }}</div>@enderror
+                                </div>
+                                <div>
+                                    <label class="field-label">Fecha máxima</label>
+                                    <select wire:model.live="form.fecha_maxima_preset"
+                                            class="select @error('form.fecha_maxima_preset') input-error @enderror">
+                                        <option value="">Sin restricción</option>
+                                        <option value="hoy">Hoy</option>
+                                        @if($form['tipo'] === 'fecha_hora')<option value="ahora">Ahora</option>@endif
+                                        <option value="+1d">+1 día</option>
+                                        <option value="+7d">+7 días</option>
+                                        <option value="custom">Personalizada</option>
+                                    </select>
+                                    @if(($form['fecha_maxima_preset'] ?? '') === 'custom')
+                                        <input type="text" wire:model="form.fecha_maxima_custom"
+                                               placeholder="2026-12-31 o +30d"
+                                               class="input mono"
+                                               style="margin-top:6px;"/>
+                                    @endif
+                                    @error('form.fecha_maxima_preset')<div class="field-error">{{ $message }}</div>@enderror
+                                    @error('form.fecha_maxima_custom')<div class="field-error">{{ $message }}</div>@enderror
+                                </div>
+                            @endif
+
+                            <div>
+                                <label class="field-label">Auto-rellenar con</label>
+                                <select wire:model="form.auto_fill"
+                                        class="select @error('form.auto_fill') input-error @enderror">
+                                    <option value="">Sin auto-relleno</option>
+                                    @if(in_array($form['tipo'] ?? '', ['fecha_hora'], true))
+                                        <option value="now">now (fecha+hora actual)</option>
+                                    @endif
+                                    @if(in_array($form['tipo'] ?? '', ['fecha','fecha_hora'], true))
+                                        <option value="today">today (fecha actual)</option>
+                                    @endif
+                                    @if(in_array($form['tipo'] ?? '', ['texto_corto','texto_largo'], true))
+                                        <option value="usuario_nombre">Nombre del usuario</option>
+                                        <option value="usuario_email">Email del usuario</option>
+                                        <option value="proyecto_codigo">Código del proyecto</option>
+                                    @endif
+                                </select>
+                                @error('form.auto_fill')<div class="field-error">{{ $message }}</div>@enderror
+                            </div>
+
+                            <div style="display:flex;align-items:flex-end;">
+                                <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+                                    <input type="checkbox" wire:model="form.solo_lectura_tras_guardar" class="checkbox"/>
+                                    <span>Solo lectura tras guardar</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="drawer-footer">

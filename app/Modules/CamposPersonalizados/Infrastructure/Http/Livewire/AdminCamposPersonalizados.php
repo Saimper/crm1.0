@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire;
 
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\AutoFill;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -70,6 +71,9 @@ final class AdminCamposPersonalizados extends Component
         }
 
         $reglas = is_string($row->reglas) ? (array) json_decode($row->reglas, true) : [];
+        [$fechaMinPreset, $fechaMinCustom] = $this->descomponerMarcador($reglas['fecha_minima'] ?? null);
+        [$fechaMaxPreset, $fechaMaxCustom] = $this->descomponerMarcador($reglas['fecha_maxima'] ?? null);
+
         $this->form = [
             'proyecto_id' => (int) $row->proyecto_id,
             'ambito' => (string) $row->ambito,
@@ -81,6 +85,12 @@ final class AdminCamposPersonalizados extends Component
             'activo' => (bool) $row->activo,
             'orden' => (int) $row->orden,
             'longitud_max' => isset($reglas['longitud_max']) ? (int) $reglas['longitud_max'] : null,
+            'fecha_minima_preset' => $fechaMinPreset,
+            'fecha_minima_custom' => $fechaMinCustom,
+            'fecha_maxima_preset' => $fechaMaxPreset,
+            'fecha_maxima_custom' => $fechaMaxCustom,
+            'auto_fill' => isset($reglas['auto_fill']) ? (string) $reglas['auto_fill'] : '',
+            'solo_lectura_tras_guardar' => ! empty($reglas['solo_lectura_tras_guardar']),
         ];
         $this->proyectoSeleccionadoId = (int) $row->proyecto_id;
         $this->campoEditandoId = $campoId;
@@ -116,6 +126,12 @@ final class AdminCamposPersonalizados extends Component
             'form.activo' => ['boolean'],
             'form.orden' => ['integer', 'min:0'],
             'form.longitud_max' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            'form.fecha_minima_preset' => ['nullable', 'in:,hoy,ahora,+1d,+7d,custom'],
+            'form.fecha_maxima_preset' => ['nullable', 'in:,hoy,ahora,+1d,+7d,custom'],
+            'form.fecha_minima_custom' => ['nullable', 'string', 'max:40'],
+            'form.fecha_maxima_custom' => ['nullable', 'string', 'max:40'],
+            'form.auto_fill' => ['nullable', 'in:,now,today,usuario_nombre,usuario_email,proyecto_codigo'],
+            'form.solo_lectura_tras_guardar' => ['boolean'],
         ], [], [
             'form.proyecto_id' => 'proyecto',
             'form.ambito' => 'ámbito',
@@ -124,15 +140,35 @@ final class AdminCamposPersonalizados extends Component
             'form.etiqueta' => 'etiqueta',
             'form.tipo' => 'tipo',
             'form.longitud_max' => 'longitud máxima',
+            'form.fecha_minima_preset' => 'fecha mínima',
+            'form.fecha_maxima_preset' => 'fecha máxima',
+            'form.auto_fill' => 'auto-relleno',
         ]);
 
         if (! $this->validarAmbitoId()) {
+            return;
+        }
+        if (! $this->validarReglasAvanzadas()) {
             return;
         }
 
         $reglas = [];
         if (! empty($this->form['longitud_max'])) {
             $reglas['longitud_max'] = (int) $this->form['longitud_max'];
+        }
+        $fechaMin = $this->resolverMarcador((string) ($this->form['fecha_minima_preset'] ?? ''), (string) ($this->form['fecha_minima_custom'] ?? ''));
+        if ($fechaMin !== null) {
+            $reglas['fecha_minima'] = $fechaMin;
+        }
+        $fechaMax = $this->resolverMarcador((string) ($this->form['fecha_maxima_preset'] ?? ''), (string) ($this->form['fecha_maxima_custom'] ?? ''));
+        if ($fechaMax !== null) {
+            $reglas['fecha_maxima'] = $fechaMax;
+        }
+        if (! empty($this->form['auto_fill'])) {
+            $reglas['auto_fill'] = (string) $this->form['auto_fill'];
+        }
+        if (! empty($this->form['solo_lectura_tras_guardar'])) {
+            $reglas['solo_lectura_tras_guardar'] = true;
         }
 
         $payload = [
@@ -292,6 +328,88 @@ final class AdminCamposPersonalizados extends Component
             'activo' => true,
             'orden' => 100,
             'longitud_max' => null,
+            'fecha_minima_preset' => '',
+            'fecha_minima_custom' => '',
+            'fecha_maxima_preset' => '',
+            'fecha_maxima_custom' => '',
+            'auto_fill' => '',
+            'solo_lectura_tras_guardar' => false,
         ];
+    }
+
+    /** @return array{0:string,1:string} [preset, custom] */
+    private function descomponerMarcador(mixed $token): array
+    {
+        if (! is_string($token) || $token === '') {
+            return ['', ''];
+        }
+        if (in_array($token, ['hoy', 'ahora', '+1d', '+7d'], true)) {
+            return [$token, ''];
+        }
+
+        return ['custom', $token];
+    }
+
+    private function resolverMarcador(string $preset, string $custom): ?string
+    {
+        if ($preset === '') {
+            return null;
+        }
+        if ($preset === 'custom') {
+            $custom = trim($custom);
+
+            return $custom === '' ? null : $custom;
+        }
+
+        return $preset;
+    }
+
+    private function validarReglasAvanzadas(): bool
+    {
+        $tipo = (string) $this->form['tipo'];
+
+        $aplicaFecha = in_array($tipo, ['fecha', 'fecha_hora'], true);
+        foreach (['fecha_minima', 'fecha_maxima'] as $clave) {
+            $preset = (string) ($this->form[$clave.'_preset'] ?? '');
+            if ($preset === '') {
+                continue;
+            }
+            if (! $aplicaFecha) {
+                $this->addError('form.'.$clave.'_preset', 'Solo aplica a campos de fecha o fecha-hora.');
+
+                return false;
+            }
+            if ($preset === 'ahora' && $tipo !== 'fecha_hora') {
+                $this->addError('form.'.$clave.'_preset', 'El token «ahora» solo aplica a fecha y hora.');
+
+                return false;
+            }
+            if ($preset === 'custom') {
+                $custom = trim((string) ($this->form[$clave.'_custom'] ?? ''));
+                if ($custom === '') {
+                    $this->addError('form.'.$clave.'_custom', 'Ingresa la fecha personalizada.');
+
+                    return false;
+                }
+                if (preg_match('/^([+-]\d+d|hoy|ahora)$/', $custom) !== 1 && strtotime($custom) === false) {
+                    $this->addError('form.'.$clave.'_custom', 'Formato no reconocido.');
+
+                    return false;
+                }
+            }
+        }
+
+        $autoFill = (string) ($this->form['auto_fill'] ?? '');
+        if ($autoFill !== '') {
+            $auto = AutoFill::tryFrom($autoFill);
+            $tipoEnum = TipoCampo::tryFrom($tipo);
+            if ($auto === null || $tipoEnum === null || ! $auto->tipoCompatible($tipoEnum)) {
+                $this->addError('form.auto_fill', 'El token de auto-relleno no aplica al tipo seleccionado.');
+
+                return false;
+            }
+        }
+
+        return true;
     }
 }
