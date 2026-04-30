@@ -711,7 +711,7 @@ Diseño DB sólido. Solo Cx tiene test cross-project. **20 módulos sin test mul
 
 ## 14-bis. Resolución F34B (cierre de fase)
 
-**Fecha de cierre:** 2026-04-30. **Total resuelto:** 28 de 31 P0+P1.
+**Fecha de cierre:** 2026-04-30. **Total resuelto:** 30 de 31 P0+P1 (10/11 P0 + 19/19 P1; queda 1 P0 parcial).
 
 ### P0 (10/11 ✅, 1 parcial)
 
@@ -729,15 +729,15 @@ Diseño DB sólido. Solo Cx tiene test cross-project. **20 módulos sin test mul
 | Asignación a equipo destino | ✅ | **Auditoría F34A errónea**: `AsignarMasivamente` + UseCase `AsignarCasosAEquipo` ya implementados con round-robin. Verificado. |
 | Tests multi-tenancy 20 módulos | ⏳ parcial | F34B agregó cobertura cross-project explícita en: Tenancy (carteras), Personas (listado), Casos (listado), Compromisos (listado). + `MultiTenancyCobranzaCxTest` ya existía. **Restantes 14 módulos** (Auditoria, Notificaciones, Importaciones, Reportes, Catalogos, Campanas, Contactos, Gestiones, EntidadesConfigurables, Integracion, Servicio, Venta, Cobranza, CamposPersonalizados) → **F34C**. |
 
-### P1 (17/19 ✅, 2 pendientes)
+### P1 (19/19 ✅)
 
 | # | Estado | Notas |
 |---|---|---|
 | `CrearPersona` redirect a Vista de Trabajo | ✅ | Cambio en `CrearPersona.php:91`. |
 | Edición de Persona | ✅ | `EditarPersona` Livewire (UPDATE directo sin tocar Domain núcleo, mismo patrón que AdminMandantes/Carteras). 5 tests. |
 | Edición de Contactos | ✅ | `ListaContactos.editar()/eliminar()`. Permiso `contactos.eliminar` agregado a SUPERVISOR. 4 tests. |
-| **Edición de Caso** | ⏳ pendiente | **BLOQUEADO en F34B**: requiere modal por tipo (4 CTI), invariantes de transición de estado, y posibles cambios en Domain `Caso`. Núcleo (§15.6). Necesita decisión arquitectónica → **F34C**. |
-| **Edición de Compromiso** | ⏳ pendiente | **BLOQUEADO en F34B**: requiere `ActualizarCompromiso` UseCase + 4 forms CTI. Domain `Compromiso` es núcleo. → **F34C**. |
+| Edición de Caso | ✅ | `EditarCaso` Livewire detecta tipo_caso, edita datos descriptivos por CTI (saldos, asunto, valor, dirección/técnico) + comunes (cartera, prioridad, fecha ingreso). Mantiene `tipo_caso`, `estado_caso_id` e identificadores únicos inmutables. UPDATE directo (Domain núcleo intacto). 5 tests. |
+| Edición de Compromiso | ✅ | `EditarCompromiso` Livewire. Solo si `estado=pendiente` (409 sino), con doble check pre-UPDATE para race con resolución. Edita CTI (monto/acción/etapa/descripción/fecha programada) + fecha_vencimiento. 4 tests. |
 | Notificación → entidad link | ✅ | `ListadoNotificaciones` resuelve persona+caso en bulk + título y chip "caso #N" linkeables. |
 | Importación → registro link | ⚠️ parcial | Implementado solo para Personas (`ImportarPersonas` columna "Acción" + Ver). `ImportarCasos` requiere switch CTI por `tipo_entidad` (numero_prestamo/codigo_ticket/codigo_lead/codigo_servicio) → **F34C**. |
 | Auditoría diff visual | ✅ | Modal reescrito: tabla campo × antes × después con coloreado rojo/verde. Fallback usa `datos_antes`/`datos_despues` para eventos creado/eliminado. |
@@ -755,16 +755,16 @@ Diseño DB sólido. Solo Cx tiene test cross-project. **20 módulos sin test mul
 
 ### Métricas F34B
 
-- **19 commits incrementales** (todos con suite verde antes de mergear).
-- **34 tests nuevos** sobre 522 previos = **556/556 verde** al cierre.
+- **20 commits incrementales** (todos con suite verde antes de mergear).
+- **43 tests nuevos** sobre 522 previos = **565/565 verde** al cierre.
 - Pint OK.
 - Sin nuevas dependencias externas (no se introdujo paquete alguno).
 - Sin migraciones de BD (cero cambios de schema; F34B es 100% capa Application + Infrastructure + UI).
-- Domain del núcleo (Casos, Personas, Compromisos, Gestiones, Tenancy) intacto. Las ediciones de Persona y Contacto usan UPDATE directo (mismo patrón establecido en F7 con AdminMandantes y F34B con AdminCarterasProyecto).
+- Domain del núcleo (Casos, Personas, Compromisos, Gestiones, Tenancy) intacto. Las ediciones de Persona, Contacto, Caso y Compromiso usan UPDATE directo (mismo patrón establecido en F7 con AdminMandantes y F34B con AdminCarterasProyecto). Edición Caso/Compromiso respeta invariantes vía limitaciones explícitas del componente: `tipo_caso`/`tipo_compromiso` inmutables (CTI), `estado_caso_id` inmutable (transiciones se hacen vía gestiones), compromiso solo editable si `estado=pendiente`.
 
 ### P2/P3 → F34C
 
-Los 13 P2 y 3 P3 originales quedan abiertos para iteración separada. Los items P0/P1 bloqueados o parciales identificados arriba (Edición Caso, Edición Compromiso, Importación→registro para Casos, Tests multi-tenancy 14 módulos restantes, Test feature `RegistrarCampana`) se priorizan al inicio de F34C.
+Los 13 P2 y 3 P3 originales quedan abiertos para iteración separada. Los items P0/P1 parciales identificados arriba (ImportarCasos→registro link, Tests multi-tenancy 14 módulos restantes) se priorizan al inicio de F34C.
 
 ---
 
