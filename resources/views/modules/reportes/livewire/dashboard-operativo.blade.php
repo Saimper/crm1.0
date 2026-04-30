@@ -1,3 +1,17 @@
+@php
+    $labelIntentadas = match ($proyecto->tipo_operacion ?? '') {
+        'cx' => 'Tickets atendidos',
+        'venta' => 'Leads contactados',
+        'servicio' => 'Servicios atendidos',
+        default => 'Casos intentados',
+    };
+    $labelGestionadas = match ($proyecto->tipo_operacion ?? '') {
+        'cx' => 'Tickets resueltos',
+        'venta' => 'Leads calificados',
+        'servicio' => 'Servicios ejecutados',
+        default => 'Casos gestionados',
+    };
+@endphp
 <div class="space-y-4">
     <div class="flex items-center justify-between gap-3">
         <div>
@@ -18,11 +32,11 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="rounded-lg border border-gray-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-gray-500">Cuentas intentadas</div>
+            <div class="text-[10px] uppercase tracking-wider text-gray-500">{{ $labelIntentadas }}</div>
             <div class="text-2xl font-semibold text-gray-900 mt-1">{{ number_format($cuentasIntentadas) }}</div>
         </div>
         <div class="rounded-lg border border-gray-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-gray-500">Cuentas gestionadas</div>
+            <div class="text-[10px] uppercase tracking-wider text-gray-500">{{ $labelGestionadas }}</div>
             <div class="text-2xl font-semibold text-emerald-700 mt-1">{{ number_format($cuentasGestionadas) }}</div>
         </div>
         <div class="rounded-lg border border-gray-200 bg-white p-4">

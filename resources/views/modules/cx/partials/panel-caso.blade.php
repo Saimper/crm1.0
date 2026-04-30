@@ -6,7 +6,7 @@
     <div class="rounded-md border border-sky-200 bg-sky-50 p-4 space-y-3">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <div class="text-xs uppercase tracking-wider text-sky-800 font-semibold">Ticket</div>
+                <div class="text-[10px] uppercase tracking-wider text-sky-700">Caso de CX · Ticket</div>
                 <div class="text-lg font-semibold text-sky-900 font-mono">{{ $ticket->codigo_ticket }}</div>
                 <div class="text-sm text-sky-900 mt-0.5">{{ $ticket->asunto }}</div>
             </div>

@@ -141,7 +141,7 @@
 
     @if($requiereCompromiso && $tipoCaso === 'lead_venta')
         <div class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-emerald-800">Promesa de cierre</div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-emerald-800">Compromiso de cierre</div>
             <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                     <label class="block text-xs font-medium text-emerald-900">
@@ -216,7 +216,7 @@
 
     @if($requiereCompromiso && $tipoCaso === 'ticket_cx')
         <div class="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-sky-800">Resolución / Escalamiento</div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-sky-800">Compromiso de resolución</div>
             <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-sky-900">
@@ -235,8 +235,9 @@
                            class="mt-1 block w-full text-sm rounded border-sky-300 focus:border-sky-500 focus:ring-sky-500"/>
                     @error('resolucionFechaLimite')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
-                <div class="sm:col-span-3">
-                    <label class="block text-xs font-medium text-sky-900">Nivel escalamiento</label>
+                <div class="sm:col-span-3 pt-2 mt-2 border-t border-sky-200">
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-sky-700 mb-1">Escalamiento</div>
+                    <label class="block text-xs font-medium text-sky-900">Nivel</label>
                     <select wire:model="resolucionNivelEscalamientoId"
                             class="mt-1 block w-full text-sm rounded border-sky-300 focus:border-sky-500 focus:ring-sky-500">
                         <option value="">—</option>

@@ -25,8 +25,8 @@
                         <th class="px-3 py-2 text-left">Equipo</th>
                         <th class="px-3 py-2 text-right">Miembros</th>
                         <th class="px-3 py-2 text-right">Gestiones</th>
-                        <th class="px-3 py-2 text-right">Cuentas intentadas</th>
-                        <th class="px-3 py-2 text-right">Gestionadas</th>
+                        <th class="px-3 py-2 text-right">Casos intentados</th>
+                        <th class="px-3 py-2 text-right">Gestionados</th>
                         <th class="px-3 py-2 text-right">Efectividad</th>
                         <th class="px-3 py-2 text-right">Comp. vigentes</th>
                         <th class="px-3 py-2 text-right">Comp. vencidos</th>

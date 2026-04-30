@@ -6,7 +6,7 @@
     <div class="rounded-md border border-blue-200 bg-blue-50 p-4 space-y-3">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <div class="text-xs uppercase tracking-wider text-blue-800 font-semibold">Servicio técnico</div>
+                <div class="text-[10px] uppercase tracking-wider text-blue-700">Caso de servicio · Servicio técnico</div>
                 <div class="text-lg font-semibold text-blue-900 font-mono">{{ $servicio->codigo_servicio }}</div>
                 @if($servicio->tipo_accion_nombre)
                     <div class="text-sm text-blue-900 mt-0.5">{{ $servicio->tipo_accion_nombre }}</div>

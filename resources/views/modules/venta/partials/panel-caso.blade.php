@@ -7,7 +7,7 @@
     <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4 space-y-3">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <div class="text-xs uppercase tracking-wider text-emerald-800 font-semibold">Lead</div>
+                <div class="text-[10px] uppercase tracking-wider text-emerald-700">Caso de venta · Lead</div>
                 <div class="text-lg font-semibold text-emerald-900 font-mono">{{ $lead->codigo_lead }}</div>
             </div>
             <div class="text-right">

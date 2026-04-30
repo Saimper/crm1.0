@@ -7,7 +7,7 @@
     <div class="rounded-md border border-amber-200 bg-amber-50 p-4 space-y-3">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <div class="text-xs uppercase tracking-wider text-amber-800 font-semibold">Préstamo</div>
+                <div class="text-[10px] uppercase tracking-wider text-amber-700">Caso de cobranza · Préstamo</div>
                 <div class="text-lg font-semibold text-amber-900 font-mono">{{ $cobranza->numero_prestamo }}</div>
             </div>
             <div class="text-right">
