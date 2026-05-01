@@ -33,6 +33,9 @@ return new class extends Migration
 
             // Hash técnico opcional para dedupe futura (§2.1 CLAUDE.md v2).
             // Nunca se usa para autorizar visibilidad cross-proyecto.
+            // F34C: columna sin uso productivo verificado. Se mantiene
+            // pendiente de decisión: poblarla en RegistrarPersona o
+            // eliminar la columna en una migración separada (F34D+).
             $table->string('hash_identidad', 64)->nullable();
 
             $table->timestamp('creada_en')->useCurrent();

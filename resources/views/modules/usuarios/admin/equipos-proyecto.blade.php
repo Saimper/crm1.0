@@ -88,6 +88,10 @@
                                 @endif
                             </td>
                             <td style="text-align:right;">
+                                @can('reportes.operativos', app('tenancy.proyecto_activo')->id)
+                                    <a href="{{ route('proyectos.reportes.equipos', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'equipo' => $e->id]) }}"
+                                       wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">Ver reporte</a>
+                                @endcan
                                 <button type="button" wire:click="gestionarMiembros({{ $e->id }})" class="btn btn-ghost btn-sm">Miembros</button>
                                 <button type="button" wire:click="abrirFormEditar({{ $e->id }})" class="btn btn-ghost btn-sm">Editar</button>
                                 @if($e->activo)

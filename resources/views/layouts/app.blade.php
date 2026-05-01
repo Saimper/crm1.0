@@ -199,6 +199,26 @@
                             <span>Importaciones</span>
                         </a>
                     @endcan
+                    @can('entidades.ver', $proyectoActivo->id)
+                        @php
+                            $entidadesProyecto = \Illuminate\Support\Facades\DB::table('entidades_configurables')
+                                ->where('proyecto_id', $proyectoActivo->id)
+                                ->whereNull('eliminada_en')
+                                ->where('activo', true)
+                                ->orderBy('nombre')
+                                ->select(['id', 'nombre', 'icono'])
+                                ->limit(15)
+                                ->get();
+                        @endphp
+                        @foreach($entidadesProyecto as $ent)
+                            <a href="{{ route('proyectos.entidades.registros', ['proyecto_id' => $proyectoActivo->id, 'entidad_id' => $ent->id]) }}"
+                               wire:navigate
+                               class="sb-item @if(request()->is('proyectos/'.$proyectoActivo->id.'/entidades/'.$ent->id)) active @endif">
+                                <x-ui.icon :name="$ent->icono ?: 'layers'" :size="15" />
+                                <span>{{ $ent->nombre }}</span>
+                            </a>
+                        @endforeach
+                    @endcan
                 </div>
 
                 <div class="sb-group">

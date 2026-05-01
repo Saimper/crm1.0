@@ -47,6 +47,10 @@ return new class extends Migration
                 ->constrained('users')
                 ->nullOnDelete();
 
+            // Convención: "eliminado_en" (masculino) concuerda con "registro";
+            // el resto de tablas usa "eliminada_en" (femenino) por concordancia
+            // con casos/personas/gestiones. Decisión F34C: aceptar la
+            // divergencia gramatical antes que introducir un rename masivo.
             $table->timestamp('creado_en')->useCurrent();
             $table->timestamp('actualizado_en')->useCurrent()->useCurrentOnUpdate();
             $table->timestamp('eliminado_en')->nullable();
