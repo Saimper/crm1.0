@@ -852,6 +852,11 @@ CLAUDE.md §15 lista funcionalidades F1–F33. Coverage UI confirmada para todas
 
 ### → F34D (deuda técnica restante)
 
-- **EncolarImportacion arquitectura repo** (refactor M-L: crear contrato Repo + reescribir Livewire ImportarPersonas/ImportarCasos).
-- **SnapshotGestion** namespace inexistente (decisión arquitectónica del owner sobre Productos/Cobranza).
-- `personas.hash_identidad`: poblar (en `RegistrarPersona`) o eliminar via migración.
+- **EncolarImportacion arquitectura repo** ✅ CERRADO en F34D: `ImportacionRepository` contract + `EloquentImportacionRepository` impl. UseCase desacoplado. Livewires siguen con Model (Infrastructure→Infrastructure admisible).
+- **SnapshotGestion** ✅ CERRADO en F34D: VO eliminado por código muerto (importaba namespace `Productos` inexistente, sin uso productivo en repo).
+- `personas.hash_identidad`: poblar (en `RegistrarPersona`) o eliminar via migración. **Sigue pendiente** — decisión arquitectónica menor.
+
+### Cierre F34D (2026-04-30)
+
+47/47 + 2 deuda técnica cerrados. Solo queda:
+- `personas.hash_identidad` documentado en migración con plan inline (poblar o eliminar).
