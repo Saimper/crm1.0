@@ -16,7 +16,7 @@ final class SelectorProyecto extends Component
      * redirige al dashboard del proyecto sin mostrar selector. ADMIN_GLOBAL
      * siempre ve el listado completo.
      */
-    public function mount(): RedirectResponse|null
+    public function mount(): ?RedirectResponse
     {
         $usuario = auth()->user();
         if ($usuario === null || ($usuario->esAdminGlobal() ?? false)) {

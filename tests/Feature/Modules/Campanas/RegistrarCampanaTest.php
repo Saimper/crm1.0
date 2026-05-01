@@ -72,7 +72,7 @@ final class RegistrarCampanaTest extends TestCase
         $useCase->execute($this->input($proyectoId, 'DUP_F34C'));
     }
 
-    public function test_mismo_codigo_en_distintos_proyectos_OK(): void
+    public function test_mismo_codigo_en_distintos_proyectos_ok(): void
     {
         $proyectoA = $this->proyectoCobranza();
         $proyectoB = $this->proyectoCx();

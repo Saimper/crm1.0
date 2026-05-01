@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\ListadoReportesCustom;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;

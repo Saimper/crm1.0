@@ -77,6 +77,63 @@
             </div>
         </div>
 
+        {{-- F34C P3-3: KPIs de entrada para gestores --}}
+        @php
+            $usuarioId = (int) auth()->id();
+            $hoy = \Illuminate\Support\Carbon::today();
+            $kpis = null;
+            if (auth()->user()?->tienePermiso('asignaciones.ver_propia', $proyecto->id) === true) {
+                $kpis = [
+                    'pendientes' => (int) DB::table('asignaciones')
+                        ->where('proyecto_id', $proyecto->id)
+                        ->where('usuario_id', $usuarioId)
+                        ->where('estado', 'pendiente')
+                        ->count(),
+                    'compromisos_proximos' => (int) DB::table('compromisos')
+                        ->where('proyecto_id', $proyecto->id)
+                        ->where('usuario_id', $usuarioId)
+                        ->where('estado', 'pendiente')
+                        ->whereNull('eliminada_en')
+                        ->whereBetween('fecha_vencimiento', [$hoy->toDateString(), $hoy->copy()->addDays(7)->toDateString()])
+                        ->count(),
+                    'compromisos_vencidos' => (int) DB::table('compromisos')
+                        ->where('proyecto_id', $proyecto->id)
+                        ->where('usuario_id', $usuarioId)
+                        ->where('estado', 'pendiente')
+                        ->whereNull('eliminada_en')
+                        ->where('fecha_vencimiento', '<', $hoy->toDateString())
+                        ->count(),
+                    'gestiones_hoy' => (int) DB::table('gestiones')
+                        ->where('proyecto_id', $proyecto->id)
+                        ->where('usuario_id', $usuarioId)
+                        ->whereNull('eliminada_en')
+                        ->whereDate('creada_en', $hoy->toDateString())
+                        ->count(),
+                ];
+            }
+        @endphp
+
+        @if($kpis !== null)
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="card card-pad" style="padding:14px;">
+                    <div class="label-xs">Mis pendientes</div>
+                    <div style="font-size:22px;font-weight:600;color:var(--text);margin-top:4px;">{{ number_format($kpis['pendientes']) }}</div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                    <div class="label-xs">Gestiones hoy</div>
+                    <div style="font-size:22px;font-weight:600;color:var(--text);margin-top:4px;">{{ number_format($kpis['gestiones_hoy']) }}</div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                    <div class="label-xs">Compromisos próximos 7d</div>
+                    <div style="font-size:22px;font-weight:600;color:var(--success-text);margin-top:4px;">{{ number_format($kpis['compromisos_proximos']) }}</div>
+                </div>
+                <div class="card card-pad" style="padding:14px;">
+                    <div class="label-xs">Compromisos vencidos</div>
+                    <div style="font-size:22px;font-weight:600;color:var(--danger-text);margin-top:4px;">{{ number_format($kpis['compromisos_vencidos']) }}</div>
+                </div>
+            </div>
+        @endif
+
         @foreach($cards as $categoria => $items)
             @php
                 $visibles = array_filter(

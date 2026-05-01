@@ -1,5 +1,9 @@
 @php
     /** @var object|null $cobranza */
+    // F34C P3-1: paleta amber dedicada al panel cobranza. Decisión consciente:
+    // los 4 paneles tipo-específicos usan colores distintos (amber/sky/emerald/blue)
+    // para discriminación visual rápida. F29-bis cerrará con tokens dedicados
+    // (--panel-cobranza-bg, etc.) cuando el design system se finalice.
     $fmt = fn ($monto) => number_format((float) $monto, 2, '.', ',');
 @endphp
 

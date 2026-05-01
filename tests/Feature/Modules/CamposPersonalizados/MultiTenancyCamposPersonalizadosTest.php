@@ -7,7 +7,6 @@ namespace Tests\Feature\Modules\CamposPersonalizados;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
