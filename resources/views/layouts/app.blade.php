@@ -275,7 +275,7 @@
                     </a>
                     <a href="{{ route('admin.proyectos') }}" wire:navigate
                        class="sb-item @if($rid('admin.proyectos')) active @endif">
-                        <x-ui.icon name="folder" :size="15" />
+                        <x-ui.icon name="briefcase" :size="15" />
                         <span>Proyectos</span>
                     </a>
                     <a href="{{ route('admin.mandantes') }}" wire:navigate
@@ -305,12 +305,12 @@
                     </a>
                     <a href="{{ route('admin.integracion.tokens') }}" wire:navigate
                        class="sb-item @if($rid('admin.integracion.tokens')) active @endif">
-                        <x-ui.icon name="hash" :size="15" />
+                        <x-ui.icon name="history" :size="15" />
                         <span>Tokens SSO</span>
                     </a>
                     <a href="{{ route('admin.integracion.secrets') }}" wire:navigate
                        class="sb-item @if($rid('admin.integracion.secrets')) active @endif">
-                        <x-ui.icon name="shield" :size="15" />
+                        <x-ui.icon name="key" :size="15" />
                         <span>SSO secrets</span>
                     </a>
                 </div>
@@ -321,7 +321,7 @@
                     <div class="sb-group-title">Inicio</div>
                     <a href="{{ route('dashboard') }}" wire:navigate
                        class="sb-item @if($rid('dashboard')) active @endif">
-                        <x-ui.icon name="folder" :size="15" />
+                        <x-ui.icon name="briefcase" :size="15" />
                         <span>Mis Proyectos</span>
                     </a>
                 </div>
