@@ -17,6 +17,7 @@ use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaM
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -174,6 +175,7 @@ final class ImportarCasos extends Component
         $progreso = null;
         $importacionActual = null;
         $preview = collect();
+        $casosResueltos = [];
 
         if ($this->importacionId !== null) {
             $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
@@ -184,6 +186,14 @@ final class ImportarCasos extends Component
                 $q->where('estado', $this->filtroFilas);
             }
             $preview = $q->orderBy('numero_fila')->limit(200)->get();
+
+            if ($importacionActual !== null) {
+                $casosResueltos = $this->resolverCasosDePreview(
+                    $proyectoId,
+                    (string) $importacionActual->tipo_entidad,
+                    $preview,
+                );
+            }
         }
 
         return view('importaciones::livewire.importar-casos', [
@@ -193,7 +203,93 @@ final class ImportarCasos extends Component
             'progreso' => $progreso,
             'tipoOperacion' => $tipoOperacion,
             'columnasEsperadas' => self::COLUMNAS_POR_TIPO[$tipoOperacion]['obligatorias'] ?? [],
+            'casosResueltos' => $casosResueltos,
         ]);
+    }
+
+    /**
+     * Mapea numero_fila → ['persona_public_id', 'caso_public_id'] para filas
+     * procesadas/duplicadas, resolviendo via identificador único del CTI.
+     *
+     * @param  Collection<int, object>  $preview
+     * @return array<int, array{persona_public_id: string, caso_public_id: string}>
+     */
+    private function resolverCasosDePreview(int $proyectoId, string $tipoEntidad, $preview): array
+    {
+        $columnaCsv = match ($tipoEntidad) {
+            'caso_cobranza' => 'numero_prestamo',
+            'caso_ticket_cx' => 'codigo_ticket',
+            'caso_lead_venta' => 'codigo_lead',
+            'caso_servicio' => 'codigo_servicio',
+            default => null,
+        };
+        if ($columnaCsv === null) {
+            return [];
+        }
+
+        $tablaCti = match ($tipoEntidad) {
+            'caso_cobranza' => 'casos_cobranza',
+            'caso_ticket_cx' => 'casos_ticket_cx',
+            'caso_lead_venta' => 'casos_lead_venta',
+            'caso_servicio' => 'casos_servicio',
+        };
+        $columnaCti = match ($tipoEntidad) {
+            'caso_cobranza' => 'numero_prestamo',
+            'caso_ticket_cx' => 'codigo_ticket',
+            'caso_lead_venta' => 'codigo_lead',
+            'caso_servicio' => 'codigo_servicio',
+        };
+
+        $clavesPorFila = [];
+        $valores = [];
+        foreach ($preview as $f) {
+            if (! in_array($f->estado, ['procesada', 'duplicada'], true)) {
+                continue;
+            }
+            $payload = is_array($f->payload) ? $f->payload : json_decode((string) $f->payload, true);
+            if (! is_array($payload)) {
+                continue;
+            }
+            $valor = trim((string) ($payload[$columnaCsv] ?? ''));
+            if ($valor === '') {
+                continue;
+            }
+            $clavesPorFila[(int) $f->numero_fila] = $valor;
+            $valores[$valor] = true;
+        }
+
+        if ($clavesPorFila === []) {
+            return [];
+        }
+
+        $rows = DB::table($tablaCti.' as cti')
+            ->join('casos as c', 'c.id', '=', 'cti.caso_id')
+            ->join('personas as p', 'p.id', '=', 'c.persona_id')
+            ->where('cti.proyecto_id', $proyectoId)
+            ->whereIn('cti.'.$columnaCti, array_keys($valores))
+            ->select([
+                'cti.'.$columnaCti.' as clave',
+                'c.public_id as caso_public_id',
+                'p.public_id as persona_public_id',
+            ])
+            ->get();
+
+        $byClave = [];
+        foreach ($rows as $r) {
+            $byClave[(string) $r->clave] = [
+                'persona_public_id' => (string) $r->persona_public_id,
+                'caso_public_id' => (string) $r->caso_public_id,
+            ];
+        }
+
+        $out = [];
+        foreach ($clavesPorFila as $numFila => $clave) {
+            if (isset($byClave[$clave])) {
+                $out[$numFila] = $byClave[$clave];
+            }
+        }
+
+        return $out;
     }
 
     private function ejecutarDryRun(string $tipoOperacion): void
