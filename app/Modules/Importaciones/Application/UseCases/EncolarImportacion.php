@@ -20,6 +20,12 @@ use Illuminate\Support\Facades\DB;
  * Despacha el job que ejecuta la importación.
  * Solo importaciones en estado PREPARADA pueden encolarse.
  * Marca PROCESANDO + iniciado_en de inmediato (evita doble despacho aunque cola tarde).
+ *
+ * F34C — pendiente de refactor: este UseCase y los Livewire ImportarPersonas/
+ * ImportarCasos importan ImportacionModel directamente desde Infrastructure.
+ * Plan F34D+: extraer ImportacionRepository en Domain/Contracts y mover
+ * orquestación de status/contadores fuera del Livewire. Por scope F34C la
+ * desviación arquitectónica queda diferida con esta nota explícita.
  */
 final readonly class EncolarImportacion
 {

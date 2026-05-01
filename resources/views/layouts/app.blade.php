@@ -305,6 +305,11 @@
                         <x-ui.icon name="shield" :size="15" />
                         <span>Auditoría global</span>
                     </a>
+                    <a href="{{ route('admin.integracion.tokens') }}" wire:navigate
+                       class="sb-item @if($rid('admin.integracion.tokens')) active @endif">
+                        <x-ui.icon name="hash" :size="15" />
+                        <span>Tokens SSO</span>
+                    </a>
                 </div>
             @endif
 
