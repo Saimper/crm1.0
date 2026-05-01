@@ -7,9 +7,7 @@ namespace App\Modules\Integracion\Infrastructure\Providers;
 use App\Modules\Integracion\Application\UseCases\ConsumirTokenSso;
 use App\Modules\Integracion\Application\UseCases\EmitirTokenSso;
 use App\Modules\Integracion\Domain\Contracts\RepositorioTokenSso;
-use App\Modules\Integracion\Infrastructure\Http\Controllers\PreviewPersonaController;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\SsoHandshakeController;
-use App\Modules\Integracion\Infrastructure\Http\Controllers\SsoLogoutController;
 use App\Modules\Integracion\Infrastructure\Http\Middleware\CspFrameAncestors;
 use App\Modules\Integracion\Infrastructure\Persistence\Repositories\RepositorioTokenSsoEloquent;
 use Illuminate\Routing\Router;
@@ -35,28 +33,9 @@ final class IntegracionServiceProvider extends ServiceProvider
     {
         $router->aliasMiddleware('csp.frame-ancestors', CspFrameAncestors::class);
 
-        $this->registrarRutasApi();
+        // F34C: las rutas API se cargan desde routes/api.php (declaradas en
+        // bootstrap/app.php). Aquí solo quedan las web (handshake browser).
         $this->registrarRutasWeb();
-    }
-
-    private function registrarRutasApi(): void
-    {
-        Route::middleware(['api'])
-            ->prefix('api')
-            ->group(function (): void {
-                Route::post('/auth/sso-handshake', [SsoHandshakeController::class, 'emitir'])
-                    ->middleware('throttle:10,1')
-                    ->name('api.sso.handshake');
-
-                Route::middleware('auth:sanctum')->group(function (): void {
-                    Route::post('/auth/logout', SsoLogoutController::class)
-                        ->name('api.sso.logout');
-
-                    Route::get('/integracion/persona', PreviewPersonaController::class)
-                        ->middleware('throttle:60,1')
-                        ->name('api.integracion.persona');
-                });
-            });
     }
 
     private function registrarRutasWeb(): void

@@ -55,8 +55,6 @@ final class RolPermisoSeeder extends Seeder
             'campos.ver', 'campos.editar',
             // Entidades configurables — VER/CREAR/EDITAR registros; NO DEFINIR
             'entidades.ver', 'entidades.crear', 'entidades.editar', 'entidades.eliminar',
-            // Configuración
-            'configuracion.ver',
         ],
         'GESTOR' => [
             // Gestiones — crea, ve; no elimina ni administra
@@ -96,7 +94,6 @@ final class RolPermisoSeeder extends Seeder
             'notificaciones.ver',
             'campos.ver',
             'entidades.ver',
-            'configuracion.ver',
         ],
     ];
 
