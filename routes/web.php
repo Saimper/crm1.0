@@ -205,6 +205,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->name('admin.auditoria');
             Route::view('/integracion/tokens', 'integracion::admin.tokens-sso-page')
                 ->name('admin.integracion.tokens');
+            Route::view('/integracion/secrets', 'integracion::admin.sso-secrets-page')
+                ->name('admin.integracion.secrets');
         });
 });
 

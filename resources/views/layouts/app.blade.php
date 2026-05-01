@@ -308,6 +308,11 @@
                         <x-ui.icon name="hash" :size="15" />
                         <span>Tokens SSO</span>
                     </a>
+                    <a href="{{ route('admin.integracion.secrets') }}" wire:navigate
+                       class="sb-item @if($rid('admin.integracion.secrets')) active @endif">
+                        <x-ui.icon name="shield" :size="15" />
+                        <span>SSO secrets</span>
+                    </a>
                 </div>
             @endif
 
