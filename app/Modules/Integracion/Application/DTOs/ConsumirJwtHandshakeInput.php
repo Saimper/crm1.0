@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Integracion\Application\DTOs;
 
-final readonly class ConsumirTokenSsoInput
+final readonly class ConsumirJwtHandshakeInput
 {
     public function __construct(
-        public string $tokenClaro,
+        public string $jwt,
     ) {}
 }

@@ -27,4 +27,13 @@ final class ProyectoModel extends Model
         'fecha_fin' => 'immutable_date',
         'activo' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        self::creating(function (self $proyecto): void {
+            if (empty($proyecto->getAttribute('sso_secret'))) {
+                $proyecto->setAttribute('sso_secret', bin2hex(random_bytes(32)));
+            }
+        });
+    }
 }

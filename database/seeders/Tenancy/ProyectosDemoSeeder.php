@@ -71,6 +71,7 @@ final class ProyectosDemoSeeder extends Seeder
                 'activo' => true,
                 'fecha_inicio' => $row['fecha_inicio'],
                 'fecha_fin' => $row['fecha_fin'],
+                'sso_secret' => bin2hex(random_bytes(32)),
             ]);
         }
     }

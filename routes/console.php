@@ -19,3 +19,8 @@ Schedule::command('notificaciones:generar --umbral=0 --horas-sla=4')
     ->between('07:00', '20:00')
     ->withoutOverlapping()
     ->name('notificaciones-sla-horario');
+
+Schedule::command('integracion:purgar-sso-consumidos')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->name('integracion-purgar-sso-consumidos');

@@ -6,10 +6,10 @@ namespace App\Modules\Integracion\Domain\Exceptions;
 
 use RuntimeException;
 
-final class TokenSsoYaConsumidoException extends RuntimeException
+final class JwtClaimsIncompletos extends RuntimeException
 {
     public static function crear(): self
     {
-        return new self('El token SSO ya fue utilizado.');
+        return new self('JWT con claims incompletos (jti/sub/exp/proyecto_id requeridos).');
     }
 }
