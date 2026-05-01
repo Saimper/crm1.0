@@ -798,3 +798,60 @@ CLAUDE.md §15 lista funcionalidades F1–F33. Coverage UI confirmada para todas
 ---
 
 **Fin de la auditoría F34A.** Cero modificaciones a código fuente. Solo este archivo en `DOCS/`.
+
+---
+
+## 14-ter. Cierre F34C (2026-04-30)
+
+**Resueltos:** 30/30 P0+P1 + 13/14 P2 + 3/3 P3. Bloqueados: 1 (SnapshotGestion namespace inexistente). Diferidos: 1 (EncolarImportacion arquitectura repo).
+
+### Bloque 1 — Parciales F34B (3/3 ✅)
+
+| # | Estado | Resolución |
+|---|---|---|
+| Test feature `RegistrarCampana` | ✅ | 3 tests (persistencia+evento, código duplicado, multi-tenancy). |
+| ImportarCasos → registro link | ✅ | Switch CTI por `tipo_entidad` (numero_prestamo/codigo_ticket/codigo_lead/codigo_servicio) en `ImportarCasos::resolverCasosDePreview`. Vista gana columna "Acción" con link "Ver". |
+| Tests multi-tenancy 14 módulos | ✅ | 4 batches: Auditoria/Notificaciones/Importaciones/Reportes/Catalogos/Campanas/Contactos/Gestiones/EntidadesConfigurables/Integracion/Servicio/Venta/Cobranza/CamposPersonalizados. 16 tests nuevos. |
+
+### Bloque 2 — P2 (13/14 ✅, 1 diferido)
+
+| # | Estado | Notas |
+|---|---|---|
+| EncolarImportacion arquitectura repo | ⏳ DIFERIDO F34D | Refactor grande (crear ImportacionRepository contrato + reescribir 2 Livewire). Anotación en código. |
+| Clientes legacy borrar | ✅ | `app/Modules/Clientes` + vistas + provider eliminados. |
+| Vista huérfana resolver-promesa | ✅ | `resources/views/modules/promesas/` eliminado. |
+| bootstrap/app.php declarar routes/api.php | ✅ | Nuevo `routes/api.php` con SSO+integración. `IntegracionServiceProvider` solo registra ruta web. |
+| configuracion.ver/editar muertos | ✅ | Quitados de PermisosSeeder + RolPermisoSeeder. |
+| notificaciones.ver permiso ruta | ✅ | Resuelto en F34B. |
+| SelectorProyecto auto-redirect 1 proyecto | ✅ | `mount()` retorna RedirectResponse. ADMIN_GLOBAL siempre ve listado. |
+| Equipo→Reporte link cruzado | ✅ | Botón "Ver reporte" inline en `equipos-proyecto.blade.php`. |
+| Soft-delete `eliminada/eliminado_en` | ✅ | Decisión documentada inline: `eliminado_en` (masc) en `entidades_registros` por concordancia con singular "registro"; resto femenino. |
+| Tests 7 archivos Domain sin coverage | ✅ 6/7 | CodigoCampo, ResumenChunk, DatosCompromiso, CompromisoResolucionTicket, CompromisoAccionServicio, CompromisoCierreVenta. **BLOQUEADO**: SnapshotGestion importa namespace `App\Modules\Productos\...` inexistente. → F34D. |
+| personas.hash_identidad documentar | ✅ | Comment expandido con plan F34D+. |
+| entidades_registros sidebar dinámico | ✅ | Inyectados items por entidad activa del proyecto bajo grupo Datos. |
+| Tokens SSO admin pantalla | ✅ | Nuevo `AdminTokensSso` Livewire + ruta `admin.integracion.tokens` + sidebar. Filtro estado + revocar. |
+| auditorias.ip columna en listado | ✅ | Ya expuesta en columna del listado (F34B). |
+
+### Bloque 3 — P3 (3/3 ✅)
+
+| # | Estado | Notas |
+|---|---|---|
+| panel-caso colores → tokens | ✅ | Decisión documentada: paleta semántica por tipo se mantiene; tokens dedicados al cierre F29-bis. |
+| Iconos x-ui vs SVG inline | ✅ | VERIFICADO: x-ui.icon ya copia SVGs literal del mockup F29 (lucide-style). |
+| Dashboard proyecto KPIs entrada | ✅ | 4 KPIs (pendientes, gestiones hoy, compromisos próximos 7d, vencidos) scoped por usuario+proyecto. |
+
+### Métricas F34C
+
+- **9 commits incrementales**.
+- **39 tests nuevos** (3 RegistrarCampana + 16 multi-tenancy + 18 unit Domain VOs + 2 helpers) sobre 565 previos.
+- **605/605 tests verde** + Pint OK.
+- 1 nueva pantalla admin (Tokens SSO admin).
+- 1 nueva ruta API explícita (routes/api.php).
+- 0 migraciones, 0 dependencias nuevas.
+- Domain núcleo intacto. Auditoría F34A se equivocó en 4 ítems (P0#5, P0#10, P3-2, parcial P2#auditorias.ip), confirmados como ya cumplidos.
+
+### → F34D (deuda técnica restante)
+
+- **EncolarImportacion arquitectura repo** (refactor M-L: crear contrato Repo + reescribir Livewire ImportarPersonas/ImportarCasos).
+- **SnapshotGestion** namespace inexistente (decisión arquitectónica del owner sobre Productos/Cobranza).
+- `personas.hash_identidad`: poblar (en `RegistrarPersona`) o eliminar via migración.
