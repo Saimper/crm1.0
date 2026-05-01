@@ -8,7 +8,6 @@ use App\Modules\Integracion\Application\Console\Commands\PurgarSsoTokensConsumid
 use App\Modules\Integracion\Domain\Contracts\RepositorioTokensConsumidos;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\SsoHandshakeController;
 use App\Modules\Integracion\Infrastructure\Http\Livewire\AdminSsoSecrets;
-use App\Modules\Integracion\Infrastructure\Http\Livewire\AdminTokensSso;
 use App\Modules\Integracion\Infrastructure\Http\Middleware\CspFrameAncestors;
 use App\Modules\Integracion\Infrastructure\Persistence\Repositories\RepositorioTokensConsumidosEloquent;
 use Illuminate\Routing\Router;
@@ -33,7 +32,6 @@ final class IntegracionServiceProvider extends ServiceProvider
         // bootstrap/app.php). Aquí solo quedan las web (handshake browser).
         $this->registrarRutasWeb();
 
-        Livewire::component('integracion.admin-tokens-sso', AdminTokensSso::class);
         Livewire::component('integracion.admin-sso-secrets', AdminSsoSecrets::class);
 
         if ($this->app->runningInConsole()) {
