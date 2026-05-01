@@ -24,9 +24,7 @@
 
         {{-- Logo --}}
         <a href="{{ route('dashboard') }}" wire:navigate class="app-logo" style="text-decoration:none;color:inherit;">
-            <x-ui.icon name="logo" :size="22" />
-            <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;">Núcleo</span>
-            <span style="font-size:10px;font-weight:500;color:var(--text-muted);border:1px solid var(--border);padding:1px 5px;border-radius:3px;margin-left:2px;">CRM</span>
+            <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;">CRM</span>
         </a>
 
         {{-- Header --}}
