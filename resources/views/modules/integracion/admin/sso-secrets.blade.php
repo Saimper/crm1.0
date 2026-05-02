@@ -27,6 +27,7 @@
             <table class="table table-compact">
                 <thead>
                     <tr>
+                        <th style="width:60px;">ID</th>
                         <th>Mandante</th>
                         <th>Proyecto</th>
                         <th>Secret</th>
@@ -45,6 +46,7 @@
                             $rotadoAhora = $rotadoId === (int) $p->id;
                         @endphp
                         <tr @class(['row-highlight' => $rotadoAhora])>
+                            <td style="font-family:monospace;font-size:12px;color:var(--text-secondary);">{{ $p->id }}</td>
                             <td style="font-size:12px;">{{ $p->mandante_codigo ?? '—' }}</td>
                             <td style="font-size:12px;">
                                 <div style="font-weight:500;">{{ $p->nombre }}</div>
