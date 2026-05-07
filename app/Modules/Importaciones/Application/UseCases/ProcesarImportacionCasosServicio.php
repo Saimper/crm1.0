@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Application\UseCases;
 
+use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\ValueObjects\ResumenChunk;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
@@ -25,7 +26,10 @@ final readonly class ProcesarImportacionCasosServicio
     /** @var list<string> */
     private const COLUMNAS_MUTABLES = ['direccion_servicio', 'tecnico_asignado', 'fecha_solicitud', 'fecha_programada'];
 
-    public function __construct(private RegistrarCasoServicio $registrar) {}
+    public function __construct(
+        private RegistrarCasoServicio $registrar,
+        private ResolverPersonaImportacion $personaResolver,
+    ) {}
 
     public function ejecutar(
         int $importacionId,
@@ -80,18 +84,17 @@ final readonly class ProcesarImportacionCasosServicio
             }
             $tipoIdentId = $tiposIdentificacion[strtoupper((string) ($payload['tipo_identificacion_codigo'] ?? ''))] ?? null;
             $personaId = null;
-            if ($tipoIdentId !== null) {
-                $personaId = (int) DB::table('personas')
-                    ->where('proyecto_id', $proyectoId)
-                    ->where('tipo_identificacion_id', $tipoIdentId)
-                    ->where('identificacion', (string) ($payload['identificacion'] ?? ''))
-                    ->value('id');
-                if (! $personaId) {
-                    $errores[] = 'persona no encontrada en el proyecto.';
-                    $personaId = null;
-                }
-            } else {
+            if ($tipoIdentId === null) {
                 $errores[] = 'tipo_identificacion_codigo inválido.';
+            } else {
+                $personaId = $this->personaResolver->lookup(
+                    $proyectoId,
+                    (int) $tipoIdentId,
+                    (string) ($payload['identificacion'] ?? ''),
+                );
+                if ($personaId === null) {
+                    $errores = array_merge($errores, $this->personaResolver->validarParaCrear($payload));
+                }
             }
 
             foreach (['codigo_servicio', 'fecha_solicitud', 'fecha_ingreso'] as $campo) {
@@ -121,6 +124,9 @@ final readonly class ProcesarImportacionCasosServicio
             $existenteCasoId = $this->buscarCasoExistente($proyectoId, (string) $payload['codigo_servicio']);
 
             try {
+                if ($personaId === null) {
+                    $personaId = $this->personaResolver->resolverOCrear($proyectoId, (int) $tipoIdentId, $payload);
+                }
                 if ($existenteCasoId !== null) {
                     $resultado = $this->resolverExistente($existenteCasoId, $payload, $modo);
                     $fila->estado = $resultado['estado'];

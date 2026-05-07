@@ -18,5 +18,7 @@ final readonly class CampoSistema
         public string $tipo,
         public ?string $catalogoCodigo = null,
         public ?string $descripcion = null,
+        public bool $avanzado = false,
+        public ?string $ejemplo = null,
     ) {}
 }

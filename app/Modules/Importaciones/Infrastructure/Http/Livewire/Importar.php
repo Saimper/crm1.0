@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Infrastructure\Http\Livewire;
 
 use App\Modules\Importaciones\Application\Services\LectorCsv;
+use App\Modules\Importaciones\Application\Services\LectorXlsx;
 use App\Modules\Importaciones\Application\Services\MapeadorPayload;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ConsultarProgresoImportacion;
-use App\Modules\Importaciones\Application\UseCases\EncolarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosCobranza;
 use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosLeadVenta;
 use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosServicio;
@@ -19,6 +19,7 @@ use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
 use Illuminate\Contracts\View\View;
@@ -69,6 +70,8 @@ final class Importar extends Component
 
     public string $filtroFilas = 'todas';
 
+    public bool $mostrarAvanzados = false;
+
     public function mount(): void
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
@@ -95,22 +98,25 @@ final class Importar extends Component
         }
 
         $this->validate([
-            'archivo' => ['required', 'file', 'mimes:csv,txt', 'max:8192'],
-        ], [], ['archivo' => 'archivo CSV']);
+            'archivo' => ['required', 'file', 'mimes:csv,txt,xlsx', 'max:8192'],
+        ], [], ['archivo' => 'archivo']);
 
         /** @var UploadedFile $file */
         $file = $this->archivo;
-        $contenido = (string) file_get_contents($file->getRealPath());
 
-        $lector = new LectorCsv;
-        $headers = $lector->leerHeaders($contenido);
-        if ($headers === []) {
-            $this->addError('archivo', 'El archivo no parece un CSV con cabecera.');
+        try {
+            [$headers, $muestra, $totalFilas] = $this->leerArchivo($file);
+        } catch (\Throwable $e) {
+            $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
 
             return;
         }
 
-        $totalFilas = $lector->contarFilas($contenido);
+        if ($headers === []) {
+            $this->addError('archivo', 'El archivo no contiene cabecera reconocible.');
+
+            return;
+        }
         if ($totalFilas === 0) {
             $this->addError('archivo', 'El archivo no contiene filas de datos.');
 
@@ -125,7 +131,7 @@ final class Importar extends Component
         }
 
         $this->cabecerasCsv = $headers;
-        $this->filasMuestra = $lector->leerFilas($contenido, 5);
+        $this->filasMuestra = $muestra;
         $this->mapeo = (new MapeadorPayload)->autoMapear($this->codigosCampoSistema(), $headers);
         $this->paso = 2;
     }
@@ -170,12 +176,15 @@ final class Importar extends Component
 
             return;
         }
-        $contenido = (string) file_get_contents($file->getRealPath());
 
-        $lector = new LectorCsv;
+        try {
+            [$headers, , , $filas] = $this->leerArchivo($file, leerTodas: true);
+        } catch (\Throwable $e) {
+            $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
+
+            return;
+        }
         $mapeador = new MapeadorPayload;
-        $headers = $lector->leerHeaders($contenido);
-        $filas = $lector->leerFilas($contenido);
 
         if ($filas === []) {
             $this->addError('archivo', 'El archivo no contiene filas.');
@@ -228,7 +237,7 @@ final class Importar extends Component
         $this->paso = 3;
     }
 
-    public function procesar(EncolarImportacion $encolar): void
+    public function procesar(): void
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.procesar') === true, 403);
 
@@ -240,7 +249,10 @@ final class Importar extends Component
             ->where('id', $this->importacionId)
             ->update(['modo' => $this->modo]);
 
-        $encolar->execute($this->importacionId, ModoImportacion::from($this->modo));
+        // F35-B fix: ejecución sync — evita depender de un worker `queue:work --queue=imports`
+        // corriendo en producción. El Job tiene lock advisory propio que previene doble ejecución.
+        // Para volúmenes grandes (cliente quiere async real), volver a `EncolarImportacion`.
+        EjecutarImportacionJob::dispatchSync($this->importacionId, $this->modo);
         $this->paso = 4;
     }
 
@@ -253,9 +265,53 @@ final class Importar extends Component
 
     public function cerrar(): void
     {
-        $this->reset(['archivo', 'cabecerasCsv', 'filasMuestra', 'mapeo', 'importacionId', 'filtroFilas']);
+        $this->reset(['archivo', 'cabecerasCsv', 'filasMuestra', 'mapeo', 'importacionId', 'filtroFilas', 'mostrarAvanzados']);
         $this->paso = 1;
         $this->modo = 'merge';
+    }
+
+    /**
+     * Lee headers + muestra + total. Si $leerTodas, devuelve también todas las filas.
+     *
+     * @return array{0: list<string>, 1: list<list<string>>, 2: int, 3?: list<list<string>>}
+     */
+    private function leerArchivo(UploadedFile $file, bool $leerTodas = false): array
+    {
+        $ext = strtolower($file->getClientOriginalExtension());
+
+        if ($ext === 'xlsx') {
+            // Livewire upload temp path puede contener caracteres (`==`, `?`) que rompen
+            // ZipArchive en Windows. Copiamos a un path limpio antes de leer con OpenSpout.
+            $tmpPath = tempnam(sys_get_temp_dir(), 'imp_').'.xlsx';
+            copy($file->getRealPath(), $tmpPath);
+
+            try {
+                $lector = new LectorXlsx;
+                $headers = $lector->leerHeaders($tmpPath);
+                $muestra = $lector->leerFilas($tmpPath, 5);
+                $total = $lector->contarFilas($tmpPath);
+
+                if ($leerTodas) {
+                    return [$headers, $muestra, $total, $lector->leerFilas($tmpPath)];
+                }
+
+                return [$headers, $muestra, $total];
+            } finally {
+                @unlink($tmpPath);
+            }
+        }
+
+        $contenido = (string) file_get_contents($file->getRealPath());
+        $lector = new LectorCsv;
+        $headers = $lector->leerHeaders($contenido);
+        $muestra = $lector->leerFilas($contenido, 5);
+        $total = $lector->contarFilas($contenido);
+
+        if ($leerTodas) {
+            return [$headers, $muestra, $total, $lector->leerFilas($contenido)];
+        }
+
+        return [$headers, $muestra, $total];
     }
 
     public function render(): View

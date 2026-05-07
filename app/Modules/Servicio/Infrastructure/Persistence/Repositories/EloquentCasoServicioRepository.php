@@ -48,7 +48,7 @@ final class EloquentCasoServicioRepository implements CasoServicioRepository
             estadoTecnicoId: $model->estado_tecnico_id === null ? null : (int) $model->estado_tecnico_id,
             direccionServicio: $model->direccion_servicio,
             tecnicoAsignado: $model->tecnico_asignado,
-            fechaSolicitud: $this->hidratarFecha($model->fecha_solicitud),
+            fechaSolicitud: $model->fecha_solicitud === null ? null : $this->hidratarFecha($model->fecha_solicitud),
             fechaProgramada: $model->fecha_programada === null ? null : $this->hidratarFecha($model->fecha_programada),
         );
     }

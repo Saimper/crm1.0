@@ -24,7 +24,9 @@ use Illuminate\Support\Str;
 
 /**
  * Crea un Caso base + CasoCobranza (CTI) en la misma transacción.
- * Dispara CasoCreado para que los listeners del núcleo (asignaciones, etc.) reaccionen.
+ * F35-D: campos del CTI no obligatorios excepto numero_prestamo. Los datos
+ * detallados (saldos, fechas, cuotas) los configura el admin del proyecto vía
+ * Campos Personalizados §7 y se persisten aparte.
  */
 final readonly class RegistrarCasoCobranza
 {
@@ -61,20 +63,24 @@ final readonly class RegistrarCasoCobranza
             $caso = $this->casoRepo->save($caso);
             $casoId = (int) $caso->id;
 
-            $tramoMoraId = $this->tramosRepo->resolverPorDiasMora($input->proyectoId, $input->diasMora);
+            $tramoMoraId = $input->diasMora !== null
+                ? $this->tramosRepo->resolverPorDiasMora($input->proyectoId, $input->diasMora)
+                : null;
+
+            $monto = static fn (?string $v) => $v === null ? null : new MontoCobranza($v, $input->moneda);
 
             $cobranza = CasoCobranza::registrar(
                 casoId: $casoId,
                 proyectoId: $input->proyectoId,
                 numeroPrestamo: new NumeroPrestamo($input->numeroPrestamo),
-                montoOriginal: new MontoCobranza($input->montoOriginal, $input->moneda),
-                saldoCapital: new MontoCobranza($input->saldoCapital, $input->moneda),
-                saldoInteres: new MontoCobranza($input->saldoInteres, $input->moneda),
-                saldoTotal: new MontoCobranza($input->saldoTotal, $input->moneda),
-                cuotaMensual: new MontoCobranza($input->cuotaMensual, $input->moneda),
+                montoOriginal: $monto($input->montoOriginal),
+                saldoCapital: $monto($input->saldoCapital),
+                saldoInteres: $monto($input->saldoInteres),
+                saldoTotal: $monto($input->saldoTotal),
+                cuotaMensual: $monto($input->cuotaMensual),
                 cuotasTotales: $input->cuotasTotales,
                 cuotasPagadas: $input->cuotasPagadas,
-                diasMora: new DiasMora($input->diasMora),
+                diasMora: $input->diasMora === null ? null : new DiasMora($input->diasMora),
                 tramoMoraId: $tramoMoraId,
                 fechaDesembolso: $input->fechaDesembolso,
                 fechaVencimiento: $input->fechaVencimiento,

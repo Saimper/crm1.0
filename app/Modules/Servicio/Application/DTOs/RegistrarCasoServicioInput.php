@@ -16,11 +16,11 @@ final readonly class RegistrarCasoServicioInput
         public DateTimeImmutable $fechaIngreso,
         public int $prioridad,
         public string $codigoServicio,
-        public ?int $tipoAccionServicioId,
-        public ?int $estadoTecnicoId,
-        public ?string $direccionServicio,
-        public ?string $tecnicoAsignado,
-        public DateTimeImmutable $fechaSolicitud,
-        public ?DateTimeImmutable $fechaProgramada,
+        public ?int $tipoAccionServicioId = null,
+        public ?int $estadoTecnicoId = null,
+        public ?string $direccionServicio = null,
+        public ?string $tecnicoAsignado = null,
+        public ?DateTimeImmutable $fechaSolicitud = null,
+        public ?DateTimeImmutable $fechaProgramada = null,
     ) {}
 }

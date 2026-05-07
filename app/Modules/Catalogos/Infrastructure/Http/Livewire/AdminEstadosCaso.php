@@ -24,7 +24,6 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
             'codigo' => '',
             'nombre' => '',
             'es_terminal' => false,
-            'orden' => 100,
             'activo' => true,
         ];
     }
@@ -35,7 +34,6 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
             'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.es_terminal' => ['boolean'],
-            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -46,7 +44,6 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
             'codigo' => (string) $this->form['codigo'],
             'nombre' => (string) $this->form['nombre'],
             'es_terminal' => (bool) ($this->form['es_terminal'] ?? false),
-            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
@@ -57,7 +54,6 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
             'codigo' => (string) $row->codigo,
             'nombre' => (string) $row->nombre,
             'es_terminal' => (bool) $row->es_terminal,
-            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }

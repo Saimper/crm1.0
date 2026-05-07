@@ -13,16 +13,18 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\XLSX\Writer;
+use stdClass;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
- * F35-B — wizard unificado con mapeo libre de columnas CSV.
+ * F35-C — wizard unificado con mapeo libre + creación automática de persona.
  *
- * Sustituye a ImportarPersonasTest y ImportarCasosTest (skipped por migración a
- * EscenarioOperativo + cambio de UX). Cubre persona y caso_cobranza como targets
- * representativos; los demás CTI (CX, venta, servicio) reusan el mismo Livewire
- * y los procesadores async F31 sin cambios.
+ * El CSV/XLSX trae datos de persona + caso en mismas filas. Si la persona no
+ * existe en el proyecto, se crea durante el commit. Si existe, se reutiliza.
+ * Ya no hay target Persona standalone — solo el caso del tipo de proyecto.
  */
 final class ImportarUnificadoTest extends TestCase
 {
@@ -35,28 +37,25 @@ final class ImportarUnificadoTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_pantalla_muestra_targets_disponibles_segun_tipo_proyecto_cobranza(): void
+    public function test_pantalla_solo_muestra_caso_del_tipo_proyecto(): void
     {
-        [$proyecto, $supervisor] = $this->contexto('cobranza');
+        [$proyecto] = $this->contextoCobranza();
 
         $componente = Livewire::test(Importar::class);
         $disponibles = $componente->viewData('targetsDisponibles');
 
-        $this->assertSame(
-            [TargetImportacion::PERSONA, TargetImportacion::CASO_COBRANZA],
-            $disponibles,
-        );
+        $this->assertSame([TargetImportacion::CASO_COBRANZA], $disponibles, 'No debe ofrecer target persona standalone');
     }
 
     public function test_subir_csv_con_columnas_arbitrarias_no_falla(): void
     {
-        [$proyecto] = $this->contexto('cobranza');
+        [$proyecto] = $this->contextoCobranza();
 
         $csv = "ced,nom,ape\n100,Ana,Diaz\n200,Luis,Paz\n";
         $archivo = UploadedFile::fake()->createWithContent('libre.csv', $csv);
 
         Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
             ->assertHasNoErrors()
@@ -66,143 +65,35 @@ final class ImportarUnificadoTest extends TestCase
 
     public function test_mapeo_requerido_sin_asignar_bloquea_avance(): void
     {
-        [$proyecto] = $this->contexto('cobranza');
+        [$proyecto] = $this->contextoCobranza();
 
         $csv = "ced,nom,ape\n100,Ana,Diaz\n";
         $archivo = UploadedFile::fake()->createWithContent('libre.csv', $csv);
 
         $c = Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            // mapeo vacío de tipo_identificacion_codigo (requerido)
             ->set('mapeo.tipo_identificacion_codigo', '')
             ->set('mapeo.identificacion', 'ced')
             ->set('mapeo.nombres', 'nom')
             ->call('confirmarMapeo')
             ->assertHasErrors('mapeo.tipo_identificacion_codigo');
 
-        $this->assertSame(2, $c->get('paso'), 'No debe avanzar de paso si falta mapeo requerido');
+        $this->assertSame(2, $c->get('paso'));
         $this->assertDatabaseCount('importaciones', 0);
     }
 
-    public function test_auto_mapeo_matchea_columnas_con_nombre_canonico(): void
+    public function test_importar_caso_crea_persona_si_no_existe(): void
     {
-        [$proyecto] = $this->contexto('cobranza');
+        [$proyecto] = $this->contextoCobranza();
+        $this->crearCarteraEn($proyecto, 'CART_T');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        // NO se crea persona — la importación debe crearla automáticamente
 
-        $csv = "tipo identificacion codigo,identificacion,nombres\nCED,100,Ana\n";
-        $archivo = UploadedFile::fake()->createWithContent('canon.csv', $csv);
-
-        $c = Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
-            ->set('archivo', $archivo)
-            ->call('subirArchivo');
-
-        $this->assertSame('tipo identificacion codigo', $c->get('mapeo.tipo_identificacion_codigo'));
-        $this->assertSame('identificacion', $c->get('mapeo.identificacion'));
-        $this->assertSame('nombres', $c->get('mapeo.nombres'));
-    }
-
-    public function test_payload_canonico_se_construye_desde_mapeo(): void
-    {
-        [$proyecto] = $this->contexto('cobranza');
-
-        $csv = "ced,nom,ape\n100,Ana,Diaz\n";
-        $archivo = UploadedFile::fake()->createWithContent('libre.csv', $csv);
-
-        Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
-            ->set('archivo', $archivo)
-            ->call('subirArchivo')
-            ->set('mapeo.tipo_identificacion_codigo', '')
-            ->set('mapeo.identificacion', 'ced')
-            ->set('mapeo.nombres', 'nom')
-            ->set('mapeo.apellidos', 'ape');
-        // Forzar tipo_identificacion_codigo via columna ficticia: no existe → debe quedar inválida.
-        // Para verificar payload canónico, usamos otra estrategia: mapear identificación y verificar payload.
-
-        // Re-test con todos los requeridos mapeados:
-        $csv2 = "doc,ced,nom,ape\nCED,100,Ana,Diaz\n";
-        $archivo2 = UploadedFile::fake()->createWithContent('libre2.csv', $csv2);
-
-        Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
-            ->set('archivo', $archivo2)
-            ->call('subirArchivo')
-            ->set('mapeo.tipo_identificacion_codigo', 'doc')
-            ->set('mapeo.identificacion', 'ced')
-            ->set('mapeo.nombres', 'nom')
-            ->set('mapeo.apellidos', 'ape')
-            ->call('confirmarMapeo')
-            ->assertHasNoErrors();
-
-        $fila = DB::table('importacion_filas')->where('numero_fila', 1)->orderByDesc('id')->first();
-        $this->assertNotNull($fila);
-        $payload = json_decode((string) $fila->payload, true);
-
-        $this->assertSame('CED', $payload['tipo_identificacion_codigo']);
-        $this->assertSame('100', $payload['identificacion']);
-        $this->assertSame('Ana', $payload['nombres']);
-        $this->assertSame('Diaz', $payload['apellidos']);
-    }
-
-    public function test_persona_tipo_persona_se_infiere_de_razon_social(): void
-    {
-        [$proyecto] = $this->contexto('cobranza');
-
-        $csv = "doc,id,raz\nRUC,1799000001,Empresa Demo SA\n";
-        $archivo = UploadedFile::fake()->createWithContent('jur.csv', $csv);
-
-        Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
-            ->set('archivo', $archivo)
-            ->call('subirArchivo')
-            ->set('mapeo.tipo_identificacion_codigo', 'doc')
-            ->set('mapeo.identificacion', 'id')
-            ->set('mapeo.razon_social', 'raz')
-            ->set('mapeo.nombres', '')
-            ->set('mapeo.apellidos', '')
-            ->call('confirmarMapeo')
-            ->assertHasNoErrors();
-
-        $fila = DB::table('importacion_filas')->where('numero_fila', 1)->orderByDesc('id')->first();
-        $payload = json_decode((string) $fila->payload, true);
-        $this->assertSame('juridica', $payload['tipo_persona']);
-    }
-
-    public function test_persona_tipo_persona_se_infiere_de_nombres(): void
-    {
-        [$proyecto] = $this->contexto('cobranza');
-
-        $csv = "doc,id,nom\nCED,2200000001,Rosa\n";
-        $archivo = UploadedFile::fake()->createWithContent('fis.csv', $csv);
-
-        Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
-            ->set('archivo', $archivo)
-            ->call('subirArchivo')
-            ->set('mapeo.tipo_identificacion_codigo', 'doc')
-            ->set('mapeo.identificacion', 'id')
-            ->set('mapeo.nombres', 'nom')
-            ->call('confirmarMapeo')
-            ->assertHasNoErrors();
-
-        $fila = DB::table('importacion_filas')->where('numero_fila', 1)->orderByDesc('id')->first();
-        $payload = json_decode((string) $fila->payload, true);
-        $this->assertSame('fisica', $payload['tipo_persona']);
-    }
-
-    public function test_caso_cobranza_se_importa_con_csv_de_columnas_renombradas(): void
-    {
-        [$proyecto] = $this->contexto('cobranza');
-        $cartera = $this->crearCarteraEn($proyecto, 'CART_TEST');
-        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
-        $this->crearPersonaEn($proyecto, '5500000001');
-
-        // CSV cliente con columnas en español/libres
-        $csv = "Cartera,TipoDoc,Documento,Prestamo,Mon,MontoOrig,SaldoCap,SaldoTot,Desemb,Vence,Cuotas\n"
-              ."CART_TEST,CED,5500000001,IMP-X1,USD,5000.00,4500.00,4700.00,2025-10-01,2026-10-01,24\n";
-        $archivo = UploadedFile::fake()->createWithContent('cob.csv', $csv);
+        $csv = "Cartera,TipoDoc,Doc,Nom,Ape,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+              ."CART_T,CED,1700000999,Carlos,Mendez,PR-AUTO-1,USD,1000,800,800,2025-10-01,2026-10-01,12\n";
+        $archivo = UploadedFile::fake()->createWithContent('uni.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
@@ -210,31 +101,21 @@ final class ImportarUnificadoTest extends TestCase
             ->call('subirArchivo')
             ->set('mapeo.cartera_codigo', 'Cartera')
             ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Documento')
-            ->set('mapeo.numero_prestamo', 'Prestamo')
+            ->set('mapeo.identificacion', 'Doc')
+            ->set('mapeo.nombres', 'Nom')
+            ->set('mapeo.apellidos', 'Ape')
+            ->set('mapeo.numero_prestamo', 'Prest')
             ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MontoOrig')
-            ->set('mapeo.saldo_capital', 'SaldoCap')
-            ->set('mapeo.saldo_total', 'SaldoTot')
-            ->set('mapeo.fecha_desembolso', 'Desemb')
-            ->set('mapeo.fecha_vencimiento', 'Vence')
-            ->set('mapeo.cuotas_totales', 'Cuotas')
-            // estado_caso_codigo, fecha_ingreso opcionales: defaults
+            ->set('mapeo.monto_original', 'MO')
+            ->set('mapeo.saldo_capital', 'SC')
+            ->set('mapeo.saldo_total', 'ST')
+            ->set('mapeo.fecha_desembolso', 'FD')
+            ->set('mapeo.fecha_vencimiento', 'FV')
+            ->set('mapeo.cuotas_totales', 'Cu')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
         $importacionId = $c->get('importacionId');
-        $this->assertNotNull($importacionId);
-
-        $this->assertDatabaseHas('importaciones', [
-            'id' => $importacionId,
-            'tipo_entidad' => 'caso_cobranza',
-            'total_filas' => 1,
-            'validas' => 1,
-            'invalidas' => 0,
-            'estado' => 'preparada',
-        ]);
-
         $c->call('procesar');
 
         $this->assertDatabaseHas('importaciones', [
@@ -242,7 +123,131 @@ final class ImportarUnificadoTest extends TestCase
             'estado' => 'completada',
             'procesadas' => 1,
         ]);
-        $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'IMP-X1']);
+        $this->assertDatabaseHas('personas', [
+            'identificacion' => '1700000999',
+            'proyecto_id' => $proyecto->id,
+            'nombres' => 'Carlos',
+            'apellidos' => 'Mendez',
+            'tipo_persona' => 'fisica',
+        ]);
+        $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'PR-AUTO-1']);
+    }
+
+    public function test_importar_caso_reusa_persona_si_ya_existe(): void
+    {
+        [$proyecto] = $this->contextoCobranza();
+        $this->crearCarteraEn($proyecto, 'CART_T');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $this->crearPersonaEn($proyecto, '1700000888');
+
+        $personasAntes = (int) DB::table('personas')->where('proyecto_id', $proyecto->id)->count();
+
+        $csv = "Cartera,TipoDoc,Doc,Nom,Ape,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+              ."CART_T,CED,1700000888,OtroNombre,OtroApe,PR-REUSE-1,USD,1,1,1,2025-10-01,2026-10-01,12\n";
+        $archivo = UploadedFile::fake()->createWithContent('reuse.csv', $csv);
+
+        $c = Livewire::test(Importar::class)
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('archivo', $archivo)
+            ->call('subirArchivo')
+            ->set('mapeo.cartera_codigo', 'Cartera')
+            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
+            ->set('mapeo.identificacion', 'Doc')
+            ->set('mapeo.nombres', 'Nom')
+            ->set('mapeo.apellidos', 'Ape')
+            ->set('mapeo.numero_prestamo', 'Prest')
+            ->set('mapeo.moneda', 'Mon')
+            ->set('mapeo.monto_original', 'MO')
+            ->set('mapeo.saldo_capital', 'SC')
+            ->set('mapeo.saldo_total', 'ST')
+            ->set('mapeo.fecha_desembolso', 'FD')
+            ->set('mapeo.fecha_vencimiento', 'FV')
+            ->set('mapeo.cuotas_totales', 'Cu')
+            ->call('confirmarMapeo')
+            ->assertHasNoErrors();
+
+        $c->call('procesar');
+
+        $personasDespues = (int) DB::table('personas')->where('proyecto_id', $proyecto->id)->count();
+        $this->assertSame($personasAntes, $personasDespues, 'No debe duplicar persona existente');
+        $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'PR-REUSE-1']);
+    }
+
+    public function test_importar_persona_juridica_se_infiere_de_razon_social(): void
+    {
+        [$proyecto] = $this->contextoCobranza();
+        $this->crearCarteraEn($proyecto, 'CART_T');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $csv = "Cartera,TipoDoc,Doc,Razon,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+              ."CART_T,RUC,1799000010,Empresa SA,PR-JUR-1,USD,1,1,1,2025-10-01,2026-10-01,12\n";
+        $archivo = UploadedFile::fake()->createWithContent('jur.csv', $csv);
+
+        $c = Livewire::test(Importar::class)
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('archivo', $archivo)
+            ->call('subirArchivo')
+            ->set('mostrarAvanzados', true)
+            ->set('mapeo.cartera_codigo', 'Cartera')
+            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
+            ->set('mapeo.identificacion', 'Doc')
+            ->set('mapeo.razon_social', 'Razon')
+            ->set('mapeo.numero_prestamo', 'Prest')
+            ->set('mapeo.moneda', 'Mon')
+            ->set('mapeo.monto_original', 'MO')
+            ->set('mapeo.saldo_capital', 'SC')
+            ->set('mapeo.saldo_total', 'ST')
+            ->set('mapeo.fecha_desembolso', 'FD')
+            ->set('mapeo.fecha_vencimiento', 'FV')
+            ->set('mapeo.cuotas_totales', 'Cu')
+            ->call('confirmarMapeo')
+            ->assertHasNoErrors();
+
+        $c->call('procesar');
+
+        $this->assertDatabaseHas('personas', [
+            'identificacion' => '1799000010',
+            'proyecto_id' => $proyecto->id,
+            'tipo_persona' => 'juridica',
+            'razon_social' => 'Empresa SA',
+        ]);
+    }
+
+    public function test_dry_run_marca_invalida_si_persona_nueva_sin_nombres(): void
+    {
+        [$proyecto] = $this->contextoCobranza();
+        $this->crearCarteraEn($proyecto, 'CART_T');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        // Persona nueva sin nombres ni razón social
+        $csv = "Cartera,TipoDoc,Doc,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+              ."CART_T,CED,1700000777,PR-X,USD,1,1,1,2025-10-01,2026-10-01,12\n";
+        $archivo = UploadedFile::fake()->createWithContent('sin_nom.csv', $csv);
+
+        $c = Livewire::test(Importar::class)
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('archivo', $archivo)
+            ->call('subirArchivo')
+            ->set('mapeo.cartera_codigo', 'Cartera')
+            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
+            ->set('mapeo.identificacion', 'Doc')
+            ->set('mapeo.numero_prestamo', 'Prest')
+            ->set('mapeo.moneda', 'Mon')
+            ->set('mapeo.monto_original', 'MO')
+            ->set('mapeo.saldo_capital', 'SC')
+            ->set('mapeo.saldo_total', 'ST')
+            ->set('mapeo.fecha_desembolso', 'FD')
+            ->set('mapeo.fecha_vencimiento', 'FV')
+            ->set('mapeo.cuotas_totales', 'Cu')
+            ->call('confirmarMapeo')
+            ->assertHasNoErrors();
+
+        $importacionId = $c->get('importacionId');
+        $this->assertDatabaseHas('importaciones', [
+            'id' => $importacionId,
+            'validas' => 0,
+            'invalidas' => 1,
+        ]);
     }
 
     public function test_aislamiento_entre_proyectos(): void
@@ -250,14 +255,12 @@ final class ImportarUnificadoTest extends TestCase
         $mandante = $this->crearMandante();
         $proyectoA = $this->crearProyectoCobranza($mandante);
         $proyectoB = $this->crearProyectoCobranza($mandante);
-
         $supA = $this->crearSupervisor($proyectoA);
 
-        // Crear importacion en proyecto B (otro)
         DB::table('importaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoB->id,
-            'tipo_entidad' => 'persona',
+            'tipo_entidad' => 'caso_cobranza',
             'modo' => 'merge',
             'estado' => 'completada',
             'usuario_id' => $supA->id,
@@ -267,7 +270,7 @@ final class ImportarUnificadoTest extends TestCase
         DB::table('importaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoA->id,
-            'tipo_entidad' => 'persona',
+            'tipo_entidad' => 'caso_cobranza',
             'modo' => 'merge',
             'estado' => 'completada',
             'usuario_id' => $supA->id,
@@ -286,90 +289,148 @@ final class ImportarUnificadoTest extends TestCase
         $this->assertNotContains('b.csv', $codigosVistos);
     }
 
-    public function test_dry_run_marca_filas_invalidas_persona_no_existente(): void
+    public function test_csv_sin_filas_de_datos_se_rechaza(): void
     {
-        [$proyecto] = $this->contexto('cobranza');
-        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
-        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
-        // NO se crea persona — la fila debe quedar invalida en dry-run
+        [$proyecto] = $this->contextoCobranza();
 
-        $csv = "cart,doc,id,prest,mon,mo,sc,st,fd,fv\n"
-              ."CART_T,CED,9999999999,IMP-NA,USD,1,1,1,2025-10-01,2026-10-01\n";
-        $archivo = UploadedFile::fake()->createWithContent('na.csv', $csv);
-
-        $c = Livewire::test(Importar::class)
-            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
-            ->set('archivo', $archivo)
-            ->call('subirArchivo')
-            ->set('mapeo.cartera_codigo', 'cart')
-            ->set('mapeo.tipo_identificacion_codigo', 'doc')
-            ->set('mapeo.identificacion', 'id')
-            ->set('mapeo.numero_prestamo', 'prest')
-            ->set('mapeo.moneda', 'mon')
-            ->set('mapeo.monto_original', 'mo')
-            ->set('mapeo.saldo_capital', 'sc')
-            ->set('mapeo.saldo_total', 'st')
-            ->set('mapeo.fecha_desembolso', 'fd')
-            ->set('mapeo.fecha_vencimiento', 'fv')
-            ->call('confirmarMapeo')
-            ->assertHasNoErrors();
-
-        $id = $c->get('importacionId');
-        $this->assertDatabaseHas('importaciones', [
-            'id' => $id,
-            'validas' => 0,
-            'invalidas' => 1,
-        ]);
-    }
-
-    public function test_csv_sin_filas_de_datos_se_rechaza_con_error_claro(): void
-    {
-        [$proyecto] = $this->contexto('cobranza');
-
-        $csv = "ced,nombre\n"; // solo headers
+        $csv = "ced,nombre\n";
         $archivo = UploadedFile::fake()->createWithContent('vacio.csv', $csv);
 
         Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
             ->assertHasErrors('archivo');
     }
 
-    public function test_persona_csv_renombrado_completa_inserta_persona(): void
+    public function test_descargar_plantilla_xlsx_caso_cobranza(): void
     {
-        [$proyecto] = $this->contexto('cobranza');
+        [$proyecto, $supervisor] = $this->contextoCobranza();
 
-        // CSV con columnas inventadas — el cliente no necesita renombrar
-        $csv = "tipo doc,Numero Documento,Primer Nombre,Apellido Paterno\n"
-              ."CED,8800000777,Maria,Lopez\n";
-        $archivo = UploadedFile::fake()->createWithContent('libre.csv', $csv);
+        $resp = $this->actingAs($supervisor)
+            ->get(route('proyectos.importaciones.plantilla', [
+                'proyecto_id' => $proyecto->id,
+                'target' => TargetImportacion::CASO_COBRANZA->value,
+            ]));
+
+        $resp->assertStatus(200);
+        $resp->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $contenido = $resp->streamedContent();
+        $this->assertStringStartsWith('PK', $contenido);
+    }
+
+    public function test_descargar_plantilla_target_persona_ya_no_aplica_403(): void
+    {
+        [$proyecto, $supervisor] = $this->contextoCobranza();
+
+        // PERSONA standalone ya no es target válido (no aparece en targetsDisponibles)
+        $this->actingAs($supervisor)
+            ->get(route('proyectos.importaciones.plantilla', [
+                'proyecto_id' => $proyecto->id,
+                'target' => 'persona',
+            ]))
+            ->assertStatus(403);
+    }
+
+    public function test_descargar_plantilla_target_invalido_404(): void
+    {
+        [$proyecto, $supervisor] = $this->contextoCobranza();
+
+        $this->actingAs($supervisor)
+            ->get(route('proyectos.importaciones.plantilla', [
+                'proyecto_id' => $proyecto->id,
+                'target' => 'no_existe',
+            ]))
+            ->assertStatus(404);
+    }
+
+    public function test_subir_xlsx_funciona_igual_que_csv(): void
+    {
+        [$proyecto] = $this->contextoCobranza();
+        $this->crearCarteraEn($proyecto, 'CART_T');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $xlsxPath = tempnam(sys_get_temp_dir(), 'imp_').'.xlsx';
+        $writer = new Writer;
+        $writer->openToFile($xlsxPath);
+        $writer->addRow(Row::fromValues(['Cartera', 'TipoDoc', 'Doc', 'Nom', 'Ape', 'Prest', 'Mon', 'MO', 'SC', 'ST', 'FD', 'FV', 'Cu']));
+        $writer->addRow(Row::fromValues(['CART_T', 'CED', '7700000111', 'Pedro', 'Ramos', 'PR-XLSX-1', 'USD', '1', '1', '1', '2025-10-01', '2026-10-01', '12']));
+        $writer->close();
+
+        $archivo = UploadedFile::fake()->createWithContent('caso.xlsx', (string) file_get_contents($xlsxPath));
 
         $c = Livewire::test(Importar::class)
-            ->set('targetValor', 'persona')
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mapeo.tipo_identificacion_codigo', 'tipo doc')
-            ->set('mapeo.identificacion', 'Numero Documento')
-            ->set('mapeo.nombres', 'Primer Nombre')
-            ->set('mapeo.apellidos', 'Apellido Paterno')
+            ->assertHasNoErrors()
+            ->assertSet('paso', 2);
+
+        $c->set('mapeo.cartera_codigo', 'Cartera')
+            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
+            ->set('mapeo.identificacion', 'Doc')
+            ->set('mapeo.nombres', 'Nom')
+            ->set('mapeo.apellidos', 'Ape')
+            ->set('mapeo.numero_prestamo', 'Prest')
+            ->set('mapeo.moneda', 'Mon')
+            ->set('mapeo.monto_original', 'MO')
+            ->set('mapeo.saldo_capital', 'SC')
+            ->set('mapeo.saldo_total', 'ST')
+            ->set('mapeo.fecha_desembolso', 'FD')
+            ->set('mapeo.fecha_vencimiento', 'FV')
+            ->set('mapeo.cuotas_totales', 'Cu')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
         $c->call('procesar');
 
-        $this->assertDatabaseHas('personas', [
-            'identificacion' => '8800000777',
-            'proyecto_id' => $proyecto->id,
-            'nombres' => 'Maria',
-            'apellidos' => 'Lopez',
-        ]);
+        $this->assertDatabaseHas('personas', ['identificacion' => '7700000111', 'proyecto_id' => $proyecto->id]);
+        $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'PR-XLSX-1']);
+
+        @unlink($xlsxPath);
     }
 
-    /** @return array{0: \stdClass, 1: User} */
-    private function contexto(string $tipoOperacion): array
+    public function test_procesar_es_sincrono_no_requiere_worker(): void
     {
-        $proyecto = $this->crearProyecto($tipoOperacion);
+        [$proyecto] = $this->contextoCobranza();
+        $this->crearCarteraEn($proyecto, 'CART_T');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $csv = "Cartera,TipoDoc,Doc,Nom,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+              ."CART_T,CED,5500009999,Sync,PR-SYNC,USD,1,1,1,2025-10-01,2026-10-01,12\n";
+        $archivo = UploadedFile::fake()->createWithContent('sync.csv', $csv);
+
+        $c = Livewire::test(Importar::class)
+            ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('archivo', $archivo)
+            ->call('subirArchivo')
+            ->set('mapeo.cartera_codigo', 'Cartera')
+            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
+            ->set('mapeo.identificacion', 'Doc')
+            ->set('mapeo.nombres', 'Nom')
+            ->set('mapeo.numero_prestamo', 'Prest')
+            ->set('mapeo.moneda', 'Mon')
+            ->set('mapeo.monto_original', 'MO')
+            ->set('mapeo.saldo_capital', 'SC')
+            ->set('mapeo.saldo_total', 'ST')
+            ->set('mapeo.fecha_desembolso', 'FD')
+            ->set('mapeo.fecha_vencimiento', 'FV')
+            ->set('mapeo.cuotas_totales', 'Cu')
+            ->call('confirmarMapeo')
+            ->assertHasNoErrors();
+
+        $importacionId = $c->get('importacionId');
+        $c->call('procesar');
+
+        $imp = DB::table('importaciones')->where('id', $importacionId)->first();
+        $this->assertSame('completada', (string) $imp->estado);
+        $this->assertSame(1, (int) $imp->procesadas);
+    }
+
+    /** @return array{0: stdClass, 1: User} */
+    private function contextoCobranza(): array
+    {
+        $proyecto = $this->crearProyectoCobranza();
         $supervisor = $this->crearSupervisor($proyecto);
         $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);

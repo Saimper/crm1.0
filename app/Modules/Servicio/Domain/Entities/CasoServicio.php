@@ -21,7 +21,7 @@ final readonly class CasoServicio
         public ?int $estadoTecnicoId,
         public ?string $direccionServicio,
         public ?string $tecnicoAsignado,
-        public DateTimeImmutable $fechaSolicitud,
+        public ?DateTimeImmutable $fechaSolicitud,
         public ?DateTimeImmutable $fechaProgramada,
     ) {}
 
@@ -33,10 +33,10 @@ final readonly class CasoServicio
         ?int $estadoTecnicoId,
         ?string $direccionServicio,
         ?string $tecnicoAsignado,
-        DateTimeImmutable $fechaSolicitud,
+        ?DateTimeImmutable $fechaSolicitud,
         ?DateTimeImmutable $fechaProgramada,
     ): self {
-        if ($fechaProgramada !== null && $fechaProgramada < $fechaSolicitud) {
+        if ($fechaProgramada !== null && $fechaSolicitud !== null && $fechaProgramada < $fechaSolicitud) {
             throw new DatosServicioInvalidos('La fecha programada no puede ser anterior a la fecha de solicitud.');
         }
         if ($direccionServicio !== null && mb_strlen($direccionServicio) > 500) {
@@ -64,7 +64,7 @@ final readonly class CasoServicio
         ?int $estadoTecnicoId,
         ?string $direccionServicio,
         ?string $tecnicoAsignado,
-        DateTimeImmutable $fechaSolicitud,
+        ?DateTimeImmutable $fechaSolicitud,
         ?DateTimeImmutable $fechaProgramada,
     ): self {
         return new self(

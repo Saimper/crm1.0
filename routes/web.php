@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaController;
+use App\Modules\Importaciones\Infrastructure\Http\Controllers\DescargarPlantillaImportacionController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCasosController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromisosController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarGestionesController;
@@ -119,6 +120,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::view('/importaciones', 'importaciones::page')
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones');
+
+            Route::get('/importaciones/plantilla',
+                DescargarPlantillaImportacionController::class)
+                ->middleware('can:importaciones.crear')
+                ->name('proyectos.importaciones.plantilla');
 
             Route::get('/importaciones/personas/exportar',
                 ExportarPersonasController::class)

@@ -18,13 +18,13 @@ final readonly class CasoTicketCx
         public int $casoId,
         public int $proyectoId,
         public CodigoTicket $codigoTicket,
-        public AsuntoTicket $asunto,
+        public ?AsuntoTicket $asunto,
         public ?string $descripcion,
         public ?int $categoriaTicketId,
         public ?int $prioridadTicketId,
         public ?int $nivelSlaId,
         public ?int $nivelEscalamientoId,
-        public DateTimeImmutable $fechaReporte,
+        public ?DateTimeImmutable $fechaReporte,
         public ?DateTimeImmutable $fechaLimiteSla,
     ) {}
 
@@ -32,16 +32,16 @@ final readonly class CasoTicketCx
         int $casoId,
         int $proyectoId,
         CodigoTicket $codigoTicket,
-        AsuntoTicket $asunto,
+        ?AsuntoTicket $asunto,
         ?string $descripcion,
         ?int $categoriaTicketId,
         ?int $prioridadTicketId,
         ?int $nivelSlaId,
         ?int $nivelEscalamientoId,
-        DateTimeImmutable $fechaReporte,
+        ?DateTimeImmutable $fechaReporte,
         ?DateTimeImmutable $fechaLimiteSla,
     ): self {
-        if ($fechaLimiteSla !== null && $fechaLimiteSla < $fechaReporte) {
+        if ($fechaLimiteSla !== null && $fechaReporte !== null && $fechaLimiteSla < $fechaReporte) {
             throw new DatosTicketInvalidos('La fecha límite de SLA no puede ser anterior a la fecha de reporte.');
         }
 
@@ -64,13 +64,13 @@ final readonly class CasoTicketCx
         int $casoId,
         int $proyectoId,
         CodigoTicket $codigoTicket,
-        AsuntoTicket $asunto,
+        ?AsuntoTicket $asunto,
         ?string $descripcion,
         ?int $categoriaTicketId,
         ?int $prioridadTicketId,
         ?int $nivelSlaId,
         ?int $nivelEscalamientoId,
-        DateTimeImmutable $fechaReporte,
+        ?DateTimeImmutable $fechaReporte,
         ?DateTimeImmutable $fechaLimiteSla,
     ): self {
         return new self(

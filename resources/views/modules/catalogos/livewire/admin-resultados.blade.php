@@ -30,20 +30,29 @@
                         <th class="px-3 py-2 text-center">Efectivo</th>
                         <th class="px-3 py-2 text-center">Compromiso</th>
                         <th class="px-3 py-2 text-center">Causa</th>
-                        <th class="px-3 py-2 text-right">Orden</th>
+                        <th class="px-3 py-2 text-center">Reordenar</th>
                         <th class="px-3 py-2 text-left">Estado</th>
                         <th class="px-3 py-2 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @foreach($resultados as $r)
+                    @foreach($resultados as $i => $r)
                         <tr>
                             <td class="px-3 py-2 font-mono text-xs">{{ $r->codigo }}</td>
                             <td class="px-3 py-2">{{ $r->nombre }}</td>
                             <td class="px-3 py-2 text-center">@if($r->es_contacto_efectivo)<span class="text-emerald-700">✓</span>@else<span class="text-gray-300">—</span>@endif</td>
                             <td class="px-3 py-2 text-center">@if($r->requiere_compromiso)<span class="text-amber-700">✓</span>@else<span class="text-gray-300">—</span>@endif</td>
                             <td class="px-3 py-2 text-center">@if($r->requiere_causa)<span class="text-red-700">✓</span>@else<span class="text-gray-300">—</span>@endif</td>
-                            <td class="px-3 py-2 text-right font-mono text-xs">{{ $r->orden }}</td>
+                            <td class="px-3 py-2 text-center text-xs">
+                                <button type="button" wire:click="subir({{ $r->id }})"
+                                        @disabled($i === 0)
+                                        class="px-1.5 py-0.5 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Subir">↑</button>
+                                <button type="button" wire:click="bajar({{ $r->id }})"
+                                        @disabled($i === $resultados->count() - 1)
+                                        class="px-1.5 py-0.5 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed ml-1"
+                                        title="Bajar">↓</button>
+                            </td>
                             <td class="px-3 py-2">
                                 @if($r->activo)
                                     <span class="inline-block rounded px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800">activo</span>
@@ -105,12 +114,7 @@
                             <span>Requiere causa</span>
                         </label>
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Orden</label>
-                        <input type="number" min="0" wire:model="form.orden"
-                               class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                    </div>
-                    <div class="flex items-end">
+                    <div class="col-span-2 flex items-end">
                         <label class="inline-flex items-center gap-2 text-sm">
                             <input type="checkbox" wire:model="form.activo" class="rounded"/>
                             <span>Activo</span>

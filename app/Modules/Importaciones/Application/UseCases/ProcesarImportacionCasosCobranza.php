@@ -7,6 +7,7 @@ namespace App\Modules\Importaciones\Application\UseCases;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use App\Modules\Cobranza\Domain\Exceptions\NumeroPrestamoYaRegistrado;
+use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\ValueObjects\ResumenChunk;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
@@ -33,7 +34,10 @@ final readonly class ProcesarImportacionCasosCobranza
     /** @var list<string> Mapeo CSV→columna (mismo nombre para todos). */
     private const CAMPOS_CSV = self::COLUMNAS_MUTABLES;
 
-    public function __construct(private RegistrarCasoCobranza $registrar) {}
+    public function __construct(
+        private RegistrarCasoCobranza $registrar,
+        private ResolverPersonaImportacion $personaResolver,
+    ) {}
 
     public function ejecutar(
         int $importacionId,
@@ -90,18 +94,17 @@ final readonly class ProcesarImportacionCasosCobranza
 
             $tipoIdentId = $tiposIdentificacion[strtoupper((string) ($payload['tipo_identificacion_codigo'] ?? ''))] ?? null;
             $personaId = null;
-            if ($tipoIdentId !== null) {
-                $personaId = (int) DB::table('personas')
-                    ->where('proyecto_id', $proyectoId)
-                    ->where('tipo_identificacion_id', $tipoIdentId)
-                    ->where('identificacion', (string) ($payload['identificacion'] ?? ''))
-                    ->value('id');
-                if (! $personaId) {
-                    $errores[] = 'persona no encontrada en el proyecto (importar persona primero).';
-                    $personaId = null;
-                }
-            } else {
+            if ($tipoIdentId === null) {
                 $errores[] = 'tipo_identificacion_codigo inválido.';
+            } else {
+                $personaId = $this->personaResolver->lookup(
+                    $proyectoId,
+                    (int) $tipoIdentId,
+                    (string) ($payload['identificacion'] ?? ''),
+                );
+                if ($personaId === null) {
+                    $errores = array_merge($errores, $this->personaResolver->validarParaCrear($payload));
+                }
             }
 
             foreach (['numero_prestamo', 'moneda', 'monto_original', 'saldo_capital', 'saldo_total', 'fecha_desembolso', 'fecha_vencimiento', 'fecha_ingreso'] as $campo) {
@@ -131,6 +134,9 @@ final readonly class ProcesarImportacionCasosCobranza
             $existenteCasoId = $this->buscarCasoExistente($proyectoId, (string) $payload['numero_prestamo']);
 
             try {
+                if ($personaId === null) {
+                    $personaId = $this->personaResolver->resolverOCrear($proyectoId, (int) $tipoIdentId, $payload);
+                }
                 if ($existenteCasoId !== null) {
                     $resultado = $this->resolverExistente($existenteCasoId, $payload, $modo);
                     $fila->estado = $resultado['estado'];

@@ -40,18 +40,27 @@
                         <th class="px-3 py-2 text-left">Código</th>
                         <th class="px-3 py-2 text-left">Nombre</th>
                         {!! $cabecerasExtra ? $cabecerasExtra() : '' !!}
-                        <th class="px-3 py-2 text-right">Orden</th>
+                        <th class="px-3 py-2 text-center">Reordenar</th>
                         <th class="px-3 py-2 text-left">Estado</th>
                         <th class="px-3 py-2 text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @foreach($items as $it)
+                    @foreach($items as $i => $it)
                         <tr>
                             <td class="px-3 py-2 font-mono text-xs">{{ $it->codigo }}</td>
                             <td class="px-3 py-2">{{ $it->nombre }}</td>
                             {!! $filasExtra ? $filasExtra($it) : '' !!}
-                            <td class="px-3 py-2 text-right font-mono text-xs">{{ $it->orden }}</td>
+                            <td class="px-3 py-2 text-center text-xs">
+                                <button type="button" wire:click="subir({{ $it->id }})"
+                                        @disabled($i === 0)
+                                        class="px-1.5 py-0.5 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Subir">↑</button>
+                                <button type="button" wire:click="bajar({{ $it->id }})"
+                                        @disabled($i === $items->count() - 1)
+                                        class="px-1.5 py-0.5 rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed ml-1"
+                                        title="Bajar">↓</button>
+                            </td>
                             <td class="px-3 py-2">
                                 @if($it->activo)
                                     <span class="inline-block rounded px-2 py-0.5 text-xs bg-emerald-100 text-emerald-800">activo</span>
@@ -97,12 +106,7 @@
 
                     {!! $camposExtra ? $camposExtra() : '' !!}
 
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Orden</label>
-                        <input type="number" min="0" wire:model="form.orden"
-                               class="mt-1 block w-full text-sm rounded border-gray-300"/>
-                    </div>
-                    <div class="flex items-end">
+                    <div class="col-span-2 flex items-end">
                         <label class="inline-flex items-center gap-2 text-sm">
                             <input type="checkbox" wire:model="form.activo" class="rounded"/>
                             <span>Activo</span>

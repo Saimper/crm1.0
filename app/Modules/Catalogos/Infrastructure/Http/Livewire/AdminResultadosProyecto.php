@@ -27,7 +27,6 @@ final class AdminResultadosProyecto extends AbstractAdminCatalogo
             'es_contacto_efectivo' => false,
             'requiere_compromiso' => false,
             'requiere_causa' => false,
-            'orden' => 100,
             'activo' => true,
         ];
     }
@@ -41,7 +40,6 @@ final class AdminResultadosProyecto extends AbstractAdminCatalogo
             'form.es_contacto_efectivo' => ['boolean'],
             'form.requiere_compromiso' => ['boolean'],
             'form.requiere_causa' => ['boolean'],
-            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -55,7 +53,6 @@ final class AdminResultadosProyecto extends AbstractAdminCatalogo
             'es_contacto_efectivo' => (bool) ($this->form['es_contacto_efectivo'] ?? false),
             'requiere_compromiso' => (bool) ($this->form['requiere_compromiso'] ?? false),
             'requiere_causa' => (bool) ($this->form['requiere_causa'] ?? false),
-            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
@@ -69,7 +66,6 @@ final class AdminResultadosProyecto extends AbstractAdminCatalogo
             'es_contacto_efectivo' => (bool) $row->es_contacto_efectivo,
             'requiere_compromiso' => (bool) $row->requiere_compromiso,
             'requiere_causa' => (bool) $row->requiere_causa,
-            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }

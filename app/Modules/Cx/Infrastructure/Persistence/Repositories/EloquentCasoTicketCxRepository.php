@@ -21,7 +21,7 @@ final class EloquentCasoTicketCxRepository implements CasoTicketCxRepository
         $model->caso_id = $ticket->casoId;
         $model->proyecto_id = $ticket->proyectoId;
         $model->codigo_ticket = $ticket->codigoTicket->valor;
-        $model->asunto = $ticket->asunto->valor;
+        $model->asunto = $ticket->asunto?->valor;
         $model->descripcion = $ticket->descripcion;
         $model->categoria_ticket_id = $ticket->categoriaTicketId;
         $model->prioridad_ticket_id = $ticket->prioridadTicketId;
@@ -47,13 +47,13 @@ final class EloquentCasoTicketCxRepository implements CasoTicketCxRepository
             casoId: (int) $model->caso_id,
             proyectoId: (int) $model->proyecto_id,
             codigoTicket: new CodigoTicket((string) $model->codigo_ticket),
-            asunto: new AsuntoTicket((string) $model->asunto),
+            asunto: $model->asunto === null ? null : new AsuntoTicket((string) $model->asunto),
             descripcion: $model->descripcion,
             categoriaTicketId: $model->categoria_ticket_id === null ? null : (int) $model->categoria_ticket_id,
             prioridadTicketId: $model->prioridad_ticket_id === null ? null : (int) $model->prioridad_ticket_id,
             nivelSlaId: $model->nivel_sla_id === null ? null : (int) $model->nivel_sla_id,
             nivelEscalamientoId: $model->nivel_escalamiento_id === null ? null : (int) $model->nivel_escalamiento_id,
-            fechaReporte: $this->hidratarFechaHora($model->fecha_reporte),
+            fechaReporte: $model->fecha_reporte === null ? null : $this->hidratarFechaHora($model->fecha_reporte),
             fechaLimiteSla: $model->fecha_limite_sla === null ? null : $this->hidratarFechaHora($model->fecha_limite_sla),
         );
     }

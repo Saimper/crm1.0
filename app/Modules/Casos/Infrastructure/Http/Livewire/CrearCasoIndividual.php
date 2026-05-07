@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use App\Modules\Cobranza\Domain\Exceptions\NumeroPrestamoYaRegistrado;
 use App\Modules\Cx\Application\DTOs\RegistrarCasoTicketCxInput;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
+use App\Modules\Cx\Domain\Exceptions\CodigoTicketYaRegistrado;
 use App\Modules\Servicio\Application\DTOs\RegistrarCasoServicioInput;
 use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
+use App\Modules\Servicio\Domain\Exceptions\CodigoServicioYaRegistrado;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaInput;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
+use App\Modules\Venta\Domain\Exceptions\CodigoLeadYaRegistrado;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Livewire\Attributes\Url;
@@ -23,11 +27,17 @@ use Livewire\Component;
 use Throwable;
 
 /**
- * Crea un caso individual para una persona específica del proyecto activo.
- * Detecta tipo_operacion del proyecto y delega al UseCase correspondiente
- * (RegistrarCasoCobranza/TicketCx/LeadVenta/Servicio).
+ * F35-D: form Crear Caso minimal + Campos Personalizados.
  *
- * Permiso: casos.crear (solo SUPERVISOR + ADMIN_GLOBAL por defecto).
+ * El admin del proyecto define qué campos pedir vía Campos Personalizados §7
+ * (ámbito caso×cartera). El form deja solo lo invariante:
+ *   - cartera (req)
+ *   - persona (preset desde URL)
+ *   - identificador único del CTI según tipo (numero_prestamo / codigo_ticket / ...)
+ *   - prioridad (opcional)
+ *   - render dinámico de Campos Personalizados de la cartera seleccionada
+ *
+ * Estado inicial del caso = primer estado activo del proyecto. Fecha ingreso = hoy.
  */
 final class CrearCasoIndividual extends Component
 {
@@ -40,94 +50,17 @@ final class CrearCasoIndividual extends Component
 
     public string $carteraId = '';
 
-    public string $estadoCasoId = '';
+    public string $idUnico = '';
 
-    public int $prioridad = 0;
+    public int $prioridad = 3;
 
-    public string $fechaIngreso = '';
-
-    // Cobranza
-    public string $numeroPrestamo = '';
-
-    public string $moneda = 'USD';
-
-    public string $montoOriginal = '0';
-
-    public string $saldoCapital = '0';
-
-    public string $saldoInteres = '0';
-
-    public string $saldoTotal = '0';
-
-    public string $cuotaMensual = '0';
-
-    public int $cuotasTotales = 0;
-
-    public int $cuotasPagadas = 0;
-
-    public int $diasMora = 0;
-
-    public string $fechaDesembolso = '';
-
-    public string $fechaVencimiento = '';
-
-    // CX
-    public string $codigoTicket = '';
-
-    public string $asunto = '';
-
-    public string $descripcion = '';
-
-    public string $categoriaTicketId = '';
-
-    public string $prioridadTicketId = '';
-
-    public string $nivelSlaId = '';
-
-    public string $fechaReporte = '';
-
-    // Venta
-    public string $codigoLead = '';
-
-    public string $valorEstimadoMonto = '0';
-
-    public string $productoVentaId = '';
-
-    public string $etapaEmbudoId = '';
-
-    public string $origenLead = '';
-
-    public string $fechaPrimerContacto = '';
-
-    // Servicio
-    public string $codigoServicio = '';
-
-    public string $fechaSolicitud = '';
-
-    public string $fechaProgramada = '';
-
-    public string $direccionServicio = '';
-
-    public string $tecnicoAsignado = '';
-
-    public string $tipoAccionServicioId = '';
+    /** @var array<string, mixed> */
+    public array $valoresCp = [];
 
     public function mount(): void
     {
         $proyecto = app('tenancy.proyecto_activo');
         $this->tipoOperacion = (string) $proyecto->tipo_operacion;
-        $this->fechaIngreso = (new DateTimeImmutable)->format('Y-m-d');
-        $this->fechaReporte = (new DateTimeImmutable)->format('Y-m-d\TH:i');
-        $this->fechaPrimerContacto = (new DateTimeImmutable)->format('Y-m-d');
-        $this->fechaSolicitud = (new DateTimeImmutable)->format('Y-m-d');
-
-        $primerEstado = DB::table('estados_caso')
-            ->where('proyecto_id', (int) $proyecto->id)
-            ->where('activo', true)
-            ->orderBy('orden')
-            ->orderBy('id')
-            ->value('id');
-        $this->estadoCasoId = $primerEstado !== null ? (string) $primerEstado : '';
 
         if ($this->personaPublicId !== '') {
             $persona = DB::table('personas')
@@ -141,11 +74,18 @@ final class CrearCasoIndividual extends Component
         }
     }
 
+    public function updatedCarteraId(): void
+    {
+        // Cuando cambia la cartera, los campos personalizados aplicables cambian.
+        $this->valoresCp = [];
+    }
+
     public function guardar(
         RegistrarCasoCobranza $ucCobranza,
         RegistrarCasoTicketCx $ucCx,
         RegistrarCasoLeadVenta $ucVenta,
         RegistrarCasoServicio $ucServicio,
+        ServicioCamposPersonalizados $servicioCp,
     ): void {
         if ($this->personaId === null) {
             $this->addError('personaPublicId', 'Persona no encontrada en el proyecto.');
@@ -153,134 +93,102 @@ final class CrearCasoIndividual extends Component
             return;
         }
 
-        if ($this->estadoCasoId === '') {
+        $this->validate([
+            'carteraId' => ['required', 'integer'],
+            'idUnico' => ['required', 'string', 'max:80'],
+            'prioridad' => ['integer', 'min:0', 'max:1000'],
+        ], [], [
+            'idUnico' => $this->etiquetaIdUnico(),
+        ]);
+
+        $proyecto = app('tenancy.proyecto_activo');
+        $proyectoId = (int) $proyecto->id;
+
+        $estadoCasoId = (int) DB::table('estados_caso')
+            ->where('proyecto_id', $proyectoId)
+            ->where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->value('id');
+
+        if ($estadoCasoId === 0) {
             $this->addError('general', 'El proyecto no tiene estados de caso configurados. Pide al administrador que configure al menos uno.');
 
             return;
         }
 
-        $reglasComunes = [
-            'carteraId' => ['required', 'integer'],
-            'prioridad' => ['integer', 'min:0', 'max:1000'],
-            'fechaIngreso' => ['required', 'date'],
-        ];
-
-        $reglas = match ($this->tipoOperacion) {
-            'cobranza' => $reglasComunes + [
-                'numeroPrestamo' => ['required', 'string', 'max:80'],
-                'moneda' => ['required', 'string', 'size:3'],
-                'montoOriginal' => ['required', 'string'],
-                'saldoCapital' => ['required', 'string'],
-                'saldoInteres' => ['required', 'string'],
-                'saldoTotal' => ['required', 'string'],
-                'cuotaMensual' => ['required', 'string'],
-                'cuotasTotales' => ['integer', 'min:0'],
-                'cuotasPagadas' => ['integer', 'min:0'],
-                'diasMora' => ['integer', 'min:0'],
-                'fechaDesembolso' => ['required', 'date'],
-                'fechaVencimiento' => ['required', 'date'],
-            ],
-            'cx' => $reglasComunes + [
-                'codigoTicket' => ['required', 'string', 'max:80'],
-                'asunto' => ['required', 'string', 'max:255'],
-                'descripcion' => ['nullable', 'string', 'max:5000'],
-                'fechaReporte' => ['required', 'date'],
-            ],
-            'venta' => $reglasComunes + [
-                'codigoLead' => ['required', 'string', 'max:80'],
-                'valorEstimadoMonto' => ['required', 'string'],
-                'moneda' => ['required', 'string', 'size:3'],
-                'fechaPrimerContacto' => ['required', 'date'],
-            ],
-            'servicio' => $reglasComunes + [
-                'codigoServicio' => ['required', 'string', 'max:80'],
-                'fechaSolicitud' => ['required', 'date'],
-                'direccionServicio' => ['nullable', 'string', 'max:500'],
-                'tecnicoAsignado' => ['nullable', 'string', 'max:200'],
-            ],
-            default => $reglasComunes,
-        };
-
-        $this->validate($reglas);
-
-        $proyecto = app('tenancy.proyecto_activo');
-        $proyectoId = (int) $proyecto->id;
         $publicIdNuevoCaso = '';
+        $casoIdNuevo = 0;
+        $fechaIngreso = new DateTimeImmutable;
 
         try {
-            $publicIdNuevoCaso = match ($this->tipoOperacion) {
-                'cobranza' => $ucCobranza->execute(new RegistrarCasoCobranzaInput(
-                    proyectoId: $proyectoId,
-                    carteraId: (int) $this->carteraId,
-                    personaId: $this->personaId,
-                    estadoCasoId: (int) $this->estadoCasoId,
-                    fechaIngreso: new DateTimeImmutable($this->fechaIngreso),
-                    prioridad: $this->prioridad,
-                    numeroPrestamo: trim($this->numeroPrestamo),
-                    moneda: $this->moneda,
-                    montoOriginal: $this->montoOriginal,
-                    saldoCapital: $this->saldoCapital,
-                    saldoInteres: $this->saldoInteres,
-                    saldoTotal: $this->saldoTotal,
-                    cuotaMensual: $this->cuotaMensual,
-                    cuotasTotales: $this->cuotasTotales,
-                    cuotasPagadas: $this->cuotasPagadas,
-                    diasMora: $this->diasMora,
-                    fechaDesembolso: new DateTimeImmutable($this->fechaDesembolso),
-                    fechaVencimiento: new DateTimeImmutable($this->fechaVencimiento),
-                ))->publicId,
-                'cx' => $ucCx->execute(new RegistrarCasoTicketCxInput(
-                    proyectoId: $proyectoId,
-                    carteraId: (int) $this->carteraId,
-                    personaId: $this->personaId,
-                    estadoCasoId: (int) $this->estadoCasoId,
-                    fechaIngreso: new DateTimeImmutable($this->fechaIngreso),
-                    prioridad: $this->prioridad,
-                    codigoTicket: trim($this->codigoTicket),
-                    asunto: trim($this->asunto),
-                    descripcion: $this->descripcion !== '' ? $this->descripcion : null,
-                    categoriaTicketId: $this->categoriaTicketId !== '' ? (int) $this->categoriaTicketId : null,
-                    prioridadTicketId: $this->prioridadTicketId !== '' ? (int) $this->prioridadTicketId : null,
-                    nivelSlaId: $this->nivelSlaId !== '' ? (int) $this->nivelSlaId : null,
-                    nivelEscalamientoId: null,
-                    fechaReporte: new DateTimeImmutable($this->fechaReporte),
-                    fechaLimiteSla: null,
-                ))->publicId,
-                'venta' => $ucVenta->execute(new RegistrarCasoLeadVentaInput(
-                    proyectoId: $proyectoId,
-                    carteraId: (int) $this->carteraId,
-                    personaId: $this->personaId,
-                    estadoCasoId: (int) $this->estadoCasoId,
-                    fechaIngreso: new DateTimeImmutable($this->fechaIngreso),
-                    prioridad: $this->prioridad,
-                    codigoLead: trim($this->codigoLead),
-                    productoVentaId: $this->productoVentaId !== '' ? (int) $this->productoVentaId : null,
-                    etapaEmbudoId: $this->etapaEmbudoId !== '' ? (int) $this->etapaEmbudoId : null,
-                    valorEstimadoMonto: $this->valorEstimadoMonto,
-                    moneda: $this->moneda,
-                    origenLead: $this->origenLead !== '' ? $this->origenLead : null,
-                    fechaPrimerContacto: new DateTimeImmutable($this->fechaPrimerContacto),
-                    fechaEstimadaCierre: null,
-                ))->publicId,
-                'servicio' => $ucServicio->execute(new RegistrarCasoServicioInput(
-                    proyectoId: $proyectoId,
-                    carteraId: (int) $this->carteraId,
-                    personaId: $this->personaId,
-                    estadoCasoId: (int) $this->estadoCasoId,
-                    fechaIngreso: new DateTimeImmutable($this->fechaIngreso),
-                    prioridad: $this->prioridad,
-                    codigoServicio: trim($this->codigoServicio),
-                    tipoAccionServicioId: $this->tipoAccionServicioId !== '' ? (int) $this->tipoAccionServicioId : null,
-                    estadoTecnicoId: null,
-                    direccionServicio: $this->direccionServicio !== '' ? $this->direccionServicio : null,
-                    tecnicoAsignado: $this->tecnicoAsignado !== '' ? $this->tecnicoAsignado : null,
-                    fechaSolicitud: new DateTimeImmutable($this->fechaSolicitud),
-                    fechaProgramada: $this->fechaProgramada !== '' ? new DateTimeImmutable($this->fechaProgramada) : null,
-                ))->publicId,
-                default => throw new InvalidArgumentException('Tipo de operación no soportado: '.$this->tipoOperacion),
-            };
-        } catch (NumeroPrestamoYaRegistrado $e) {
-            $this->addError('numeroPrestamo', $e->getMessage());
+            DB::transaction(function () use (
+                &$publicIdNuevoCaso,
+                &$casoIdNuevo,
+                $proyectoId,
+                $estadoCasoId,
+                $fechaIngreso,
+                $ucCobranza,
+                $ucCx,
+                $ucVenta,
+                $ucServicio,
+                $servicioCp,
+            ): void {
+                $output = match ($this->tipoOperacion) {
+                    'cobranza' => $ucCobranza->execute(new RegistrarCasoCobranzaInput(
+                        proyectoId: $proyectoId,
+                        carteraId: (int) $this->carteraId,
+                        personaId: (int) $this->personaId,
+                        estadoCasoId: $estadoCasoId,
+                        fechaIngreso: $fechaIngreso,
+                        prioridad: $this->prioridad,
+                        numeroPrestamo: trim($this->idUnico),
+                    )),
+                    'cx' => $ucCx->execute(new RegistrarCasoTicketCxInput(
+                        proyectoId: $proyectoId,
+                        carteraId: (int) $this->carteraId,
+                        personaId: (int) $this->personaId,
+                        estadoCasoId: $estadoCasoId,
+                        fechaIngreso: $fechaIngreso,
+                        prioridad: $this->prioridad,
+                        codigoTicket: trim($this->idUnico),
+                    )),
+                    'venta' => $ucVenta->execute(new RegistrarCasoLeadVentaInput(
+                        proyectoId: $proyectoId,
+                        carteraId: (int) $this->carteraId,
+                        personaId: (int) $this->personaId,
+                        estadoCasoId: $estadoCasoId,
+                        fechaIngreso: $fechaIngreso,
+                        prioridad: $this->prioridad,
+                        codigoLead: trim($this->idUnico),
+                    )),
+                    'servicio' => $ucServicio->execute(new RegistrarCasoServicioInput(
+                        proyectoId: $proyectoId,
+                        carteraId: (int) $this->carteraId,
+                        personaId: (int) $this->personaId,
+                        estadoCasoId: $estadoCasoId,
+                        fechaIngreso: $fechaIngreso,
+                        prioridad: $this->prioridad,
+                        codigoServicio: trim($this->idUnico),
+                    )),
+                    default => throw new InvalidArgumentException('Tipo de operación no soportado: '.$this->tipoOperacion),
+                };
+
+                $publicIdNuevoCaso = $output->publicId;
+                $casoIdNuevo = $output->casoId;
+
+                if ($this->valoresCp !== []) {
+                    $servicioCp->guardarValores(
+                        $proyectoId,
+                        AmbitoCampo::CASO,
+                        (int) $this->carteraId,
+                        $casoIdNuevo,
+                        $this->valoresCp,
+                    );
+                }
+            });
+        } catch (NumeroPrestamoYaRegistrado|CodigoTicketYaRegistrado|CodigoLeadYaRegistrado|CodigoServicioYaRegistrado $e) {
+            $this->addError('idUnico', $e->getMessage());
 
             return;
         } catch (InvalidArgumentException $e) {
@@ -296,7 +204,7 @@ final class CrearCasoIndividual extends Component
         session()->flash('caso_creado', $publicIdNuevoCaso);
 
         $this->redirectRoute('proyectos.trabajo', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'persona' => $this->personaPublicId,
             'caso' => $publicIdNuevoCaso,
         ], navigate: true);
@@ -318,34 +226,32 @@ final class CrearCasoIndividual extends Component
             ->select(['id', 'nombre'])
             ->get();
 
-        $catalogosTipo = $this->cargarCatalogosTipo($proyectoId);
+        $camposPersonalizados = collect();
+        if ($this->carteraId !== '') {
+            $servicio = app(ServicioCamposPersonalizados::class);
+            $camposPersonalizados = $servicio->campos(
+                $proyectoId,
+                AmbitoCampo::CASO,
+                (int) $this->carteraId,
+            );
+        }
 
         return view('casos::livewire.crear-caso-individual', [
             'persona' => $persona,
             'carteras' => $carteras,
-            'catalogosTipo' => $catalogosTipo,
+            'camposPersonalizados' => $camposPersonalizados,
+            'etiquetaIdUnico' => $this->etiquetaIdUnico(),
         ]);
     }
 
-    /**
-     * @return array<string, Collection<int, object>>
-     */
-    private function cargarCatalogosTipo(int $proyectoId): array
+    private function etiquetaIdUnico(): string
     {
         return match ($this->tipoOperacion) {
-            'cx' => [
-                'categorias' => DB::table('categorias_ticket')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-                'prioridades' => DB::table('prioridades_ticket')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('orden')->get(['id', 'nombre']),
-                'niveles_sla' => DB::table('niveles_sla')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            ],
-            'venta' => [
-                'productos' => DB::table('productos_venta')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-                'etapas' => DB::table('etapas_embudo')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('orden')->get(['id', 'nombre']),
-            ],
-            'servicio' => [
-                'tipos_accion' => DB::table('tipos_accion_servicio')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            ],
-            default => [],
+            'cobranza' => 'Número de préstamo',
+            'cx' => 'Código de ticket',
+            'venta' => 'Código de lead',
+            'servicio' => 'Código de servicio',
+            default => 'Identificador del caso',
         };
     }
 }

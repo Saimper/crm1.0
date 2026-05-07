@@ -20,9 +20,9 @@ final readonly class CasoLeadVenta
         public CodigoLead $codigoLead,
         public ?int $productoVentaId,
         public ?int $etapaEmbudoId,
-        public ValorEstimadoVenta $valorEstimado,
+        public ?ValorEstimadoVenta $valorEstimado,
         public ?string $origenLead,
-        public DateTimeImmutable $fechaPrimerContacto,
+        public ?DateTimeImmutable $fechaPrimerContacto,
         public ?DateTimeImmutable $fechaEstimadaCierre,
     ) {}
 
@@ -32,12 +32,12 @@ final readonly class CasoLeadVenta
         CodigoLead $codigoLead,
         ?int $productoVentaId,
         ?int $etapaEmbudoId,
-        ValorEstimadoVenta $valorEstimado,
+        ?ValorEstimadoVenta $valorEstimado,
         ?string $origenLead,
-        DateTimeImmutable $fechaPrimerContacto,
+        ?DateTimeImmutable $fechaPrimerContacto,
         ?DateTimeImmutable $fechaEstimadaCierre,
     ): self {
-        if ($fechaEstimadaCierre !== null && $fechaEstimadaCierre < $fechaPrimerContacto) {
+        if ($fechaEstimadaCierre !== null && $fechaPrimerContacto !== null && $fechaEstimadaCierre < $fechaPrimerContacto) {
             throw new DatosLeadInvalidos('La fecha estimada de cierre no puede ser anterior al primer contacto.');
         }
 
@@ -60,9 +60,9 @@ final readonly class CasoLeadVenta
         CodigoLead $codigoLead,
         ?int $productoVentaId,
         ?int $etapaEmbudoId,
-        ValorEstimadoVenta $valorEstimado,
+        ?ValorEstimadoVenta $valorEstimado,
         ?string $origenLead,
-        DateTimeImmutable $fechaPrimerContacto,
+        ?DateTimeImmutable $fechaPrimerContacto,
         ?DateTimeImmutable $fechaEstimadaCierre,
     ): self {
         return new self(

@@ -107,13 +107,70 @@ abstract class AbstractAdminCatalogo extends Component
         $payload = array_merge($this->payloadDesdeForm(), ['proyecto_id' => $proyectoId]);
 
         if ($this->editandoId === null) {
+            // Auto-asignar orden al crear: max+10. El admin no decide números.
+            if (! isset($payload['orden']) || (int) $payload['orden'] === 0) {
+                $maxOrden = (int) DB::table($this->tabla())
+                    ->where('proyecto_id', $proyectoId)
+                    ->max('orden');
+                $payload['orden'] = $maxOrden + 10;
+            }
             DB::table($this->tabla())->insert($payload);
         } else {
+            unset($payload['orden']); // No se mueve por edición; usar subir/bajar.
             DB::table($this->tabla())->where('id', $this->editandoId)->update($payload);
         }
 
         $this->cerrarForm();
         session()->flash('admin-catalogo-ok', 'Registro guardado.');
+    }
+
+    /**
+     * Reordena: sube el item un puesto (intercambia orden con el inmediato anterior).
+     * Permite al admin reorganizar visualmente sin tocar números.
+     */
+    public function subir(int $id): void
+    {
+        $proyectoId = $this->proyectoActivoId();
+        $row = DB::table($this->tabla())
+            ->where('id', $id)->where('proyecto_id', $proyectoId)->first();
+        if ($row === null) {
+            return;
+        }
+        $vecino = DB::table($this->tabla())
+            ->where('proyecto_id', $proyectoId)
+            ->where('orden', '<', $row->orden)
+            ->orderByDesc('orden')->orderByDesc('id')->first();
+        if ($vecino === null) {
+            return;
+        }
+        DB::transaction(function () use ($row, $vecino): void {
+            DB::table($this->tabla())->where('id', $row->id)->update(['orden' => $vecino->orden]);
+            DB::table($this->tabla())->where('id', $vecino->id)->update(['orden' => $row->orden]);
+        });
+    }
+
+    /**
+     * Reordena: baja el item un puesto (intercambia orden con el inmediato siguiente).
+     */
+    public function bajar(int $id): void
+    {
+        $proyectoId = $this->proyectoActivoId();
+        $row = DB::table($this->tabla())
+            ->where('id', $id)->where('proyecto_id', $proyectoId)->first();
+        if ($row === null) {
+            return;
+        }
+        $vecino = DB::table($this->tabla())
+            ->where('proyecto_id', $proyectoId)
+            ->where('orden', '>', $row->orden)
+            ->orderBy('orden')->orderBy('id')->first();
+        if ($vecino === null) {
+            return;
+        }
+        DB::transaction(function () use ($row, $vecino): void {
+            DB::table($this->tabla())->where('id', $row->id)->update(['orden' => $vecino->orden]);
+            DB::table($this->tabla())->where('id', $vecino->id)->update(['orden' => $row->orden]);
+        });
     }
 
     /**

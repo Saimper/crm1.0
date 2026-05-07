@@ -33,7 +33,7 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                 <div>
                     <label class="field-label">Cartera</label>
-                    <select wire:model="carteraId" class="input @error('carteraId') input-error @enderror">
+                    <select wire:model.live="carteraId" class="input @error('carteraId') input-error @enderror">
                         <option value="">— Selecciona —</option>
                         @foreach($carteras as $c)
                             <option value="{{ $c->id }}">{{ $c->nombre }}</option>
@@ -42,202 +42,77 @@
                     @error('carteraId')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
+                    <label class="field-label">{{ $etiquetaIdUnico }}</label>
+                    <input type="text" wire:model="idUnico" class="input mono uppercase @error('idUnico') input-error @enderror"/>
+                    @error('idUnico')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+                <div>
                     <label class="field-label">Prioridad (0–9)</label>
                     <input type="number" min="0" max="9" wire:model="prioridad" class="input"/>
                 </div>
-                <div>
-                    <label class="field-label">Fecha ingreso</label>
-                    <input type="date" wire:model="fechaIngreso" class="input @error('fechaIngreso') input-error @enderror"/>
-                    @error('fechaIngreso')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
             </div>
 
-            <hr style="margin:20px 0;border:0;border-top:1px solid var(--border);">
+            @if($carteraId !== '')
+                <hr style="margin:20px 0;border:0;border-top:1px solid var(--border);">
+                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">
+                    Información adicional del caso
+                    @if($camposPersonalizados->isEmpty())
+                        <span style="font-weight:400;color:var(--text-tertiary);font-size:11px;">
+                            (sin campos definidos por el administrador para esta cartera)
+                        </span>
+                    @endif
+                </h3>
 
-            @if($tipoOperacion === 'cobranza')
-                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">Datos del préstamo</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
-                    <div style="grid-column:span 2;">
-                        <label class="field-label">Número de préstamo</label>
-                        <input type="text" wire:model="numeroPrestamo" class="input mono uppercase @error('numeroPrestamo') input-error @enderror"/>
-                        @error('numeroPrestamo')<div class="field-error">{{ $message }}</div>@enderror
+                @if($camposPersonalizados->isNotEmpty())
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        @foreach($camposPersonalizados as $campo)
+                            @php
+                                $key = (string) $campo->codigo;
+                                $tipo = (string) $campo->tipo;
+                                $etiqueta = (string) $campo->etiqueta;
+                                $req = (bool) $campo->obligatorio;
+                            @endphp
+                            <div @if(in_array($tipo, ['texto_largo', 'seleccion_multiple'], true)) style="grid-column:1 / -1;" @endif>
+                                <label class="field-label">
+                                    {{ $etiqueta }}
+                                    @if($req)<span style="color:var(--danger);">*</span>@endif
+                                </label>
+                                @switch($tipo)
+                                    @case('texto_corto')
+                                        <input type="text" wire:model="valoresCp.{{ $key }}" class="input"/>
+                                        @break
+                                    @case('texto_largo')
+                                        <textarea rows="3" wire:model="valoresCp.{{ $key }}" class="input"></textarea>
+                                        @break
+                                    @case('numero_entero')
+                                        <input type="number" step="1" wire:model="valoresCp.{{ $key }}" class="input mono"/>
+                                        @break
+                                    @case('numero_decimal')
+                                    @case('moneda')
+                                        <input type="number" step="0.01" wire:model="valoresCp.{{ $key }}" class="input mono"/>
+                                        @break
+                                    @case('fecha')
+                                        <input type="date" wire:model="valoresCp.{{ $key }}" class="input"/>
+                                        @break
+                                    @case('fecha_hora')
+                                        <input type="datetime-local" wire:model="valoresCp.{{ $key }}" class="input"/>
+                                        @break
+                                    @case('booleano')
+                                        <label style="display:flex;align-items:center;gap:6px;">
+                                            <input type="checkbox" wire:model="valoresCp.{{ $key }}"/>
+                                            <span style="font-size:12px;">Sí</span>
+                                        </label>
+                                        @break
+                                    @default
+                                        <input type="text" wire:model="valoresCp.{{ $key }}" class="input"/>
+                                @endswitch
+                                @if($campo->descripcion)
+                                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">{{ $campo->descripcion }}</div>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
-                    <div>
-                        <label class="field-label">Moneda (3 letras)</label>
-                        <input type="text" wire:model="moneda" class="input mono uppercase"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Monto original</label>
-                        <input type="text" wire:model="montoOriginal" class="input mono"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Saldo capital</label>
-                        <input type="text" wire:model="saldoCapital" class="input mono"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Saldo interés</label>
-                        <input type="text" wire:model="saldoInteres" class="input mono"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Saldo total</label>
-                        <input type="text" wire:model="saldoTotal" class="input mono"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Cuota mensual</label>
-                        <input type="text" wire:model="cuotaMensual" class="input mono"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Cuotas totales</label>
-                        <input type="number" min="0" wire:model="cuotasTotales" class="input"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Cuotas pagadas</label>
-                        <input type="number" min="0" wire:model="cuotasPagadas" class="input"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Días mora</label>
-                        <input type="number" min="0" wire:model="diasMora" class="input"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Fecha desembolso</label>
-                        <input type="date" wire:model="fechaDesembolso" class="input @error('fechaDesembolso') input-error @enderror"/>
-                        @error('fechaDesembolso')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="field-label">Fecha vencimiento</label>
-                        <input type="date" wire:model="fechaVencimiento" class="input @error('fechaVencimiento') input-error @enderror"/>
-                        @error('fechaVencimiento')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-            @elseif($tipoOperacion === 'cx')
-                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">Datos del ticket</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div>
-                        <label class="field-label">Código ticket</label>
-                        <input type="text" wire:model="codigoTicket" class="input mono uppercase @error('codigoTicket') input-error @enderror"/>
-                        @error('codigoTicket')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="field-label">Asunto</label>
-                        <input type="text" wire:model="asunto" class="input @error('asunto') input-error @enderror"/>
-                        @error('asunto')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                    <div style="grid-column:1 / -1;">
-                        <label class="field-label">Descripción (opcional)</label>
-                        <textarea wire:model="descripcion" rows="3" class="input"></textarea>
-                    </div>
-                    <div>
-                        <label class="field-label">Categoría</label>
-                        <select wire:model="categoriaTicketId" class="input">
-                            <option value="">— Sin categoría —</option>
-                            @foreach($catalogosTipo['categorias'] ?? [] as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label">Prioridad ticket</label>
-                        <select wire:model="prioridadTicketId" class="input">
-                            <option value="">— Sin prioridad —</option>
-                            @foreach($catalogosTipo['prioridades'] ?? [] as $pri)
-                                <option value="{{ $pri->id }}">{{ $pri->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label">Nivel SLA</label>
-                        <select wire:model="nivelSlaId" class="input">
-                            <option value="">— Sin SLA —</option>
-                            @foreach($catalogosTipo['niveles_sla'] ?? [] as $sla)
-                                <option value="{{ $sla->id }}">{{ $sla->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label">Fecha reporte</label>
-                        <input type="datetime-local" wire:model="fechaReporte" class="input @error('fechaReporte') input-error @enderror"/>
-                        @error('fechaReporte')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-            @elseif($tipoOperacion === 'venta')
-                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">Datos del lead</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div>
-                        <label class="field-label">Código lead</label>
-                        <input type="text" wire:model="codigoLead" class="input mono uppercase @error('codigoLead') input-error @enderror"/>
-                        @error('codigoLead')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="field-label">Valor estimado</label>
-                        <input type="text" wire:model="valorEstimadoMonto" class="input mono"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Moneda</label>
-                        <input type="text" wire:model="moneda" class="input mono uppercase"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Producto</label>
-                        <select wire:model="productoVentaId" class="input">
-                            <option value="">— Sin producto —</option>
-                            @foreach($catalogosTipo['productos'] ?? [] as $prod)
-                                <option value="{{ $prod->id }}">{{ $prod->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label">Etapa embudo</label>
-                        <select wire:model="etapaEmbudoId" class="input">
-                            <option value="">— Sin etapa —</option>
-                            @foreach($catalogosTipo['etapas'] ?? [] as $et)
-                                <option value="{{ $et->id }}">{{ $et->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label">Origen lead (opcional)</label>
-                        <input type="text" wire:model="origenLead" class="input"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Primer contacto</label>
-                        <input type="date" wire:model="fechaPrimerContacto" class="input @error('fechaPrimerContacto') input-error @enderror"/>
-                        @error('fechaPrimerContacto')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                </div>
-            @elseif($tipoOperacion === 'servicio')
-                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">Datos del servicio</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div>
-                        <label class="field-label">Código servicio</label>
-                        <input type="text" wire:model="codigoServicio" class="input mono uppercase @error('codigoServicio') input-error @enderror"/>
-                        @error('codigoServicio')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="field-label">Tipo de acción</label>
-                        <select wire:model="tipoAccionServicioId" class="input">
-                            <option value="">— Sin tipo —</option>
-                            @foreach($catalogosTipo['tipos_accion'] ?? [] as $ta)
-                                <option value="{{ $ta->id }}">{{ $ta->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="field-label">Fecha solicitud</label>
-                        <input type="date" wire:model="fechaSolicitud" class="input @error('fechaSolicitud') input-error @enderror"/>
-                        @error('fechaSolicitud')<div class="field-error">{{ $message }}</div>@enderror
-                    </div>
-                    <div>
-                        <label class="field-label">Fecha programada (opcional)</label>
-                        <input type="date" wire:model="fechaProgramada" class="input"/>
-                    </div>
-                    <div style="grid-column:1 / -1;">
-                        <label class="field-label">Dirección (opcional)</label>
-                        <input type="text" wire:model="direccionServicio" class="input"/>
-                    </div>
-                    <div>
-                        <label class="field-label">Técnico asignado (opcional)</label>
-                        <input type="text" wire:model="tecnicoAsignado" class="input"/>
-                    </div>
-                </div>
+                @endif
             @endif
 
             <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">

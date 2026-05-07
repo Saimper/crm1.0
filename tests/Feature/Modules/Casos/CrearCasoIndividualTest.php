@@ -15,6 +15,11 @@ use stdClass;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
+/**
+ * F35-D: form Crear Caso minimal — solo cartera + persona + ID único + prioridad.
+ * Los campos CTI hardcoded fueron eliminados; el admin del proyecto define
+ * qué campos pedir vía Campos Personalizados §7. Estos tests reflejan el form mínimo.
+ */
 final class CrearCasoIndividualTest extends TestCase
 {
     use EscenarioOperativo;
@@ -26,7 +31,7 @@ final class CrearCasoIndividualTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_crea_caso_cobranza_asigna_primer_estado_automaticamente(): void
+    public function test_crea_caso_cobranza_minimal_asigna_primer_estado(): void
     {
         $proyecto = $this->crearProyectoCobranza();
         $cartera = $this->crearCarteraEn($proyecto);
@@ -57,19 +62,7 @@ final class CrearCasoIndividualTest extends TestCase
 
         Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
             ->set('carteraId', (string) $cartera->id)
-            ->set('fechaIngreso', '2026-04-30')
-            ->set('numeroPrestamo', 'CCI-PRST-0001')
-            ->set('moneda', 'USD')
-            ->set('montoOriginal', '5000.00')
-            ->set('saldoCapital', '4000.00')
-            ->set('saldoInteres', '100.00')
-            ->set('saldoTotal', '4100.00')
-            ->set('cuotaMensual', '450.00')
-            ->set('cuotasTotales', 12)
-            ->set('cuotasPagadas', 1)
-            ->set('diasMora', 0)
-            ->set('fechaDesembolso', '2026-01-01')
-            ->set('fechaVencimiento', '2027-01-01')
+            ->set('idUnico', 'CCI-PRST-0001')
             ->call('guardar')
             ->assertHasNoErrors();
 
@@ -79,43 +72,77 @@ final class CrearCasoIndividualTest extends TestCase
             ->first();
         $this->assertNotNull($caso);
         $this->assertSame((int) $estadoPrimero, (int) $caso->estado_caso_id);
+
+        $this->assertDatabaseHas('casos_cobranza', [
+            'numero_prestamo' => 'CCI-PRST-0001',
+            'monto_original' => null,
+            'saldo_capital' => null,
+            'fecha_desembolso' => null,
+        ]);
     }
 
-    public function test_crea_caso_cx_asigna_primer_estado_automaticamente(): void
+    public function test_crea_caso_cx_minimal(): void
     {
         $proyecto = $this->crearProyectoCx();
         $cartera = $this->crearCarteraEn($proyecto);
         $persona = $this->crearPersonaEn($proyecto);
-
-        $estadoPrimero = DB::table('estados_caso')->insertGetId([
-            'proyecto_id' => $proyecto->id,
-            'codigo' => 'ABIERTO',
-            'nombre' => 'Abierto',
-            'activo' => true,
-            'es_terminal' => false,
-            'orden' => 1,
-            'creada_en' => Carbon::now(),
-            'actualizada_en' => Carbon::now(),
-        ]);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
         $this->actuarComoSupervisor($proyecto);
 
         Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
             ->set('carteraId', (string) $cartera->id)
-            ->set('fechaIngreso', '2026-04-30')
-            ->set('codigoTicket', 'CCI-TKT-0001')
-            ->set('asunto', 'Reclamo')
-            ->set('descripcion', 'Detalle.')
-            ->set('fechaReporte', '2026-04-30T10:00')
+            ->set('idUnico', 'CCI-TKT-0001')
             ->call('guardar')
             ->assertHasNoErrors();
 
-        $caso = DB::table('casos')
-            ->where('proyecto_id', $proyecto->id)
-            ->where('persona_id', $persona->id)
-            ->first();
-        $this->assertNotNull($caso);
-        $this->assertSame((int) $estadoPrimero, (int) $caso->estado_caso_id);
+        $this->assertDatabaseHas('casos_ticket_cx', [
+            'codigo_ticket' => 'CCI-TKT-0001',
+            'asunto' => null,
+            'fecha_reporte' => null,
+        ]);
+    }
+
+    public function test_crea_caso_venta_minimal(): void
+    {
+        $proyecto = $this->crearProyectoVenta();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->actuarComoSupervisor($proyecto);
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('idUnico', 'CCI-LD-0001')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('casos_lead_venta', [
+            'codigo_lead' => 'CCI-LD-0001',
+            'fecha_primer_contacto' => null,
+        ]);
+    }
+
+    public function test_crea_caso_servicio_minimal(): void
+    {
+        $proyecto = $this->crearProyectoServicio();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->actuarComoSupervisor($proyecto);
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('idUnico', 'CCI-SV-0001')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('casos_servicio', [
+            'codigo_servicio' => 'CCI-SV-0001',
+            'fecha_solicitud' => null,
+        ]);
     }
 
     public function test_falla_si_proyecto_sin_estados_activos(): void
@@ -128,17 +155,7 @@ final class CrearCasoIndividualTest extends TestCase
 
         Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
             ->set('carteraId', (string) $cartera->id)
-            ->set('fechaIngreso', '2026-04-30')
-            ->set('numeroPrestamo', 'X')
-            ->set('moneda', 'USD')
-            ->set('montoOriginal', '1')
-            ->set('saldoCapital', '1')
-            ->set('saldoInteres', '0')
-            ->set('saldoTotal', '1')
-            ->set('cuotaMensual', '1')
-            ->set('cuotasTotales', 1)
-            ->set('fechaDesembolso', '2026-01-01')
-            ->set('fechaVencimiento', '2027-01-01')
+            ->set('idUnico', 'X')
             ->call('guardar')
             ->assertHasErrors(['general']);
 
@@ -148,7 +165,7 @@ final class CrearCasoIndividualTest extends TestCase
         );
     }
 
-    public function test_form_no_renderiza_select_estado_inicial(): void
+    public function test_form_no_renderiza_campos_cti_hardcoded(): void
     {
         $proyecto = $this->crearProyectoCobranza();
         $persona = $this->crearPersonaEn($proyecto);
@@ -164,6 +181,26 @@ final class CrearCasoIndividualTest extends TestCase
         $resp->assertOk();
         $resp->assertDontSee('Estado inicial');
         $resp->assertDontSee('wire:model="estadoCasoId"', false);
+        // Campos CTI hardcoded eliminados — admin del proyecto los define vía Campos Personalizados.
+        $resp->assertDontSee('Datos del préstamo');
+        $resp->assertDontSee('Saldo capital');
+        $resp->assertDontSee('Fecha desembolso');
+    }
+
+    public function test_form_id_unico_etiqueta_cambia_segun_tipo(): void
+    {
+        foreach (['cobranza' => 'Número de préstamo', 'cx' => 'Código de ticket', 'venta' => 'Código de lead', 'servicio' => 'Código de servicio'] as $tipo => $etiqueta) {
+            $proyecto = $this->crearProyecto($tipo);
+            $persona = $this->crearPersonaEn($proyecto);
+            $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+            $this->actuarComoSupervisor($proyecto);
+
+            $resp = $this->get(route('proyectos.casos.crear', [
+                'proyecto_id' => $proyecto->id,
+                'persona' => $persona->public_id,
+            ]));
+            $resp->assertSee($etiqueta);
+        }
     }
 
     public function test_persona_invalida_no_crea_caso(): void

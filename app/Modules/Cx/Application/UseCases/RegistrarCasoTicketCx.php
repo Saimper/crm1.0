@@ -62,7 +62,7 @@ final readonly class RegistrarCasoTicketCx
                 casoId: $casoId,
                 proyectoId: $input->proyectoId,
                 codigoTicket: new CodigoTicket($input->codigoTicket),
-                asunto: new AsuntoTicket($input->asunto),
+                asunto: $input->asunto !== null && $input->asunto !== '' ? new AsuntoTicket($input->asunto) : null,
                 descripcion: $input->descripcion,
                 categoriaTicketId: $input->categoriaTicketId,
                 prioridadTicketId: $input->prioridadTicketId,

@@ -22,15 +22,18 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
         $model->caso_id = $caso->casoId;
         $model->proyecto_id = $caso->proyectoId;
         $model->numero_prestamo = $caso->numeroPrestamo->valor;
-        $model->moneda = $caso->montoOriginal->moneda;
-        $model->monto_original = $caso->montoOriginal->monto;
-        $model->saldo_capital = $caso->saldoCapital->monto;
-        $model->saldo_interes = $caso->saldoInteres->monto;
-        $model->saldo_total = $caso->saldoTotal->monto;
-        $model->cuota_mensual = $caso->cuotaMensual->monto;
+        $model->moneda = $caso->montoOriginal?->moneda
+            ?? $caso->saldoTotal?->moneda
+            ?? $caso->saldoCapital?->moneda
+            ?? 'USD';
+        $model->monto_original = $caso->montoOriginal?->monto;
+        $model->saldo_capital = $caso->saldoCapital?->monto;
+        $model->saldo_interes = $caso->saldoInteres?->monto;
+        $model->saldo_total = $caso->saldoTotal?->monto;
+        $model->cuota_mensual = $caso->cuotaMensual?->monto;
         $model->cuotas_totales = $caso->cuotasTotales;
         $model->cuotas_pagadas = $caso->cuotasPagadas;
-        $model->dias_mora = $caso->diasMora->dias;
+        $model->dias_mora = $caso->diasMora?->dias;
         $model->tramo_mora_id = $caso->tramoMoraId;
         $model->fecha_desembolso = $caso->fechaDesembolso;
         $model->fecha_vencimiento = $caso->fechaVencimiento;
@@ -49,19 +52,20 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
         }
 
         $moneda = (string) $model->moneda;
+        $monto = static fn (mixed $v): ?MontoCobranza => $v === null ? null : new MontoCobranza((string) $v, $moneda);
 
         return CasoCobranza::reconstituir(
             casoId: (int) $model->caso_id,
             proyectoId: (int) $model->proyecto_id,
             numeroPrestamo: new NumeroPrestamo((string) $model->numero_prestamo),
-            montoOriginal: new MontoCobranza((string) $model->monto_original, $moneda),
-            saldoCapital: new MontoCobranza((string) $model->saldo_capital, $moneda),
-            saldoInteres: new MontoCobranza((string) $model->saldo_interes, $moneda),
-            saldoTotal: new MontoCobranza((string) $model->saldo_total, $moneda),
-            cuotaMensual: new MontoCobranza((string) $model->cuota_mensual, $moneda),
-            cuotasTotales: (int) $model->cuotas_totales,
-            cuotasPagadas: (int) $model->cuotas_pagadas,
-            diasMora: new DiasMora((int) $model->dias_mora),
+            montoOriginal: $monto($model->monto_original),
+            saldoCapital: $monto($model->saldo_capital),
+            saldoInteres: $monto($model->saldo_interes),
+            saldoTotal: $monto($model->saldo_total),
+            cuotaMensual: $monto($model->cuota_mensual),
+            cuotasTotales: $model->cuotas_totales === null ? null : (int) $model->cuotas_totales,
+            cuotasPagadas: $model->cuotas_pagadas === null ? null : (int) $model->cuotas_pagadas,
+            diasMora: $model->dias_mora === null ? null : new DiasMora((int) $model->dias_mora),
             tramoMoraId: $model->tramo_mora_id === null ? null : (int) $model->tramo_mora_id,
             fechaDesembolso: $this->hidratarFecha($model->fecha_desembolso),
             fechaVencimiento: $this->hidratarFecha($model->fecha_vencimiento),
@@ -77,8 +81,11 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
             ->exists();
     }
 
-    private function hidratarFecha(mixed $valor): DateTimeImmutable
+    private function hidratarFecha(mixed $valor): ?DateTimeImmutable
     {
+        if ($valor === null) {
+            return null;
+        }
         if ($valor instanceof DateTimeImmutable) {
             return $valor;
         }

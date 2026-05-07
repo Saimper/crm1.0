@@ -19,7 +19,6 @@ final class AdminTiposGestion extends AbstractAdminCatalogo
         return [
             'codigo' => '',
             'nombre' => '',
-            'orden' => 100,
             'activo' => true,
         ];
     }
@@ -29,7 +28,6 @@ final class AdminTiposGestion extends AbstractAdminCatalogo
         return [
             'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
-            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -39,7 +37,6 @@ final class AdminTiposGestion extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $this->form['codigo'],
             'nombre' => (string) $this->form['nombre'],
-            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
         ];
     }
@@ -49,7 +46,6 @@ final class AdminTiposGestion extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $row->codigo,
             'nombre' => (string) $row->nombre,
-            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }

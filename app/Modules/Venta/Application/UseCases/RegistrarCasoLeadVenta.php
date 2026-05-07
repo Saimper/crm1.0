@@ -63,7 +63,9 @@ final readonly class RegistrarCasoLeadVenta
                 codigoLead: new CodigoLead($input->codigoLead),
                 productoVentaId: $input->productoVentaId,
                 etapaEmbudoId: $input->etapaEmbudoId,
-                valorEstimado: new ValorEstimadoVenta($input->valorEstimadoMonto, $input->moneda),
+                valorEstimado: $input->valorEstimadoMonto !== null
+                    ? new ValorEstimadoVenta($input->valorEstimadoMonto, $input->moneda)
+                    : null,
                 origenLead: $input->origenLead,
                 fechaPrimerContacto: $input->fechaPrimerContacto,
                 fechaEstimadaCierre: $input->fechaEstimadaCierre,

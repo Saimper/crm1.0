@@ -147,17 +147,8 @@
             </x-ui.card>
 
             @if($casoActivo)
+                {{-- Detalle del caso (panel tipo-específico) — ahora arriba del historial --}}
                 <div style="margin-top:12px;">
-                    <livewire:campos-personalizados.formulario
-                        :proyectoId="(int) $proyectoActivo->id"
-                        ambito="caso"
-                        :ambitoId="(int) ($casoActivo->cartera_id ?? 0)"
-                        :entidadId="(int) $casoActivo->id"
-                        :key="'cp-caso-'.$casoActivo->id" />
-                </div>
-
-                <div style="margin-top:12px;">
-                    {{-- Slot tipo-específico --}}
                     @if($casoActivo->tipo_caso === 'cobranza')
                         @include('cobranza::partials.panel-caso', ['cobranza' => $casoCobranza])
                     @elseif($casoActivo->tipo_caso === 'ticket_cx')
@@ -177,6 +168,44 @@
                         </div>
                     @endcan
                 </div>
+
+                @if(isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
+                    <x-ui.card title="Compromisos resueltos ({{ $compromisosResueltos->count() }})" style="margin-top:12px;">
+                        <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                            @foreach($compromisosResueltos as $c)
+                                @php
+                                    $estadoTone = match ($c->estado) {
+                                        'cumplido' => 'success',
+                                        'roto' => 'danger',
+                                        'cancelado' => 'neutral',
+                                        default => 'neutral',
+                                    };
+                                @endphp
+                                <li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+                                    <div style="min-width:0;">
+                                        <div style="display:flex;align-items:center;gap:6px;">
+                                            <x-ui.badge :tone="$estadoTone" size="sm">{{ ucfirst($c->estado) }}</x-ui.badge>
+                                            <span style="font-size:11px;color:var(--text-tertiary);">
+                                                {{ str_replace('_', ' ', $c->tipo_compromiso) }}
+                                            </span>
+                                        </div>
+                                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                                            Vencimiento: {{ \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y') }}
+                                        </div>
+                                    </div>
+                                    <div style="font-size:11px;color:var(--text-secondary);text-align:right;">
+                                        @if($c->fecha_resolucion)
+                                            Resuelto<br>
+                                            <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
+                                        @else
+                                            <span style="color:var(--text-tertiary);">sin fecha</span>
+                                        @endif
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </x-ui.card>
+                @endif
 
                 @can('entidades.ver', $proyectoActivo->id)
                     <livewire:entidades.panel-vinculadas
@@ -212,89 +241,62 @@
             @endif
         </div>
 
-        {{-- Col derecha: historial --}}
+        {{-- Col derecha: campos personalizados arriba + historial debajo --}}
         <div class="vt-col-right">
-            <x-ui.card title="Historial ({{ $casoActivo ? $historial->count() : 0 }})">
-                @if(!$casoActivo)
-                    <x-ui.empty-state title="Sin caso activo" message="Selecciona un caso para ver su historial." />
-                @elseif($historial->isEmpty())
-                    <x-ui.empty-state title="Sin gestiones" message="Aún no hay gestiones registradas." />
-                @else
-                    <x-ui.timeline>
-                        @foreach($historial as $g)
-                            @php
-                                $tone = match (mb_strtolower((string) $g->resultado_nombre)) {
-                                    'contacto efectivo', 'promesa de pago', 'venta cerrada', 'resuelto' => 'success',
-                                    'sin contacto', 'no contesta'                                       => 'warning',
-                                    'rechazo', 'cancelado'                                              => 'danger',
-                                    default                                                             => 'neutral',
-                                };
-                            @endphp
-                            <x-ui.timeline-item
-                                :tone="$tone"
-                                :timestamp="\Illuminate\Support\Carbon::parse($g->creada_en)->format('d/m/Y H:i')"
-                                :title="($g->resultado_nombre ?? '—') . ' · ' . ($g->tipo_gestion_nombre ?? '—')">
-                                @if($g->notas)
-                                    <div style="margin-bottom:4px;">{{ $g->notas }}</div>
-                                @endif
-                                <div style="font-size:11px;color:var(--text-tertiary);">
-                                    {{ $g->canal_nombre ?? '—' }}
-                                    · {{ $g->usuario_nombre ?? '—' }}
-                                    @if($g->duracion_segundos)
-                                        · {{ (int) floor($g->duracion_segundos / 60) }}m {{ $g->duracion_segundos % 60 }}s
-                                    @endif
-                                </div>
-                                @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
-                                    <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
-                                        @if($g->motivo_no_contacto_nombre)
-                                            <x-ui.badge tone="warning" size="sm">No contacto: {{ $g->motivo_no_contacto_nombre }}</x-ui.badge>
-                                        @endif
-                                        @if($g->causa_nombre)
-                                            <x-ui.badge tone="info" size="sm">Causa: {{ $g->causa_nombre }}</x-ui.badge>
-                                        @endif
-                                    </div>
-                                @endif
-                            </x-ui.timeline-item>
-                        @endforeach
-                    </x-ui.timeline>
-                @endif
-            </x-ui.card>
+            @if($casoActivo)
+                <livewire:campos-personalizados.formulario
+                    :proyectoId="(int) $proyectoActivo->id"
+                    ambito="caso"
+                    :ambitoId="(int) ($casoActivo->cartera_id ?? 0)"
+                    :entidadId="(int) $casoActivo->id"
+                    :key="'cp-caso-'.$casoActivo->id" />
 
-            @if($casoActivo && isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
-                <x-ui.card title="Compromisos resueltos ({{ $compromisosResueltos->count() }})" style="margin-top:12px;">
-                    <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
-                        @foreach($compromisosResueltos as $c)
-                            @php
-                                $estadoTone = match ($c->estado) {
-                                    'cumplido' => 'success',
-                                    'roto' => 'danger',
-                                    'cancelado' => 'neutral',
-                                    default => 'neutral',
-                                };
-                            @endphp
-                            <li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
-                                <div style="min-width:0;">
-                                    <div style="display:flex;align-items:center;gap:6px;">
-                                        <x-ui.badge :tone="$estadoTone" size="sm">{{ ucfirst($c->estado) }}</x-ui.badge>
-                                        <span style="font-size:11px;color:var(--text-tertiary);">
-                                            {{ str_replace('_', ' ', $c->tipo_compromiso) }}
-                                        </span>
-                                    </div>
-                                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
-                                        Vencimiento: {{ \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y') }}
-                                    </div>
-                                </div>
-                                <div style="font-size:11px;color:var(--text-secondary);text-align:right;">
-                                    @if($c->fecha_resolucion)
-                                        Resuelto<br>
-                                        <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
-                                    @else
-                                        <span style="color:var(--text-tertiary);">sin fecha</span>
+                <x-ui.card title="Historial ({{ $historial->count() }})" style="margin-top:12px;">
+                    @if($historial->isEmpty())
+                        <x-ui.empty-state title="Sin gestiones" message="Aún no hay gestiones registradas." />
+                    @else
+                        <x-ui.timeline>
+                            @foreach($historial as $g)
+                                @php
+                                    $tone = match (mb_strtolower((string) $g->resultado_nombre)) {
+                                        'contacto efectivo', 'promesa de pago', 'venta cerrada', 'resuelto' => 'success',
+                                        'sin contacto', 'no contesta'                                       => 'warning',
+                                        'rechazo', 'cancelado'                                              => 'danger',
+                                        default                                                             => 'neutral',
+                                    };
+                                @endphp
+                                <x-ui.timeline-item
+                                    :tone="$tone"
+                                    :timestamp="\Illuminate\Support\Carbon::parse($g->creada_en)->format('d/m/Y H:i')"
+                                    :title="($g->resultado_nombre ?? '—') . ' · ' . ($g->tipo_gestion_nombre ?? '—')">
+                                    @if($g->notas)
+                                        <div style="margin-bottom:4px;">{{ $g->notas }}</div>
                                     @endif
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
+                                    <div style="font-size:11px;color:var(--text-tertiary);">
+                                        {{ $g->canal_nombre ?? '—' }}
+                                        · {{ $g->usuario_nombre ?? '—' }}
+                                        @if($g->duracion_segundos)
+                                            · {{ (int) floor($g->duracion_segundos / 60) }}m {{ $g->duracion_segundos % 60 }}s
+                                        @endif
+                                    </div>
+                                    @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
+                                        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
+                                            @if($g->motivo_no_contacto_nombre)
+                                                <x-ui.badge tone="warning" size="sm">No contacto: {{ $g->motivo_no_contacto_nombre }}</x-ui.badge>
+                                            @endif
+                                            @if($g->causa_nombre)
+                                                <x-ui.badge tone="info" size="sm">Causa: {{ $g->causa_nombre }}</x-ui.badge>
+                                            @endif
+                                        </div>
+                                    @endif
+                                </x-ui.timeline-item>
+                            @endforeach
+                        </x-ui.timeline>
+                    @endif
+                </x-ui.card>
+            @else
+                <x-ui.card title="Campos personalizados">
+                    <x-ui.empty-state title="Sin caso activo" message="Selecciona un caso para ver sus campos personalizados e historial." />
                 </x-ui.card>
             @endif
         </div>

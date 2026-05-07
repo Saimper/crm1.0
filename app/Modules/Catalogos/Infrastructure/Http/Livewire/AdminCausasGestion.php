@@ -24,7 +24,6 @@ final class AdminCausasGestion extends AbstractAdminCatalogo
             'codigo' => '',
             'nombre' => '',
             'tipo' => $this->tipoPorDefecto(),
-            'orden' => 100,
             'activo' => true,
         ];
     }
@@ -35,7 +34,6 @@ final class AdminCausasGestion extends AbstractAdminCatalogo
             'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.tipo' => ['nullable', 'in:mora,queja,rechazo,servicio,otra'],
-            'form.orden' => ['integer', 'min:0'],
             'form.activo' => ['boolean'],
         ];
     }
@@ -47,7 +45,6 @@ final class AdminCausasGestion extends AbstractAdminCatalogo
         return [
             'codigo' => (string) $this->form['codigo'],
             'nombre' => (string) $this->form['nombre'],
-            'orden' => (int) ($this->form['orden'] ?? 100),
             'activo' => (bool) ($this->form['activo'] ?? true),
             'metadata' => $tipo !== '' ? json_encode(['tipo' => $tipo]) : null,
         ];
@@ -61,7 +58,6 @@ final class AdminCausasGestion extends AbstractAdminCatalogo
             'codigo' => (string) $row->codigo,
             'nombre' => (string) $row->nombre,
             'tipo' => (string) ($meta['tipo'] ?? ''),
-            'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
         ];
     }

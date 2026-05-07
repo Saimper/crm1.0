@@ -3,7 +3,7 @@
 
     {{-- Stepper --}}
     <ol class="flex items-center gap-2 text-xs">
-        @foreach([1 => 'Subir CSV', 2 => 'Mapear columnas', 3 => 'Revisar', 4 => 'Procesar'] as $idx => $nombre)
+        @foreach([1 => 'Subir archivo', 2 => 'Mapear columnas', 3 => 'Revisar', 4 => 'Procesar'] as $idx => $nombre)
             <li class="flex items-center gap-2">
                 <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold
                             {{ $paso === $idx ? 'bg-blue-600 text-white' : ($paso > $idx ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-600') }}">
@@ -31,16 +31,32 @@
             </div>
             @error('targetValor')<div class="text-xs text-red-600">{{ $message }}</div>@enderror
 
+            @if($targetValor !== null)
+                <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                    <div class="font-semibold mb-1">¿Primera vez? Descarga la plantilla:</div>
+                    <p class="mb-2">
+                        Plantilla XLSX con columnas listas, ejemplos y colores
+                        (<span class="inline-block w-2 h-2 rounded-sm align-middle" style="background:#FECACA"></span> requerido,
+                        <span class="inline-block w-2 h-2 rounded-sm align-middle" style="background:#E5E7EB"></span> opcional)
+                        + hoja de instrucciones con códigos válidos del proyecto.
+                    </p>
+                    <a href="{{ route('proyectos.importaciones.plantilla', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'target' => $targetValor]) }}"
+                       class="inline-flex items-center gap-1 rounded bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700">
+                        Descargar plantilla XLSX
+                    </a>
+                </div>
+            @endif
+
             <hr class="border-gray-100"/>
 
             <form wire:submit.prevent="subirArchivo" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-gray-700">Archivo CSV</label>
-                    <input type="file" wire:model="archivo" accept=".csv,text/csv"
+                    <label class="block text-xs font-medium text-gray-700">Archivo (CSV o XLSX)</label>
+                    <input type="file" wire:model="archivo" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                            class="mt-1 block w-full text-sm text-gray-700"/>
                     @error('archivo')<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
                     <p class="text-[11px] text-gray-500 mt-1">
-                        Cualquier nombre de columna funciona. En el siguiente paso vincularás cada columna del archivo a un campo del sistema.
+                        Cualquier nombre de columna funciona. En el siguiente paso vincularás cada columna a un campo del sistema.
                     </p>
                 </div>
 
@@ -70,46 +86,53 @@
                 </button>
             </div>
 
+            @php
+                $basicos = collect($camposSistema)->filter(fn ($c) => ! $c->avanzado)->values();
+                $avanzados = collect($camposSistema)->filter(fn ($c) => $c->avanzado)->values();
+            @endphp
+
             <div class="overflow-x-auto rounded border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200 text-sm">
                     <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-600">
                         <tr>
                             <th class="px-3 py-2 text-left">Campo del sistema</th>
-                            <th class="px-3 py-2 text-left">Columna del CSV</th>
+                            <th class="px-3 py-2 text-left">Columna del archivo</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($camposSistema as $campo)
-                            <tr>
-                                <td class="px-3 py-2 align-top">
-                                    <div class="flex items-center gap-2">
-                                        <span class="font-medium text-gray-900">{{ $campo->etiqueta }}</span>
-                                        @if($campo->requerido)
-                                            <span class="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">requerido</span>
-                                        @else
-                                            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">opcional</span>
-                                        @endif
-                                    </div>
-                                    @if($campo->descripcion)
-                                        <div class="text-[11px] text-gray-500 mt-0.5">{{ $campo->descripcion }}</div>
-                                    @endif
-                                    <div class="text-[10px] text-gray-400 mt-0.5 font-mono">{{ $campo->codigo }}</div>
-                                </td>
-                                <td class="px-3 py-2 align-top">
-                                    <select wire:model="mapeo.{{ $campo->codigo }}"
-                                            class="block w-full text-sm border-gray-300 rounded">
-                                        <option value="">— No mapear —</option>
-                                        @foreach($cabecerasCsv as $h)
-                                            <option value="{{ $h }}">{{ $h }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error("mapeo.{$campo->codigo}")<div class="text-xs text-red-600 mt-0.5">{{ $message }}</div>@enderror
-                                </td>
-                            </tr>
+                        @foreach($basicos as $campo)
+                            @include('importaciones::livewire.partials.fila-mapeo', ['campo' => $campo, 'cabecerasCsv' => $cabecerasCsv])
                         @endforeach
                     </tbody>
                 </table>
             </div>
+
+            @if($avanzados->isNotEmpty())
+                <div>
+                    <button type="button" wire:click="$toggle('mostrarAvanzados')"
+                            class="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline">
+                        {{ $mostrarAvanzados ? '▾ Ocultar' : '▸ Mostrar' }} campos avanzados ({{ $avanzados->count() }})
+                    </button>
+                </div>
+
+                @if($mostrarAvanzados)
+                    <div class="overflow-x-auto rounded border border-gray-200">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-100 text-xs uppercase tracking-wider text-gray-600">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Campo avanzado</th>
+                                    <th class="px-3 py-2 text-left">Columna del archivo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach($avanzados as $campo)
+                                    @include('importaciones::livewire.partials.fila-mapeo', ['campo' => $campo, 'cabecerasCsv' => $cabecerasCsv])
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            @endif
 
             <details class="rounded border border-gray-200 bg-gray-50 p-3 text-xs">
                 <summary class="cursor-pointer font-medium text-gray-700">Vista previa del archivo (5 primeras filas)</summary>
