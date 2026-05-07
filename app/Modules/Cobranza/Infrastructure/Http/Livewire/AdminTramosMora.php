@@ -30,7 +30,7 @@ final class AdminTramosMora extends AbstractAdminCatalogo
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.dias_desde' => ['required', 'integer', 'min:0'],
             'form.dias_hasta' => ['nullable', 'integer', 'min:0', 'gte:form.dias_desde'],

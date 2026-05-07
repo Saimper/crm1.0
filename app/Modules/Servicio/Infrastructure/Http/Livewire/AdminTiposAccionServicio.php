@@ -29,7 +29,7 @@ final class AdminTiposAccionServicio extends AbstractAdminCatalogo
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.duracion_estimada_horas' => ['nullable', 'integer', 'min:1', 'max:720'],
             'form.orden' => ['integer', 'min:0'],

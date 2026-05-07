@@ -9,16 +9,12 @@ use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F35 — multi-tenancy del flow JWT: un JWT firmado con el secret del proyecto
- * B no puede consumirse para autenticarse contra el proyecto A. La firma se
- * verifica siempre contra el proyecto declarado en el claim, así que un secret
- * mal coordinado falla con 401.
- */
 final class MultiTenancyJwtTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -29,10 +25,9 @@ final class MultiTenancyJwtTest extends TestCase
 
     public function test_jwt_firmado_con_secret_de_proyecto_b_no_vale_para_proyecto_a(): void
     {
-        $proyectoA = DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->first();
-        $proyectoB = DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->first();
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
-        // Firmamos con el secret de B pero le decimos al CRM que es proyecto A.
         $jwt = JWT::encode([
             'sub' => 'cross.tenant@wrap.io',
             'wrapper_role' => 'agent',
@@ -48,8 +43,8 @@ final class MultiTenancyJwtTest extends TestCase
 
     public function test_jti_consumido_se_aisla_por_proyecto_en_la_tabla(): void
     {
-        $proyectoA = DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->first();
-        $proyectoB = DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->first();
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
         $jwtA = JWT::encode([
             'sub' => 'tenant.a@wrap.io',

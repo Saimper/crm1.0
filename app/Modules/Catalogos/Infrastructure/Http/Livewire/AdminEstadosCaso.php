@@ -32,7 +32,7 @@ final class AdminEstadosCaso extends AbstractAdminCatalogo
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.es_terminal' => ['boolean'],
             'form.orden' => ['integer', 'min:0'],

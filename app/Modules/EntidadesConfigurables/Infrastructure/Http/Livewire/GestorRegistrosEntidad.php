@@ -180,12 +180,33 @@ final class GestorRegistrosEntidad extends Component
                 'fecha' => $f->valor_fecha,
                 'fecha_hora' => $f->valor_fecha_hora,
                 'booleano' => $f->valor_booleano === null ? null : (bool) $f->valor_booleano,
-                'moneda' => $f->valor_moneda_monto,
+                'seleccion_unica' => $f->valor_opcion_id === null ? null : (int) $f->valor_opcion_id,
+                'seleccion_multiple' => $this->decodificarOpcionesMultiples($f->valor_opciones_ids),
+                'moneda' => $f->valor_moneda_monto === null ? null : [
+                    'monto' => $f->valor_moneda_monto,
+                    'moneda' => $f->valor_moneda_codigo,
+                ],
                 default => null,
             };
         }
 
         return $valores;
+    }
+
+    /**
+     * @return array<int, int>|null
+     */
+    private function decodificarOpcionesMultiples(mixed $raw): ?array
+    {
+        if ($raw === null) {
+            return null;
+        }
+        if (is_array($raw)) {
+            return array_map('intval', $raw);
+        }
+        $decoded = json_decode((string) $raw, true);
+
+        return is_array($decoded) ? array_map('intval', $decoded) : null;
     }
 
     public function render(): View

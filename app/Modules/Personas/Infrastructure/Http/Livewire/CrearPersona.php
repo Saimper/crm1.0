@@ -20,9 +20,6 @@ use Livewire\Component;
 
 final class CrearPersona extends Component
 {
-    /** @var 'fisica'|'juridica' */
-    public string $tipoPersona = 'fisica';
-
     public ?int $tipoIdentificacionId = null;
 
     public string $identificacion = '';
@@ -30,15 +27,6 @@ final class CrearPersona extends Component
     public string $nombres = '';
 
     public string $apellidos = '';
-
-    public string $razonSocial = '';
-
-    public ?string $fechaNacimiento = null;
-
-    public function updatedTipoPersona(): void
-    {
-        $this->resetErrorBag();
-    }
 
     public function guardar(RegistrarPersona $useCase): void
     {
@@ -48,33 +36,25 @@ final class CrearPersona extends Component
             abort(403, 'No tienes permiso para crear personas en este proyecto.');
         }
 
-        $reglas = [
-            'tipoPersona' => 'required|in:fisica,juridica',
+        $this->validate([
             'tipoIdentificacionId' => 'required|integer|exists:tipos_identificacion,id',
             'identificacion' => 'required|string|min:5|max:50',
-            'fechaNacimiento' => 'nullable|date|before:today',
-        ];
-
-        if ($this->tipoPersona === 'fisica') {
-            $reglas['nombres'] = 'required|string|max:150';
-            $reglas['apellidos'] = 'nullable|string|max:150';
-        } else {
-            $reglas['razonSocial'] = 'required|string|max:250';
-        }
-
-        $this->validate($reglas);
+            'nombres' => 'required|string|max:150',
+            'apellidos' => 'nullable|string|max:150',
+        ]);
 
         try {
+            // tipoPersona fijado a FISICA — UI simplificada (B1). Persona jurídica vía importación masiva.
             $output = $useCase->execute(new RegistrarPersonaInput(
                 publicId: (string) Str::ulid(),
                 proyectoId: (int) $proyecto->id,
-                tipoPersona: TipoPersona::from($this->tipoPersona),
+                tipoPersona: TipoPersona::FISICA,
                 tipoIdentificacionId: (int) $this->tipoIdentificacionId,
                 identificacion: new Identificacion($this->identificacion),
                 nombres: $this->nombres !== '' ? $this->nombres : null,
                 apellidos: $this->apellidos !== '' ? $this->apellidos : null,
-                razonSocial: $this->razonSocial !== '' ? $this->razonSocial : null,
-                fechaNacimiento: $this->fechaNacimiento ? new DateTimeImmutable($this->fechaNacimiento) : null,
+                razonSocial: null,
+                fechaNacimiento: null,
                 creadaEn: new DateTimeImmutable('now'),
             ));
         } catch (IdentificacionYaRegistradaEnProyecto $e) {

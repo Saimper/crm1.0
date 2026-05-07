@@ -12,13 +12,12 @@ use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F34C — multi-tenancy: campañas aisladas por proyecto.
- */
 final class MultiTenancyCampanasTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -29,13 +28,13 @@ final class MultiTenancyCampanasTest extends TestCase
 
     public function test_campanas_aisladas_entre_proyectos(): void
     {
-        $proyectoA = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyectoB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
         $useCase = $this->app->make(RegistrarCampana::class);
         $useCase->execute(new RegistrarCampanaInput(
             publicId: (string) Str::ulid(),
-            proyectoId: $proyectoB,
+            proyectoId: $proyectoB->id,
             codigo: new CodigoCampana('CAMP_B_F34C'),
             nombre: 'Camp B',
             descripcion: null,
@@ -46,13 +45,13 @@ final class MultiTenancyCampanasTest extends TestCase
         ));
 
         $existeEnA = DB::table('campanas')
-            ->where('proyecto_id', $proyectoA)
+            ->where('proyecto_id', $proyectoA->id)
             ->where('codigo', 'CAMP_B_F34C')
             ->exists();
         $this->assertFalse($existeEnA);
 
         $existeEnB = DB::table('campanas')
-            ->where('proyecto_id', $proyectoB)
+            ->where('proyecto_id', $proyectoB->id)
             ->where('codigo', 'CAMP_B_F34C')
             ->exists();
         $this->assertTrue($existeEnB);

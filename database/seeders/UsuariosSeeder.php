@@ -8,7 +8,6 @@ use Database\Seeders\Usuarios\PermisosSeeder;
 use Database\Seeders\Usuarios\RolesSeeder;
 use Database\Seeders\Usuarios\RolPermisoSeeder;
 use Database\Seeders\Usuarios\UsuarioAdminGlobalSeeder;
-use Database\Seeders\Usuarios\UsuariosDemoSeeder;
 use Illuminate\Database\Seeder;
 
 final class UsuariosSeeder extends Seeder
@@ -20,7 +19,6 @@ final class UsuariosSeeder extends Seeder
             PermisosSeeder::class,
             RolPermisoSeeder::class,
             UsuarioAdminGlobalSeeder::class,
-            UsuariosDemoSeeder::class,
         ]);
     }
 }

@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Casos;
 
-use App\Models\User;
 use App\Modules\Casos\Infrastructure\Http\Livewire\CrearCasoIndividual;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F34B — alta de caso individual desde UI con multiplexor por tipo_operacion.
- */
 final class CrearCasoIndividualTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -27,24 +26,39 @@ final class CrearCasoIndividualTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_supervisor_crea_caso_cobranza_individual(): void
+    public function test_crea_caso_cobranza_asigna_primer_estado_automaticamente(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($supervisor);
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
 
-        $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $cartera = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->value('id');
+        $estadoPrimero = DB::table('estados_caso')->insertGetId([
+            'proyecto_id' => $proyecto->id,
+            'codigo' => 'ABIERTO',
+            'nombre' => 'Abierto',
+            'activo' => true,
+            'es_terminal' => false,
+            'orden' => 1,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+        DB::table('estados_caso')->insert([
+            'proyecto_id' => $proyecto->id,
+            'codigo' => 'EN_GESTION',
+            'nombre' => 'En gestión',
+            'activo' => true,
+            'es_terminal' => false,
+            'orden' => 2,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
 
-        $countAntes = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->count();
+        $this->actuarComoSupervisor($proyecto);
 
         Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
-            ->set('carteraId', (string) $cartera)
-            ->set('estadoCasoId', (string) $estado)
+            ->set('carteraId', (string) $cartera->id)
             ->set('fechaIngreso', '2026-04-30')
-            ->set('numeroPrestamo', 'F34B-PRST-0001')
+            ->set('numeroPrestamo', 'CCI-PRST-0001')
             ->set('moneda', 'USD')
             ->set('montoOriginal', '5000.00')
             ->set('saldoCapital', '4000.00')
@@ -59,50 +73,105 @@ final class CrearCasoIndividualTest extends TestCase
             ->call('guardar')
             ->assertHasNoErrors();
 
-        $this->assertSame($countAntes + 1, (int) DB::table('casos')->where('proyecto_id', $proyectoId)->count());
-        $this->assertDatabaseHas('casos_cobranza', [
-            'proyecto_id' => $proyectoId,
-            'numero_prestamo' => 'F34B-PRST-0001',
-        ]);
+        $caso = DB::table('casos')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('persona_id', $persona->id)
+            ->first();
+        $this->assertNotNull($caso);
+        $this->assertSame((int) $estadoPrimero, (int) $caso->estado_caso_id);
     }
 
-    public function test_supervisor_crea_caso_cx_individual(): void
+    public function test_crea_caso_cx_asigna_primer_estado_automaticamente(): void
     {
-        $proyectoId = $this->proyectoCx();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($supervisor);
+        $proyecto = $this->crearProyectoCx();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
 
-        $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $cartera = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->value('id');
+        $estadoPrimero = DB::table('estados_caso')->insertGetId([
+            'proyecto_id' => $proyecto->id,
+            'codigo' => 'ABIERTO',
+            'nombre' => 'Abierto',
+            'activo' => true,
+            'es_terminal' => false,
+            'orden' => 1,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        $this->actuarComoSupervisor($proyecto);
 
         Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
-            ->set('carteraId', (string) $cartera)
-            ->set('estadoCasoId', (string) $estado)
+            ->set('carteraId', (string) $cartera->id)
             ->set('fechaIngreso', '2026-04-30')
-            ->set('codigoTicket', 'F34B-TICK-0001')
-            ->set('asunto', 'Reclamo facturación')
-            ->set('descripcion', 'Cliente reporta cargos duplicados.')
+            ->set('codigoTicket', 'CCI-TKT-0001')
+            ->set('asunto', 'Reclamo')
+            ->set('descripcion', 'Detalle.')
             ->set('fechaReporte', '2026-04-30T10:00')
             ->call('guardar')
             ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('casos_ticket_cx', [
-            'proyecto_id' => $proyectoId,
-            'codigo_ticket' => 'F34B-TICK-0001',
-            'asunto' => 'Reclamo facturación',
-        ]);
+        $caso = DB::table('casos')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('persona_id', $persona->id)
+            ->first();
+        $this->assertNotNull($caso);
+        $this->assertSame((int) $estadoPrimero, (int) $caso->estado_caso_id);
+    }
+
+    public function test_falla_si_proyecto_sin_estados_activos(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+
+        $this->actuarComoSupervisor($proyecto);
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('fechaIngreso', '2026-04-30')
+            ->set('numeroPrestamo', 'X')
+            ->set('moneda', 'USD')
+            ->set('montoOriginal', '1')
+            ->set('saldoCapital', '1')
+            ->set('saldoInteres', '0')
+            ->set('saldoTotal', '1')
+            ->set('cuotaMensual', '1')
+            ->set('cuotasTotales', 1)
+            ->set('fechaDesembolso', '2026-01-01')
+            ->set('fechaVencimiento', '2027-01-01')
+            ->call('guardar')
+            ->assertHasErrors(['general']);
+
+        $this->assertSame(
+            0,
+            (int) DB::table('casos')->where('proyecto_id', $proyecto->id)->count()
+        );
+    }
+
+    public function test_form_no_renderiza_select_estado_inicial(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->actuarComoSupervisor($proyecto);
+
+        $resp = $this->get(route('proyectos.casos.crear', [
+            'proyecto_id' => $proyecto->id,
+            'persona' => $persona->public_id,
+        ]));
+
+        $resp->assertOk();
+        $resp->assertDontSee('Estado inicial');
+        $resp->assertDontSee('wire:model="estadoCasoId"', false);
     }
 
     public function test_persona_invalida_no_crea_caso(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($supervisor);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $this->actuarComoSupervisor($proyecto);
 
-        // ULID válido pero inexistente.
         $ulidFalso = (string) Str::ulid();
 
         Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $ulidFalso])
@@ -112,54 +181,28 @@ final class CrearCasoIndividualTest extends TestCase
 
     public function test_gestor_recibe_403_en_ruta(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.casos.crear', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.casos.crear', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_supervisor_accede_ruta(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)
-            ->get(route('proyectos.casos.crear', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.casos.crear', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
     }
 
-    private function proyectoCobranza(): int
+    private function actuarComoSupervisor(stdClass $proyecto): void
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function proyectoCx(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.cci.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
     }
 }

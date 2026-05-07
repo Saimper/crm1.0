@@ -1,0 +1,130 @@
+<div>
+    @if(empty($bloques))
+        {{-- Sin entidades aplicables: panel oculto. --}}
+    @else
+        <div style="margin-top:12px;">
+            @if(session('entidades-registros-ok'))
+                <div class="alert alert-success" style="margin-bottom:8px;">
+                    {{ session('entidades-registros-ok') }}
+                </div>
+            @endif
+
+            @foreach($bloques as $bloque)
+                @php
+                    $entidad = $bloque['entidad'];
+                    $registros = $bloque['registros'];
+                @endphp
+                <x-ui.card :title="$entidad->nombre" style="margin-bottom:10px;">
+                    @if(auth()->user()->tienePermiso('entidades.crear', $proyectoId))
+                        <div style="margin-bottom:8px;text-align:right;">
+                            <button type="button"
+                                    wire:click="abrirFormCrear({{ $entidad->id }})"
+                                    class="btn btn-ghost btn-sm">
+                                + Agregar registro
+                            </button>
+                        </div>
+                    @endif
+
+                    @if($formVisible && $entidadActivaId === (int) $entidad->id)
+                        <div class="card card-pad" style="margin-bottom:10px;background:var(--surface-2,#f8fafc);">
+                            <h4 style="font-size:12px;font-weight:600;margin-bottom:8px;">
+                                {{ $registroEditandoId === null ? 'Nuevo registro' : 'Editar registro' }}
+                            </h4>
+                            <form wire:submit.prevent="guardar" class="space-y-2">
+                                <div>
+                                    <label class="field-label">Título</label>
+                                    <input type="text" wire:model="titulo"
+                                           class="input @error('titulo') input-error @enderror"/>
+                                    @error('titulo')<div class="field-error">{{ $message }}</div>@enderror
+                                </div>
+
+                                @foreach($camposForm as $campo)
+                                    @php $codigo = (string) $campo->codigo; @endphp
+                                    <div>
+                                        <label class="field-label">
+                                            {{ $campo->etiqueta }}
+                                            @if($campo->obligatorio)<span style="color:var(--danger,#dc2626);">*</span>@endif
+                                        </label>
+                                        @switch($campo->tipo)
+                                            @case('texto_largo')
+                                                <textarea wire:model="valores.{{ $codigo }}" rows="3" class="input"></textarea>
+                                                @break
+                                            @case('numero_entero')
+                                            @case('numero_decimal')
+                                            @case('moneda')
+                                                <input type="number"
+                                                       step="{{ $campo->tipo === 'numero_entero' ? '1' : '0.01' }}"
+                                                       wire:model="valores.{{ $codigo }}" class="input"/>
+                                                @break
+                                            @case('fecha')
+                                                <input type="date" wire:model="valores.{{ $codigo }}" class="input"/>
+                                                @break
+                                            @case('fecha_hora')
+                                                <input type="datetime-local" wire:model="valores.{{ $codigo }}" class="input"/>
+                                                @break
+                                            @case('booleano')
+                                                <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
+                                                    <input type="checkbox" wire:model="valores.{{ $codigo }}"/>
+                                                    <span>Sí</span>
+                                                </label>
+                                                @break
+                                            @default
+                                                <input type="text" wire:model="valores.{{ $codigo }}" class="input"/>
+                                        @endswitch
+                                    </div>
+                                @endforeach
+
+                                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
+                                    <button type="button" wire:click="cerrarForm" class="btn btn-ghost btn-sm">
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                                </div>
+                            </form>
+                        </div>
+                    @endif
+
+                    @if($registros->isEmpty())
+                        <div style="padding:8px;font-size:12px;color:var(--text-tertiary);">
+                            Sin registros · Agrega el primero.
+                        </div>
+                    @else
+                        <table class="table table-compact" style="font-size:12px;">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Creado</th>
+                                    <th style="text-align:right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($registros as $r)
+                                    <tr>
+                                        <td>{{ $r->titulo ?? '—' }}</td>
+                                        <td style="color:var(--text-tertiary);">
+                                            {{ \Illuminate\Support\Carbon::parse($r->creado_en)->format('d/m/Y H:i') }}
+                                        </td>
+                                        <td style="text-align:right;">
+                                            @if(auth()->user()->tienePermiso('entidades.editar', $proyectoId))
+                                                <button type="button"
+                                                        wire:click="abrirFormEditar({{ $entidad->id }}, {{ $r->id }})"
+                                                        class="btn btn-ghost btn-xs">Editar</button>
+                                            @endif
+                                            @if(auth()->user()->tienePermiso('entidades.eliminar', $proyectoId))
+                                                <button type="button"
+                                                        wire:click="eliminar({{ $r->id }})"
+                                                        wire:confirm="¿Eliminar este registro?"
+                                                        class="btn btn-ghost btn-xs"
+                                                        style="color:var(--danger,#dc2626);">Eliminar</button>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </x-ui.card>
+            @endforeach
+        </div>
+    @endif
+</div>

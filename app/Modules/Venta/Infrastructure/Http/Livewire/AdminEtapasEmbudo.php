@@ -33,7 +33,7 @@ final class AdminEtapasEmbudo extends AbstractAdminCatalogo
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.nivel' => ['required', 'integer', 'min:1', 'max:99'],
             'form.probabilidad_cierre' => ['integer', 'min:0', 'max:100'],

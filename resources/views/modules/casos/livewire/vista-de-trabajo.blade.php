@@ -148,6 +148,15 @@
 
             @if($casoActivo)
                 <div style="margin-top:12px;">
+                    <livewire:campos-personalizados.formulario
+                        :proyectoId="(int) $proyectoActivo->id"
+                        ambito="caso"
+                        :ambitoId="(int) ($casoActivo->cartera_id ?? 0)"
+                        :entidadId="(int) $casoActivo->id"
+                        :key="'cp-caso-'.$casoActivo->id" />
+                </div>
+
+                <div style="margin-top:12px;">
                     {{-- Slot tipo-específico --}}
                     @if($casoActivo->tipo_caso === 'cobranza')
                         @include('cobranza::partials.panel-caso', ['cobranza' => $casoCobranza])
@@ -169,14 +178,20 @@
                     @endcan
                 </div>
 
-                <div style="margin-top:12px;">
-                    <livewire:campos-personalizados.formulario
+                @can('entidades.ver', $proyectoActivo->id)
+                    <livewire:entidades.panel-vinculadas
                         :proyectoId="(int) $proyectoActivo->id"
-                        ambito="caso"
-                        :ambitoId="(int) ($casoActivo->cartera_id ?? 0)"
-                        :entidadId="(int) $casoActivo->id"
-                        :key="'cp-caso-'.$casoActivo->id" />
-                </div>
+                        vinculo="caso"
+                        :vinculoId="(int) $casoActivo->id"
+                        :carteraId="(int) ($casoActivo->cartera_id ?? 0) ?: null"
+                        :key="'panel-ent-caso-'.$casoActivo->id" />
+                    <livewire:entidades.panel-vinculadas
+                        :proyectoId="(int) $proyectoActivo->id"
+                        vinculo="persona"
+                        :vinculoId="(int) $persona->id"
+                        :carteraId="(int) ($casoActivo->cartera_id ?? 0) ?: null"
+                        :key="'panel-ent-persona-'.$persona->id" />
+                @endcan
             @endif
         </div>
 

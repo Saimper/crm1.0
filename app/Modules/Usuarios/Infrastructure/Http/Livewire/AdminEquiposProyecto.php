@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +75,7 @@ final class AdminEquiposProyecto extends Component
     public function guardarEquipo(): void
     {
         $this->validate([
-            'formCodigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'formCodigo' => GeneradorCodigo::reglaValidacion(50),
             'formNombre' => ['required', 'string', 'max:150'],
             'formDescripcion' => ['nullable', 'string', 'max:500'],
         ], [], [
@@ -84,20 +85,29 @@ final class AdminEquiposProyecto extends Component
 
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
-        $dupQ = DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)
-            ->where('codigo', $this->formCodigo);
-        if ($this->equipoEditandoId !== null) {
-            $dupQ->where('id', '!=', $this->equipoEditandoId);
-        }
-        if ($dupQ->exists()) {
-            $this->addError('formCodigo', 'Ya existe un equipo con ese código en el proyecto.');
+        $codigoInput = trim($this->formCodigo);
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar($this->formNombre, 50)
+            : GeneradorCodigo::normalizar($codigoInput, 50);
 
-            return;
-        }
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato) use ($proyectoId): bool {
+                $q = DB::table('equipos')
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('codigo', $candidato);
+                if ($this->equipoEditandoId !== null) {
+                    $q->where('id', '!=', $this->equipoEditandoId);
+                }
+
+                return $q->exists();
+            },
+            50,
+        );
+        $this->formCodigo = $codigoFinal;
 
         $payload = [
-            'codigo' => $this->formCodigo,
+            'codigo' => $codigoFinal,
             'nombre' => $this->formNombre,
             'descripcion' => $this->formDescripcion !== '' ? $this->formDescripcion : null,
             'activo' => $this->formActivo,

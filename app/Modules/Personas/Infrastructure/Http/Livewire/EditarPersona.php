@@ -12,10 +12,12 @@ use Livewire\Component;
 /**
  * Edita los datos básicos de una persona del proyecto activo.
  *
- * Limitaciones intencionales:
+ * Limitaciones intencionales (B1):
  *   - tipo_persona NO se cambia (cambio invasivo, requiere recrear).
- *   - tipo_identificacion + identificacion editables, pero respetando
- *     UNIQUE (proyecto_id, tipo_identificacion_id, identificacion).
+ *   - razón social y fecha de nacimiento son read-only — solo visibles si la
+ *     persona viene de importación masiva con esos datos. UI no los edita.
+ *   - tipo_identificacion + identificacion editables, respetando UNIQUE
+ *     (proyecto_id, tipo_identificacion_id, identificacion).
  *
  * Permiso: personas.editar (SUPERVISOR + GESTOR + ADMIN_GLOBAL por defecto).
  */
@@ -76,14 +78,11 @@ final class EditarPersona extends Component
         $reglas = [
             'tipoIdentificacionId' => 'required|integer|exists:tipos_identificacion,id',
             'identificacion' => 'required|string|min:5|max:50',
-            'fechaNacimiento' => 'nullable|date|before:today',
         ];
 
         if ($this->tipoPersona === 'fisica') {
             $reglas['nombres'] = 'required|string|max:150';
             $reglas['apellidos'] = 'nullable|string|max:150';
-        } else {
-            $reglas['razonSocial'] = 'required|string|max:250';
         }
 
         $this->validate($reglas);
@@ -107,19 +106,12 @@ final class EditarPersona extends Component
         $payload = [
             'tipo_identificacion_id' => $this->tipoIdentificacionId,
             'identificacion' => $identificacionLimpia,
-            'fecha_nacimiento' => $this->fechaNacimiento ?: null,
             'actualizada_en' => Carbon::now(),
         ];
 
         if ($this->tipoPersona === 'fisica') {
             $payload['nombres'] = $this->nombres;
             $payload['apellidos'] = $this->apellidos !== '' ? $this->apellidos : null;
-            $payload['razon_social'] = null;
-        } else {
-            $payload['razon_social'] = $this->razonSocial;
-            $payload['nombres'] = null;
-            $payload['apellidos'] = null;
-            $payload['fecha_nacimiento'] = null;
         }
 
         DB::table('personas')

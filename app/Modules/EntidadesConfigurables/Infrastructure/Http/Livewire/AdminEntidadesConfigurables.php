@@ -6,6 +6,7 @@ namespace App\Modules\EntidadesConfigurables\Infrastructure\Http\Livewire;
 
 use App\Modules\EntidadesConfigurables\Application\Services\ServicioEntidades;
 use App\Modules\EntidadesConfigurables\Domain\ValueObjects\RelacionEntidad;
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -127,7 +128,7 @@ final class AdminEntidadesConfigurables extends Component
 
         $this->validate([
             'proyectoSeleccionadoId' => ['required', 'integer', 'exists:proyectos,id'],
-            'formCodigo' => ['required', 'string', 'max:80', 'regex:/^[A-Z0-9_]+$/'],
+            'formCodigo' => GeneradorCodigo::reglaValidacion(80),
             'formNombre' => ['required', 'string', 'max:150'],
             'formDescripcion' => ['nullable', 'string', 'max:500'],
             'formIcono' => ['nullable', 'string', 'max:50'],
@@ -135,11 +136,33 @@ final class AdminEntidadesConfigurables extends Component
             'formCarteraId' => ['nullable', 'integer', 'exists:carteras,id'],
         ]);
 
+        $proyectoId = (int) $this->proyectoSeleccionadoId;
+        $codigoInput = trim($this->formCodigo);
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar($this->formNombre, 80)
+            : GeneradorCodigo::normalizar($codigoInput, 80);
+
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato) use ($proyectoId): bool {
+                $q = DB::table('entidades_configurables')
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('codigo', $candidato);
+                if ($this->entidadEditandoId !== null) {
+                    $q->where('id', '!=', $this->entidadEditandoId);
+                }
+
+                return $q->exists();
+            },
+            80,
+        );
+        $this->formCodigo = $codigoFinal;
+
         try {
             if ($this->entidadEditandoId === null) {
                 $servicio->crearEntidad(
-                    proyectoId: (int) $this->proyectoSeleccionadoId,
-                    codigo: $this->formCodigo,
+                    proyectoId: $proyectoId,
+                    codigo: $codigoFinal,
                     nombre: $this->formNombre,
                     relacion: RelacionEntidad::from($this->formRelacion),
                     carteraId: $this->formCarteraId,
@@ -230,7 +253,7 @@ final class AdminEntidadesConfigurables extends Component
         }
 
         $this->validate([
-            'formCampoCodigo' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/'],
+            'formCampoCodigo' => GeneradorCodigo::reglaValidacion(80),
             'formCampoEtiqueta' => ['required', 'string', 'max:200'],
             'formCampoTipo' => ['required', 'in:texto_corto,texto_largo,numero_entero,numero_decimal,fecha,fecha_hora,booleano,moneda'],
             'formCampoObligatorio' => ['boolean'],
@@ -244,11 +267,34 @@ final class AdminEntidadesConfigurables extends Component
             return;
         }
 
+        $codigoInput = trim($this->formCampoCodigo);
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar($this->formCampoEtiqueta, 80, true)
+            : GeneradorCodigo::normalizar($codigoInput, 80, true);
+
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato) use ($entidad): bool {
+                $q = DB::table('campos_personalizados')
+                    ->where('proyecto_id', (int) $entidad->proyecto_id)
+                    ->where('ambito', 'entidad_configurable')
+                    ->where('ambito_id', (int) $entidad->id)
+                    ->where('codigo', $candidato);
+                if ($this->campoEditandoId !== null) {
+                    $q->where('id', '!=', $this->campoEditandoId);
+                }
+
+                return $q->exists();
+            },
+            80,
+        );
+        $this->formCampoCodigo = $codigoFinal;
+
         $payload = [
             'proyecto_id' => (int) $entidad->proyecto_id,
             'ambito' => 'entidad_configurable',
             'ambito_id' => (int) $entidad->id,
-            'codigo' => $this->formCampoCodigo,
+            'codigo' => $codigoFinal,
             'etiqueta' => $this->formCampoEtiqueta,
             'tipo' => $this->formCampoTipo,
             'obligatorio' => $this->formCampoObligatorio,
@@ -257,17 +303,6 @@ final class AdminEntidadesConfigurables extends Component
         ];
 
         if ($this->campoEditandoId === null) {
-            $duplicado = DB::table('campos_personalizados')
-                ->where('proyecto_id', $payload['proyecto_id'])
-                ->where('ambito', 'entidad_configurable')
-                ->where('ambito_id', $payload['ambito_id'])
-                ->where('codigo', $payload['codigo'])
-                ->exists();
-            if ($duplicado) {
-                $this->addError('formCampoCodigo', 'Ya existe un campo con ese código en esta entidad.');
-
-                return;
-            }
             DB::table('campos_personalizados')->insert($payload);
         } else {
             DB::table('campos_personalizados')

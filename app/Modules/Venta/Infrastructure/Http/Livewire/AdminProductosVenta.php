@@ -29,7 +29,7 @@ final class AdminProductosVenta extends AbstractAdminCatalogo
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:200'],
             'form.descripcion' => ['nullable', 'string', 'max:500'],
             'form.orden' => ['integer', 'min:0'],

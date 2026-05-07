@@ -9,6 +9,7 @@ use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\EntidadesConfigurables\Domain\ValueObjects\RelacionEntidad;
 use App\Modules\EntidadesConfigurables\Infrastructure\Persistence\Models\EntidadConfigurableModel;
 use App\Modules\EntidadesConfigurables\Infrastructure\Persistence\Models\EntidadRegistroModel;
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,10 +41,9 @@ final readonly class ServicioEntidades
         ?string $descripcion = null,
         ?string $icono = null,
     ): int {
-        $codigo = strtoupper(trim($codigo));
-        if (! preg_match('/^[A-Z0-9_]+$/', $codigo)) {
-            throw new RuntimeException('Código inválido. Solo A-Z, 0-9 y _.');
-        }
+        // Defensa en profundidad: aunque el Livewire ya normaliza, otras vías
+        // (importación masiva, tests directos) pueden pasar entrada cruda.
+        $codigo = GeneradorCodigo::normalizar($codigo, 80);
 
         $existe = EntidadConfigurableModel::query()
             ->sinScopeProyecto()

@@ -37,15 +37,10 @@
                     <label class="field-label">Apellidos (opcional)</label>
                     <input type="text" wire:model="apellidos" class="input"/>
                 </div>
-                <div>
-                    <label class="field-label">Fecha nacimiento (opcional)</label>
-                    <input type="date" wire:model="fechaNacimiento" class="input"/>
-                </div>
             @else
                 <div style="grid-column:1 / -1;">
-                    <label class="field-label">Razón social</label>
-                    <input type="text" wire:model="razonSocial" class="input @error('razonSocial') input-error @enderror"/>
-                    @error('razonSocial')<div class="field-error">{{ $message }}</div>@enderror
+                    <label class="field-label">Razón social (no editable)</label>
+                    <input type="text" value="{{ $razonSocial }}" class="input" disabled/>
                 </div>
             @endif
         </div>

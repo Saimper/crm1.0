@@ -6,6 +6,7 @@ namespace App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AutoFill;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -119,7 +120,7 @@ final class AdminCamposPersonalizados extends Component
             'form.proyecto_id' => ['required', 'integer', 'exists:proyectos,id'],
             'form.ambito' => ['required', 'in:caso,gestion'],
             'form.ambito_id' => ['required', 'integer'],
-            'form.codigo' => ['required', 'string', 'max:80', 'regex:/^[a-z0-9_]+$/'],
+            'form.codigo' => GeneradorCodigo::reglaValidacion(80),
             'form.etiqueta' => ['required', 'string', 'max:200'],
             'form.tipo' => ['required', 'in:texto_corto,texto_largo,numero_entero,numero_decimal,fecha,fecha_hora,booleano,moneda'],
             'form.obligatorio' => ['boolean'],
@@ -171,11 +172,38 @@ final class AdminCamposPersonalizados extends Component
             $reglas['solo_lectura_tras_guardar'] = true;
         }
 
+        $proyectoId = (int) $this->form['proyecto_id'];
+        $ambito = (string) $this->form['ambito'];
+        $ambitoId = (int) $this->form['ambito_id'];
+
+        $codigoInput = trim((string) ($this->form['codigo'] ?? ''));
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar((string) ($this->form['etiqueta'] ?? ''), 80, true)
+            : GeneradorCodigo::normalizar($codigoInput, 80, true);
+
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato) use ($proyectoId, $ambito, $ambitoId): bool {
+                $q = DB::table('campos_personalizados')
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('ambito', $ambito)
+                    ->where('ambito_id', $ambitoId)
+                    ->where('codigo', $candidato);
+                if ($this->campoEditandoId !== null) {
+                    $q->where('id', '!=', $this->campoEditandoId);
+                }
+
+                return $q->exists();
+            },
+            80,
+        );
+        $this->form['codigo'] = $codigoFinal;
+
         $payload = [
-            'proyecto_id' => (int) $this->form['proyecto_id'],
-            'ambito' => (string) $this->form['ambito'],
-            'ambito_id' => (int) $this->form['ambito_id'],
-            'codigo' => (string) $this->form['codigo'],
+            'proyecto_id' => $proyectoId,
+            'ambito' => $ambito,
+            'ambito_id' => $ambitoId,
+            'codigo' => $codigoFinal,
             'etiqueta' => (string) $this->form['etiqueta'],
             'tipo' => (string) $this->form['tipo'],
             'obligatorio' => (bool) $this->form['obligatorio'],
@@ -185,17 +213,6 @@ final class AdminCamposPersonalizados extends Component
         ];
 
         if ($this->campoEditandoId === null) {
-            $duplicado = DB::table('campos_personalizados')
-                ->where('proyecto_id', $payload['proyecto_id'])
-                ->where('ambito', $payload['ambito'])
-                ->where('ambito_id', $payload['ambito_id'])
-                ->where('codigo', $payload['codigo'])
-                ->exists();
-            if ($duplicado) {
-                $this->addError('form.codigo', 'Ya existe un campo con ese código en el ámbito indicado.');
-
-                return;
-            }
             DB::table('campos_personalizados')->insert($payload);
         } else {
             DB::table('campos_personalizados')->where('id', $this->campoEditandoId)->update($payload);

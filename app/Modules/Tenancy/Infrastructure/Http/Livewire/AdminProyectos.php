@@ -10,6 +10,7 @@ use App\Modules\Tenancy\Domain\Exceptions\CodigoProyectoDuplicadoEnMandante;
 use App\Modules\Tenancy\Domain\ValueObjects\CodigoProyecto;
 use App\Modules\Tenancy\Domain\ValueObjects\TipoOperacion;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
+use App\Support\Codigo\GeneradorCodigo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +91,7 @@ final class AdminProyectos extends Component
     {
         $this->validate([
             'form.mandante_id' => ['required', 'integer', 'exists:mandantes,id'],
-            'form.codigo' => ['required', 'string', 'max:80', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => GeneradorCodigo::reglaValidacion(80),
             'form.nombre' => ['required', 'string', 'max:200'],
             'form.descripcion' => ['nullable', 'string', 'max:1000'],
             'form.tipo_operacion' => ['required', 'in:cobranza,cx,venta,servicio'],
@@ -105,6 +106,28 @@ final class AdminProyectos extends Component
             'form.fecha_fin' => 'fecha de fin',
         ]);
 
+        $mandanteId = (int) $this->form['mandante_id'];
+        $codigoInput = trim((string) ($this->form['codigo'] ?? ''));
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar((string) ($this->form['nombre'] ?? ''), 80)
+            : GeneradorCodigo::normalizar($codigoInput, 80);
+
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato) use ($mandanteId): bool {
+                $q = ProyectoModel::query()
+                    ->where('mandante_id', $mandanteId)
+                    ->where('codigo', $candidato);
+                if ($this->editandoId !== null) {
+                    $q->where('id', '!=', $this->editandoId);
+                }
+
+                return $q->exists();
+            },
+            80,
+        );
+        $this->form['codigo'] = $codigoFinal;
+
         $fechaInicio = ! empty($this->form['fecha_inicio']) ? new DateTimeImmutable((string) $this->form['fecha_inicio']) : null;
         $fechaFin = ! empty($this->form['fecha_fin']) ? new DateTimeImmutable((string) $this->form['fecha_fin']) : null;
 
@@ -112,8 +135,8 @@ final class AdminProyectos extends Component
             try {
                 $useCase->execute(new RegistrarProyectoInput(
                     publicId: (string) Str::ulid(),
-                    mandanteId: (int) $this->form['mandante_id'],
-                    codigo: new CodigoProyecto((string) $this->form['codigo']),
+                    mandanteId: $mandanteId,
+                    codigo: new CodigoProyecto($codigoFinal),
                     nombre: (string) $this->form['nombre'],
                     descripcion: $this->textoOpcional('descripcion'),
                     tipoOperacion: TipoOperacion::from((string) $this->form['tipo_operacion']),
@@ -131,24 +154,11 @@ final class AdminProyectos extends Component
                 return;
             }
         } else {
-            // Edición: se permite cambiar nombre, descripción y vigencias. Código y mandante requieren
-            // validación explícita de unicidad; tipo_operacion queda BLOQUEADO (invariante §1.2).
-            $codigoNuevo = (string) $this->form['codigo'];
-            $mandanteNuevo = (int) $this->form['mandante_id'];
-            $duplicado = ProyectoModel::query()
-                ->where('mandante_id', $mandanteNuevo)
-                ->where('codigo', $codigoNuevo)
-                ->where('id', '!=', $this->editandoId)
-                ->exists();
-            if ($duplicado) {
-                $this->addError('form.codigo', 'Ese mandante ya tiene un proyecto con ese código.');
-
-                return;
-            }
-
+            // Edición: se permite cambiar nombre, descripción y vigencias. tipo_operacion queda
+            // BLOQUEADO (invariante §1.2). El conflicto de código se resolvió arriba (sufijado).
             ProyectoModel::query()->where('id', $this->editandoId)->update([
-                'mandante_id' => $mandanteNuevo,
-                'codigo' => $codigoNuevo,
+                'mandante_id' => $mandanteId,
+                'codigo' => $codigoFinal,
                 'nombre' => (string) $this->form['nombre'],
                 'descripcion' => $this->textoOpcional('descripcion'),
                 'fecha_inicio' => $fechaInicio,

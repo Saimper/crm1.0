@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalogos\Infrastructure\Http\Livewire;
 
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -79,19 +80,29 @@ abstract class AbstractAdminCatalogo extends Component
         $this->validate($this->reglasValidacion());
 
         $proyectoId = $this->proyectoActivoId();
-        $codigo = (string) ($this->form['codigo'] ?? '');
+        $codigoInput = trim((string) ($this->form['codigo'] ?? ''));
+        $nombre = (string) ($this->form['nombre'] ?? '');
 
-        $query = DB::table($this->tabla())
-            ->where('proyecto_id', $proyectoId)
-            ->where('codigo', $codigo);
-        if ($this->editandoId !== null) {
-            $query->where('id', '!=', $this->editandoId);
-        }
-        if ($query->exists()) {
-            $this->addError('form.codigo', 'Ya existe un registro con ese código en el proyecto.');
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar($nombre, $this->maxLenCodigo())
+            : GeneradorCodigo::normalizar($codigoInput, $this->maxLenCodigo());
 
-            return;
-        }
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato) use ($proyectoId): bool {
+                $q = DB::table($this->tabla())
+                    ->where('proyecto_id', $proyectoId)
+                    ->where('codigo', $candidato);
+                if ($this->editandoId !== null) {
+                    $q->where('id', '!=', $this->editandoId);
+                }
+
+                return $q->exists();
+            },
+            $this->maxLenCodigo(),
+        );
+
+        $this->form['codigo'] = $codigoFinal;
 
         $payload = array_merge($this->payloadDesdeForm(), ['proyecto_id' => $proyectoId]);
 
@@ -103,6 +114,14 @@ abstract class AbstractAdminCatalogo extends Component
 
         $this->cerrarForm();
         session()->flash('admin-catalogo-ok', 'Registro guardado.');
+    }
+
+    /**
+     * Long máximo del código en la tabla. Override en subclases que usan max:80.
+     */
+    protected function maxLenCodigo(): int
+    {
+        return 50;
     }
 
     public function desactivar(int $id): void

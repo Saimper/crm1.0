@@ -9,6 +9,7 @@ use App\Modules\Tenancy\Application\UseCases\RegistrarMandante;
 use App\Modules\Tenancy\Domain\Exceptions\CodigoMandanteDuplicado;
 use App\Modules\Tenancy\Domain\ValueObjects\CodigoMandante;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\MandanteModel;
+use App\Support\Codigo\GeneradorCodigo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -70,7 +71,7 @@ final class AdminMandantes extends Component
     public function guardar(RegistrarMandante $useCase): void
     {
         $this->validate([
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => GeneradorCodigo::reglaValidacion(50),
             'form.nombre' => ['required', 'string', 'max:200'],
             'form.documento' => ['nullable', 'string', 'max:80'],
         ], [], [
@@ -79,11 +80,30 @@ final class AdminMandantes extends Component
             'form.documento' => 'documento',
         ]);
 
+        $codigoInput = trim((string) ($this->form['codigo'] ?? ''));
+        $codigoBase = $codigoInput === ''
+            ? GeneradorCodigo::derivar((string) ($this->form['nombre'] ?? ''), 50)
+            : GeneradorCodigo::normalizar($codigoInput, 50);
+
+        $codigoFinal = GeneradorCodigo::resolverConflicto(
+            $codigoBase,
+            function (string $candidato): bool {
+                $q = MandanteModel::query()->where('codigo', $candidato);
+                if ($this->editandoId !== null) {
+                    $q->where('id', '!=', $this->editandoId);
+                }
+
+                return $q->exists();
+            },
+            50,
+        );
+        $this->form['codigo'] = $codigoFinal;
+
         if ($this->editandoId === null) {
             try {
                 $useCase->execute(new RegistrarMandanteInput(
                     publicId: (string) Str::ulid(),
-                    codigo: new CodigoMandante((string) $this->form['codigo']),
+                    codigo: new CodigoMandante($codigoFinal),
                     nombre: (string) $this->form['nombre'],
                     documento: $this->documentoOpcional(),
                     creadaEn: new DateTimeImmutable,
@@ -98,22 +118,8 @@ final class AdminMandantes extends Component
                 return;
             }
         } else {
-            $codigoAnterior = (string) MandanteModel::query()->where('id', $this->editandoId)->value('codigo');
-            $codigoNuevo = (string) $this->form['codigo'];
-            if ($codigoAnterior !== $codigoNuevo) {
-                $duplicado = MandanteModel::query()
-                    ->where('codigo', $codigoNuevo)
-                    ->where('id', '!=', $this->editandoId)
-                    ->exists();
-                if ($duplicado) {
-                    $this->addError('form.codigo', 'Ya existe un mandante con ese código.');
-
-                    return;
-                }
-            }
-
             MandanteModel::query()->where('id', $this->editandoId)->update([
-                'codigo' => $codigoNuevo,
+                'codigo' => $codigoFinal,
                 'nombre' => (string) $this->form['nombre'],
                 'documento' => $this->documentoOpcional(),
             ]);

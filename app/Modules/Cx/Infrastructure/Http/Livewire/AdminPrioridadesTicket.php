@@ -23,7 +23,7 @@ final class AdminPrioridadesTicket extends AbstractAdminCatalogo
     protected function reglasValidacion(): array
     {
         return [
-            'form.codigo' => ['required', 'string', 'max:50', 'regex:/^[A-Z0-9_]+$/'],
+            'form.codigo' => ['nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9_\-\s]*$/'],
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.peso' => ['integer', 'min:0'],
             'form.orden' => ['integer', 'min:0'],

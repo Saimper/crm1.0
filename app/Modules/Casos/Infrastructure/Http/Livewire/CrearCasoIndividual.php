@@ -121,6 +121,14 @@ final class CrearCasoIndividual extends Component
         $this->fechaPrimerContacto = (new DateTimeImmutable)->format('Y-m-d');
         $this->fechaSolicitud = (new DateTimeImmutable)->format('Y-m-d');
 
+        $primerEstado = DB::table('estados_caso')
+            ->where('proyecto_id', (int) $proyecto->id)
+            ->where('activo', true)
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->value('id');
+        $this->estadoCasoId = $primerEstado !== null ? (string) $primerEstado : '';
+
         if ($this->personaPublicId !== '') {
             $persona = DB::table('personas')
                 ->where('proyecto_id', (int) $proyecto->id)
@@ -145,9 +153,14 @@ final class CrearCasoIndividual extends Component
             return;
         }
 
+        if ($this->estadoCasoId === '') {
+            $this->addError('general', 'El proyecto no tiene estados de caso configurados. Pide al administrador que configure al menos uno.');
+
+            return;
+        }
+
         $reglasComunes = [
             'carteraId' => ['required', 'integer'],
-            'estadoCasoId' => ['required', 'integer'],
             'prioridad' => ['integer', 'min:0', 'max:1000'],
             'fechaIngreso' => ['required', 'date'],
         ];
@@ -305,19 +318,11 @@ final class CrearCasoIndividual extends Component
             ->select(['id', 'nombre'])
             ->get();
 
-        $estados = DB::table('estados_caso')
-            ->where('proyecto_id', $proyectoId)
-            ->where('activo', true)
-            ->orderBy('orden')
-            ->select(['id', 'nombre'])
-            ->get();
-
         $catalogosTipo = $this->cargarCatalogosTipo($proyectoId);
 
         return view('casos::livewire.crear-caso-individual', [
             'persona' => $persona,
             'carteras' => $carteras,
-            'estados' => $estados,
             'catalogosTipo' => $catalogosTipo,
         ]);
     }

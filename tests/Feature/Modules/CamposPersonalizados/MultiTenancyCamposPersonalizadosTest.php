@@ -7,15 +7,12 @@ namespace Tests\Feature\Modules\CamposPersonalizados;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F34C — multi-tenancy: definiciones de campos personalizados aisladas
- * por proyecto. Definición creada en proyecto B no debe aparecer
- * scopeada a A.
- */
 final class MultiTenancyCamposPersonalizadosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -26,11 +23,11 @@ final class MultiTenancyCamposPersonalizadosTest extends TestCase
 
     public function test_campos_personalizados_aislados_entre_proyectos(): void
     {
-        $proyectoA = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyectoB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
         DB::table('campos_personalizados')->insert([
-            'proyecto_id' => $proyectoB,
+            'proyecto_id' => $proyectoB->id,
             'ambito' => 'gestion',
             'ambito_id' => 1,
             'codigo' => 'F34C_CP_B',
@@ -43,13 +40,13 @@ final class MultiTenancyCamposPersonalizadosTest extends TestCase
         ]);
 
         $existeEnA = DB::table('campos_personalizados')
-            ->where('proyecto_id', $proyectoA)
+            ->where('proyecto_id', $proyectoA->id)
             ->where('codigo', 'F34C_CP_B')
             ->exists();
         $this->assertFalse($existeEnA);
 
         $existeEnB = DB::table('campos_personalizados')
-            ->where('proyecto_id', $proyectoB)
+            ->where('proyecto_id', $proyectoB->id)
             ->where('codigo', 'F34C_CP_B')
             ->exists();
         $this->assertTrue($existeEnB);

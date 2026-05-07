@@ -59,9 +59,11 @@ final class AutenticadorPorJwt
 
         try {
             $claims = JWT::decode($jwt, new Key($secret, self::ALGORITMO));
-        } catch (ExpiredException|SignatureInvalidException) {
+        } catch (ExpiredException|SignatureInvalidException $e) {
+            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
             throw JwtFirmaInvalida::crear();
-        } catch (\UnexpectedValueException|\DomainException) {
+        } catch (\UnexpectedValueException|\DomainException $e) {
+            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
             throw JwtFirmaInvalida::crear();
         }
 

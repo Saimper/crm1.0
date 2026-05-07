@@ -12,13 +12,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F34B — listado paginado de personas por proyecto + multi-tenancy.
- */
 final class ListadoPersonasTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -29,114 +29,76 @@ final class ListadoPersonasTest extends TestCase
 
     public function test_supervisor_ve_personas_del_proyecto(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($supervisor);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearPersonaEn($proyecto, '1111111111');
+        $this->crearPersonaEn($proyecto, '2222222222');
 
-        $totalDb = (int) DB::table('personas')->where('proyecto_id', $proyectoId)->count();
-        $this->assertGreaterThan(0, $totalDb);
+        $this->actuarComoSupervisor($proyecto);
 
         $c = Livewire::test(ListadoPersonas::class);
-        $this->assertSame($totalDb, $c->viewData('totalProyecto'));
+        $this->assertSame(2, $c->viewData('totalProyecto'));
     }
 
     public function test_filtro_busqueda_funciona(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($supervisor);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearPersonaEn($proyecto, '7777777777');
+        $this->crearPersonaEn($proyecto, '8888888888');
 
-        $unaPersona = (object) DB::table('personas')
-            ->where('proyecto_id', $proyectoId)
-            ->whereNotNull('identificacion')
-            ->first();
-        $this->assertNotNull($unaPersona);
+        $this->actuarComoSupervisor($proyecto);
 
-        $c = Livewire::test(ListadoPersonas::class)
-            ->set('busqueda', $unaPersona->identificacion);
+        $c = Livewire::test(ListadoPersonas::class)->set('busqueda', '7777777777');
         $personas = $c->viewData('personas');
-        $this->assertGreaterThanOrEqual(1, $personas->total());
+        $this->assertSame(1, $personas->total());
     }
 
     public function test_no_filtra_personas_de_otro_proyecto(): void
     {
-        $proyectoA = $this->proyectoCobranza();
-        $proyectoB = $this->proyectoCx();
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
+        $this->crearPersonaEn($proyectoA, '1010101010');
+        $this->crearPersonaEn($proyectoB, '2020202020');
 
-        $supervisor = $this->crearConRol($proyectoA, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoA);
-        $this->actingAs($supervisor);
-
-        $totalA = (int) DB::table('personas')->where('proyecto_id', $proyectoA)->count();
-        $totalB = (int) DB::table('personas')->where('proyecto_id', $proyectoB)->count();
-        $this->assertGreaterThan(0, $totalA);
-        $this->assertGreaterThan(0, $totalB);
+        $this->actuarComoSupervisor($proyectoA);
 
         $c = Livewire::test(ListadoPersonas::class);
-        $this->assertSame($totalA, $c->viewData('totalProyecto'));
+        $this->assertSame(1, $c->viewData('totalProyecto'));
 
-        $personasA = $c->viewData('personas');
-        $idsB = DB::table('personas')->where('proyecto_id', $proyectoB)->pluck('id')->all();
-        foreach ($personasA as $p) {
+        $personas = $c->viewData('personas');
+        $idsB = DB::table('personas')->where('proyecto_id', $proyectoB->id)->pluck('id')->all();
+        foreach ($personas as $p) {
             $this->assertNotContains($p->id, $idsB);
         }
     }
 
     public function test_gestor_accede_pantalla(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.personas.lista', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.personas.lista', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
     }
 
     public function test_sin_rol_recibe_403(): void
     {
-        $proyectoId = $this->proyectoCobranza();
+        $proyecto = $this->crearProyectoCobranza();
         $u = User::query()->create([
-            'name' => 'Sin', 'email' => 'sin.f34b.'.Str::random(4).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-
-        $this->actingAs($u)
-            ->get(route('proyectos.personas.lista', ['proyecto_id' => $proyectoId]))
-            ->assertStatus(403);
-    }
-
-    private function proyectoCobranza(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function proyectoCx(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.lp.'.Str::random(6).'@crm.local',
+            'name' => 'Sin',
+            'email' => 'sin.b1.'.Str::random(4).'@crm.local',
             'password' => Hash::make('x'),
             'activo' => true,
         ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
 
-        return $u;
+        $this->actingAs($u)
+            ->get(route('proyectos.personas.lista', ['proyecto_id' => $proyecto->id]))
+            ->assertStatus(403);
+    }
+
+    private function actuarComoSupervisor(stdClass $proyecto): void
+    {
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
     }
 }

@@ -8,13 +8,12 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F34C — multi-tenancy: entidades configurables aisladas por proyecto.
- */
 final class MultiTenancyEntidadesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -25,12 +24,12 @@ final class MultiTenancyEntidadesTest extends TestCase
 
     public function test_entidades_configurables_aisladas_entre_proyectos(): void
     {
-        $proyectoA = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyectoB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
         DB::table('entidades_configurables')->insert([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoB,
+            'proyecto_id' => $proyectoB->id,
             'codigo' => 'F34C_ENT_B',
             'nombre' => 'Entidad B',
             'activo' => true,
@@ -38,13 +37,13 @@ final class MultiTenancyEntidadesTest extends TestCase
 
         $this->assertFalse(
             DB::table('entidades_configurables')
-                ->where('proyecto_id', $proyectoA)
+                ->where('proyecto_id', $proyectoA->id)
                 ->where('codigo', 'F34C_ENT_B')
                 ->exists()
         );
         $this->assertTrue(
             DB::table('entidades_configurables')
-                ->where('proyecto_id', $proyectoB)
+                ->where('proyecto_id', $proyectoB->id)
                 ->where('codigo', 'F34C_ENT_B')
                 ->exists()
         );

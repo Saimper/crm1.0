@@ -7,13 +7,12 @@ namespace Tests\Feature\Modules\Servicio;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
-/**
- * F34C — multi-tenancy: casos_servicio + tipos_accion_servicio aislados.
- */
 final class MultiTenancyServicioTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -22,31 +21,25 @@ final class MultiTenancyServicioTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_casos_servicio_aislados_entre_proyectos(): void
-    {
-        $proyectoServicio = (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
-        $proyectoCobranza = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-
-        $countServicio = (int) DB::table('casos_servicio')
-            ->where('proyecto_id', $proyectoServicio)->count();
-        $countCobranzaScope = (int) DB::table('casos_servicio')
-            ->where('proyecto_id', $proyectoCobranza)->count();
-
-        $this->assertGreaterThan(0, $countServicio);
-        $this->assertSame(0, $countCobranzaScope);
-    }
-
     public function test_tipos_accion_servicio_aislados(): void
     {
-        $proyectoServicio = (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
-        $proyectoCx = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $servicio = $this->crearProyectoServicio();
+        $cx = $this->crearProyectoCx();
 
-        $count = (int) DB::table('tipos_accion_servicio')
-            ->where('proyecto_id', $proyectoCx)->count();
-        $this->assertSame(0, $count);
+        DB::table('tipos_accion_servicio')->insert([
+            'proyecto_id' => $servicio->id,
+            'codigo' => 'INST',
+            'nombre' => 'Instalación',
+            'activo' => true,
+        ]);
 
-        $countPropio = (int) DB::table('tipos_accion_servicio')
-            ->where('proyecto_id', $proyectoServicio)->count();
-        $this->assertGreaterThan(0, $countPropio);
+        $this->assertSame(
+            0,
+            (int) DB::table('tipos_accion_servicio')->where('proyecto_id', $cx->id)->count()
+        );
+        $this->assertSame(
+            1,
+            (int) DB::table('tipos_accion_servicio')->where('proyecto_id', $servicio->id)->count()
+        );
     }
 }

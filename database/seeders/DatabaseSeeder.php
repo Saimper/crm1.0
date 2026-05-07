@@ -15,18 +15,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CatalogosGlobalesSeeder::class,
-            TenancySeeder::class,
             UsuariosSeeder::class,
-            CasosSeeder::class,
             GestionesSeeder::class,
-            PersonasSeeder::class,
-            ContactosSeeder::class,
-            CobranzaSeeder::class,
-            CxSeeder::class,
-            VentaSeeder::class,
-            ServicioSeeder::class,
-            CampanasSeeder::class,
-            AsignacionesSeeder::class,
         ]);
     }
 }

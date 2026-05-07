@@ -42,16 +42,6 @@
                     @error('carteraId')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
-                    <label class="field-label">Estado inicial</label>
-                    <select wire:model="estadoCasoId" class="input @error('estadoCasoId') input-error @enderror">
-                        <option value="">— Selecciona —</option>
-                        @foreach($estados as $e)
-                            <option value="{{ $e->id }}">{{ $e->nombre }}</option>
-                        @endforeach
-                    </select>
-                    @error('estadoCasoId')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-                <div>
                     <label class="field-label">Prioridad (0–9)</label>
                     <input type="number" min="0" max="9" wire:model="prioridad" class="input"/>
                 </div>
