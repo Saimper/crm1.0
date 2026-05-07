@@ -24,5 +24,6 @@ final class ImportacionModel extends Model
         'filas_ok' => 'integer',
         'filas_error' => 'integer',
         'filas_importadas' => 'integer',
+        'mapeo' => 'array',
     ];
 }

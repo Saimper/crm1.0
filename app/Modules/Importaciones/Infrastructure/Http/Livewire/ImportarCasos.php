@@ -23,7 +23,11 @@ use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
-/** Flujo async F31 para casos. Detecta tipo_operacion + delega al UseCase correcto. */
+/**
+ * @deprecated Reemplazado por App\Modules\Importaciones\Infrastructure\Http\Livewire\Importar (F35-B).
+ *             El wizard unificado mapea libremente cualquier columna CSV. Esta clase se conserva
+ *             para no romper tests skipped existentes (ImportarCasosTest).
+ */
 final class ImportarCasos extends Component
 {
     use WithFileUploads;
@@ -76,7 +80,7 @@ final class ImportarCasos extends Component
         $filas = $this->parsearCsv($contenido, self::COLUMNAS_POR_TIPO[$tipoOperacion]['obligatorias']);
 
         if ($filas === []) {
-            $this->addError('archivo', 'El CSV está vacío o faltan columnas obligatorias para '.$tipoOperacion.'.');
+            $this->addError('archivo', 'No se pudo leer el CSV o faltan columnas obligatorias para '.$tipoOperacion.' (componente deprecado: usa el wizard unificado).');
 
             return;
         }

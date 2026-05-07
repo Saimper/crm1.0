@@ -21,11 +21,9 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * Flujo async F31:
- *   1. Subir archivo → Importacion + filas, dry-run validación, estado=preparada.
- *   2. UI muestra preview + selector modo (merge/skip_duplicados/overwrite).
- *   3. Confirmar → EncolarImportacion despacha Job → estado=procesando.
- *   4. Polling cada 2s consulta progreso. Termina al estado terminal.
+ * @deprecated Reemplazado por App\Modules\Importaciones\Infrastructure\Http\Livewire\Importar (F35-B).
+ *             El wizard unificado acepta cualquier nombre de columna y mapea libremente. Esta clase
+ *             se conserva solo para no romper tests skipped existentes (ImportarPersonasTest).
  */
 final class ImportarPersonas extends Component
 {
@@ -53,7 +51,7 @@ final class ImportarPersonas extends Component
         $filas = $this->parsearCsv($contenido);
 
         if ($filas === []) {
-            $this->addError('archivo', 'El CSV está vacío o no tiene las columnas esperadas.');
+            $this->addError('archivo', 'No se pudo leer el CSV o faltan columnas (componente deprecado: usa el wizard unificado).');
 
             return;
         }
