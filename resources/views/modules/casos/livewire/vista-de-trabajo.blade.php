@@ -224,7 +224,8 @@
             @endif
         </div>
 
-        {{-- Col centro: formulario nueva gestión --}}
+        {{-- Col centro: formulario nueva gestión. Los campos personalizados del CASO
+             se editan en "Editar caso"; aquí los del ámbito gestión van inline en NuevaGestion. --}}
         <div class="vt-col-mid">
             @if($casoActivo)
                 <x-ui.card title="Registrar gestión">
@@ -241,17 +242,10 @@
             @endif
         </div>
 
-        {{-- Col derecha: campos personalizados arriba + historial debajo --}}
+        {{-- Col derecha: historial --}}
         <div class="vt-col-right">
             @if($casoActivo)
-                <livewire:campos-personalizados.formulario
-                    :proyectoId="(int) $proyectoActivo->id"
-                    ambito="caso"
-                    :ambitoId="(int) ($casoActivo->cartera_id ?? 0)"
-                    :entidadId="(int) $casoActivo->id"
-                    :key="'cp-caso-'.$casoActivo->id" />
-
-                <x-ui.card title="Historial ({{ $historial->count() }})" style="margin-top:12px;">
+                <x-ui.card title="Historial ({{ $historial->count() }})">
                     @if($historial->isEmpty())
                         <x-ui.empty-state title="Sin gestiones" message="Aún no hay gestiones registradas." />
                     @else
@@ -288,6 +282,16 @@
                                                 <x-ui.badge tone="info" size="sm">Causa: {{ $g->causa_nombre }}</x-ui.badge>
                                             @endif
                                         </div>
+                                    @endif
+
+                                    {{-- Valores de campos personalizados ámbito gestión × tipo_gestion. --}}
+                                    @if(! empty($valoresCamposGestion[$g->id] ?? []))
+                                        <dl style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px;">
+                                            @foreach($valoresCamposGestion[$g->id] as $cp)
+                                                <dt style="color:var(--text-tertiary);">{{ $cp['etiqueta'] }}</dt>
+                                                <dd style="color:var(--text);margin:0;">{{ $cp['valor'] }}</dd>
+                                            @endforeach
+                                        </dl>
                                     @endif
                                 </x-ui.timeline-item>
                             @endforeach

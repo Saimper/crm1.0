@@ -105,6 +105,65 @@
                   placeholder="Complemento libre. No extraigas datos de aquí, usa los campos estructurados."></textarea>
     </div>
 
+    {{-- Campos personalizados ámbito gestion × tipo_gestion. Solo aparecen cuando
+         el tipo seleccionado tiene definiciones; se persisten junto a la gestión. --}}
+    @if($tipoGestionId && $camposGestion->isNotEmpty())
+        <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-secondary);letter-spacing:0.06em;">
+                Campos personalizados
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                @foreach($camposGestion as $campo)
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700">
+                            {{ $campo->etiqueta }}
+                            @if($campo->obligatorio)<span class="text-red-600">*</span>@endif
+                        </label>
+
+                        @switch($campo->tipo)
+                            @case('texto_corto')
+                                <input type="text" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
+                                @break
+                            @case('texto_largo')
+                                <textarea wire:model="valoresCamposGestion.{{ $campo->codigo }}" rows="2"
+                                          class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"></textarea>
+                                @break
+                            @case('numero_entero')
+                                <input type="number" step="1" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
+                                @break
+                            @case('numero_decimal')
+                            @case('moneda')
+                                <input type="text" wire:model="valoresCamposGestion.{{ $campo->codigo }}" placeholder="0.00"
+                                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
+                                @break
+                            @case('fecha')
+                                <input type="date" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
+                                @break
+                            @case('fecha_hora')
+                                <input type="datetime-local" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
+                                @break
+                            @case('booleano')
+                                <select wire:model="valoresCamposGestion.{{ $campo->codigo }}"
+                                        class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">—</option>
+                                    <option value="1">Sí</option>
+                                    <option value="0">No</option>
+                                </select>
+                                @break
+                            @default
+                                <input type="text" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-gray-300 focus:border-blue-500 focus:ring-blue-500"/>
+                        @endswitch
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($requiereCompromiso && $tipoCaso === 'cobranza')
         <div class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
             <div class="text-xs font-semibold uppercase tracking-wider text-amber-800">Promesa de pago</div>

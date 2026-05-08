@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\Cobranza\Domain\ValueObjects\DatosPromesaPago;
 use App\Modules\Cobranza\Domain\ValueObjects\FechaPromesa;
 use App\Modules\Cobranza\Domain\ValueObjects\MontoPromesa;
@@ -82,6 +84,15 @@ final class NuevaGestion extends Component
 
     public ?string $accionTecnicoAsignado = null;
 
+    /**
+     * Valores de campos personalizados ámbito `gestion × tipo_gestion`.
+     * Se llenan inline al cambiar el tipo de gestión y se persisten en la
+     * misma transacción que la gestión recién creada.
+     *
+     * @var array<string, mixed>
+     */
+    public array $valoresCamposGestion = [];
+
     public function mount(int $casoId, int $personaId, string $tipoCaso): void
     {
         $this->casoId = $casoId;
@@ -89,7 +100,13 @@ final class NuevaGestion extends Component
         $this->tipoCaso = $tipoCaso;
     }
 
-    public function guardar(RegistrarGestion $useCase): void
+    public function updatedTipoGestionId(mixed $value): void
+    {
+        // Reset de valores capturados — los campos cambian con el tipo seleccionado.
+        $this->valoresCamposGestion = [];
+    }
+
+    public function guardar(RegistrarGestion $useCase, ServicioCamposPersonalizados $servicioCampos): void
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
@@ -162,7 +179,7 @@ final class NuevaGestion extends Component
                 );
             }
 
-            $useCase->execute(new RegistrarGestionInput(
+            $output = $useCase->execute(new RegistrarGestionInput(
                 publicId: (string) Str::ulid(),
                 proyectoId: $proyectoId,
                 casoId: $this->casoId,
@@ -179,6 +196,17 @@ final class NuevaGestion extends Component
                 creadaEn: new DateTimeImmutable,
                 datosCompromiso: $datosCompromiso,
             ));
+
+            // Persistir valores de campos personalizados ámbito `gestion × tipo_gestion`
+            // si el tipo seleccionado tiene definiciones. La validación dentro de
+            // `guardarValores` lanza si algún `obligatorio` viene vacío o el formato no calza.
+            $servicioCampos->guardarValores(
+                proyectoId: $proyectoId,
+                ambito: AmbitoCampo::GESTION,
+                ambitoId: (int) $this->tipoGestionId,
+                entidadId: $output->id,
+                valoresPorCodigo: $this->valoresCamposGestion,
+            );
         } catch (Throwable $e) {
             $this->addError('general', $e->getMessage());
 
@@ -192,17 +220,22 @@ final class NuevaGestion extends Component
             'resolucionAccion', 'resolucionFechaLimite', 'resolucionNivelEscalamientoId',
             'cierreMonto', 'cierreFechaEstimada', 'cierreEtapaEmbudoId',
             'accionDescripcion', 'accionFechaProgramada', 'accionTipoAccionId', 'accionTecnicoAsignado',
+            'valoresCamposGestion',
         ]);
 
         $this->dispatch('gestion-registrada');
         session()->flash('nueva-gestion-ok', 'Gestión registrada.');
     }
 
-    public function render(): View
+    public function render(ServicioCamposPersonalizados $servicioCampos): View
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
         $resultadoActual = $this->resultadoSeleccionado($proyectoId);
+
+        $camposGestion = $this->tipoGestionId !== null
+            ? $servicioCampos->campos($proyectoId, AmbitoCampo::GESTION, (int) $this->tipoGestionId)
+            : collect();
 
         return view('casos::livewire.nueva-gestion', [
             'canales' => $this->canales(),
@@ -218,6 +251,7 @@ final class NuevaGestion extends Component
             'requiereCausa' => $resultadoActual ? (bool) $resultadoActual->requiere_causa : false,
             'requiereCompromiso' => $resultadoActual ? (bool) $resultadoActual->requiere_compromiso : false,
             'esContactoEfectivo' => $resultadoActual ? (bool) $resultadoActual->es_contacto_efectivo : false,
+            'camposGestion' => $camposGestion,
         ]);
     }
 

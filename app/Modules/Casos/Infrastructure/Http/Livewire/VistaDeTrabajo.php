@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -115,6 +116,62 @@ final class VistaDeTrabajo extends Component
                 ->orderByDesc('g.creada_en')
                 ->limit(30)
                 ->get();
+
+            // Valores de campos personalizados ámbito gestión × tipo_gestion para
+            // las gestiones del historial. Una sola query, agrupados por gestion_id.
+            $valoresCamposGestion = [];
+            if ($historial->isNotEmpty()) {
+                $idsGestion = $historial->pluck('id')->all();
+                $filas = DB::table('valores_campo_personalizado as v')
+                    ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
+                    ->where('c.proyecto_id', $proyectoId)
+                    ->where('c.ambito', 'gestion')
+                    ->whereIn('v.entidad_id', $idsGestion)
+                    ->orderBy('c.orden')
+                    ->orderBy('c.codigo')
+                    ->select([
+                        'v.entidad_id as gestion_id',
+                        'c.codigo', 'c.etiqueta', 'c.tipo',
+                        'v.valor_texto_corto', 'v.valor_texto_largo',
+                        'v.valor_numero_entero', 'v.valor_numero_decimal',
+                        'v.valor_fecha', 'v.valor_fecha_hora',
+                        'v.valor_booleano', 'v.valor_moneda_monto', 'v.valor_moneda_codigo',
+                    ])
+                    ->get();
+
+                foreach ($filas as $f) {
+                    $valor = match ((string) $f->tipo) {
+                        'texto_corto' => $f->valor_texto_corto,
+                        'texto_largo' => $f->valor_texto_largo,
+                        'numero_entero' => $f->valor_numero_entero,
+                        'numero_decimal' => $f->valor_numero_decimal,
+                        'fecha' => $f->valor_fecha
+                            ? Carbon::parse($f->valor_fecha)->format('d/m/Y')
+                            : null,
+                        'fecha_hora' => $f->valor_fecha_hora
+                            ? Carbon::parse($f->valor_fecha_hora)->format('d/m/Y H:i')
+                            : null,
+                        'booleano' => $f->valor_booleano === null
+                            ? null
+                            : ((bool) $f->valor_booleano ? 'Sí' : 'No'),
+                        'moneda' => $f->valor_moneda_monto !== null
+                            ? ($f->valor_moneda_codigo ?? '').' '.number_format((float) $f->valor_moneda_monto, 2, '.', ',')
+                            : null,
+                        default => null,
+                    };
+
+                    if ($valor === null || $valor === '') {
+                        continue;
+                    }
+
+                    $gid = (int) $f->gestion_id;
+                    $valoresCamposGestion[$gid] ??= [];
+                    $valoresCamposGestion[$gid][] = [
+                        'etiqueta' => (string) $f->etiqueta,
+                        'valor' => (string) $valor,
+                    ];
+                }
+            }
 
             $compromisoActivo = DB::table('compromisos')
                 ->where('proyecto_id', $proyectoId)
@@ -251,6 +308,7 @@ final class VistaDeTrabajo extends Component
             'casoLeadVenta' => $casoLeadVenta,
             'casoServicio' => $casoServicio,
             'historial' => $historial,
+            'valoresCamposGestion' => $valoresCamposGestion ?? [],
             'compromisoActivo' => $compromisoActivo,
             'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,

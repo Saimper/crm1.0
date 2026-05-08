@@ -4,51 +4,51 @@
 @endphp
 
 @if($lead)
-    <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+    <div class="card card-pad" style="space-y:12px;">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <div class="text-[10px] uppercase tracking-wider text-emerald-700">Caso de venta · Lead</div>
-                <div class="text-lg font-semibold text-emerald-900 font-mono">{{ $lead->codigo_lead }}</div>
+                <div class="text-[10px] uppercase tracking-wider" style="color:var(--text-tertiary);">Caso de venta · Lead</div>
+                <div class="text-lg font-semibold font-mono" style="color:var(--text);">{{ $lead->codigo_lead }}</div>
             </div>
             <div class="text-right">
-                <div class="text-xs uppercase tracking-wider text-emerald-800 font-semibold">Valor estimado</div>
-                <div class="text-lg font-semibold text-emerald-900">
+                <div class="text-xs uppercase tracking-wider font-semibold" style="color:var(--text-secondary);">Valor estimado</div>
+                <div class="text-lg font-semibold" style="color:var(--text);">
                     {{ $lead->moneda }} {{ $fmt($lead->valor_estimado) }}
                 </div>
             </div>
         </div>
 
-        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs" style="margin-top:12px;">
             <div>
-                <dt class="text-emerald-700">Producto</dt>
-                <dd class="font-medium text-emerald-900">{{ $lead->producto_nombre ?? '—' }}</dd>
+                <dt style="color:var(--text-tertiary);">Producto</dt>
+                <dd class="font-medium" style="color:var(--text);">{{ $lead->producto_nombre ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-emerald-700">Etapa embudo</dt>
-                <dd class="font-medium text-emerald-900">
+                <dt style="color:var(--text-tertiary);">Etapa embudo</dt>
+                <dd class="font-medium" style="color:var(--text);">
                     {{ $lead->etapa_nombre ?? '—' }}
                     @if($lead->etapa_probabilidad !== null)
-                        <span class="text-[10px] text-emerald-700">· {{ $lead->etapa_probabilidad }}%</span>
+                        <span class="text-[10px]" style="color:var(--text-tertiary);">· {{ $lead->etapa_probabilidad }}%</span>
                     @endif
                 </dd>
             </div>
             <div>
-                <dt class="text-emerald-700">Origen</dt>
-                <dd class="font-medium text-emerald-900">{{ $lead->origen_lead ?? '—' }}</dd>
+                <dt style="color:var(--text-tertiary);">Origen</dt>
+                <dd class="font-medium" style="color:var(--text);">{{ $lead->origen_lead ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-emerald-700">Primer contacto</dt>
-                <dd class="font-medium text-emerald-900">
+                <dt style="color:var(--text-tertiary);">Primer contacto</dt>
+                <dd class="font-medium" style="color:var(--text);">
                     {{ \Illuminate\Support\Carbon::parse($lead->fecha_primer_contacto)->format('d/m/Y') }}
                 </dd>
             </div>
             @if($lead->fecha_estimada_cierre)
                 <div class="col-span-2 sm:col-span-4">
-                    <dt class="text-emerald-700">Cierre estimado</dt>
-                    <dd class="font-semibold text-emerald-900">
+                    <dt style="color:var(--text-tertiary);">Cierre estimado</dt>
+                    <dd class="font-semibold" style="color:var(--text);">
                         {{ \Illuminate\Support\Carbon::parse($lead->fecha_estimada_cierre)->format('d/m/Y') }}
                         @php $diff = \Illuminate\Support\Carbon::parse($lead->fecha_estimada_cierre)->diffForHumans(); @endphp
-                        <span class="text-[10px] text-emerald-700">· {{ $diff }}</span>
+                        <span class="text-[10px]" style="color:var(--text-tertiary);">· {{ $diff }}</span>
                     </dd>
                 </div>
             @endif
