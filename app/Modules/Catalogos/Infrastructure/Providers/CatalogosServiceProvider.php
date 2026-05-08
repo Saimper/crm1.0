@@ -5,16 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Catalogos\Infrastructure\Providers;
 
 use App\Modules\Catalogos\Application\Listeners\CrearEstadosCasoPorDefecto;
-use App\Modules\Catalogos\Infrastructure\Http\Livewire\AdminCausasGestion;
-use App\Modules\Catalogos\Infrastructure\Http\Livewire\AdminEstadosCaso;
-use App\Modules\Catalogos\Infrastructure\Http\Livewire\AdminMotivosNoContacto;
-use App\Modules\Catalogos\Infrastructure\Http\Livewire\AdminResultadosProyecto;
-use App\Modules\Catalogos\Infrastructure\Http\Livewire\AdminTiposGestion;
 use App\Modules\Tenancy\Domain\Events\ProyectoCreado;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Livewire\Livewire;
 
 final class CatalogosServiceProvider extends ServiceProvider
 {
@@ -27,13 +21,10 @@ final class CatalogosServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Namespace de vistas conservado para futuras pantallas operativas;
+        // los Livewires de definición de catálogos fueron absorbidos por el
+        // wizard "Configurar proyecto" (F36 P9).
         View::addNamespace('catalogos', resource_path('views/modules/catalogos'));
-
-        Livewire::component('catalogos.admin-resultados', AdminResultadosProyecto::class);
-        Livewire::component('catalogos.admin-tipos-gestion', AdminTiposGestion::class);
-        Livewire::component('catalogos.admin-causas-gestion', AdminCausasGestion::class);
-        Livewire::component('catalogos.admin-motivos-no-contacto', AdminMotivosNoContacto::class);
-        Livewire::component('catalogos.admin-estados-caso', AdminEstadosCaso::class);
 
         // F35-D: sembrar estados ABIERTO + CERRADO al crear cada proyecto.
         Event::listen(ProyectoCreado::class, [CrearEstadosCasoPorDefecto::class, 'handle']);

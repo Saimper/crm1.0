@@ -29,7 +29,7 @@
                 ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar','title' => 'Re-asignar entre equipos','desc' => 'Mover pendientes respetando casos en trabajo.',                           'icon' => 'refresh'],
             ],
             'Administración' => [
-                ['can' => 'catalogos.gestionar', 'route' => 'proyectos.catalogos', 'title' => 'Catálogos del proyecto', 'desc' => 'Resultados, tipos, causas, motivos, estados.',          'icon' => 'tag'],
+                // Tile "Catálogos del proyecto" absorbido por el wizard "Configurar proyecto" (F36 P9).
                 ['can' => 'usuarios.gestionar',  'route' => 'proyectos.usuarios',  'title' => 'Usuarios del proyecto',  'desc' => 'Asignar y quitar roles SUPERVISOR/GESTOR/AUDITOR.',   'icon' => 'users'],
                 ['can' => 'usuarios.gestionar',  'route' => 'proyectos.equipos',   'title' => 'Equipos del proyecto',   'desc' => 'Agrupar miembros en equipos para asignación.',        'icon' => 'briefcase'],
             ],

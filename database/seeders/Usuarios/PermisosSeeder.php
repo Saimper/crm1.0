@@ -137,6 +137,9 @@ final class PermisosSeeder extends Seeder
 
             // Roles custom (Fase 33) — exclusivo ADMIN_GLOBAL via Gate::before; no se asigna a roles base.
             ['codigo' => 'roles.gestionar',         'nombre' => 'Gestionar roles custom del proyecto',     'grupo' => 'roles',         'activo' => true],
+
+            // Configurador de proyecto (Fase 36) — exclusivo ADMIN_GLOBAL via Gate::before; no se asigna a roles base.
+            ['codigo' => 'proyectos.configurar',    'nombre' => 'Configurar proyecto (wizard)',            'grupo' => 'proyectos',     'activo' => true],
         ];
 
         DB::table('permisos')->upsert(

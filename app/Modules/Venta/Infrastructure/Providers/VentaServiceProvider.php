@@ -8,8 +8,6 @@ use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Venta\Application\Listeners\CrearCierreDesdeGestion;
 use App\Modules\Venta\Domain\Contracts\CasoLeadVentaRepository;
 use App\Modules\Venta\Domain\Contracts\CompromisoCierreVentaRepository;
-use App\Modules\Venta\Infrastructure\Http\Livewire\AdminEtapasEmbudo;
-use App\Modules\Venta\Infrastructure\Http\Livewire\AdminProductosVenta;
 use App\Modules\Venta\Infrastructure\Http\Livewire\ResolverCierre;
 use App\Modules\Venta\Infrastructure\Persistence\Repositories\EloquentCasoLeadVentaRepository;
 use App\Modules\Venta\Infrastructure\Persistence\Repositories\EloquentCompromisoCierreVentaRepository;
@@ -30,8 +28,6 @@ final class VentaServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('views/modules/venta'), 'venta');
 
         Livewire::component('venta.resolver-cierre', ResolverCierre::class);
-        Livewire::component('venta.admin-productos-venta', AdminProductosVenta::class);
-        Livewire::component('venta.admin-etapas-embudo', AdminEtapasEmbudo::class);
 
         Event::listen(GestionRegistrada::class, CrearCierreDesdeGestion::class);
     }

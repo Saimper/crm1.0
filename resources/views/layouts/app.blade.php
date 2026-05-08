@@ -178,18 +178,7 @@
 
                 <div class="sb-group">
                     <div class="sb-group-title">Datos</div>
-                    @can('catalogos.gestionar', $proyectoActivo->id)
-                        <a href="{{ route('proyectos.catalogos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.catalogos')) active @endif">
-                            <x-ui.icon name="tag" :size="15" />
-                            <span>Catálogos</span>
-                        </a>
-                        <a href="{{ route('proyectos.carteras', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.carteras')) active @endif">
-                            <x-ui.icon name="folder" :size="15" />
-                            <span>Carteras</span>
-                        </a>
-                    @endcan
+                    {{-- Catálogos y Carteras absorbidos por el wizard "Configurar proyecto" (F36 P8). --}}
                     @can('importaciones.crear', $proyectoActivo->id)
                         <a href="{{ route('proyectos.importaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.importaciones*')) active @endif">
@@ -260,6 +249,34 @@
                            class="sb-item @if($rid('proyectos.admin.matriz-permisos')) active @endif">
                             <x-ui.icon name="hash" :size="15" />
                             <span>Matriz de permisos</span>
+                        </a>
+                    </div>
+                @endcan
+
+                @can('proyectos.configurar', $proyectoActivo->id)
+                    @php
+                        // Avance se calcula UNA sola vez por render del layout.
+                        // El layout se monta una vez por request HTTP, así que
+                        // este bloque dispara los 9 verificadores a lo sumo 1
+                        // vez por página servida.
+                        $avanceConfigurador = app(\App\Modules\Tenancy\Domain\ConfiguracionProyecto\CalculadorAvanceConfiguracion::class)
+                            ->calcular((int) $proyectoActivo->id);
+
+                        if ($avanceConfigurador->estaCompleto()) {
+                            $configHref    = route('admin.proyectos.configurar.editar', ['proyecto' => $proyectoActivo->public_id]);
+                            $configTooltip = 'Editar configuración del proyecto';
+                        } else {
+                            $configHref    = route('admin.proyectos.configurar', ['proyecto' => $proyectoActivo->public_id]);
+                            $configTooltip = 'Completa la configuración inicial';
+                        }
+                    @endphp
+                    <div class="sb-group">
+                        <div class="sb-group-title">Configuración</div>
+                        <a href="{{ $configHref }}" wire:navigate
+                           title="{{ $configTooltip }}"
+                           class="sb-item @if($rid('admin.proyectos.configurar', 'admin.proyectos.configurar.editar')) active @endif">
+                            <x-ui.icon name="settings" :size="15" />
+                            <span>Configurar proyecto</span>
                         </a>
                     </div>
                 @endcan

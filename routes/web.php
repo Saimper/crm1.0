@@ -7,6 +7,7 @@ use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromiso
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarGestionesController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarPersonasController;
 use App\Modules\Reportes\Infrastructure\Http\Controllers\ExportarReporteController;
+use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin');
@@ -146,14 +147,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.exportar-compromisos');
 
-            Route::view('/catalogos', 'catalogos::page')
-                ->middleware('can:catalogos.gestionar')
-                ->name('proyectos.catalogos');
-
-            Route::view('/carteras', 'tenancy::admin.carteras-proyecto-page')
-                ->middleware('can:catalogos.gestionar')
-                ->name('proyectos.carteras');
-
+            // /proyectos/{id}/catalogos y /carteras eliminadas en F36 P9 — los flujos
+            // de definición se centralizaron en el wizard "Configurar proyecto".
             Route::view('/usuarios', 'usuarios::admin.gestion-usuarios-proyecto-page')
                 ->middleware('can:usuarios.gestionar')
                 ->name('proyectos.usuarios');
@@ -192,6 +187,27 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 }
             )->middleware('can:entidades.ver')->name('proyectos.entidades.registros');
         });
+
+    // Configurador de proyecto (F36) — exclusivo ADMIN_GLOBAL via Gate::before.
+    // Binding por public_id (ulid) para evitar IDOR por id interno.
+    // El modo (wizard/edicion) se pasa explícitamente desde cada closure al view.
+    Route::get('/admin/proyectos/{proyecto:public_id}/configurar', function (ProyectoModel $proyecto) {
+        return view('tenancy::admin.configurador-proyecto-page', [
+            'proyecto' => $proyecto,
+            'modo' => 'wizard',
+        ]);
+    })
+        ->middleware('can:proyectos.configurar')
+        ->name('admin.proyectos.configurar');
+
+    Route::get('/admin/proyectos/{proyecto:public_id}/configurar/editar', function (ProyectoModel $proyecto) {
+        return view('tenancy::admin.configurador-proyecto-page', [
+            'proyecto' => $proyecto,
+            'modo' => 'edicion',
+        ]);
+    })
+        ->middleware('can:proyectos.configurar')
+        ->name('admin.proyectos.configurar.editar');
 
     Route::prefix('admin')
         ->middleware('admin.global')

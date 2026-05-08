@@ -8,8 +8,6 @@ use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Servicio\Application\Listeners\CrearAccionDesdeGestion;
 use App\Modules\Servicio\Domain\Contracts\CasoServicioRepository;
 use App\Modules\Servicio\Domain\Contracts\CompromisoAccionServicioRepository;
-use App\Modules\Servicio\Infrastructure\Http\Livewire\AdminEstadosTecnicos;
-use App\Modules\Servicio\Infrastructure\Http\Livewire\AdminTiposAccionServicio;
 use App\Modules\Servicio\Infrastructure\Http\Livewire\ResolverAccion;
 use App\Modules\Servicio\Infrastructure\Persistence\Repositories\EloquentCasoServicioRepository;
 use App\Modules\Servicio\Infrastructure\Persistence\Repositories\EloquentCompromisoAccionServicioRepository;
@@ -30,8 +28,6 @@ final class ServicioServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('views/modules/servicio'), 'servicio');
 
         Livewire::component('servicio.resolver-accion', ResolverAccion::class);
-        Livewire::component('servicio.admin-tipos-accion-servicio', AdminTiposAccionServicio::class);
-        Livewire::component('servicio.admin-estados-tecnicos', AdminEstadosTecnicos::class);
 
         Event::listen(GestionRegistrada::class, CrearAccionDesdeGestion::class);
     }

@@ -9,8 +9,6 @@ use App\Modules\Cobranza\Domain\Contracts\CasoCobranzaRepository;
 use App\Modules\Cobranza\Domain\Contracts\CompromisoPromesaPagoRepository;
 use App\Modules\Cobranza\Domain\Contracts\TipoPagoRepository;
 use App\Modules\Cobranza\Domain\Contracts\TramoMoraRepository;
-use App\Modules\Cobranza\Infrastructure\Http\Livewire\AdminTiposPago;
-use App\Modules\Cobranza\Infrastructure\Http\Livewire\AdminTramosMora;
 use App\Modules\Cobranza\Infrastructure\Http\Livewire\ResolverPromesa;
 use App\Modules\Cobranza\Infrastructure\Persistence\Repositories\EloquentCasoCobranzaRepository;
 use App\Modules\Cobranza\Infrastructure\Persistence\Repositories\EloquentCompromisoPromesaPagoRepository;
@@ -36,8 +34,6 @@ final class CobranzaServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('views/modules/cobranza'), 'cobranza');
 
         Livewire::component('cobranza.resolver-promesa', ResolverPromesa::class);
-        Livewire::component('cobranza.admin-tramos-mora', AdminTramosMora::class);
-        Livewire::component('cobranza.admin-tipos-pago', AdminTiposPago::class);
 
         Event::listen(GestionRegistrada::class, CrearPromesaDesdeGestion::class);
     }

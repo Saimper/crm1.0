@@ -8,10 +8,6 @@ use App\Modules\Cx\Application\Listeners\CrearResolucionDesdeGestion;
 use App\Modules\Cx\Domain\Contracts\CasoTicketCxRepository;
 use App\Modules\Cx\Domain\Contracts\CompromisoResolucionTicketRepository;
 use App\Modules\Cx\Domain\Contracts\NivelEscalamientoRepository;
-use App\Modules\Cx\Infrastructure\Http\Livewire\AdminCategoriasTicket;
-use App\Modules\Cx\Infrastructure\Http\Livewire\AdminNivelesEscalamiento;
-use App\Modules\Cx\Infrastructure\Http\Livewire\AdminNivelesSla;
-use App\Modules\Cx\Infrastructure\Http\Livewire\AdminPrioridadesTicket;
 use App\Modules\Cx\Infrastructure\Http\Livewire\ResolverResolucion;
 use App\Modules\Cx\Infrastructure\Persistence\Repositories\EloquentCasoTicketCxRepository;
 use App\Modules\Cx\Infrastructure\Persistence\Repositories\EloquentCompromisoResolucionTicketRepository;
@@ -35,10 +31,6 @@ final class CxServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('views/modules/cx'), 'cx');
 
         Livewire::component('cx.resolver-resolucion', ResolverResolucion::class);
-        Livewire::component('cx.admin-categorias-ticket', AdminCategoriasTicket::class);
-        Livewire::component('cx.admin-prioridades-ticket', AdminPrioridadesTicket::class);
-        Livewire::component('cx.admin-niveles-sla', AdminNivelesSla::class);
-        Livewire::component('cx.admin-niveles-escalamiento', AdminNivelesEscalamiento::class);
 
         Event::listen(GestionRegistrada::class, CrearResolucionDesdeGestion::class);
     }

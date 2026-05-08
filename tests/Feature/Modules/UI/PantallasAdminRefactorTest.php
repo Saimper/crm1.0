@@ -108,15 +108,8 @@ final class PantallasAdminRefactorTest extends TestCase
         $response->assertSee('page-header', false);
     }
 
-    public function test_catalogos_refactorizado(): void
-    {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $response = $this->actingAs($supervisor)
-            ->get(route('proyectos.catalogos', ['proyecto_id' => $proyectoId]))
-            ->assertStatus(200);
-        $response->assertSee('page-header', false);
-    }
+    // test_catalogos_refactorizado eliminado en F36 P9: la ruta proyectos.catalogos
+    // fue removida; el flujo se centralizó en el wizard "Configurar proyecto".
 
     public function test_asignaciones_masiva_refactorizado(): void
     {
