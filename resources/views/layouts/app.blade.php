@@ -29,10 +29,10 @@
             || $authUser->tienePermiso('reportes.analiticos', $proyectoActivo->id)
             || $authUser->tienePermiso('reportes.constructor.ejecutar', $proyectoActivo->id)
         );
-        $verGrupoDatos = $proyectoActivo && $authUser && (
-            $authUser->tienePermiso('importaciones.crear', $proyectoActivo->id)
-            || $authUser->tienePermiso('entidades.ver', $proyectoActivo->id)
-        );
+        // "Datos" = administración de datos del proyecto (importaciones). Los registros
+        // operativos de entidades configurables se renderizan dentro de "Operación".
+        $verGrupoDatos = $proyectoActivo && $authUser
+            && $authUser->tienePermiso('importaciones.crear', $proyectoActivo->id);
         $verGrupoTrazabilidad = $proyectoActivo && $authUser && (
             $authUser->tienePermiso('auditoria.ver', $proyectoActivo->id)
             || $authUser->tienePermiso('notificaciones.ver', $proyectoActivo->id)
@@ -135,6 +135,26 @@
                             <span>Compromisos</span>
                         </a>
                     @endcan
+                    @can('entidades.ver', $proyectoActivo->id)
+                        @php
+                            $entidadesProyecto = \Illuminate\Support\Facades\DB::table('entidades_configurables')
+                                ->where('proyecto_id', $proyectoActivo->id)
+                                ->whereNull('eliminada_en')
+                                ->where('activo', true)
+                                ->orderBy('nombre')
+                                ->select(['id', 'nombre', 'icono'])
+                                ->limit(15)
+                                ->get();
+                        @endphp
+                        @foreach($entidadesProyecto as $ent)
+                            <a href="{{ route('proyectos.entidades.registros', ['proyecto_id' => $proyectoActivo->id, 'entidad_id' => $ent->id]) }}"
+                               wire:navigate
+                               class="sb-item @if(request()->is('proyectos/'.$proyectoActivo->id.'/entidades/'.$ent->id)) active @endif">
+                                <x-ui.icon :name="$ent->icono ?: 'layers'" :size="15" />
+                                <span>{{ $ent->nombre }}</span>
+                            </a>
+                        @endforeach
+                    @endcan
                     @can('asignaciones.ver_equipo', $proyectoActivo->id)
                         <a href="{{ route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja.equipo')) active @endif">
@@ -209,26 +229,6 @@
                             <x-ui.icon name="upload" :size="15" />
                             <span>Importaciones</span>
                         </a>
-                    @endcan
-                    @can('entidades.ver', $proyectoActivo->id)
-                        @php
-                            $entidadesProyecto = \Illuminate\Support\Facades\DB::table('entidades_configurables')
-                                ->where('proyecto_id', $proyectoActivo->id)
-                                ->whereNull('eliminada_en')
-                                ->where('activo', true)
-                                ->orderBy('nombre')
-                                ->select(['id', 'nombre', 'icono'])
-                                ->limit(15)
-                                ->get();
-                        @endphp
-                        @foreach($entidadesProyecto as $ent)
-                            <a href="{{ route('proyectos.entidades.registros', ['proyecto_id' => $proyectoActivo->id, 'entidad_id' => $ent->id]) }}"
-                               wire:navigate
-                               class="sb-item @if(request()->is('proyectos/'.$proyectoActivo->id.'/entidades/'.$ent->id)) active @endif">
-                                <x-ui.icon :name="$ent->icono ?: 'layers'" :size="15" />
-                                <span>{{ $ent->nombre }}</span>
-                            </a>
-                        @endforeach
                     @endcan
                 </div>
                 @endif
