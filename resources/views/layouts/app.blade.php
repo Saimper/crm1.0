@@ -18,6 +18,25 @@
             : null;
         $esAdmin        = $authUser?->esAdminGlobal() ?? false;
         $rid            = fn (string ...$names) => collect($names)->contains(fn ($n) => request()->routeIs($n));
+
+        // Visibilidad por grupo del sidebar — un grupo se oculta entero si el usuario
+        // no tiene ningún permiso de sus items. Evita títulos sueltos sin contenido.
+        $puedeCambiarProyecto = $proyectoActivo && (
+            $esAdmin || count($authUser?->proyectosAsignados() ?? []) > 1
+        );
+        $verGrupoReportes = $proyectoActivo && $authUser && (
+            $authUser->tienePermiso('reportes.operativos', $proyectoActivo->id)
+            || $authUser->tienePermiso('reportes.analiticos', $proyectoActivo->id)
+            || $authUser->tienePermiso('reportes.constructor.ejecutar', $proyectoActivo->id)
+        );
+        $verGrupoDatos = $proyectoActivo && $authUser && (
+            $authUser->tienePermiso('importaciones.crear', $proyectoActivo->id)
+            || $authUser->tienePermiso('entidades.ver', $proyectoActivo->id)
+        );
+        $verGrupoTrazabilidad = $proyectoActivo && $authUser && (
+            $authUser->tienePermiso('auditoria.ver', $proyectoActivo->id)
+            || $authUser->tienePermiso('notificaciones.ver', $proyectoActivo->id)
+        );
     @endphp
 
     <div class="app" :class="{ 'sidebar-open': sidebarOpen }">
@@ -73,12 +92,14 @@
                                 {{ $proyectoActivo->nombre }}
                             </span>
                         </div>
-                        <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm"
-                           style="width:100%;justify-content:center;text-decoration:none;"
-                           title="Volver al selector de proyectos">
-                            <x-ui.icon name="refresh" :size="13" />
-                            <span>Cambiar proyecto</span>
-                        </a>
+                        @if($puedeCambiarProyecto)
+                            <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm"
+                               style="width:100%;justify-content:center;text-decoration:none;"
+                               title="Volver al selector de proyectos">
+                                <x-ui.icon name="refresh" :size="13" />
+                                <span>Cambiar proyecto</span>
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -144,6 +165,7 @@
                     @endcan
                 </div>
 
+                @if($verGrupoReportes)
                 <div class="sb-group">
                     <div class="sb-group-title">Reportes</div>
                     @can('reportes.operativos', $proyectoActivo->id)
@@ -175,7 +197,9 @@
                         </a>
                     @endcan
                 </div>
+                @endif
 
+                @if($verGrupoDatos)
                 <div class="sb-group">
                     <div class="sb-group-title">Datos</div>
                     {{-- Catálogos y Carteras absorbidos por el wizard "Configurar proyecto" (F36 P8). --}}
@@ -207,7 +231,9 @@
                         @endforeach
                     @endcan
                 </div>
+                @endif
 
+                @if($verGrupoTrazabilidad)
                 <div class="sb-group">
                     <div class="sb-group-title">Trazabilidad</div>
                     @can('auditoria.ver', $proyectoActivo->id)
@@ -225,6 +251,7 @@
                         </a>
                     @endcan
                 </div>
+                @endif
 
                 @can('usuarios.gestionar', $proyectoActivo->id)
                     <div class="sb-group">
