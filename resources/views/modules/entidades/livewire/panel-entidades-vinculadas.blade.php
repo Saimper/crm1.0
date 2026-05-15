@@ -26,7 +26,7 @@
                     @endif
 
                     @if($formVisible && $entidadActivaId === (int) $entidad->id)
-                        <div class="card card-pad" style="margin-bottom:10px;background:var(--surface-2,#f8fafc);">
+                        <div class="card card-pad" style="margin-bottom:10px;background:var(--bg-subtle);">
                             <h4 style="font-size:12px;font-weight:600;margin-bottom:8px;">
                                 {{ $registroEditandoId === null ? 'Nuevo registro' : 'Editar registro' }}
                             </h4>
@@ -43,7 +43,7 @@
                                     <div>
                                         <label class="field-label">
                                             {{ $campo->etiqueta }}
-                                            @if($campo->obligatorio)<span style="color:var(--danger,#dc2626);">*</span>@endif
+                                            @if($campo->obligatorio)<span style="color:var(--danger);">*</span>@endif
                                         </label>
                                         @switch($campo->tipo)
                                             @case('texto_largo')
@@ -115,7 +115,7 @@
                                                         wire:click="eliminar({{ $r->id }})"
                                                         wire:confirm="¿Eliminar este registro?"
                                                         class="btn btn-ghost btn-xs"
-                                                        style="color:var(--danger,#dc2626);">Eliminar</button>
+                                                        style="color:var(--danger);">Eliminar</button>
                                             @endif
                                         </td>
                                     </tr>

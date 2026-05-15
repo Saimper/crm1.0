@@ -41,11 +41,11 @@
                     <span style="
                         width:22px;height:22px;border-radius:999px;display:inline-flex;
                         align-items:center;justify-content:center;font-size:11px;font-weight:600;
-                        @if($completo) background:#15803d;color:#ffffff;
+                        @if($completo) background:var(--success);color:var(--text-inverse);
                         @else background:var(--bg-subtle);color:var(--text-muted);border:1px solid var(--border);
                         @endif
                     ">
-                        @if($completo)<x-ui.icon name="check" :size="15" :stroke="3" style="color:#ffffff !important;"/>@else{{ $paso->indice() }}@endif
+                        @if($completo)<x-ui.icon name="check" :size="15" :stroke="3" style="color:var(--text-inverse) !important;"/>@else{{ $paso->indice() }}@endif
                     </span>
                     <span style="flex:1;font-size:13px;color:var(--text);">{{ $etiquetasPasos[$codigo] }}</span>
                     @if($opcional)
@@ -69,8 +69,8 @@
                     <li style="display:flex;align-items:center;gap:10px;padding:6px 10px;">
                         <span style="
                             width:14px;height:14px;border-radius:999px;
-                            background:{{ $cat['conteo'] > 0 ? '#16a34a' : 'var(--bg-subtle)' }};
-                            border:1px solid {{ $cat['conteo'] > 0 ? '#16a34a' : 'var(--border)' }};
+                            background:{{ $cat['conteo'] > 0 ? 'var(--success)' : 'var(--bg-subtle)' }};
+                            border:1px solid {{ $cat['conteo'] > 0 ? 'var(--success)' : 'var(--border)' }};
                         "></span>
                         <span style="flex:1;font-size:13px;color:var(--text);">{{ $cat['etiqueta'] }}</span>
                         <span style="font-size:12px;color:var(--text-secondary);">

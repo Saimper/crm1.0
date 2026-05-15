@@ -41,7 +41,7 @@
                         <span style="font-size:13px;font-weight:600;color:var(--text);">{{ $porcentaje }}%</span>
                     </div>
                     <div style="height:6px;background:var(--bg-subtle);border-radius:999px;overflow:hidden;">
-                        <div style="height:100%;background:var(--brand,#2563eb);width:{{ $porcentaje }}%;transition:width 200ms ease;"></div>
+                        <div style="height:100%;background:var(--primary);width:{{ $porcentaje }}%;transition:width 200ms ease;"></div>
                     </div>
                 </div>
             @endif
@@ -74,9 +74,9 @@
                                 display:flex;align-items:center;justify-content:center;
                                 font-size:11px;font-weight:600;
                                 @if($completo)
-                                    background:#15803d;color:#ffffff;
+                                    background:var(--success);color:var(--text-inverse);
                                 @elseif($esActivo && $modo === 'wizard')
-                                    background:var(--brand,#2563eb);color:#ffffff;
+                                    background:var(--primary);color:var(--text-inverse);
                                 @elseif($alcanzable)
                                     background:var(--bg-subtle);color:var(--text-secondary);border:1px solid var(--border);
                                 @else
@@ -84,7 +84,7 @@
                                 @endif
                             ">
                                 @if($completo)
-                                    <x-ui.icon name="check" :size="16" :stroke="3" style="color:#ffffff !important;" />
+                                    <x-ui.icon name="check" :size="16" :stroke="3" style="color:var(--text-inverse) !important;" />
                                 @elseif($modo === 'wizard' && ! $alcanzable)
                                     <x-ui.icon name="lock" :size="11" />
                                 @elseif($modo === 'wizard')

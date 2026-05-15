@@ -44,7 +44,7 @@
                         <div>
                             <label class="field-label">
                                 {{ $campo->etiqueta }}
-                                @if($campo->obligatorio)<span class="text-red-600">*</span>@endif
+                                @if($campo->obligatorio)<span class="text-danger-600">*</span>@endif
                             </label>
 
                             @switch($campo->tipo)

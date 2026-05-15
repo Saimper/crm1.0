@@ -17,7 +17,7 @@
                     style="
                         display:inline-flex;align-items:center;gap:6px;
                         padding:8px 12px;border:0;background:transparent;cursor:pointer;
-                        border-bottom:2px solid {{ $esActiva ? 'var(--brand,#2563eb)' : 'transparent' }};
+                        border-bottom:2px solid {{ $esActiva ? 'var(--primary)' : 'transparent' }};
                         color:{{ $esActiva ? 'var(--text)' : 'var(--text-secondary)' }};
                         font-weight:{{ $esActiva ? 600 : 400 }};
                         font-size:13px;
@@ -25,12 +25,12 @@
                 <span style="
                     width:16px;height:16px;border-radius:999px;display:inline-flex;
                     align-items:center;justify-content:center;font-size:10px;font-weight:600;
-                    @if($completo) background:#15803d;color:#ffffff;
+                    @if($completo) background:var(--success);color:var(--text-inverse);
                     @else background:var(--bg-subtle);color:var(--text-muted);border:1px solid var(--border);
                     @endif
                 ">
                     @if($completo)
-                        <x-ui.icon name="check" :size="12" :stroke="3" style="color:#ffffff !important;" />
+                        <x-ui.icon name="check" :size="12" :stroke="3" style="color:var(--text-inverse) !important;" />
                     @else
                         ·
                     @endif

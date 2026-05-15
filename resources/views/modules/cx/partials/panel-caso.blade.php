@@ -13,10 +13,10 @@
             @if($ticket->prioridad_nombre)
                 @php
                     $badge = match (strtoupper((string) $ticket->prioridad_codigo)) {
-                        'URGENTE' => 'bg-red-100 text-red-800',
+                        'URGENTE' => 'bg-danger-50 text-danger-700',
                         'ALTA'    => 'bg-orange-100 text-orange-800',
-                        'MEDIA'   => 'bg-amber-100 text-amber-800',
-                        default   => 'bg-emerald-100 text-emerald-800',
+                        'MEDIA'   => 'bg-warning-50 text-warning-700',
+                        default   => 'bg-success-50 text-success-800',
                     };
                 @endphp
                 <span class="inline-block rounded px-2 py-1 text-xs font-medium {{ $badge }}">

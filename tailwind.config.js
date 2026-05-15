@@ -1,6 +1,6 @@
-// Tokens extraídos de "Núcleo CRM (standalone).html" — fuente de verdad visual (F29).
-// Paleta neutral cool-gray + primary blue 600 + semánticos puros.
-// Tipografía: IBM Plex Sans (UI) + IBM Plex Mono (números/IDs/timestamps).
+// Tokens alineados al Design System wrapper unificado (perfil admin).
+// Paleta slate + primario azul acero #2E75B6. Tipografía Inter + JetBrains Mono.
+// Fuente de verdad: spec de unificación CRM + WhatsApp + ViciDial Modern.
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
@@ -15,8 +15,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"IBM Plex Sans"', 'Inter', ...defaultTheme.fontFamily.sans],
-                mono: ['"IBM Plex Mono"', ...defaultTheme.fontFamily.mono],
+                sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', ...defaultTheme.fontFamily.sans],
+                mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', ...defaultTheme.fontFamily.mono],
             },
             fontSize: {
                 'xs':  ['11px', { lineHeight: '1.4' }],
@@ -27,99 +27,121 @@ export default {
                 'xl':  ['16px', { lineHeight: '1.4' }],
                 '2xl': ['18px', { lineHeight: '1.35' }],
                 '3xl': ['20px', { lineHeight: '1.3' }],
-                '4xl': ['24px', { lineHeight: '1.25' }],
-                '5xl': ['28px', { lineHeight: '1.2' }],
+                '4xl': ['22px', { lineHeight: '1.3' }],
+                '5xl': ['26px', { lineHeight: '1.15' }],
                 '6xl': ['32px', { lineHeight: '1.15' }],
             },
             colors: {
-                // Surfaces (cool gray neutrals)
+                // Surfaces (slate neutrals — perfil admin)
                 surface: {
-                    DEFAULT: '#fafafa',  // bg
-                    0:       '#ffffff',  // bg-elev (cards, inputs)
-                    50:      '#fafafa',  // bg page
-                    100:     '#f4f5f7',  // bg-subtle (table head, kbd)
-                    200:     '#f0f1f3',  // bg-hover
-                    300:     '#e8eaed',  // bg-active
-                    border:  '#e4e6ea',
-                    'border-strong': '#d4d7dc',
+                    DEFAULT: '#F8FAFC',  // bg page
+                    0:       '#ffffff',  // bg elevated (cards, modals, dropdowns)
+                    50:      '#F8FAFC',
+                    100:     '#F1F5F9',  // bg subtle (inputs, table head, kbd)
+                    200:     '#E2E8F0',  // hover
+                    300:     '#CBD5E1',  // active / border strong
+                    border:  '#E2E8F0',
+                    'border-strong': '#CBD5E1',
                 },
                 ink: {
-                    DEFAULT: '#18181b',  // text
-                    900:     '#18181b',
-                    800:     '#27272a',
-                    700:     '#52525b',  // text-secondary
-                    600:     '#52525b',
-                    500:     '#71717a',  // text-tertiary
-                    400:     '#a1a1aa',  // text-muted
-                    50:      '#fafafa',
-                    inverse: '#ffffff',
+                    DEFAULT: '#0F172A',  // text primario (slate-900)
+                    900:     '#0F172A',
+                    800:     '#1E293B',
+                    700:     '#334155',
+                    600:     '#475569',  // text secundario (slate-600)
+                    500:     '#64748B',  // text terciario (slate-500)
+                    400:     '#94A3B8',  // muted / placeholders
+                    300:     '#CBD5E1',
+                    200:     '#E2E8F0',
+                    100:     '#F1F5F9',
+                    50:      '#F8FAFC',
+                    inverse: '#FFFFFF',
                 },
+                // Primario — azul acero admin
                 accent: {
-                    50:  '#eff4ff',
-                    500: '#2563eb',
-                    600: '#1d4ed8',
-                    700: '#1d4ed8',
+                    50:  '#E8F1F9',
+                    100: '#CFE0EE',
+                    500: '#2E75B6',
+                    600: '#266299',
+                    700: '#1F517E',
                 },
                 brand: {
-                    DEFAULT: '#2563eb',
-                    50:  '#eff4ff',  // primary-soft
-                    100: '#dbe4fe',  // primary-soft-border
-                    200: '#bfd1fc',
-                    300: '#93b3fa',
-                    400: '#5b8df5',
-                    500: '#2563eb',  // primary
-                    600: '#2563eb',
-                    700: '#1d4ed8',  // primary-hover / primary-text
-                    800: '#1e40af',
-                    900: '#1e3a8a',
+                    DEFAULT: '#2E75B6',
+                    50:  '#E8F1F9',   // primary-soft
+                    100: '#CFE0EE',   // primary-soft-strong
+                    200: '#AECCE3',
+                    300: '#7FAFD0',
+                    400: '#5092C5',
+                    500: '#2E75B6',   // base
+                    600: '#266299',   // hover
+                    700: '#1F517E',   // active / pressed / text sobre soft
+                    800: '#173F61',
+                    900: '#102C44',
                 },
                 success: {
-                    DEFAULT: '#16a34a',
-                    50:  '#ecfdf5',
-                    100: '#c8eed4',
-                    200: '#a7e0bc',
-                    500: '#16a34a',
-                    600: '#15803d',
-                    700: '#15803d',
+                    DEFAULT: '#16A34A',
+                    50:  '#DCFCE7',
+                    100: '#BBF7D0',
+                    200: '#86EFAC',
+                    500: '#16A34A',
+                    600: '#15803D',
+                    700: '#15803D',
                     800: '#166534',
-                    900: '#14532d',
+                    900: '#14532D',
                 },
                 warning: {
-                    DEFAULT: '#d97706',
-                    50:  '#fef6e7',
-                    100: '#fde9b8',
-                    200: '#fcd58c',
-                    500: '#d97706',
-                    600: '#b45309',
-                    700: '#b45309',
-                    800: '#92400e',
-                    900: '#78350f',
+                    DEFAULT: '#D97706',
+                    50:  '#FEF3C7',
+                    100: '#FDE68A',
+                    200: '#FCD34D',
+                    500: '#D97706',
+                    600: '#B45309',
+                    700: '#B45309',
+                    800: '#92400E',
+                    900: '#78350F',
                 },
                 danger: {
-                    DEFAULT: '#dc2626',
-                    50:  '#fef2f2',
-                    100: '#fde0e0',
-                    200: '#fbb6b6',
-                    500: '#dc2626',
-                    600: '#b91c1c',
-                    700: '#b91c1c',
-                    800: '#991b1b',
-                    900: '#7f1d1d',
+                    DEFAULT: '#DC2626',
+                    50:  '#FEE2E2',
+                    100: '#FECACA',
+                    200: '#FCA5A5',
+                    500: '#DC2626',
+                    600: '#B91C1C',
+                    700: '#B91C1C',
+                    800: '#991B1B',
+                    900: '#7F1D1D',
                 },
                 info: {
-                    DEFAULT: '#0891b2',
-                    50:  '#ecfeff',
-                    100: '#c5ecf3',
-                    200: '#a3dfeb',
-                    500: '#0891b2',
-                    600: '#0e7490',
-                    700: '#0e7490',
-                    800: '#155e75',
-                    900: '#164e63',
+                    DEFAULT: '#0369A1',
+                    50:  '#E0F2FE',
+                    100: '#BAE6FD',
+                    200: '#7DD3FC',
+                    500: '#0369A1',
+                    600: '#075985',
+                    700: '#0369A1',
+                    800: '#0C4A6E',
+                    900: '#082F49',
+                },
+                violet: {
+                    DEFAULT: '#6D28D9',
+                    50:  '#EDE9FE',
+                    500: '#6D28D9',
+                    600: '#5B21B6',
+                    700: '#4C1D95',
                 },
                 neutral: {
-                    soft: '#f1f3f5',
-                    text: '#52525b',
+                    soft: '#F1F5F9',
+                    text: '#475569',
+                },
+                // Buckets de mora (rangos de cobranza)
+                bucket: {
+                    1: '#10B981',
+                    2: '#3B82F6',
+                    3: '#6366F1',
+                    4: '#F59E0B',
+                    5: '#F97316',
+                    6: '#EF4444',
+                    default: '#94A3B8',
                 },
             },
             spacing: {
@@ -127,11 +149,14 @@ export default {
                 'sidebar': '240px',
             },
             boxShadow: {
-                'sm':         '0 1px 2px rgba(16, 24, 40, 0.04)',
-                'md':         '0 4px 12px rgba(16, 24, 40, 0.08)',
-                'lg':         '0 12px 32px rgba(16, 24, 40, 0.12)',
-                'card':       '0 1px 2px rgba(16, 24, 40, 0.04)',
-                'card-hover': '0 4px 16px rgba(16, 24, 40, 0.08)',
+                'xs':         '0 1px 2px rgba(15, 23, 42, 0.05)',
+                'sm':         '0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03)',
+                'md':         '0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04)',
+                'lg':         '0 8px 32px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04)',
+                'card':       '0 1px 2px rgba(15, 23, 42, 0.05)',
+                'card-hover': '0 4px 16px rgba(15, 23, 42, 0.06)',
+                'focus':      '0 0 0 3px rgba(46, 117, 182, 0.15)',
+                'focus-danger': '0 0 0 3px rgba(220, 38, 38, 0.15)',
             },
             borderRadius: {
                 'xs': '3px',
@@ -139,7 +164,8 @@ export default {
                 DEFAULT: '6px',
                 'md': '6px',
                 'lg': '8px',
-                'xl': '12px',
+                'xl': '10px',
+                '2xl': '12px',
             },
             transitionTimingFunction: {
                 'ease-ui': 'cubic-bezier(0.2, 0, 0, 1)',
@@ -159,14 +185,14 @@ export default {
                     '100%': { opacity: '1', transform: 'none' },
                 },
                 'toast-in': {
-                    '0%': { opacity: '0', transform: 'translateY(-6px)' },
+                    '0%': { opacity: '0', transform: 'translateX(8px)' },
                     '100%': { opacity: '1', transform: 'none' },
                 },
             },
             animation: {
                 'fade-in':   'fade-in 160ms cubic-bezier(0.2, 0, 0, 1)',
                 'slide-down':'slide-down 180ms cubic-bezier(0.2, 0, 0, 1) both',
-                'toast-in':  'toast-in 180ms cubic-bezier(0.2, 0, 0, 1)',
+                'toast-in':  'toast-in 200ms cubic-bezier(0.2, 0, 0, 1)',
             },
         },
     },

@@ -78,9 +78,9 @@
 
 @if($logoSpecial)
     <svg width="{{ $size }}" height="{{ $size }}" viewBox="0 0 24 24" {{ $attributes->merge(['class' => $extraClass]) }}>
-        <circle cx="12" cy="12" r="10" fill="#18181b"/>
+        <circle cx="12" cy="12" r="10" fill="#2E75B6"/>
         <circle cx="12" cy="12" r="3.4" fill="#fff"/>
-        <circle cx="12" cy="12" r="1.2" fill="#18181b"/>
+        <circle cx="12" cy="12" r="1.2" fill="#2E75B6"/>
     </svg>
 @else
     <svg width="{{ $size }}" height="{{ $size }}" viewBox="0 0 24 24" fill="none"

@@ -132,7 +132,7 @@
                             <x-ui.td align="right" mono>
                                 @can('asignaciones.reasignar', $proyectoActivo->id)
                                     <select wire:change="cambiarPrioridad({{ $a->id }}, $event.target.value)"
-                                            class="text-xs border-gray-300 rounded font-mono w-12 text-right">
+                                            class="text-xs border-ink-300 rounded font-mono w-12 text-right">
                                         @for($p = 0; $p <= 9; $p++)
                                             <option value="{{ $p }}" @if((int) $a->prioridad === $p) selected @endif>{{ $p }}</option>
                                         @endfor
