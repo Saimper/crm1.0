@@ -12,6 +12,7 @@ use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminUsuarios;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\GestionUsuariosProyecto;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\MatrizPermisos;
 use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminGlobal;
+use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminMandanteOGlobal;
 use App\Modules\Usuarios\Infrastructure\Persistence\Repositories\RepositorioRolCustomEloquent;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
@@ -29,6 +30,7 @@ final class UsuariosServiceProvider extends ServiceProvider
     public function boot(Router $router): void
     {
         $router->aliasMiddleware('admin.global', RequiereAdminGlobal::class);
+        $router->aliasMiddleware('admin.dual', RequiereAdminMandanteOGlobal::class);
 
         View::addNamespace('usuarios', resource_path('views/modules/usuarios'));
         Livewire::component('usuarios.admin-usuarios', AdminUsuarios::class);

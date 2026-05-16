@@ -46,8 +46,11 @@ final class AdminProyectos extends Component
     public function abrirFormCrear(): void
     {
         $this->editandoId = null;
+        $mandantesPermitidos = $this->mandantesPermitidos();
         $this->form = [
-            'mandante_id' => (int) (DB::table('mandantes')->where('activo', true)->value('id') ?? 0),
+            'mandante_id' => $mandantesPermitidos === null
+                ? (int) (DB::table('mandantes')->where('activo', true)->value('id') ?? 0)
+                : (int) ($mandantesPermitidos[0] ?? 0),
             'codigo' => '',
             'nombre' => '',
             'descripcion' => '',
@@ -65,6 +68,8 @@ final class AdminProyectos extends Component
         if ($row === null) {
             return;
         }
+
+        $this->guardContraMandanteAjeno((int) $row->mandante_id);
 
         $this->editandoId = $id;
         $this->form = [
@@ -107,6 +112,8 @@ final class AdminProyectos extends Component
         ]);
 
         $mandanteId = (int) $this->form['mandante_id'];
+        $this->guardContraMandanteAjeno($mandanteId);
+
         $codigoInput = trim((string) ($this->form['codigo'] ?? ''));
         $codigoBase = $codigoInput === ''
             ? GeneradorCodigo::derivar((string) ($this->form['nombre'] ?? ''), 80)
@@ -173,12 +180,22 @@ final class AdminProyectos extends Component
 
     public function desactivar(int $id): void
     {
+        $row = ProyectoModel::query()->find($id);
+        if ($row === null) {
+            return;
+        }
+        $this->guardContraMandanteAjeno((int) $row->mandante_id);
         ProyectoModel::query()->where('id', $id)->update(['activo' => false]);
         session()->flash('admin-proyectos-ok', 'Proyecto desactivado.');
     }
 
     public function activar(int $id): void
     {
+        $row = ProyectoModel::query()->find($id);
+        if ($row === null) {
+            return;
+        }
+        $this->guardContraMandanteAjeno((int) $row->mandante_id);
         ProyectoModel::query()->where('id', $id)->update(['activo' => true]);
         session()->flash('admin-proyectos-ok', 'Proyecto activado.');
     }
@@ -192,6 +209,12 @@ final class AdminProyectos extends Component
                 $join->on('ca.proyecto_id', '=', 'p.id')->whereNull('ca.eliminada_en');
             })
             ->whereNull('p.eliminada_en');
+
+        // F39: scope por mandante para ADMIN_MANDANTE.
+        $mandantesPermitidos = $this->mandantesPermitidos();
+        if ($mandantesPermitidos !== null) {
+            $query->whereIn('p.mandante_id', $mandantesPermitidos);
+        }
 
         if ($busqueda !== '') {
             $like = '%'.$busqueda.'%';
@@ -223,10 +246,15 @@ final class AdminProyectos extends Component
             ->orderBy('p.codigo')
             ->get();
 
-        $mandantes = DB::table('mandantes')
+        $mandantesQuery = DB::table('mandantes')
             ->whereNull('eliminada_en')
-            ->orderBy('codigo')
-            ->get(['id', 'codigo', 'nombre', 'activo']);
+            ->orderBy('codigo');
+
+        if ($mandantesPermitidos !== null) {
+            $mandantesQuery->whereIn('id', $mandantesPermitidos);
+        }
+
+        $mandantes = $mandantesQuery->get(['id', 'codigo', 'nombre', 'activo']);
 
         return view('tenancy::admin.proyectos', [
             'proyectos' => $proyectos,
@@ -239,5 +267,33 @@ final class AdminProyectos extends Component
         $v = trim((string) ($this->form[$key] ?? ''));
 
         return $v === '' ? null : $v;
+    }
+
+    /**
+     * F39: lista de mandantes que el user puede tocar. Null = sin restricción
+     * (ADMIN_GLOBAL). Array vacío = no autorizado.
+     *
+     * @return list<int>|null
+     */
+    private function mandantesPermitidos(): ?array
+    {
+        $usuario = auth()->user();
+        if ($usuario === null || $usuario->esAdminGlobal()) {
+            return null;
+        }
+
+        return $usuario->mandantesAdministrados();
+    }
+
+    private function guardContraMandanteAjeno(int $mandanteId): void
+    {
+        $permitidos = $this->mandantesPermitidos();
+        if ($permitidos === null) {
+            return; // ADMIN_GLOBAL
+        }
+
+        if (! in_array($mandanteId, $permitidos, true)) {
+            abort(403, 'No puedes operar proyectos de otro mandante.');
+        }
     }
 }

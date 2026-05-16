@@ -1,44 +1,66 @@
 <x-app-layout>
     @php
+        /** @var \App\Models\User|null $u */
+        $u = auth()->user();
+        $esAdminGlobal = $u?->esAdminGlobal() ?? false;
+
         $tiles = [
             [
                 'route' => 'admin.mandantes',
                 'title' => 'Mandantes',
                 'desc'  => 'Empresas externas que delegan procesos al BPO.',
                 'icon'  => 'building',
+                'solo_admin_global' => true,
             ],
             [
                 'route' => 'admin.proyectos',
                 'title' => 'Proyectos',
                 'desc'  => 'Contextos operativos por mandante (cobranza, CX, venta, servicio).',
                 'icon'  => 'folder',
+                'solo_admin_global' => false,
             ],
             [
                 'route' => 'admin.usuarios',
-                'title' => 'Usuarios globales',
-                'desc'  => 'Cuentas, ADMIN_GLOBAL y asignación de roles por proyecto.',
+                'title' => $esAdminGlobal ? 'Usuarios globales' : 'Usuarios del mandante',
+                'desc'  => $esAdminGlobal
+                    ? 'Cuentas, ADMIN_GLOBAL y asignación de roles por proyecto.'
+                    : 'Asignación de roles a usuarios en proyectos del mandante.',
                 'icon'  => 'users',
+                'solo_admin_global' => false,
             ],
             [
                 'route' => 'admin.campos-personalizados',
                 'title' => 'Campos personalizados',
                 'desc'  => 'Definir, editar y desactivar campos por proyecto.',
                 'icon'  => 'hash',
+                'solo_admin_global' => true,
             ],
             [
                 'route' => 'admin.entidades-configurables',
                 'title' => 'Entidades configurables',
                 'desc'  => 'Tablas tipadas (pólizas, vehículos, etc.) por proyecto/cartera.',
                 'icon'  => 'layers',
+                'solo_admin_global' => true,
+            ],
+            [
+                'route' => 'admin.auditoria',
+                'title' => $esAdminGlobal ? 'Auditoría global' : 'Auditoría del mandante',
+                'desc'  => 'Eventos del sistema (creación, edición, eliminación).',
+                'icon'  => 'shield',
+                'solo_admin_global' => false,
             ],
         ];
+
+        $tiles = array_filter($tiles, fn ($t) => $esAdminGlobal || ! $t['solo_admin_global']);
     @endphp
 
     <div class="page">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Administración global</h1>
-                <div class="page-subtitle">Configuración cross-project · solo ADMIN_GLOBAL</div>
+                <h1 class="page-title">{{ $esAdminGlobal ? 'Administración global' : 'Administración del mandante' }}</h1>
+                <div class="page-subtitle">
+                    {{ $esAdminGlobal ? 'Configuración cross-project · ADMIN_GLOBAL' : 'Proyectos y usuarios del mandante · ADMIN_MANDANTE' }}
+                </div>
             </div>
             <div style="display:flex;gap:8px;">
                 <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">← Selector de proyectos</a>

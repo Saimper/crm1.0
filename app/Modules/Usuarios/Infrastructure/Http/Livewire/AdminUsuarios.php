@@ -118,6 +118,8 @@ final class AdminUsuarios extends Component
 
     public function promoverAdminGlobal(int $usuarioId): void
     {
+        $this->soloAdminGlobal();
+
         $rolAdminGlobalId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
         if ($rolAdminGlobalId === 0) {
             return;
@@ -140,6 +142,8 @@ final class AdminUsuarios extends Component
 
     public function revocarAdminGlobal(int $usuarioId): void
     {
+        $this->soloAdminGlobal();
+
         $rolAdminGlobalId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
         if ($rolAdminGlobalId === 0) {
             return;
@@ -199,6 +203,8 @@ final class AdminUsuarios extends Component
             'asignarRolId' => 'rol',
         ]);
 
+        $this->guardContraProyectoAjeno((int) $this->asignarProyectoId);
+
         // Un usuario puede tener múltiples roles en el mismo proyecto (PK compuesta usuario+proyecto+rol).
         // Upsert para reactivar si ya existía en inactivo.
         DB::table('usuario_proyecto_rol')->upsert(
@@ -219,6 +225,8 @@ final class AdminUsuarios extends Component
 
     public function quitarAsignacion(int $usuarioId, int $proyectoId, int $rolId): void
     {
+        $this->guardContraProyectoAjeno($proyectoId);
+
         DB::table('usuario_proyecto_rol')
             ->where('usuario_id', $usuarioId)
             ->where('proyecto_id', $proyectoId)
@@ -230,6 +238,12 @@ final class AdminUsuarios extends Component
     public function render(): View
     {
         $busqueda = trim($this->busqueda);
+
+        $mandantesPermitidos = $this->mandantesPermitidos();
+        $proyectosPermitidos = $mandantesPermitidos === null
+            ? null
+            : $this->proyectosDeMandantes($mandantesPermitidos);
+
         $queryUsuarios = DB::table('users as u')
             ->leftJoin('usuario_global_rol as ugr', 'ugr.usuario_id', '=', 'u.id')
             ->leftJoin('roles as rg', function ($j): void {
@@ -244,6 +258,24 @@ final class AdminUsuarios extends Component
             });
         }
 
+        // F39: admin_mandante ve solo usuarios con pivot en sus proyectos
+        // (o pivot mandante en su mandante).
+        if ($proyectosPermitidos !== null) {
+            $queryUsuarios->where(function ($q) use ($proyectosPermitidos, $mandantesPermitidos): void {
+                $q->whereExists(function ($sub) use ($proyectosPermitidos): void {
+                    $sub->select(DB::raw(1))
+                        ->from('usuario_proyecto_rol')
+                        ->whereColumn('usuario_proyecto_rol.usuario_id', 'u.id')
+                        ->whereIn('usuario_proyecto_rol.proyecto_id', $proyectosPermitidos);
+                })->orWhereExists(function ($sub) use ($mandantesPermitidos): void {
+                    $sub->select(DB::raw(1))
+                        ->from('usuario_mandante_rol')
+                        ->whereColumn('usuario_mandante_rol.usuario_id', 'u.id')
+                        ->whereIn('usuario_mandante_rol.mandante_id', $mandantesPermitidos);
+                });
+            });
+        }
+
         $usuarios = $queryUsuarios
             ->select([
                 'u.id', 'u.name', 'u.email', 'u.activo',
@@ -253,9 +285,15 @@ final class AdminUsuarios extends Component
             ->orderBy('u.name')
             ->get();
 
-        $asignaciones = DB::table('usuario_proyecto_rol as upr')
+        $queryAsignaciones = DB::table('usuario_proyecto_rol as upr')
             ->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
-            ->join('roles as r', 'r.id', '=', 'upr.rol_id')
+            ->join('roles as r', 'r.id', '=', 'upr.rol_id');
+
+        if ($proyectosPermitidos !== null) {
+            $queryAsignaciones->whereIn('upr.proyecto_id', $proyectosPermitidos);
+        }
+
+        $asignaciones = $queryAsignaciones
             ->select([
                 'upr.usuario_id', 'upr.proyecto_id', 'upr.rol_id', 'upr.activo',
                 'p.codigo as proyecto_codigo', 'p.nombre as proyecto_nombre',
@@ -267,10 +305,15 @@ final class AdminUsuarios extends Component
             ->get()
             ->groupBy('usuario_id');
 
-        $proyectos = DB::table('proyectos')
+        $queryProyectos = DB::table('proyectos')
             ->whereNull('eliminada_en')
-            ->orderBy('codigo')
-            ->get(['id', 'codigo', 'nombre']);
+            ->orderBy('codigo');
+
+        if ($mandantesPermitidos !== null) {
+            $queryProyectos->whereIn('mandante_id', $mandantesPermitidos);
+        }
+
+        $proyectos = $queryProyectos->get(['id', 'codigo', 'nombre']);
 
         $roles = DB::table('roles')
             ->where('activo', true)
@@ -285,5 +328,54 @@ final class AdminUsuarios extends Component
             'roles' => $roles,
             'usuarioActual' => auth()->id(),
         ]);
+    }
+
+    /** @return list<int>|null */
+    private function mandantesPermitidos(): ?array
+    {
+        $usuario = auth()->user();
+        if ($usuario === null || $usuario->esAdminGlobal()) {
+            return null;
+        }
+
+        return $usuario->mandantesAdministrados();
+    }
+
+    /**
+     * @param  list<int>  $mandantes
+     * @return list<int>
+     */
+    private function proyectosDeMandantes(array $mandantes): array
+    {
+        if ($mandantes === []) {
+            return [];
+        }
+
+        return DB::table('proyectos')
+            ->whereIn('mandante_id', $mandantes)
+            ->whereNull('eliminada_en')
+            ->pluck('id')
+            ->map(fn (mixed $v): int => (int) $v)
+            ->all();
+    }
+
+    private function soloAdminGlobal(): void
+    {
+        $u = auth()->user();
+        if ($u === null || ! $u->esAdminGlobal()) {
+            abort(403, 'Solo ADMIN_GLOBAL puede gestionar el rol global.');
+        }
+    }
+
+    private function guardContraProyectoAjeno(int $proyectoId): void
+    {
+        $mandantes = $this->mandantesPermitidos();
+        if ($mandantes === null) {
+            return;
+        }
+        $proyectos = $this->proyectosDeMandantes($mandantes);
+        if (! in_array($proyectoId, $proyectos, true)) {
+            abort(403, 'No puedes operar usuarios en proyectos de otro mandante.');
+        }
     }
 }

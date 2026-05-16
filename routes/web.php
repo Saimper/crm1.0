@@ -210,23 +210,31 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('admin.proyectos.configurar.editar');
 
     Route::prefix('admin')
-        ->middleware('admin.global')
         ->group(function (): void {
-            Route::view('/', 'tenancy::admin-dashboard')->name('admin.dashboard');
-            Route::view('/campos-personalizados', 'campos_personalizados::admin.page')
-                ->name('admin.campos-personalizados');
-            Route::view('/mandantes', 'tenancy::admin.mandantes-page')
-                ->name('admin.mandantes');
-            Route::view('/proyectos', 'tenancy::admin.proyectos-page')
-                ->name('admin.proyectos');
-            Route::view('/usuarios', 'usuarios::admin.page')
-                ->name('admin.usuarios');
-            Route::view('/entidades-configurables', 'entidades::admin.page')
-                ->name('admin.entidades-configurables');
-            Route::view('/auditoria', 'auditoria::page')
-                ->name('admin.auditoria');
-            Route::view('/integracion/secrets', 'integracion::admin.sso-secrets-page')
-                ->name('admin.integracion.secrets');
+            // F39: rutas compartidas ADMIN_GLOBAL + ADMIN_MANDANTE.
+            // El scoping (qué proyectos/usuarios/eventos ve cada uno) lo aplica
+            // cada Livewire detectando el rol al renderizar.
+            Route::middleware('admin.dual')->group(function (): void {
+                Route::view('/', 'tenancy::admin-dashboard')->name('admin.dashboard');
+                Route::view('/proyectos', 'tenancy::admin.proyectos-page')
+                    ->name('admin.proyectos');
+                Route::view('/usuarios', 'usuarios::admin.page')
+                    ->name('admin.usuarios');
+                Route::view('/auditoria', 'auditoria::page')
+                    ->name('admin.auditoria');
+            });
+
+            // Rutas exclusivas ADMIN_GLOBAL (cross-mandante o vetadas a admin_mandante).
+            Route::middleware('admin.global')->group(function (): void {
+                Route::view('/campos-personalizados', 'campos_personalizados::admin.page')
+                    ->name('admin.campos-personalizados');
+                Route::view('/mandantes', 'tenancy::admin.mandantes-page')
+                    ->name('admin.mandantes');
+                Route::view('/entidades-configurables', 'entidades::admin.page')
+                    ->name('admin.entidades-configurables');
+                Route::view('/integracion/secrets', 'integracion::admin.sso-secrets-page')
+                    ->name('admin.integracion.secrets');
+            });
         });
 });
 

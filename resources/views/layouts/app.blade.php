@@ -16,8 +16,10 @@
         $proyectoActivo = app()->bound('tenancy.proyecto_activo')
             ? app('tenancy.proyecto_activo')
             : null;
-        $esAdmin        = $authUser?->esAdminGlobal() ?? false;
-        $rid            = fn (string ...$names) => collect($names)->contains(fn ($n) => request()->routeIs($n));
+        $esAdmin           = $authUser?->esAdminGlobal() ?? false;
+        $esAdminMandante   = ! $esAdmin && $authUser !== null && $authUser->mandantesAdministrados() !== [];
+        $esAdminAlguno     = $esAdmin || $esAdminMandante;
+        $rid               = fn (string ...$names) => collect($names)->contains(fn ($n) => request()->routeIs($n));
 
         // Visibilidad por grupo del sidebar — un grupo se oculta entero si el usuario
         // no tiene ningún permiso de sus items. Evita títulos sueltos sin contenido.
@@ -309,9 +311,9 @@
                 @endcan
             @endif
 
-            @if($esAdmin)
+            @if($esAdminAlguno)
                 <div class="sb-group">
-                    <div class="sb-group-title">Administración</div>
+                    <div class="sb-group-title">{{ $esAdmin ? 'Administración' : 'Administración (Mandante)' }}</div>
                     <a href="{{ route('admin.dashboard') }}" wire:navigate
                        class="sb-item @if($rid('admin.dashboard')) active @endif">
                         <x-ui.icon name="bar-chart" :size="15" />
@@ -322,40 +324,46 @@
                         <x-ui.icon name="briefcase" :size="15" />
                         <span>Proyectos</span>
                     </a>
-                    <a href="{{ route('admin.mandantes') }}" wire:navigate
-                       class="sb-item @if($rid('admin.mandantes')) active @endif">
-                        <x-ui.icon name="building" :size="15" />
-                        <span>Mandantes</span>
-                    </a>
+                    @if($esAdmin)
+                        <a href="{{ route('admin.mandantes') }}" wire:navigate
+                           class="sb-item @if($rid('admin.mandantes')) active @endif">
+                            <x-ui.icon name="building" :size="15" />
+                            <span>Mandantes</span>
+                        </a>
+                    @endif
                     <a href="{{ route('admin.usuarios') }}" wire:navigate
                        class="sb-item @if($rid('admin.usuarios')) active @endif">
                         <x-ui.icon name="users" :size="15" />
                         <span>Usuarios</span>
                     </a>
-                    <a href="{{ route('admin.campos-personalizados') }}" wire:navigate
-                       class="sb-item @if($rid('admin.campos-personalizados')) active @endif">
-                        <x-ui.icon name="hash" :size="15" />
-                        <span>Campos Personalizados</span>
-                    </a>
-                    <a href="{{ route('admin.entidades-configurables') }}" wire:navigate
-                       class="sb-item @if($rid('admin.entidades-configurables')) active @endif">
-                        <x-ui.icon name="layers" :size="15" />
-                        <span>Entidades Configurables</span>
-                    </a>
+                    @if($esAdmin)
+                        <a href="{{ route('admin.campos-personalizados') }}" wire:navigate
+                           class="sb-item @if($rid('admin.campos-personalizados')) active @endif">
+                            <x-ui.icon name="hash" :size="15" />
+                            <span>Campos Personalizados</span>
+                        </a>
+                        <a href="{{ route('admin.entidades-configurables') }}" wire:navigate
+                           class="sb-item @if($rid('admin.entidades-configurables')) active @endif">
+                            <x-ui.icon name="layers" :size="15" />
+                            <span>Entidades Configurables</span>
+                        </a>
+                    @endif
                     <a href="{{ route('admin.auditoria') }}" wire:navigate
                        class="sb-item @if($rid('admin.auditoria')) active @endif">
                         <x-ui.icon name="shield" :size="15" />
-                        <span>Auditoría global</span>
+                        <span>{{ $esAdmin ? 'Auditoría global' : 'Auditoría' }}</span>
                     </a>
-                    <a href="{{ route('admin.integracion.secrets') }}" wire:navigate
-                       class="sb-item @if($rid('admin.integracion.secrets')) active @endif">
-                        <x-ui.icon name="key" :size="15" />
-                        <span>SSO secrets</span>
-                    </a>
+                    @if($esAdmin)
+                        <a href="{{ route('admin.integracion.secrets') }}" wire:navigate
+                           class="sb-item @if($rid('admin.integracion.secrets')) active @endif">
+                            <x-ui.icon name="key" :size="15" />
+                            <span>SSO secrets</span>
+                        </a>
+                    @endif
                 </div>
             @endif
 
-            @if(!$proyectoActivo && !$esAdmin)
+            @if(!$proyectoActivo && !$esAdminAlguno)
                 <div class="sb-group">
                     <div class="sb-group-title">Inicio</div>
                     <a href="{{ route('dashboard') }}" wire:navigate

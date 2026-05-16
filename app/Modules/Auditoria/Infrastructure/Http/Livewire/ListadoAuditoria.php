@@ -55,6 +55,24 @@ final class ListadoAuditoria extends Component
         $modoGlobal = ! app()->bound('tenancy.proyecto_activo');
         $proyectoId = $modoGlobal ? null : (int) app('tenancy.proyecto_activo')->id;
 
+        // F39: en modo global, admin_mandante (no global) ve solo eventos
+        // de proyectos de su(s) mandante(s).
+        $proyectosPermitidos = null;
+        if ($modoGlobal) {
+            $usuario = auth()->user();
+            if ($usuario !== null && ! $usuario->esAdminGlobal()) {
+                $mandantes = $usuario->mandantesAdministrados();
+                $proyectosPermitidos = $mandantes === []
+                    ? []
+                    : DB::table('proyectos')
+                        ->whereIn('mandante_id', $mandantes)
+                        ->whereNull('eliminada_en')
+                        ->pluck('id')
+                        ->map(fn (mixed $v): int => (int) $v)
+                        ->all();
+            }
+        }
+
         $q = DB::table('auditorias as a')
             ->leftJoin('users as u', 'u.id', '=', 'a.usuario_id')
             ->leftJoin('proyectos as p', 'p.id', '=', 'a.proyecto_id')
@@ -66,7 +84,14 @@ final class ListadoAuditoria extends Component
             ]);
 
         if ($modoGlobal) {
-            // Sin scope de proyecto: ADMIN_GLOBAL ve todo (incluyendo nullables).
+            if ($proyectosPermitidos !== null) {
+                if ($proyectosPermitidos === []) {
+                    $q->whereRaw('1 = 0');
+                } else {
+                    $q->whereIn('a.proyecto_id', $proyectosPermitidos);
+                }
+            }
+            // ADMIN_GLOBAL ve todo (incluyendo nullables).
         } else {
             $q->where('a.proyecto_id', $proyectoId);
         }
@@ -92,6 +117,10 @@ final class ListadoAuditoria extends Component
         $tiposQ = DB::table('auditorias');
         if (! $modoGlobal) {
             $tiposQ->where('proyecto_id', $proyectoId);
+        } elseif ($proyectosPermitidos !== null) {
+            $proyectosPermitidos === []
+                ? $tiposQ->whereRaw('1 = 0')
+                : $tiposQ->whereIn('proyecto_id', $proyectosPermitidos);
         }
         $tiposEntidad = $tiposQ->distinct()->orderBy('entidad_tipo')
             ->pluck('entidad_tipo')->all();
@@ -100,6 +129,10 @@ final class ListadoAuditoria extends Component
             ->join('users as u', 'u.id', '=', 'a.usuario_id');
         if (! $modoGlobal) {
             $usuariosQ->where('a.proyecto_id', $proyectoId);
+        } elseif ($proyectosPermitidos !== null) {
+            $proyectosPermitidos === []
+                ? $usuariosQ->whereRaw('1 = 0')
+                : $usuariosQ->whereIn('a.proyecto_id', $proyectosPermitidos);
         }
         $usuarios = $usuariosQ->distinct()
             ->select(['u.id', 'u.name'])
@@ -111,6 +144,10 @@ final class ListadoAuditoria extends Component
             $detalleQ = DB::table('auditorias')->where('id', $this->detalleId);
             if (! $modoGlobal) {
                 $detalleQ->where('proyecto_id', $proyectoId);
+            } elseif ($proyectosPermitidos !== null) {
+                $proyectosPermitidos === []
+                    ? $detalleQ->whereRaw('1 = 0')
+                    : $detalleQ->whereIn('proyecto_id', $proyectosPermitidos);
             }
             $detalle = $detalleQ->first();
         }
