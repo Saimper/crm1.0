@@ -224,10 +224,12 @@ Pantalla única del gestor: identidad de persona + selector de casos (pestañas)
 - Global Scope Eloquent agrega `WHERE proyecto_id = {activo}` automáticamente.
 - Desactivar solo con `sinScopeProyecto()` en reportes consolidados de ADMIN_GLOBAL.
 - Roles base por proyecto: `SUPERVISOR`, `GESTOR`, `AUDITOR`. Inmutables desde UI.
+- Rol base mandante-scoped: `ADMIN_MANDANTE` (F38). Vive en `usuario_mandante_rol`, autoriza cross-proyecto del mandante. Permisos vetados igual que SUPERVISOR (no define campos ni entidades ni gestiona roles custom).
+- Middleware admin (F39): `admin.global` exclusivo ADMIN_GLOBAL (mandantes, campos-personalizados, entidades-configurables, integracion.secrets). `admin.dual` acepta ADMIN_GLOBAL o ADMIN_MANDANTE (dashboard, proyectos, usuarios, auditoria); cada Livewire aplica scoping por mandante cuando user es mandante (no global).
 - **Roles custom (F33)**: ADMIN_GLOBAL define roles adicionales por proyecto combinando permisos existentes. Se persisten en `roles_custom` + `rol_custom_permiso`. Asignación a usuario en `usuario_proyecto_rol_custom` (tabla simétrica a la base, sin tocar `usuario_proyecto_rol`). Permisos `*.definir` y `roles.gestionar` están vetados (`RolCustom::PERMISOS_VETADOS`).
 - Permisos granulares CRUD: `gestiones.crear`, `campos.editar`, `entidades.definir`, etc. (~70 en total).
 - Scope por cartera opcional: `usuario_proyecto_rol_cartera` (solo aplica a roles base; F33 no introduce cartera-scoping para custom).
-- `User::tienePermiso($codigo, $proyectoId, $carteraId)` es la API de verificación. Evalúa rol base (con cartera-scoping) y rol custom (sin cartera-scoping) en una sola llamada; basta con que cualquiera de los dos lo aporte.
+- `User::tienePermiso($codigo, $proyectoId, $carteraId)` es la API de verificación. Evalúa rol base (con cartera-scoping), rol custom (sin cartera-scoping) **y rol mandante F38** (sin cartera-scoping, autoriza si el proyecto pertenece al mandante donde el user tiene rol mandante) en una sola llamada; basta con que cualquiera de los tres lo aporte.
 - Permiso `roles.gestionar`: exclusivo ADMIN_GLOBAL. Vive en la lista vetada para impedir que un rol custom pueda crearse a sí mismo.
 
 ---
@@ -319,9 +321,9 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ---
 
-## 15. Estado actual (2026-04-30)
+## 15. Estado actual (2026-05-15)
 
-**73 migraciones | 21 módulos activos | tests F34C verdes (605 totales, 40 nuevos en F34C: 18 unit + 22 feature)**
+**76 migraciones | 21 módulos activos | tests F39 verdes (879 totales, +25 nuevos en F39 — reuso UI admin)**
 
 Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion. *(Clientes legacy eliminado en F34C-P2.)*
 
@@ -362,15 +364,63 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Constructor de roles custom por proyecto — ADMIN_GLOBAL combina permisos existentes en roles nombrados sin desplegar código. VO `CodigoRolCustom` regex `[A-Z][A-Z0-9_]*`. Entidad `RolCustom` con lista vetada `PERMISOS_VETADOS = ['campos.definir','entidades.definir','roles.gestionar']`. Tablas separadas (`roles_custom`, `rol_custom_permiso`, `usuario_proyecto_rol_custom`) sin tocar la base; `User::tienePermiso` une rol base (con cartera-scoping F22) + rol custom (sin cartera-scoping). Permiso nuevo `roles.gestionar` exclusivo ADMIN_GLOBAL. Livewire `AdminRolesCustom` (CRUD + filtro defensivo de permisos vetados) y `MatrizPermisos` read-only. Roles base permanecen inmutables desde UI. | ✅ F33 |
 | Auditoría F34A + remediación F34B — diagnóstico exhaustivo (47 ítems en `DOCS/AUDITORIA_F34.md`) y resolución de 30/31 P0+P1: nuevas pantallas (CrearCasoIndividual multiplexor por tipo, ListadoPersonas, ListadoCasos, ListadoCompromisos, AdminCarterasProyecto, EditarPersona, EditarCaso, EditarCompromiso); ediciones inline (Contactos editar/eliminar, prioridad asignación clamp [0,9]); auditoría global admin (`admin.auditoria` reusa `ListadoAuditoria` en modo sin-proyecto); diff visual auditoría (tabla campo×antes×después); enrichment de listados (notificación → caso link, importación → persona link, historial gestiones con motivo/causa/duración, panel compromisos resueltos con `fecha_resolucion`). Sidebar realineado con permisos de ruta + nuevos links F32/F33/F34. Terminología unificada (Cuentas→Casos, Promesa cierre→Compromiso cierre, Resolución/Escalamiento split, panel-caso prefix). 0 migraciones, 0 dependencias nuevas, 0 cambios al Domain del núcleo (ediciones operativas via UPDATE directo respetando invariantes vía limitaciones explícitas: tipo_caso/tipo_compromiso inmutables, estado_caso transición sólo via gestiones, compromiso editable sólo si estado=pendiente). 43 tests feature nuevos (565 totales). | ✅ F34B |
 | Cierre F34C — resolución de los parciales F34B (test RegistrarCampana, ImportarCasos→link via switch CTI, multi-tenancy 14 módulos en 4 batches) + 13 P2 + 3 P3. Borrar Clientes legacy + vista huérfana resolver-promesa. Migración rutas API a `routes/api.php` declaradas explícitamente en `bootstrap/app.php` (antes registradas dinámicamente desde IntegracionServiceProvider). Permisos `configuracion.ver/editar` muertos eliminados. SelectorProyecto auto-redirect cuando usuario no-admin tiene 1 proyecto. Equipo→Reporte link cruzado. Nueva pantalla `AdminTokensSso` admin global (filtro estado + revocar). Sidebar admin gana entrada Tokens SSO + items dinámicos por entidad configurable bajo grupo Datos. Dashboard proyecto gana 4 KPIs scoped por usuario (pendientes, gestiones hoy, compromisos próximos 7d, vencidos). Tests 6 VOs Domain (CodigoCampo, ResumenChunk, DatosCompromiso interface + 4 impls, CompromisoResolucionTicket, CompromisoAccionServicio, CompromisoCierreVenta). Bloqueado: `SnapshotGestion` namespace `Productos` inexistente → F34D. Diferido: refactor `ImportacionRepository` → F34D. 40 tests nuevos (605 totales). | ✅ F34C |
+| SSO mandante-scoped (refactor F28) — `sso_secret` mudado de `proyectos` a `mandantes`: 1 tenant wrapper = 1 mandante CRM = N proyectos. JWT enriquecido con claims `mandante_id` (obligatorio), `proyecto_id` (opcional), `iss=wrapper:{mandante_id}`, `aud=crm`; TTL bajado a 60s. `AutenticadorPorJwt` valida firma con `sso_secret` actual o `sso_secret_old` vigente (doble-secret 24h tras rotación). Si JWT no trae `proyecto_id`, handshake redirige a `SelectorProyecto` filtrado por mandante (admin_mandante elige cuál abrir). Validación cross-tenant: `proyecto.mandante_id == payload.mandante_id` o 403. Email JIT lowercase+trim. UseCase `RotarSecretMandante` mueve secret actual → `sso_secret_old` (válido 24h vía `sso_secret_old_expires_at`) y dispara `EmitirWebhookSecretRotado` (3 reintentos backoff 10/60/300s, firma HMAC-SHA256 con secret viejo). Webhook gemelo `EmitirWebhookStatusMandante` para activación/desactivación. Endpoint nuevo `GET /api/integracion/proyectos` autenticado por middleware `hmac.mandante` (headers `X-Mandante-Id`+`X-Timestamp`+`X-Signature`, leeway 60s, acepta `sso_secret` o `sso_secret_old`). UI `AdminSsoSecrets` pivot a 1 fila por mandante con drawer de webhook URLs + botón probar. `MapeoRolWrapper` agrega `admin_tenant→SUPERVISOR` (provisional, F38 lo cambia a `ADMIN_MANDANTE`). 2 migraciones (`mandantes_add_sso_columns`, `sso_tokens_consumidos_add_mandante`). Suite 836 verde. | ✅ F37 |
+| Rol `ADMIN_MANDANTE` mandante-scoped (cierre F37) — rol nuevo administra TODOS los proyectos de un mandante sin pivot por proyecto. Tabla nueva `usuario_mandante_rol` (PK `usuario_id`+`mandante_id`+`rol_id`, FKs cascade/restrict, sin cartera-scoping). Permisos nuevos `mandante.administrar` + `proyectos.crear`; `proyectos.configurar` (F36) y matriz operativa SUPERVISOR (gestiones/casos/personas/reportes/usuarios/equipos/catálogos/auditoria/etc) heredada al rol. Vetados: `campos.definir`, `entidades.definir`, `roles.gestionar` (siguen exclusivos ADMIN_GLOBAL). `User::tienePermiso` extendido con cuarta ruta de evaluación (rol base → rol custom → rol mandante via `usuario_mandante_rol` join `proyectos.mandante_id`). `User::tieneAccesoAProyecto` también incluye rol mandante. `User::mandantesAdministrados()` nuevo helper. `MapeoRolWrapper`: `admin_tenant`/`tenant_admin`/`admin_mandante` → `ADMIN_MANDANTE` (cambia el provisional F37). `MapeoRolWrapper::esRolMandante()` distingue qué tabla pivote usar. `AutenticadorPorJwt::garantizarPivotMandante` inserta en `usuario_mandante_rol` cuando rol es mandante; `garantizarPivotProyecto` queda solo para roles proyecto-scoped. `SelectorProyecto` UNION usuario_proyecto_rol + usuario_mandante_rol (admin_mandante ve todos los proyectos del mandante aunque no tenga pivot proyecto). 1 migración (`usuario_mandante_rol`). 18 tests nuevos (`RolMandantePermisosTest` 8 + `HandshakeAdminMandanteTest` 5 + `SelectorProyectoMandanteTest` 5). Sin UI scoped a mandante todavía: admin_mandante aterriza en SelectorProyecto del mandante y opera proyecto por proyecto vía pantallas existentes. UI dedicada queda diferida a fase posterior cuando haya feedback operativo real. | ✅ F38 |
+| UI admin reusada para ADMIN_MANDANTE (cierre F38) — sin pantallas nuevas: las admin globales ya existentes filtran por rol en server-side. Middleware nuevo `admin.dual` (alias de `RequiereAdminMandanteOGlobal`) acepta ADMIN_GLOBAL **o** ADMIN_MANDANTE. `routes/web.php` admin split: dashboard / proyectos / usuarios / auditoria → `admin.dual`; mandantes / campos-personalizados / entidades-configurables / integracion.secrets siguen `admin.global` exclusivo. Sidebar (`layouts/app.blade.php`) detecta `$esAdminMandante` (rol-mandante sin ser global) y `$esAdminAlguno`; oculta items vetados al admin_mandante (Mandantes, Campos, Entidades, SSO secrets); cambia título a "Administración (Mandante)" + "Auditoría". `AdminProyectos` Livewire scope: query `WHERE mandante_id IN mandantesPermitidos()`; pre-selecciona mandante propio al crear; `guardContraMandanteAjeno()` defensivo en abrirFormEditar/guardar/desactivar/activar (abort 403). `AdminUsuarios` Livewire scope: usuarios filtrados por `EXISTS pivot upr WHERE proyecto_id IN proyectosDelMandante OR EXISTS pivot umr WHERE mandante_id IN mandantes`; asignaciones limitadas a esos proyectos; dropdown proyectos limitado al mandante; `promoverAdminGlobal`/`revocarAdminGlobal` exigen ADMIN_GLOBAL via `soloAdminGlobal()`; `quitarAsignacion`/`guardarAsignacion` con `guardContraProyectoAjeno()`. `ListadoAuditoria` (modo global): admin_mandante ve solo eventos de proyectos de su mandante. Dashboard tiles: array filtrado por flag `solo_admin_global`; títulos cambian según rol. 0 migraciones, 0 tablas nuevas, 0 pantallas nuevas. 25 tests nuevos (`AdminMandanteAccesoTest` 12 + `AdminProyectosScopeMandanteTest` 7 + `AdminUsuariosScopeMandanteTest` 6). | ✅ F39 |
 
-### Módulo Integracion (F28)
+### Módulo Integracion (F28 + F37)
 
-- `POST /api/auth/sso-handshake` (throttle 10/min) → emite token one-time (SHA-256, TTL `SSO_TOKEN_TTL` seg).
-- `GET /integracion/handshake?token=...` → consume token, autentica usuario, redirige a Vista de Trabajo o bandeja.
+**Modelo SSO (F37):** `sso_secret` vive en `mandantes`. 1 tenant wrapper = 1 mandante CRM = N proyectos. JWT firmado HS256 con secret de mandante. Doble-secret 24h en rotación.
+
+**Endpoints:**
+- `GET /integracion/handshake?token=...` (web, throttle 30/min) → consume JWT, autentica usuario, redirige:
+  - Si JWT trae `proyecto_id` válido del mandante → Vista de Trabajo o bandeja del proyecto.
+  - Si `proyecto_id` ausente → `/dashboard?mandante={id}` (SelectorProyecto filtrado).
+  - `redirect_path` relativo (`/...`) se respeta si presente.
+- `POST /api/integracion/sanctum-token` (throttle 10/min) → mismo JWT, devuelve Sanctum PAT server-to-server.
 - `POST /api/auth/logout` (auth:sanctum) → invalida token + sesión.
-- `GET /api/integracion/persona` (auth:sanctum) → JSON preview: persona + casos + compromiso vigente + última gestión.
+- `GET /api/integracion/persona` (auth:sanctum) → JSON preview persona + casos + compromiso + última gestión.
+- `GET /api/integracion/proyectos` (`hmac.mandante`, throttle 60/min) → lista proyectos del mandante para wrapper.
+
+**Claims JWT:**
+- `jti` (UUID v4) — anti-replay vía `sso_tokens_consumidos`.
+- `sub` — email (normalizado lowercase+trim).
+- `name` — sincroniza al usuario en cada handshake.
+- `mandante_id` (int, **obligatorio**).
+- `proyecto_id` (int, opcional). Si presente, `proyecto.mandante_id` debe coincidir o 403.
+- `wrapper_role` — mapeado por `MapeoRolWrapper`: `agent→GESTOR`, `supervisor`/`admin_tenant`/`tenant_admin→SUPERVISOR`, `super_admin→` rechazado 400.
+- `iss` (opcional) — si presente debe ser `wrapper:{mandante_id}` o 400.
+- `aud` (opcional) — si presente debe ser `crm` o 400.
+- `iat`, `exp` — TTL ≤ 60s, leeway 30s.
+- `redirect_path`, `identificacion`, `tipo_identificacion_codigo` — opcionales.
+
+**Tabla `mandantes` (columnas SSO):**
+- `sso_secret` (varchar 64) — actual.
+- `sso_secret_old` (varchar 64, nullable) — anterior tras rotación.
+- `sso_secret_old_expires_at` (timestamp, nullable) — vencimiento de `sso_secret_old` (now+24h en rotación).
+- `webhook_url_secret_rotated` (varchar 255, nullable) — URL push al rotar.
+- `webhook_url_status_changed` (varchar 255, nullable) — URL push al cambiar `activo`.
+
+**Tabla `sso_tokens_consumidos` (anti-replay):** PK `jti`, `mandante_id` (int, NOT NULL), `proyecto_id` (int, nullable), `consumido_en`, `expira_en`. Purga vía `sso:purgar-consumidos` command.
+
+**Webhooks salientes (CRM → wrapper):**
+- `EmitirWebhookSecretRotado`: payload `{mandante_id, mandante_codigo, sso_secret_nuevo, sso_secret_old_expires_at, evento, emitido_en}` firmado HMAC-SHA256 con `sso_secret_old` (que el wrapper aún posee). 3 reintentos backoff `[10, 60, 300]`s. Falla silenciosa al 4to → log warning.
+- `EmitirWebhookStatusMandante`: payload `{mandante_id, mandante_codigo, activo, evento, emitido_en}` firmado con `sso_secret` actual.
+- Headers: `X-Mandante-Id` (int), `X-Event-Id` (UUID v4 estable entre reintentos — wrapper usa para idempotency, F37d), `X-Signature` (hex SHA-256, sin prefijo `sha256=`).
+
+**Middleware `hmac.mandante`** (alias en `IntegracionServiceProvider`):
+- Headers requeridos: `X-Mandante-Id`, `X-Timestamp` (epoch s, leeway 60s), `X-Signature` (HMAC-SHA256(body+timestamp, secret) hex).
+- Acepta firma con `sso_secret` o `sso_secret_old` (vigente).
+- Inyecta `mandante_id` en `$request->attributes` para el controller.
+
+**UI:**
+- `/admin/integracion/secrets` (`AdminSsoSecrets` Livewire) — 1 fila por mandante: revelar/ocultar secret, ver vencimiento `sso_secret_old`, rotar (con confirm), drawer editor de webhook URLs, botón probar webhook status. Permiso ADMIN_GLOBAL via `Gate::before`.
+
+**Notas operacionales:**
 - Middleware `CspFrameAncestors`: agrega `frame-ancestors 'self' <WRAPPER_DOMAIN>` cuando env seteado.
 - `SESSION_SAMESITE=none` necesario en producción si el CRM opera dentro de iframe cross-origin (requiere HTTPS).
+- Rol nuevo `ADMIN_MANDANTE` y tabla `usuario_mandante_rol` quedan diferidos a F38 (modelo permisos cross-proyecto del mandante). Mientras, `admin_tenant` → `SUPERVISOR` por mapeo provisional.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F37, con acuerdo previo.
 
 ### Módulo Importaciones — async F31
 
