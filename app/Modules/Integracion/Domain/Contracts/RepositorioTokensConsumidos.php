@@ -10,7 +10,12 @@ interface RepositorioTokensConsumidos
 {
     public function fueConsumido(string $jti): bool;
 
-    public function registrarConsumo(string $jti, int $proyectoId, DateTimeImmutable $expiraEn): void;
+    public function registrarConsumo(
+        string $jti,
+        int $mandanteId,
+        ?int $proyectoId,
+        DateTimeImmutable $expiraEn,
+    ): void;
 
     public function purgarExpirados(DateTimeImmutable $hasta): int;
 }

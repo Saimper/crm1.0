@@ -33,6 +33,7 @@ final class EmitirSanctumTokenDesdeJwt
         return new EmitirSanctumTokenOutput(
             accessToken: $token,
             usuarioId: (int) $resultado->usuario->id,
+            mandanteId: $resultado->payload->mandanteId,
             proyectoId: $resultado->payload->proyectoId,
         );
     }

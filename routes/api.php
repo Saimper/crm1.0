@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Integracion\Infrastructure\Http\Controllers\EmitirSanctumTokenController;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\PreviewPersonaController;
+use App\Modules\Integracion\Infrastructure\Http\Controllers\ProyectosMandanteController;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\SsoLogoutController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,4 +30,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/integracion/persona', PreviewPersonaController::class)
         ->middleware('throttle:60,1')
         ->name('api.integracion.persona');
+});
+
+// F37: endpoint server-to-server autenticado por HMAC con sso_secret del
+// mandante. Usado por el wrapper para listar proyectos de su mandante y
+// poblar el dropdown de mapeo "campaña → crm_proyecto_id".
+Route::middleware(['hmac.mandante', 'throttle:60,1'])->group(function (): void {
+    Route::get('/integracion/proyectos', ProyectosMandanteController::class)
+        ->name('api.integracion.proyectos');
 });

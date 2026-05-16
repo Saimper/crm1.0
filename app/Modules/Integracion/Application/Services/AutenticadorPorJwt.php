@@ -9,7 +9,8 @@ use App\Modules\Integracion\Domain\Contracts\RepositorioTokensConsumidos;
 use App\Modules\Integracion\Domain\Exceptions\JwtFirmaInvalida;
 use App\Modules\Integracion\Domain\Exceptions\JwtMalFormado;
 use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
-use App\Modules\Integracion\Domain\Exceptions\ProyectoSsoNoConfigurado;
+use App\Modules\Integracion\Domain\Exceptions\MandanteProyectoMismatch;
+use App\Modules\Integracion\Domain\Exceptions\MandanteSsoNoConfigurado;
 use App\Modules\Integracion\Domain\ValueObjects\MapeoRolWrapper;
 use App\Modules\Integracion\Domain\ValueObjects\PayloadJwt;
 use DateTimeImmutable;
@@ -18,12 +19,15 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * Servicio compartido por el handshake browser (sesión web) y el endpoint
- * server-to-server que emite Sanctum tokens. Hace toda la validación
- * criptográfica del JWT, anti-replay y JIT provisioning.
+ * F37: secret vive en mandantes.sso_secret. JWT trae mandante_id (obligatorio)
+ * y proyecto_id (opcional). Si proyecto_id ausente, se autentica al usuario
+ * pero no se le asigna pivot — el handshake redirige a SelectorProyecto del
+ * mandante. Soporta doble-secret 24h: si firma con secret actual falla,
+ * intenta con sso_secret_old si está vigente.
  */
 final class AutenticadorPorJwt
 {
@@ -38,55 +42,75 @@ final class AutenticadorPorJwt
 
     public function autenticar(string $jwt): ResultadoAutenticacionJwt
     {
-        $proyectoIdAviso = $this->extraerProyectoIdInseguro($jwt);
+        $mandanteIdAviso = $this->extraerMandanteIdInseguro($jwt);
 
-        $proyecto = $this->db->table('proyectos')
-            ->where('id', $proyectoIdAviso)
+        $mandante = $this->db->table('mandantes')
+            ->where('id', $mandanteIdAviso)
             ->whereNull('eliminada_en')
             ->where('activo', true)
-            ->first(['id', 'sso_secret']);
+            ->first([
+                'id',
+                'sso_secret',
+                'sso_secret_old',
+                'sso_secret_old_expires_at',
+            ]);
 
-        if ($proyecto === null) {
+        if ($mandante === null) {
             throw JwtFirmaInvalida::crear();
         }
 
-        $secret = (string) ($proyecto->sso_secret ?? '');
+        $secret = (string) ($mandante->sso_secret ?? '');
         if ($secret === '') {
-            throw ProyectoSsoNoConfigurado::crear((int) $proyecto->id);
+            throw MandanteSsoNoConfigurado::crear((int) $mandante->id);
         }
 
         JWT::$leeway = self::LEEWAY_SEGUNDOS;
 
-        try {
-            $claims = JWT::decode($jwt, new Key($secret, self::ALGORITMO));
-        } catch (ExpiredException|SignatureInvalidException $e) {
-            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
-            throw JwtFirmaInvalida::crear();
-        } catch (\UnexpectedValueException|\DomainException $e) {
-            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
-            throw JwtFirmaInvalida::crear();
-        }
+        $claims = $this->decodificarConSecretVigente($jwt, $mandante);
 
         $ahora = new DateTimeImmutable('now');
         $payload = PayloadJwt::desdeClaims($claims, $ahora);
 
-        if ($payload->proyectoId !== (int) $proyecto->id) {
+        if ($payload->mandanteId !== (int) $mandante->id) {
             throw JwtFirmaInvalida::crear();
+        }
+
+        if ($payload->proyectoId !== null) {
+            $perteneceAlMandante = $this->db->table('proyectos')
+                ->where('id', $payload->proyectoId)
+                ->where('mandante_id', $mandante->id)
+                ->whereNull('eliminada_en')
+                ->where('activo', true)
+                ->exists();
+
+            if (! $perteneceAlMandante) {
+                throw MandanteProyectoMismatch::crear((int) $mandante->id, $payload->proyectoId);
+            }
         }
 
         if ($this->repositorioConsumidos->fueConsumido($payload->jti)) {
             throw JwtTokenYaConsumido::crear();
         }
 
-        return $this->db->transaction(function () use ($payload, $ahora): ResultadoAutenticacionJwt {
+        return $this->db->transaction(function () use ($payload, $ahora, $mandante): ResultadoAutenticacionJwt {
             $this->repositorioConsumidos->registrarConsumo(
                 $payload->jti,
+                (int) $mandante->id,
                 $payload->proyectoId,
                 $payload->expiraEn,
             );
 
             $usuario = $this->provisionarUsuario($payload->email, $payload->name);
-            $this->garantizarPivotProyecto($usuario->id, $payload->proyectoId, $payload->wrapperRole);
+
+            $codigoRol = MapeoRolWrapper::aCodigoRolBase($payload->wrapperRole);
+
+            if (MapeoRolWrapper::esRolMandante($codigoRol)) {
+                // F38: rol mandante-scoped. Pivot en usuario_mandante_rol cubre
+                // todos los proyectos del mandante; no se crea pivot por proyecto.
+                $this->garantizarPivotMandante($usuario->id, (int) $mandante->id, $codigoRol);
+            } elseif ($payload->proyectoId !== null) {
+                $this->garantizarPivotProyecto($usuario->id, $payload->proyectoId, $codigoRol);
+            }
 
             $this->db->table('users')
                 ->where('id', $usuario->id)
@@ -99,7 +123,49 @@ final class AutenticadorPorJwt
         });
     }
 
-    private function extraerProyectoIdInseguro(string $jwt): int
+    /**
+     * Intenta decodificar con sso_secret actual; si firma falla y existe
+     * sso_secret_old vigente (no expirado), reintenta con el viejo. Esto
+     * permite rotación sin downtime de tokens en vuelo durante 24h.
+     */
+    private function decodificarConSecretVigente(string $jwt, object $mandante): object
+    {
+        try {
+            return JWT::decode($jwt, new Key((string) $mandante->sso_secret, self::ALGORITMO));
+        } catch (SignatureInvalidException) {
+            // Reintento con secret viejo si está vigente.
+        } catch (ExpiredException $e) {
+            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
+            throw JwtFirmaInvalida::crear();
+        } catch (\UnexpectedValueException|\DomainException $e) {
+            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
+            throw JwtFirmaInvalida::crear();
+        }
+
+        $secretOld = (string) ($mandante->sso_secret_old ?? '');
+        $expiresAt = $mandante->sso_secret_old_expires_at ?? null;
+
+        if ($secretOld === '' || $expiresAt === null) {
+            throw JwtFirmaInvalida::crear();
+        }
+
+        $expiresCarbon = Carbon::parse((string) $expiresAt);
+        if ($expiresCarbon->isPast()) {
+            throw JwtFirmaInvalida::crear();
+        }
+
+        try {
+            return JWT::decode($jwt, new Key($secretOld, self::ALGORITMO));
+        } catch (ExpiredException|SignatureInvalidException $e) {
+            \Log::warning('jwt decode failed con secret old', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
+            throw JwtFirmaInvalida::crear();
+        } catch (\UnexpectedValueException|\DomainException $e) {
+            \Log::warning('jwt decode failed con secret old', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
+            throw JwtFirmaInvalida::crear();
+        }
+    }
+
+    private function extraerMandanteIdInseguro(string $jwt): int
     {
         $partes = explode('.', $jwt);
         if (count($partes) !== 3) {
@@ -112,21 +178,23 @@ final class AutenticadorPorJwt
         }
 
         $obj = json_decode($payloadRaw);
-        if (! is_object($obj) || ! isset($obj->proyecto_id)) {
+        if (! is_object($obj) || ! isset($obj->mandante_id)) {
             throw JwtMalFormado::crear();
         }
 
-        $proyectoId = (int) $obj->proyecto_id;
-        if ($proyectoId <= 0) {
+        $mandanteId = (int) $obj->mandante_id;
+        if ($mandanteId <= 0) {
             throw JwtMalFormado::crear();
         }
 
-        return $proyectoId;
+        return $mandanteId;
     }
 
     private function provisionarUsuario(string $email, string $name): User
     {
-        $existente = User::query()->where('email', $email)->first();
+        $emailNormalizado = strtolower(trim($email));
+
+        $existente = User::query()->where('email', $emailNormalizado)->first();
 
         if ($existente !== null) {
             $cambios = [];
@@ -147,7 +215,7 @@ final class AutenticadorPorJwt
         $usuario = new User;
         $usuario->forceFill([
             'name' => $name,
-            'email' => $email,
+            'email' => $emailNormalizado,
             'password' => bcrypt(Str::random(40)),
             'activo' => true,
             'sso_provisioned' => true,
@@ -156,20 +224,9 @@ final class AutenticadorPorJwt
         return $usuario;
     }
 
-    private function garantizarPivotProyecto(int $usuarioId, int $proyectoId, ?string $wrapperRole): void
+    private function garantizarPivotProyecto(int $usuarioId, int $proyectoId, string $codigoRol): void
     {
-        $codigoRol = MapeoRolWrapper::aCodigoRolBase($wrapperRole);
-        $rolId = (int) $this->db->table('roles')
-            ->where('codigo', $codigoRol)
-            ->where('activo', true)
-            ->value('id');
-
-        if ($rolId === 0) {
-            $rolId = (int) $this->db->table('roles')
-                ->where('codigo', 'GESTOR')
-                ->where('activo', true)
-                ->value('id');
-        }
+        $rolId = $this->resolverRolId($codigoRol);
 
         $existePivotActivo = $this->db->table('usuario_proyecto_rol')
             ->where('usuario_id', $usuarioId)
@@ -187,5 +244,45 @@ final class AutenticadorPorJwt
             'rol_id' => $rolId,
             'activo' => true,
         ]);
+    }
+
+    private function garantizarPivotMandante(int $usuarioId, int $mandanteId, string $codigoRol): void
+    {
+        $rolId = $this->resolverRolId($codigoRol);
+
+        $existePivotActivo = $this->db->table('usuario_mandante_rol')
+            ->where('usuario_id', $usuarioId)
+            ->where('mandante_id', $mandanteId)
+            ->where('rol_id', $rolId)
+            ->where('activo', true)
+            ->exists();
+
+        if ($existePivotActivo) {
+            return;
+        }
+
+        $this->db->table('usuario_mandante_rol')->insert([
+            'usuario_id' => $usuarioId,
+            'mandante_id' => $mandanteId,
+            'rol_id' => $rolId,
+            'activo' => true,
+        ]);
+    }
+
+    private function resolverRolId(string $codigoRol): int
+    {
+        $rolId = (int) $this->db->table('roles')
+            ->where('codigo', $codigoRol)
+            ->where('activo', true)
+            ->value('id');
+
+        if ($rolId === 0) {
+            $rolId = (int) $this->db->table('roles')
+                ->where('codigo', 'GESTOR')
+                ->where('activo', true)
+                ->value('id');
+        }
+
+        return $rolId;
     }
 }

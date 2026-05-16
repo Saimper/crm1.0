@@ -22,10 +22,15 @@ final class RepositorioTokensConsumidosEloquent implements RepositorioTokensCons
         return $this->db->table(self::TABLA)->where('jti', $jti)->exists();
     }
 
-    public function registrarConsumo(string $jti, int $proyectoId, DateTimeImmutable $expiraEn): void
-    {
+    public function registrarConsumo(
+        string $jti,
+        int $mandanteId,
+        ?int $proyectoId,
+        DateTimeImmutable $expiraEn,
+    ): void {
         $this->db->table(self::TABLA)->insert([
             'jti' => $jti,
+            'mandante_id' => $mandanteId,
             'proyecto_id' => $proyectoId,
             'consumido_en' => Carbon::now(),
             'expira_en' => Carbon::createFromTimestamp($expiraEn->getTimestamp()),

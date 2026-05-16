@@ -5,25 +5,37 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Integracion;
 
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class HandshakeJwtTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
-    private int $proyectoId;
+    private \stdClass $mandante;
+
+    private \stdClass $proyecto;
 
     private string $secret;
 
+    private int $proyectoId;
+
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $this->mandante = $this->crearMandante();
+        $this->proyecto = $this->crearProyectoCobranza($this->mandante);
+        $this->secret = (string) $this->mandante->sso_secret;
+        $this->proyectoId = (int) $this->proyecto->id;
     }
 
     public function test_jwt_valido_jit_provisiona_usuario_y_login(): void
@@ -32,6 +44,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'nuevo.gestor@wrapper.io',
             'name' => 'Nuevo Gestor',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -60,12 +73,37 @@ final class HandshakeJwtTest extends TestCase
         );
     }
 
-    public function test_wrapper_role_tenant_admin_mapea_a_supervisor(): void
+    public function test_jwt_sin_proyecto_id_redirige_a_selector_filtrado_por_mandante(): void
+    {
+        $jwt = $this->firmar([
+            'sub' => 'admin.mand@wrapper.io',
+            'name' => 'Admin Mandante',
+            'wrapper_role' => 'admin_tenant',
+            'mandante_id' => (int) $this->mandante->id,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/dashboard?mandante={$this->mandante->id}");
+
+        $usuario = User::where('email', 'admin.mand@wrapper.io')->firstOrFail();
+
+        // Sin proyecto_id, no se crea pivot.
+        $this->assertSame(
+            0,
+            (int) DB::table('usuario_proyecto_rol')->where('usuario_id', $usuario->id)->count(),
+        );
+    }
+
+    public function test_wrapper_role_admin_tenant_mapea_a_admin_mandante(): void
     {
         $jwt = $this->firmar([
             'sub' => 'admin@wrapper.io',
             'name' => 'Admin Wrapper',
-            'wrapper_role' => 'tenant_admin',
+            'wrapper_role' => 'admin_tenant',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -75,15 +113,17 @@ final class HandshakeJwtTest extends TestCase
         $this->get("/integracion/handshake?token={$jwt}")->assertRedirect();
 
         $usuario = User::where('email', 'admin@wrapper.io')->firstOrFail();
-        $rolSupId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
+        $rolMandanteId = (int) DB::table('roles')->where('codigo', 'ADMIN_MANDANTE')->value('id');
 
+        // F38: rol mandante-scoped vive en usuario_mandante_rol, no en usuario_proyecto_rol.
         $this->assertTrue(
-            DB::table('usuario_proyecto_rol')
+            DB::table('usuario_mandante_rol')
                 ->where('usuario_id', $usuario->id)
-                ->where('proyecto_id', $this->proyectoId)
-                ->where('rol_id', $rolSupId)
+                ->where('mandante_id', $this->mandante->id)
+                ->where('rol_id', $rolMandanteId)
                 ->exists()
         );
+        $this->assertSame(0, DB::table('usuario_proyecto_rol')->where('usuario_id', $usuario->id)->count());
     }
 
     public function test_wrapper_role_super_admin_es_rechazado(): void
@@ -92,6 +132,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'super@wrapper.io',
             'name' => 'Super Wrapper',
             'wrapper_role' => 'super_admin',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -106,6 +147,7 @@ final class HandshakeJwtTest extends TestCase
     {
         $jwt = $this->firmar([
             'sub' => 'a@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -119,6 +161,7 @@ final class HandshakeJwtTest extends TestCase
     {
         $jwt = $this->firmar([
             'sub' => 'a@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time() - 600,
@@ -132,6 +175,7 @@ final class HandshakeJwtTest extends TestCase
     {
         $jwt = $this->firmar([
             'sub' => 'a@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -147,6 +191,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'replay@wrapper.io',
             'name' => 'Replay',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -158,11 +203,12 @@ final class HandshakeJwtTest extends TestCase
         $this->get("/integracion/handshake?token={$jwt}")->assertStatus(410);
     }
 
-    public function test_proyecto_inexistente_devuelve_401(): void
+    public function test_mandante_inexistente_devuelve_401(): void
     {
         $jwt = $this->firmar([
             'sub' => 'a@wrapper.io',
-            'proyecto_id' => 999_999,
+            'mandante_id' => 999_999,
+            'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
             'exp' => time() + 60,
@@ -171,12 +217,13 @@ final class HandshakeJwtTest extends TestCase
         $this->get("/integracion/handshake?token={$jwt}")->assertStatus(401);
     }
 
-    public function test_proyecto_sin_sso_secret_devuelve_404(): void
+    public function test_mandante_sin_sso_secret_devuelve_404(): void
     {
-        DB::table('proyectos')->where('id', $this->proyectoId)->update(['sso_secret' => null]);
+        DB::table('mandantes')->where('id', $this->mandante->id)->update(['sso_secret' => null]);
 
         $jwt = $this->firmar([
             'sub' => 'a@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -192,6 +239,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'b@wrapper.io',
             'name' => 'B',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'redirect_path' => "/proyectos/{$this->proyectoId}/reportes/operativos",
             'jti' => Str::uuid()->toString(),
@@ -209,6 +257,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'c@wrapper.io',
             'name' => 'C',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'redirect_path' => 'https://evil.example.com/phish',
             'jti' => Str::uuid()->toString(),
@@ -222,7 +271,7 @@ final class HandshakeJwtTest extends TestCase
 
     public function test_persona_match_redirige_a_vista_de_trabajo(): void
     {
-        $persona = DB::table('personas')->where('proyecto_id', $this->proyectoId)->first();
+        $persona = $this->crearPersonaEn($this->proyecto, '12345678');
         $tiCodigo = (string) DB::table('tipos_identificacion')
             ->where('id', $persona->tipo_identificacion_id)->value('codigo');
 
@@ -230,6 +279,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'persona@wrapper.io',
             'name' => 'Persona Wrap',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'identificacion' => $persona->identificacion,
             'tipo_identificacion_codigo' => $tiCodigo,
@@ -266,6 +316,7 @@ final class HandshakeJwtTest extends TestCase
             'sub' => 'existo@wrapper.io',
             'name' => 'Ya Existo',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -281,26 +332,13 @@ final class HandshakeJwtTest extends TestCase
         $this->assertSame(1, (int) $count, 'No debe duplicar pivot al re-loguear.');
     }
 
-    public function test_usuario_existente_con_rol_admin_no_se_degrada_por_wrapper_role_agent(): void
+    public function test_email_se_normaliza_lowercase_y_trim(): void
     {
-        $usuario = User::query()->create([
-            'name' => 'Sup Existente',
-            'email' => 'sup@wrapper.io',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolSupId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $usuario->id,
-            'proyecto_id' => $this->proyectoId,
-            'rol_id' => $rolSupId,
-            'activo' => true,
-        ]);
-
         $jwt = $this->firmar([
-            'sub' => 'sup@wrapper.io',
-            'name' => 'Sup Existente',
+            'sub' => '  MIXED.case@WRAPPER.io  ',
+            'name' => 'Mixed Case',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -309,26 +347,17 @@ final class HandshakeJwtTest extends TestCase
 
         $this->get("/integracion/handshake?token={$jwt}")->assertRedirect();
 
-        $rolPivot = (int) DB::table('usuario_proyecto_rol')
-            ->where('usuario_id', $usuario->id)
-            ->where('proyecto_id', $this->proyectoId)
-            ->value('rol_id');
-        $this->assertSame($rolSupId, $rolPivot, 'No debe degradar rol SUPERVISOR a GESTOR.');
+        $this->assertNotNull(User::where('email', 'mixed.case@wrapper.io')->first());
     }
 
-    public function test_usuario_existente_sincroniza_nombre_desde_wrapper(): void
+    public function test_iss_valido_se_acepta(): void
     {
-        $usuario = User::query()->create([
-            'name' => 'Nombre Viejo',
-            'email' => 'sync@wrapper.io',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-
         $jwt = $this->firmar([
-            'sub' => 'sync@wrapper.io',
-            'name' => 'Nombre Nuevo',
+            'iss' => "wrapper:{$this->mandante->id}",
+            'aud' => 'crm',
+            'sub' => 'iss.valid@wrapper.io',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -336,8 +365,87 @@ final class HandshakeJwtTest extends TestCase
         ]);
 
         $this->get("/integracion/handshake?token={$jwt}")->assertRedirect();
+    }
 
-        $this->assertSame('Nombre Nuevo', (string) $usuario->fresh()->name);
+    public function test_iss_mal_formado_devuelve_400(): void
+    {
+        $jwt = $this->firmar([
+            'iss' => 'wrapper:999',
+            'sub' => 'iss.bad@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")->assertStatus(400);
+    }
+
+    public function test_aud_distinto_de_crm_devuelve_400(): void
+    {
+        $jwt = $this->firmar([
+            'aud' => 'no-crm',
+            'sub' => 'aud.bad@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")->assertStatus(400);
+    }
+
+    public function test_secret_old_vigente_acepta_firma(): void
+    {
+        $secretViejo = (string) $this->mandante->sso_secret;
+        $secretNuevo = bin2hex(random_bytes(32));
+
+        DB::table('mandantes')
+            ->where('id', $this->mandante->id)
+            ->update([
+                'sso_secret' => $secretNuevo,
+                'sso_secret_old' => $secretViejo,
+                'sso_secret_old_expires_at' => now()->addHours(24),
+            ]);
+
+        $jwt = $this->firmar([
+            'sub' => 'old.secret@wrapper.io',
+            'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ], $secretViejo);
+
+        $this->get("/integracion/handshake?token={$jwt}")->assertRedirect();
+    }
+
+    public function test_secret_old_expirado_rechaza_firma(): void
+    {
+        $secretViejo = (string) $this->mandante->sso_secret;
+        $secretNuevo = bin2hex(random_bytes(32));
+
+        DB::table('mandantes')
+            ->where('id', $this->mandante->id)
+            ->update([
+                'sso_secret' => $secretNuevo,
+                'sso_secret_old' => $secretViejo,
+                'sso_secret_old_expires_at' => now()->subHour(),
+            ]);
+
+        $jwt = $this->firmar([
+            'sub' => 'old.expired@wrapper.io',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ], $secretViejo);
+
+        $this->get("/integracion/handshake?token={$jwt}")->assertStatus(401);
     }
 
     public function test_sin_token_devuelve_400(): void
@@ -348,25 +456,6 @@ final class HandshakeJwtTest extends TestCase
     public function test_token_mal_formado_devuelve_400(): void
     {
         $this->get('/integracion/handshake?token=no.es.jwt')->assertStatus(400);
-    }
-
-    public function test_proyecto_id_del_jwt_no_coincide_con_secret_devuelve_401(): void
-    {
-        $proyectoB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $secretB = (string) DB::table('proyectos')->where('id', $proyectoB)->value('sso_secret');
-
-        // JWT firmado con secret de B pero claim proyecto_id apunta a A.
-        // Bypass: el extractor inseguro lee proyecto_id=A, busca secret de A,
-        // intenta verificar firma (que fue hecha con secret de B) → JwtFirmaInvalida.
-        $jwt = $this->firmar([
-            'sub' => 'cross@wrapper.io',
-            'proyecto_id' => $this->proyectoId,
-            'jti' => Str::uuid()->toString(),
-            'iat' => time(),
-            'exp' => time() + 60,
-        ], $secretB);
-
-        $this->get("/integracion/handshake?token={$jwt}")->assertStatus(401);
     }
 
     /**

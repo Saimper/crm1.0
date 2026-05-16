@@ -11,6 +11,8 @@ use App\Modules\Integracion\Domain\Exceptions\JwtFirmaInvalida;
 use App\Modules\Integracion\Domain\Exceptions\JwtMalFormado;
 use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
 use App\Modules\Integracion\Domain\Exceptions\JwtTtlExcedido;
+use App\Modules\Integracion\Domain\Exceptions\MandanteProyectoMismatch;
+use App\Modules\Integracion\Domain\Exceptions\MandanteSsoNoConfigurado;
 use App\Modules\Integracion\Domain\Exceptions\ProyectoSsoNoConfigurado;
 use App\Modules\Integracion\Domain\Exceptions\WrapperRoleNoPermitido;
 use Illuminate\Http\JsonResponse;
@@ -44,15 +46,19 @@ final class EmitirSanctumTokenController
             throw new HttpException(400, $e->getMessage());
         } catch (JwtTokenYaConsumido) {
             throw new HttpException(410, 'Token ya consumido.');
-        } catch (ProyectoSsoNoConfigurado $e) {
-            Log::warning('sanctum-token: proyecto sin sso_secret', ['error' => $e->getMessage()]);
-            throw new HttpException(404, 'Proyecto inexistente o sin SSO configurado.');
+        } catch (ProyectoSsoNoConfigurado|MandanteSsoNoConfigurado $e) {
+            Log::warning('sanctum-token: sso no configurado', ['error' => $e->getMessage()]);
+            throw new HttpException(404, 'Mandante o proyecto inexistente o sin SSO configurado.');
+        } catch (MandanteProyectoMismatch $e) {
+            Log::warning('sanctum-token: proyecto no pertenece al mandante', ['error' => $e->getMessage()]);
+            throw new HttpException(403, 'Proyecto no pertenece al mandante.');
         }
 
         return response()->json([
             'access_token' => $output->accessToken,
             'token_type' => 'Bearer',
             'usuario_id' => $output->usuarioId,
+            'mandante_id' => $output->mandanteId,
             'proyecto_id' => $output->proyectoId,
         ], 201);
     }

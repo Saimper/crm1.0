@@ -1,10 +1,10 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">SSO secrets por proyecto</h1>
+            <h1 class="page-title">SSO secrets por mandante</h1>
             <div class="page-subtitle">
-                Secret compartido con el wrapper para firmar JWT del handshake (HS256).
-                Rotar invalida los tokens en vuelo: coordinar antes con el wrapper.
+                Secret compartido con el wrapper para firmar JWT (HS256). 1 secret por mandante = N proyectos.
+                Al rotar, el secret anterior queda válido 24h para no romper sesiones en vuelo.
             </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -17,11 +17,11 @@
     @endif
 
     <div class="card" style="padding:0;">
-        @if($this->proyectos->isEmpty())
+        @if($this->mandantes->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="shield" :size="32" /></div>
-                <div class="empty-title">Sin proyectos</div>
-                <div class="empty-desc">Aún no hay proyectos creados.</div>
+                <div class="empty-title">Sin mandantes</div>
+                <div class="empty-desc">Aún no hay mandantes creados.</div>
             </div>
         @else
             <table class="table table-compact">
@@ -29,31 +29,33 @@
                     <tr>
                         <th style="width:60px;">ID</th>
                         <th>Mandante</th>
-                        <th>Proyecto</th>
-                        <th>Secret</th>
+                        <th>Secret actual</th>
+                        <th style="width:170px;">Secret anterior</th>
                         <th style="width:140px;">Última rotación</th>
                         <th style="width:80px;text-align:center;">Estado</th>
-                        <th style="width:200px;text-align:right;">Acciones</th>
+                        <th style="width:280px;text-align:right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($this->proyectos as $p)
+                    @foreach($this->mandantes as $m)
                         @php
-                            $esRevelado = ! empty($revelado[$p->id]);
+                            $esRevelado = ! empty($revelado[$m->id]);
                             $secretShow = $esRevelado
-                                ? (string) $p->sso_secret
-                                : str_repeat('•', 12).' '.substr((string) $p->sso_secret, -8);
-                            $rotadoAhora = $rotadoId === (int) $p->id;
+                                ? (string) $m->sso_secret
+                                : str_repeat('•', 12).' '.substr((string) $m->sso_secret, -8);
+                            $rotadoAhora = $rotadoId === (int) $m->id;
+                            $oldVigente = $m->sso_secret_old !== null
+                                && $m->sso_secret_old_expires_at !== null
+                                && \Illuminate\Support\Carbon::parse($m->sso_secret_old_expires_at)->isFuture();
                         @endphp
                         <tr @class(['row-highlight' => $rotadoAhora])>
-                            <td style="font-family:monospace;font-size:12px;color:var(--text-secondary);">{{ $p->id }}</td>
-                            <td style="font-size:12px;">{{ $p->mandante_codigo ?? '—' }}</td>
+                            <td style="font-family:monospace;font-size:12px;color:var(--text-secondary);">{{ $m->id }}</td>
                             <td style="font-size:12px;">
-                                <div style="font-weight:500;">{{ $p->nombre }}</div>
-                                <div style="color:var(--text-tertiary);font-size:11px;font-family:monospace;">{{ $p->codigo }}</div>
+                                <div style="font-weight:500;">{{ $m->nombre }}</div>
+                                <div style="color:var(--text-tertiary);font-size:11px;font-family:monospace;">{{ $m->codigo }}</div>
                             </td>
                             <td style="font-family:monospace;font-size:11px;color:var(--text-secondary);">
-                                @if(empty($p->sso_secret))
+                                @if(empty($m->sso_secret))
                                     <span style="color:var(--danger-text);">— sin configurar —</span>
                                 @else
                                     {{ $secretShow }}
@@ -65,28 +67,41 @@
                                 @endif
                             </td>
                             <td style="font-size:11px;color:var(--text-tertiary);">
-                                {{ $p->actualizada_en ? \Illuminate\Support\Carbon::parse($p->actualizada_en)->format('d/m/Y H:i') : '—' }}
+                                @if($oldVigente)
+                                    <span style="color:var(--warning-text);">Vigente hasta</span>
+                                    <div style="font-family:monospace;">{{ \Illuminate\Support\Carbon::parse($m->sso_secret_old_expires_at)->format('d/m/Y H:i') }}</div>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td style="font-size:11px;color:var(--text-tertiary);">
+                                {{ $m->actualizada_en ? \Illuminate\Support\Carbon::parse($m->actualizada_en)->format('d/m/Y H:i') : '—' }}
                             </td>
                             <td style="text-align:center;">
-                                <x-ui.badge :tone="$p->activo ? 'success' : 'neutral'" size="sm">
-                                    {{ $p->activo ? 'Activo' : 'Inactivo' }}
+                                <x-ui.badge :tone="$m->activo ? 'success' : 'neutral'" size="sm">
+                                    {{ $m->activo ? 'Activo' : 'Inactivo' }}
                                 </x-ui.badge>
                             </td>
                             <td style="text-align:right;">
-                                @if(! empty($p->sso_secret))
+                                @if(! empty($m->sso_secret))
                                     @if($esRevelado)
-                                        <button type="button" wire:click="ocultar({{ $p->id }})" class="btn btn-ghost btn-sm">
+                                        <button type="button" wire:click="ocultar({{ $m->id }})" class="btn btn-ghost btn-sm">
                                             Ocultar
                                         </button>
                                     @else
-                                        <button type="button" wire:click="revelar({{ $p->id }})" class="btn btn-ghost btn-sm">
+                                        <button type="button" wire:click="revelar({{ $m->id }})" class="btn btn-ghost btn-sm">
                                             Ver
                                         </button>
                                     @endif
                                 @endif
                                 <button type="button"
-                                        wire:click="rotar({{ $p->id }})"
-                                        wire:confirm="¿Rotar el secret de {{ $p->codigo }}? El wrapper deberá actualizarse en simultáneo o los handshakes fallarán."
+                                        wire:click="abrirWebhooks({{ $m->id }})"
+                                        class="btn btn-ghost btn-sm">
+                                    Webhooks
+                                </button>
+                                <button type="button"
+                                        wire:click="rotar({{ $m->id }})"
+                                        wire:confirm="¿Rotar el secret de {{ $m->codigo }}? El anterior queda vigente 24h. Wrapper recibe webhook automático."
                                         class="btn btn-ghost btn-sm" style="color:var(--danger-text);">
                                     Rotar
                                 </button>
@@ -97,4 +112,46 @@
             </table>
         @endif
     </div>
+
+    @if($editandoMandanteId !== null)
+        <div class="drawer-backdrop" wire:click="cerrarWebhooks"></div>
+        <div class="drawer">
+            <div class="drawer-header">
+                <h2 class="drawer-title">Webhooks del mandante</h2>
+                <button type="button" wire:click="cerrarWebhooks" class="btn btn-ghost btn-sm">×</button>
+            </div>
+            <div class="drawer-body">
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">
+                    URLs que el CRM llamará en el wrapper. El body lleva firma HMAC-SHA256
+                    en el header <code>X-Signature</code> usando el sso_secret del mandante.
+                </p>
+
+                <div class="form-row">
+                    <label class="form-label">URL al rotar secret</label>
+                    <input type="url" wire:model="webhookUrlSecretRotated" class="form-input"
+                           placeholder="https://wrapper.example.com/api/integracion/secret-rotated">
+                    @error('webhookUrlSecretRotated')
+                        <div class="form-error">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label">URL al cambiar estado del mandante</label>
+                    <input type="url" wire:model="webhookUrlStatusChanged" class="form-input"
+                           placeholder="https://wrapper.example.com/api/integracion/mandante-status">
+                    @error('webhookUrlStatusChanged')
+                        <div class="form-error">{{ $message }}</div>
+                    @enderror
+                    <button type="button" wire:click="probarWebhookStatus({{ $editandoMandanteId }})"
+                            class="btn btn-ghost btn-sm" style="margin-top:6px;">
+                        Probar webhook status
+                    </button>
+                </div>
+            </div>
+            <div class="drawer-footer">
+                <button type="button" wire:click="cerrarWebhooks" class="btn btn-ghost btn-sm">Cancelar</button>
+                <button type="button" wire:click="guardarWebhooks" class="btn btn-primary btn-sm">Guardar</button>
+            </div>
+        </div>
+    @endif
 </div>

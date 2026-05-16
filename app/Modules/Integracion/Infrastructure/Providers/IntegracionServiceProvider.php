@@ -9,6 +9,7 @@ use App\Modules\Integracion\Domain\Contracts\RepositorioTokensConsumidos;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\SsoHandshakeController;
 use App\Modules\Integracion\Infrastructure\Http\Livewire\AdminSsoSecrets;
 use App\Modules\Integracion\Infrastructure\Http\Middleware\CspFrameAncestors;
+use App\Modules\Integracion\Infrastructure\Http\Middleware\VerificarFirmaHmacMandante;
 use App\Modules\Integracion\Infrastructure\Persistence\Repositories\RepositorioTokensConsumidosEloquent;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,7 @@ final class IntegracionServiceProvider extends ServiceProvider
     public function boot(Router $router): void
     {
         $router->aliasMiddleware('csp.frame-ancestors', CspFrameAncestors::class);
+        $router->aliasMiddleware('hmac.mandante', VerificarFirmaHmacMandante::class);
 
         $this->loadViewsFrom(resource_path('views/modules/integracion'), 'integracion');
 

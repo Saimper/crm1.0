@@ -4,78 +4,150 @@ declare(strict_types=1);
 
 namespace App\Modules\Integracion\Infrastructure\Http\Livewire;
 
+use App\Modules\Integracion\Application\UseCases\RotacionSecret\RotarSecretMandante;
+use App\Modules\Integracion\Infrastructure\Jobs\EmitirWebhookStatusMandante;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 /**
- * F35 — pantalla admin global para ver y rotar el sso_secret de cada proyecto.
+ * F37: pantalla admin global para gestionar el sso_secret POR MANDANTE.
+ *
+ * (Antes F35: secret por proyecto. F37 lo movió a mandante para 1 tenant
+ * wrapper = N proyectos.)
  *
  * Permiso: ADMIN_GLOBAL via Gate::before (ruta protegida con admin.global).
  *
- * El secret se muestra enmascarado por defecto. El usuario puede revelarlo
- * temporalmente para copiarlo. La rotación genera un valor nuevo y lo muestra
- * UNA vez (advertencia: el wrapper queda desincronizado hasta que se actualice
- * tenants.crm_token_encrypted).
+ * Acciones:
+ *  - Revelar/ocultar secret (enmascarado por defecto).
+ *  - Rotar: genera nuevo, mueve actual a sso_secret_old (válido 24h),
+ *    despacha webhook al wrapper.
+ *  - Editar webhook URLs (rotación + status changed).
  */
 final class AdminSsoSecrets extends Component
 {
     /** @var array<int, bool> */
     public array $revelado = [];
 
-    /** ID del último proyecto rotado (mostrar secret completo una sola vez). */
+    /** ID del último mandante rotado (mostrar secret completo una sola vez). */
     public ?int $rotadoId = null;
 
     public ?string $rotadoSecret = null;
 
-    public function revelar(int $proyectoId): void
+    /** Mandante en edición de webhook URLs (form drawer). */
+    public ?int $editandoMandanteId = null;
+
+    public string $webhookUrlSecretRotated = '';
+
+    public string $webhookUrlStatusChanged = '';
+
+    public function revelar(int $mandanteId): void
     {
-        $this->revelado[$proyectoId] = true;
+        $this->revelado[$mandanteId] = true;
     }
 
-    public function ocultar(int $proyectoId): void
+    public function ocultar(int $mandanteId): void
     {
-        $this->revelado[$proyectoId] = false;
+        $this->revelado[$mandanteId] = false;
         $this->rotadoId = null;
         $this->rotadoSecret = null;
     }
 
-    public function rotar(int $proyectoId): void
+    public function rotar(int $mandanteId, RotarSecretMandante $useCase): void
     {
-        $nuevo = bin2hex(random_bytes(32));
+        $output = $useCase->execute($mandanteId);
 
-        DB::table('proyectos')
-            ->where('id', $proyectoId)
+        $this->rotadoId = $output->mandanteId;
+        $this->rotadoSecret = $output->secretNuevo;
+        $this->revelado[$mandanteId] = true;
+
+        $msg = $output->secretAnteriorExpiraEn !== null
+            ? 'Secret rotado. Anterior válido hasta '.$output->secretAnteriorExpiraEn->format('d/m/Y H:i').'.'
+            : 'Secret rotado por primera vez.';
+
+        session()->flash('admin-sso-ok', $msg);
+    }
+
+    public function abrirWebhooks(int $mandanteId): void
+    {
+        $row = DB::table('mandantes')
+            ->where('id', $mandanteId)
+            ->first(['id', 'webhook_url_secret_rotated', 'webhook_url_status_changed']);
+
+        if ($row === null) {
+            return;
+        }
+
+        $this->editandoMandanteId = (int) $row->id;
+        $this->webhookUrlSecretRotated = (string) ($row->webhook_url_secret_rotated ?? '');
+        $this->webhookUrlStatusChanged = (string) ($row->webhook_url_status_changed ?? '');
+    }
+
+    public function cerrarWebhooks(): void
+    {
+        $this->editandoMandanteId = null;
+        $this->webhookUrlSecretRotated = '';
+        $this->webhookUrlStatusChanged = '';
+    }
+
+    public function guardarWebhooks(): void
+    {
+        if ($this->editandoMandanteId === null) {
+            return;
+        }
+
+        $this->validate([
+            'webhookUrlSecretRotated' => ['nullable', 'url:http,https', 'max:255'],
+            'webhookUrlStatusChanged' => ['nullable', 'url:http,https', 'max:255'],
+        ]);
+
+        DB::table('mandantes')
+            ->where('id', $this->editandoMandanteId)
             ->update([
-                'sso_secret' => $nuevo,
+                'webhook_url_secret_rotated' => $this->webhookUrlSecretRotated !== '' ? $this->webhookUrlSecretRotated : null,
+                'webhook_url_status_changed' => $this->webhookUrlStatusChanged !== '' ? $this->webhookUrlStatusChanged : null,
                 'actualizada_en' => now(),
             ]);
 
-        $this->rotadoId = $proyectoId;
-        $this->rotadoSecret = $nuevo;
-        $this->revelado[$proyectoId] = true;
+        session()->flash('admin-sso-ok', 'Webhooks actualizados.');
+        $this->cerrarWebhooks();
+    }
 
-        session()->flash(
-            'admin-sso-ok',
-            'Secret rotado. Actualizar el wrapper antes de que el cache de cliente venza.',
-        );
+    public function probarWebhookStatus(int $mandanteId): void
+    {
+        $url = (string) DB::table('mandantes')
+            ->where('id', $mandanteId)
+            ->value('webhook_url_status_changed');
+
+        $activo = (bool) DB::table('mandantes')
+            ->where('id', $mandanteId)
+            ->value('activo');
+
+        if ($url === '') {
+            session()->flash('admin-sso-ok', 'No hay webhook_url_status_changed configurada.');
+
+            return;
+        }
+
+        EmitirWebhookStatusMandante::dispatch($mandanteId, $activo, $url, Str::uuid()->toString());
+        session()->flash('admin-sso-ok', 'Webhook status encolado.');
     }
 
     #[Computed]
-    public function proyectos(): Collection
+    public function mandantes(): Collection
     {
-        return DB::table('proyectos as p')
-            ->leftJoin('mandantes as m', 'm.id', '=', 'p.mandante_id')
-            ->whereNull('p.eliminada_en')
+        return DB::table('mandantes')
+            ->whereNull('eliminada_en')
             ->select([
-                'p.id', 'p.codigo', 'p.nombre', 'p.activo',
-                'p.sso_secret', 'p.actualizada_en',
-                'm.codigo as mandante_codigo',
+                'id', 'codigo', 'nombre', 'activo',
+                'sso_secret', 'sso_secret_old', 'sso_secret_old_expires_at',
+                'webhook_url_secret_rotated', 'webhook_url_status_changed',
+                'actualizada_en',
             ])
-            ->orderBy('m.codigo')
-            ->orderBy('p.codigo')
+            ->orderBy('codigo')
             ->get();
     }
 

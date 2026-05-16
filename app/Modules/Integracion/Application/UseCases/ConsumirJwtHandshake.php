@@ -20,14 +20,17 @@ final class ConsumirJwtHandshake
     {
         $resultado = $this->autenticador->autenticar($input->jwt);
 
-        $personaPublicId = $this->resolverPersonaPublicId(
-            $resultado->payload->proyectoId,
-            $resultado->payload->identificacion,
-            $resultado->payload->tipoIdentificacionCodigo,
-        );
+        $personaPublicId = $resultado->payload->proyectoId === null
+            ? null
+            : $this->resolverPersonaPublicId(
+                $resultado->payload->proyectoId,
+                $resultado->payload->identificacion,
+                $resultado->payload->tipoIdentificacionCodigo,
+            );
 
         return new ConsumirJwtHandshakeOutput(
             usuarioId: (int) $resultado->usuario->id,
+            mandanteId: $resultado->payload->mandanteId,
             proyectoId: $resultado->payload->proyectoId,
             redirectPath: $resultado->payload->redirectPath,
             personaPublicId: $personaPublicId,

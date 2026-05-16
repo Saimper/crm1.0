@@ -8,7 +8,8 @@ final readonly class ConsumirJwtHandshakeOutput
 {
     public function __construct(
         public int $usuarioId,
-        public int $proyectoId,
+        public int $mandanteId,
+        public ?int $proyectoId,
         public ?string $redirectPath,
         public ?string $personaPublicId,
     ) {}

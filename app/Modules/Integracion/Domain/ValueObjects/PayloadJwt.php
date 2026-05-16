@@ -11,20 +11,25 @@ use DateTimeImmutable;
 
 final readonly class PayloadJwt
 {
-    private const TTL_MAX_SEGUNDOS = 300;
+    private const TTL_MAX_SEGUNDOS = 60;
 
     private const WRAPPER_ROLE_BLOQUEADO = 'super_admin';
+
+    private const AUD_ESPERADO = 'crm';
 
     private function __construct(
         public string $jti,
         public string $email,
         public string $name,
-        public int $proyectoId,
+        public int $mandanteId,
+        public ?int $proyectoId,
         public DateTimeImmutable $expiraEn,
         public ?string $wrapperRole,
         public ?string $redirectPath,
         public ?string $identificacion,
         public ?string $tipoIdentificacionCodigo,
+        public ?string $iss,
+        public ?string $aud,
     ) {}
 
     public static function desdeClaims(object $claims, DateTimeImmutable $ahora): self
@@ -32,14 +37,26 @@ final readonly class PayloadJwt
         $jti = isset($claims->jti) ? (string) $claims->jti : '';
         $email = isset($claims->sub) ? (string) $claims->sub : '';
         $exp = isset($claims->exp) ? (int) $claims->exp : 0;
+        $mandanteId = isset($claims->mandante_id) ? (int) $claims->mandante_id : 0;
         $proyectoId = isset($claims->proyecto_id) ? (int) $claims->proyecto_id : 0;
 
-        if ($jti === '' || $email === '' || $exp === 0 || $proyectoId === 0) {
+        if ($jti === '' || $email === '' || $exp === 0 || $mandanteId === 0) {
             throw JwtClaimsIncompletos::crear();
         }
 
         if ($exp - $ahora->getTimestamp() > self::TTL_MAX_SEGUNDOS) {
             throw JwtTtlExcedido::crear(self::TTL_MAX_SEGUNDOS);
+        }
+
+        $iss = isset($claims->iss) ? (string) $claims->iss : null;
+        $aud = isset($claims->aud) ? (string) $claims->aud : null;
+
+        if ($iss !== null && $iss !== "wrapper:{$mandanteId}") {
+            throw JwtClaimsIncompletos::crear();
+        }
+
+        if ($aud !== null && $aud !== self::AUD_ESPERADO) {
+            throw JwtClaimsIncompletos::crear();
         }
 
         $wrapperRole = isset($claims->wrapper_role) ? (string) $claims->wrapper_role : null;
@@ -54,14 +71,17 @@ final readonly class PayloadJwt
 
         return new self(
             jti: $jti,
-            email: $email,
+            email: strtolower(trim($email)),
             name: $name,
-            proyectoId: $proyectoId,
+            mandanteId: $mandanteId,
+            proyectoId: $proyectoId > 0 ? $proyectoId : null,
             expiraEn: (new DateTimeImmutable)->setTimestamp($exp),
             wrapperRole: $wrapperRole,
             redirectPath: $redirectPath,
             identificacion: $identificacion,
             tipoIdentificacionCodigo: $tipoIdentificacionCodigo,
+            iss: $iss,
+            aud: $aud,
         );
     }
 }

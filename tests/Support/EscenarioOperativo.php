@@ -26,6 +26,7 @@ trait EscenarioOperativo
             'codigo' => $codigo,
             'nombre' => $nombre ?? 'Mandante '.$codigo,
             'activo' => true,
+            'sso_secret' => bin2hex(random_bytes(32)),
             'creada_en' => Carbon::now(),
             'actualizada_en' => Carbon::now(),
         ]);

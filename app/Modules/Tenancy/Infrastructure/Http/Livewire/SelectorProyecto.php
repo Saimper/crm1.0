@@ -6,28 +6,34 @@ namespace App\Modules\Tenancy\Infrastructure\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 final class SelectorProyecto extends Component
 {
     /**
-     * Si el usuario tiene exactamente 1 proyecto activo y NO es ADMIN_GLOBAL,
-     * redirige al dashboard del proyecto sin mostrar selector. ADMIN_GLOBAL
-     * siempre ve el listado completo.
+     * Filtro opcional por mandante (query param ?mandante=ID). Usado por
+     * handshake F37 cuando JWT no trae proyecto_id: aterriza al usuario
+     * acá para que elija proyecto dentro de su mandante.
      */
-    public function mount(): ?RedirectResponse
+    #[Url(as: 'mandante')]
+    public ?int $mandanteId = null;
+
+    /**
+     * Si el usuario tiene exactamente 1 proyecto activo (filtrado por mandante
+     * si se pidió) y NO es ADMIN_GLOBAL, redirige al dashboard del proyecto
+     * sin mostrar selector. ADMIN_GLOBAL siempre ve el listado completo.
+     */
+    public function mount(): RedirectResponse|Redirector|null
     {
         $usuario = auth()->user();
         if ($usuario === null || ($usuario->esAdminGlobal() ?? false)) {
             return null;
         }
 
-        $proyectosIds = DB::table('usuario_proyecto_rol')
-            ->where('usuario_id', $usuario->id)
-            ->where('activo', true)
-            ->pluck('proyecto_id')
-            ->all();
+        $proyectosIds = $this->resolverProyectosIdsAccesibles($usuario->id);
 
         if (count($proyectosIds) !== 1) {
             return null;
@@ -44,6 +50,44 @@ final class SelectorProyecto extends Component
         }
 
         return redirect()->route('proyectos.dashboard', ['proyecto_id' => $proyectoId]);
+    }
+
+    /**
+     * F38: combina pivot proyecto (usuario_proyecto_rol) + pivot mandante
+     * (usuario_mandante_rol). Si el user tiene rol ADMIN_MANDANTE, ve todos
+     * los proyectos del mandante aunque no tenga pivot proyecto.
+     *
+     * @return list<int>
+     */
+    private function resolverProyectosIdsAccesibles(int $usuarioId): array
+    {
+        $idsProyecto = DB::table('usuario_proyecto_rol as upr')
+            ->where('upr.usuario_id', $usuarioId)
+            ->where('upr.activo', true)
+            ->when(
+                $this->mandanteId !== null,
+                fn ($q) => $q->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
+                    ->where('p.mandante_id', $this->mandanteId),
+            )
+            ->pluck('upr.proyecto_id')
+            ->map(fn (mixed $v): int => (int) $v)
+            ->all();
+
+        $idsMandante = DB::table('usuario_mandante_rol as umr')
+            ->join('proyectos as p', 'p.mandante_id', '=', 'umr.mandante_id')
+            ->where('umr.usuario_id', $usuarioId)
+            ->where('umr.activo', true)
+            ->where('p.activo', true)
+            ->whereNull('p.eliminada_en')
+            ->when(
+                $this->mandanteId !== null,
+                fn ($q) => $q->where('umr.mandante_id', $this->mandanteId),
+            )
+            ->pluck('p.id')
+            ->map(fn (mixed $v): int => (int) $v)
+            ->all();
+
+        return array_values(array_unique([...$idsProyecto, ...$idsMandante]));
     }
 
     public function render(): View
@@ -68,12 +112,12 @@ final class SelectorProyecto extends Component
             ->orderBy('m.nombre')
             ->orderBy('p.nombre');
 
+        if ($this->mandanteId !== null) {
+            $query->where('p.mandante_id', $this->mandanteId);
+        }
+
         if (! $esAdminGlobal) {
-            $proyectosIds = DB::table('usuario_proyecto_rol')
-                ->where('usuario_id', $usuario->id)
-                ->where('activo', true)
-                ->pluck('proyecto_id')
-                ->all();
+            $proyectosIds = $this->resolverProyectosIdsAccesibles((int) $usuario->id);
 
             if ($proyectosIds === []) {
                 $query->whereRaw('1 = 0');

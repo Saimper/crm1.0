@@ -12,6 +12,8 @@ use App\Modules\Integracion\Domain\Exceptions\JwtFirmaInvalida;
 use App\Modules\Integracion\Domain\Exceptions\JwtMalFormado;
 use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
 use App\Modules\Integracion\Domain\Exceptions\JwtTtlExcedido;
+use App\Modules\Integracion\Domain\Exceptions\MandanteProyectoMismatch;
+use App\Modules\Integracion\Domain\Exceptions\MandanteSsoNoConfigurado;
 use App\Modules\Integracion\Domain\Exceptions\ProyectoSsoNoConfigurado;
 use App\Modules\Integracion\Domain\Exceptions\WrapperRoleNoPermitido;
 use Illuminate\Http\RedirectResponse;
@@ -46,9 +48,12 @@ final class SsoHandshakeController
             throw new HttpException(400, $e->getMessage());
         } catch (JwtTokenYaConsumido) {
             throw new HttpException(410, 'Token ya consumido.');
-        } catch (ProyectoSsoNoConfigurado $e) {
-            Log::warning('handshake jwt: proyecto sin sso_secret', ['error' => $e->getMessage()]);
-            throw new HttpException(404, 'Proyecto inexistente o sin SSO configurado.');
+        } catch (ProyectoSsoNoConfigurado|MandanteSsoNoConfigurado $e) {
+            Log::warning('handshake jwt: sso no configurado', ['error' => $e->getMessage()]);
+            throw new HttpException(404, 'Mandante o proyecto inexistente o sin SSO configurado.');
+        } catch (MandanteProyectoMismatch $e) {
+            Log::warning('handshake jwt: proyecto no pertenece al mandante', ['error' => $e->getMessage()]);
+            throw new HttpException(403, 'Proyecto no pertenece al mandante.');
         }
 
         Auth::loginUsingId($output->usuarioId);
@@ -62,6 +67,10 @@ final class SsoHandshakeController
         $path = $output->redirectPath;
         if (is_string($path) && $path !== '' && str_starts_with($path, '/') && ! str_contains($path, '://')) {
             return $path;
+        }
+
+        if ($output->proyectoId === null) {
+            return "/dashboard?mandante={$output->mandanteId}";
         }
 
         if ($output->personaPublicId !== null) {

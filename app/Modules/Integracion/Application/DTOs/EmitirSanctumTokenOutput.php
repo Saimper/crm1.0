@@ -9,6 +9,7 @@ final readonly class EmitirSanctumTokenOutput
     public function __construct(
         public string $accessToken,
         public int $usuarioId,
-        public int $proyectoId,
+        public int $mandanteId,
+        public ?int $proyectoId,
     ) {}
 }
