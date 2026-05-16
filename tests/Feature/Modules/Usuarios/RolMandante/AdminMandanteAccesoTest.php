@@ -141,6 +141,29 @@ final class AdminMandanteAccesoTest extends TestCase
             ->assertSee('Proyectos');
     }
 
+    public function test_admin_mandante_accede_a_configurador_proyecto_de_su_mandante(): void
+    {
+        $mandante = $this->crearMandante();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $admin = $this->crearAdminMandante($mandante);
+
+        $this->actingAs($admin)
+            ->get(route('admin.proyectos.configurar', ['proyecto' => $proyecto->public_id]))
+            ->assertOk();
+    }
+
+    public function test_admin_mandante_no_accede_a_configurador_de_proyecto_ajeno(): void
+    {
+        $mandanteA = $this->crearMandante();
+        $mandanteB = $this->crearMandante();
+        $proyectoB = $this->crearProyectoCobranza($mandanteB);
+        $admin = $this->crearAdminMandante($mandanteA);
+
+        $this->actingAs($admin)
+            ->get(route('admin.proyectos.configurar', ['proyecto' => $proyectoB->public_id]))
+            ->assertStatus(403);
+    }
+
     private function crearAdminMandante(\stdClass $mandante): User
     {
         /** @var User $u */

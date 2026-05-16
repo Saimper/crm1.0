@@ -188,16 +188,18 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             )->middleware('can:entidades.ver')->name('proyectos.entidades.registros');
         });
 
-    // Configurador de proyecto (F36) — exclusivo ADMIN_GLOBAL via Gate::before.
-    // Binding por public_id (ulid) para evitar IDOR por id interno.
-    // El modo (wizard/edicion) se pasa explícitamente desde cada closure al view.
+    // Configurador de proyecto (F36) — ADMIN_GLOBAL via Gate::before; ADMIN_MANDANTE
+    // (F38) sobre proyectos de su mandante via permiso `proyectos.configurar`.
+    // Binding por public_id (ulid) para evitar IDOR por id interno. El modelo se
+    // pasa al gate como segundo arg ("proyecto") para que Gate::before resuelva
+    // el `proyecto_id` y `tienePermiso` evalúe el scope correcto.
     Route::get('/admin/proyectos/{proyecto:public_id}/configurar', function (ProyectoModel $proyecto) {
         return view('tenancy::admin.configurador-proyecto-page', [
             'proyecto' => $proyecto,
             'modo' => 'wizard',
         ]);
     })
-        ->middleware('can:proyectos.configurar')
+        ->middleware('can:proyectos.configurar,proyecto')
         ->name('admin.proyectos.configurar');
 
     Route::get('/admin/proyectos/{proyecto:public_id}/configurar/editar', function (ProyectoModel $proyecto) {
@@ -206,7 +208,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             'modo' => 'edicion',
         ]);
     })
-        ->middleware('can:proyectos.configurar')
+        ->middleware('can:proyectos.configurar,proyecto')
         ->name('admin.proyectos.configurar.editar');
 
     Route::prefix('admin')

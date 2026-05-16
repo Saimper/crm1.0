@@ -270,7 +270,7 @@ final class PasoCarteras extends Component
         if ($user->esAdminGlobal()) {
             return;
         }
-        if (! $user->tienePermiso('proyectos.configurar')) {
+        if (! $user->tienePermiso('proyectos.configurar', (int) $this->proyecto->id)) {
             abort(403, 'No autorizado para configurar el proyecto.');
         }
     }

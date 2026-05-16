@@ -47,9 +47,9 @@ final class ConfiguradorProyecto extends Component
 
     public function mount(ProyectoModel $proyecto, CalculadorAvanceConfiguracion $calculador, ?string $modo = null): void
     {
+        $this->proyecto = $proyecto;
         $this->autorizar();
 
-        $this->proyecto = $proyecto;
         $this->modo = $this->resolverModo($modo);
 
         if ($this->modo === 'edicion') {
@@ -190,7 +190,7 @@ final class ConfiguradorProyecto extends Component
         if ($user->esAdminGlobal()) {
             return;
         }
-        if (! $user->tienePermiso('proyectos.configurar')) {
+        if (! $user->tienePermiso('proyectos.configurar', (int) $this->proyecto->id)) {
             abort(403, 'No autorizado para configurar el proyecto.');
         }
     }

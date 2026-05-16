@@ -14,6 +14,7 @@ use App\Modules\Usuarios\Infrastructure\Http\Livewire\MatrizPermisos;
 use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminGlobal;
 use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminMandanteOGlobal;
 use App\Modules\Usuarios\Infrastructure\Persistence\Repositories\RepositorioRolCustomEloquent;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -46,11 +47,19 @@ final class UsuariosServiceProvider extends ServiceProvider
 
             $proyectoId = null;
             $carteraId = null;
-            if (isset($arguments[0]) && is_int($arguments[0])) {
-                $proyectoId = $arguments[0];
+            if (isset($arguments[0])) {
+                if (is_int($arguments[0])) {
+                    $proyectoId = $arguments[0];
+                } elseif ($arguments[0] instanceof Model) {
+                    $proyectoId = (int) $arguments[0]->getKey();
+                }
             }
-            if (isset($arguments[1]) && is_int($arguments[1])) {
-                $carteraId = $arguments[1];
+            if (isset($arguments[1])) {
+                if (is_int($arguments[1])) {
+                    $carteraId = $arguments[1];
+                } elseif ($arguments[1] instanceof Model) {
+                    $carteraId = (int) $arguments[1]->getKey();
+                }
             }
 
             return $user->tienePermiso($ability, $proyectoId, $carteraId);
