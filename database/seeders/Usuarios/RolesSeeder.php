@@ -12,10 +12,11 @@ final class RolesSeeder extends Seeder
     public function run(): void
     {
         $rows = [
-            ['codigo' => 'ADMIN_GLOBAL', 'nombre' => 'Administrador global',  'descripcion' => 'Acceso total al sistema cross-project',          'es_global' => true,  'activo' => true, 'orden' => 0],
-            ['codigo' => 'SUPERVISOR',   'nombre' => 'Supervisor',            'descripcion' => 'Supervisa equipos del proyecto y ve reportes',   'es_global' => false, 'activo' => true, 'orden' => 10],
-            ['codigo' => 'GESTOR',       'nombre' => 'Gestor',                'descripcion' => 'Trabaja la bandeja y registra gestiones',        'es_global' => false, 'activo' => true, 'orden' => 20],
-            ['codigo' => 'AUDITOR',      'nombre' => 'Auditor',               'descripcion' => 'Solo lectura con acceso a auditoría del proyecto', 'es_global' => false, 'activo' => true, 'orden' => 30],
+            ['codigo' => 'ADMIN_GLOBAL',    'nombre' => 'Administrador global',  'descripcion' => 'Acceso total al sistema cross-project',                  'es_global' => true,  'activo' => true, 'orden' => 0],
+            ['codigo' => 'ADMIN_MANDANTE',  'nombre' => 'Administrador mandante', 'descripcion' => 'Administra todos los proyectos de un mandante (F38)',    'es_global' => false, 'activo' => true, 'orden' => 5],
+            ['codigo' => 'SUPERVISOR',      'nombre' => 'Supervisor',            'descripcion' => 'Supervisa equipos del proyecto y ve reportes',           'es_global' => false, 'activo' => true, 'orden' => 10],
+            ['codigo' => 'GESTOR',          'nombre' => 'Gestor',                'descripcion' => 'Trabaja la bandeja y registra gestiones',                'es_global' => false, 'activo' => true, 'orden' => 20],
+            ['codigo' => 'AUDITOR',         'nombre' => 'Auditor',               'descripcion' => 'Solo lectura con acceso a auditoría del proyecto',       'es_global' => false, 'activo' => true, 'orden' => 30],
         ];
 
         DB::table('roles')->upsert(

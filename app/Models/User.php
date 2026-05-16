@@ -79,11 +79,35 @@ class User extends Authenticatable
             return true;
         }
 
-        return DB::table('usuario_proyecto_rol')
+        $tieneRolEnProyecto = DB::table('usuario_proyecto_rol')
             ->where('usuario_id', $this->id)
             ->where('proyecto_id', $proyectoId)
             ->where('activo', true)
             ->exists();
+
+        if ($tieneRolEnProyecto) {
+            return true;
+        }
+
+        // F38: rol mandante autoriza cross-proyecto del mandante.
+        return DB::table('usuario_mandante_rol as umr')
+            ->join('proyectos as p', 'p.mandante_id', '=', 'umr.mandante_id')
+            ->where('umr.usuario_id', $this->id)
+            ->where('umr.activo', true)
+            ->where('p.id', $proyectoId)
+            ->exists();
+    }
+
+    /** @return array<int, int>  IDs de mandantes donde el usuario tiene rol mandante activo. */
+    public function mandantesAdministrados(): array
+    {
+        return DB::table('usuario_mandante_rol')
+            ->where('usuario_id', $this->id)
+            ->where('activo', true)
+            ->distinct()
+            ->pluck('mandante_id')
+            ->map(fn (mixed $v): int => (int) $v)
+            ->all();
     }
 
     /**
@@ -170,7 +194,25 @@ class User extends Authenticatable
             ->where('p.activo', true)
             ->exists();
 
-        return $tienePermisoCustom;
+        if ($tienePermisoCustom) {
+            return true;
+        }
+
+        // F38: rol mandante (ADMIN_MANDANTE) autoriza cross-proyecto si el
+        // proyecto pertenece al mandante donde el user tiene el rol. Sin
+        // cartera-scoping (mandante-scope cubre todo el alcance del mandante).
+        return DB::table('usuario_mandante_rol as umr')
+            ->join('roles as r', 'r.id', '=', 'umr.rol_id')
+            ->join('rol_permiso as rp', 'rp.rol_id', '=', 'umr.rol_id')
+            ->join('permisos as p', 'p.id', '=', 'rp.permiso_id')
+            ->join('proyectos as pr', 'pr.mandante_id', '=', 'umr.mandante_id')
+            ->where('umr.usuario_id', $this->id)
+            ->where('umr.activo', true)
+            ->where('r.activo', true)
+            ->where('pr.id', $proyectoId)
+            ->where('p.codigo', $codigo)
+            ->where('p.activo', true)
+            ->exists();
     }
 
     public function tieneRolEnProyecto(string $rolCodigo, int $proyectoId): bool

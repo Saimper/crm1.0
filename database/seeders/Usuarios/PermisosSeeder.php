@@ -138,8 +138,12 @@ final class PermisosSeeder extends Seeder
             // Roles custom (Fase 33) — exclusivo ADMIN_GLOBAL via Gate::before; no se asigna a roles base.
             ['codigo' => 'roles.gestionar',         'nombre' => 'Gestionar roles custom del proyecto',     'grupo' => 'roles',         'activo' => true],
 
-            // Configurador de proyecto (Fase 36) — exclusivo ADMIN_GLOBAL via Gate::before; no se asigna a roles base.
+            // Configurador de proyecto (Fase 36) — abierto a ADMIN_MANDANTE (F38) sobre proyectos de su mandante; ADMIN_GLOBAL pasa via Gate::before.
             ['codigo' => 'proyectos.configurar',    'nombre' => 'Configurar proyecto (wizard)',            'grupo' => 'proyectos',     'activo' => true],
+
+            // F38: permisos del rol ADMIN_MANDANTE (scoped por mandante via usuario_mandante_rol).
+            ['codigo' => 'mandante.administrar',    'nombre' => 'Administrar el mandante (F38)',           'grupo' => 'mandante',      'activo' => true],
+            ['codigo' => 'proyectos.crear',         'nombre' => 'Crear proyectos del mandante',            'grupo' => 'proyectos',     'activo' => true],
         ];
 
         DB::table('permisos')->upsert(

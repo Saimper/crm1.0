@@ -20,6 +20,51 @@ final class RolPermisoSeeder extends Seeder
      * @var array<string, list<string>>
      */
     private const MATRIZ = [
+        // F38: ADMIN_MANDANTE administra todos los proyectos de su mandante.
+        // Tiene permisos de SUPERVISOR (operativos) + creación/configuración de
+        // proyectos dentro del mandante. Su scope (mandante, no proyecto) lo
+        // determina la tabla pivote usuario_mandante_rol y la evaluación en
+        // User::tienePermiso (ruta mandante).
+        'ADMIN_MANDANTE' => [
+            // Bandera del rol
+            'mandante.administrar',
+            // Proyectos del mandante
+            'proyectos.crear', 'proyectos.configurar',
+            // Gestiones
+            'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar',
+            // Compromisos
+            'compromisos.ver', 'compromisos.crear', 'compromisos.resolver', 'compromisos.cancelar', 'compromisos.administrar',
+            // Personas
+            'personas.ver', 'personas.crear', 'personas.editar', 'personas.administrar',
+            // Casos
+            'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar',
+            // Contactos
+            'contactos.ver', 'contactos.crear', 'contactos.editar', 'contactos.eliminar',
+            // Campañas
+            'campanas.ver', 'campanas.crear', 'campanas.editar', 'campanas.gestionar', 'campanas.administrar',
+            // Asignaciones
+            'asignaciones.ver_propia', 'asignaciones.ver_equipo',
+            'asignaciones.crear', 'asignaciones.reasignar', 'asignaciones.cerrar', 'asignaciones.administrar',
+            // Usuarios — admin_mandante asigna usuarios a sus proyectos
+            'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.gestionar', 'usuarios.administrar',
+            // Equipos
+            'equipos.ver', 'equipos.crear', 'equipos.editar', 'equipos.administrar',
+            // Catálogos
+            'catalogos.ver', 'catalogos.crear', 'catalogos.editar', 'catalogos.gestionar', 'catalogos.administrar',
+            // Reportes
+            'reportes.operativos', 'reportes.analiticos', 'reportes.exportar',
+            'reportes.constructor.gestionar', 'reportes.constructor.ejecutar', 'reportes.constructor.exportar',
+            // Importaciones
+            'importaciones.ver', 'importaciones.crear', 'importaciones.procesar',
+            // Auditoría
+            'auditoria.ver', 'auditoria.exportar',
+            // Notificaciones
+            'notificaciones.ver',
+            // Campos personalizados — VALORES sí. DEFINICIONES NO (sigue exclusivo ADMIN_GLOBAL via §13.16/§7.7).
+            'campos.ver', 'campos.editar',
+            // Entidades configurables — registros sí. DEFINIR no.
+            'entidades.ver', 'entidades.crear', 'entidades.editar', 'entidades.eliminar',
+        ],
         'SUPERVISOR' => [
             // Gestiones
             'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar',
