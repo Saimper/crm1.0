@@ -46,7 +46,6 @@ trait EscenarioOperativo
             'nombre' => 'Proyecto '.$codigo,
             'tipo_operacion' => $tipoOperacion,
             'activo' => true,
-            'sso_secret' => bin2hex(random_bytes(32)),
             'creada_en' => Carbon::now(),
             'actualizada_en' => Carbon::now(),
         ]);
