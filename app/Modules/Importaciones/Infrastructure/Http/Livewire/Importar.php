@@ -312,7 +312,7 @@ final class Importar extends Component
     {
         $ext = strtolower($file->getClientOriginalExtension());
 
-        if ($ext === 'xlsx') {
+        if (in_array($ext, ['xlsx', 'xlsm'], true)) {
             // Livewire upload temp path puede contener caracteres (`==`, `?`) que rompen
             // ZipArchive en Windows. Copiamos a un path limpio antes de leer con OpenSpout.
             $tmpPath = tempnam(sys_get_temp_dir(), 'imp_').'.xlsx';
