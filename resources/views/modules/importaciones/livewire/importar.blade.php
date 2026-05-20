@@ -94,7 +94,7 @@
 
                     <input x-ref="fileInput"
                            type="file"
-                           accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            accept=".csv,.xlsx,.xlsm,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"
                            class="hidden"
                            @change="seleccionarArchivo($event)"/>
 
@@ -133,7 +133,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
                             </svg>
                             <div class="text-sm font-medium text-ink-700">Arrastra tu archivo aquí o <span class="text-brand-600 underline">selecciona</span></div>
-                            <div class="text-xs text-ink-500 mt-1">CSV o XLSX · máx. 16 MB</div>
+                            <div class="text-xs text-ink-500 mt-1">CSV, XLSX o XLSM · máx. 16 MB</div>
                         </div>
                     </template>
                 </div>

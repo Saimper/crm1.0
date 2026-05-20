@@ -126,7 +126,7 @@ final class Importar extends Component
         }
 
         $this->validate([
-            'archivo' => ['required', 'file', 'mimes:csv,txt,xlsx', 'max:16384'],
+            'archivo' => ['required', 'file', 'mimes:csv,txt,xlsx,xlsm', 'max:16384'],
         ], [
             'archivo.required' => 'Selecciona un archivo para continuar.',
         ], ['archivo' => 'archivo']);
