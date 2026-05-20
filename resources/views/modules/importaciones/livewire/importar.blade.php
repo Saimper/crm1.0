@@ -74,9 +74,9 @@
                   @dragover.prevent="dragging = true"
                   @dragleave.prevent="dragging = false"
                   @drop.prevent="dragging = false; if ($event.dataTransfer.files.length) { $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change', { bubbles: true })); }"
-                  @livewire-upload-start="uploading = true"
-                  @livewire-upload-finish="uploading = false"
-                  @livewire-upload-error="uploading = false"
+                  @window:livewire-upload-start="uploading = true"
+                  @window:livewire-upload-finish="uploading = false"
+                  @window:livewire-upload-error="uploading = false"
                   class="space-y-3">
 
                 {{-- Dropzone area --}}
