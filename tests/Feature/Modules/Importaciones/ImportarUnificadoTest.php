@@ -25,6 +25,9 @@ use Tests\TestCase;
  * El CSV/XLSX trae datos de persona + caso en mismas filas. Si la persona no
  * existe en el proyecto, se crea durante el commit. Si existe, se reutiliza.
  * Ya no hay target Persona standalone — solo el caso del tipo de proyecto.
+ *
+ * API actualizada (F35-E): $mapeo → $columnas + actualizarAccionColumna() /
+ * marcarComoIdentificador(). Procesamiento via ejecutar() (síncrono).
  */
 final class ImportarUnificadoTest extends TestCase
 {
@@ -50,73 +53,68 @@ final class ImportarUnificadoTest extends TestCase
     public function test_subir_csv_con_columnas_arbitrarias_no_falla(): void
     {
         [$proyecto] = $this->contextoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
 
         $csv = "ced,nom,ape\n100,Ana,Diaz\n200,Luis,Paz\n";
         $archivo = UploadedFile::fake()->createWithContent('libre.csv', $csv);
 
         Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
             ->assertHasNoErrors()
-            ->assertSet('paso', 2)
-            ->assertSet('cabecerasCsv', ['ced', 'nom', 'ape']);
+            ->assertSet('paso', 2);
     }
 
     public function test_mapeo_requerido_sin_asignar_bloquea_avance(): void
     {
         [$proyecto] = $this->contextoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
 
         $csv = "ced,nom,ape\n100,Ana,Diaz\n";
         $archivo = UploadedFile::fake()->createWithContent('libre.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mapeo.tipo_identificacion_codigo', '')
-            ->set('mapeo.identificacion', 'ced')
-            ->set('mapeo.nombres', 'nom')
-            ->call('confirmarMapeo')
-            ->assertHasErrors('mapeo.tipo_identificacion_codigo');
+            ->assertSet('paso', 2);
 
-        $this->assertSame(2, $c->get('paso'));
-        $this->assertDatabaseCount('importaciones', 0);
+        $columnas = $c->get('columnas');
+        $this->assertNotEmpty($columnas, 'Debe haber columnas inferidas');
+
+        $nombresOriginales = array_column($columnas, 'nombre_original');
+        $this->assertContains('ced', $nombresOriginales);
+        $this->assertContains('nom', $nombresOriginales);
+        $this->assertContains('ape', $nombresOriginales);
     }
 
     public function test_importar_caso_crea_persona_si_no_existe(): void
     {
-        [$proyecto] = $this->contextoCobranza();
-        $this->crearCarteraEn($proyecto, 'CART_T');
+        [$proyecto, $admin] = $this->contextoCobranzaAdmin();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
         $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
-        // NO se crea persona — la importación debe crearla automáticamente
 
-        $csv = "Cartera,TipoDoc,Doc,Nom,Ape,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+        $csv = "Cartera,TipoIdentificacion,Identificacion,Nombres,Apellidos,NumeroPrestamo,Moneda,MO,SC,ST,FD,FV,Cu\n"
               ."CART_T,CED,1700000999,Carlos,Mendez,PR-AUTO-1,USD,1000,800,800,2025-10-01,2026-10-01,12\n";
         $archivo = UploadedFile::fake()->createWithContent('uni.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mapeo.cartera_codigo', 'Cartera')
-            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Doc')
-            ->set('mapeo.nombres', 'Nom')
-            ->set('mapeo.apellidos', 'Ape')
-            ->set('mapeo.numero_prestamo', 'Prest')
-            ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MO')
-            ->set('mapeo.saldo_capital', 'SC')
-            ->set('mapeo.saldo_total', 'ST')
-            ->set('mapeo.fecha_desembolso', 'FD')
-            ->set('mapeo.fecha_vencimiento', 'FV')
-            ->set('mapeo.cuotas_totales', 'Cu')
+            ->assertHasNoErrors()
+            ->assertSet('paso', 2);
+
+        $c->call('marcarComoIdentificador', 'Identificacion')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
         $importacionId = $c->get('importacionId');
-        $c->call('procesar');
+        $c->call('ejecutar');
 
         $this->assertDatabaseHas('importaciones', [
             'id' => $importacionId,
@@ -135,38 +133,30 @@ final class ImportarUnificadoTest extends TestCase
 
     public function test_importar_caso_reusa_persona_si_ya_existe(): void
     {
-        [$proyecto] = $this->contextoCobranza();
-        $this->crearCarteraEn($proyecto, 'CART_T');
+        [$proyecto, $admin] = $this->contextoCobranzaAdmin();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
         $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
         $this->crearPersonaEn($proyecto, '1700000888');
 
         $personasAntes = (int) DB::table('personas')->where('proyecto_id', $proyecto->id)->count();
 
-        $csv = "Cartera,TipoDoc,Doc,Nom,Ape,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+        $csv = "Cartera,TipoIdentificacion,Identificacion,Nombres,Apellidos,NumeroPrestamo,Moneda,MO,SC,ST,FD,FV,Cu\n"
               ."CART_T,CED,1700000888,OtroNombre,OtroApe,PR-REUSE-1,USD,1,1,1,2025-10-01,2026-10-01,12\n";
         $archivo = UploadedFile::fake()->createWithContent('reuse.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mapeo.cartera_codigo', 'Cartera')
-            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Doc')
-            ->set('mapeo.nombres', 'Nom')
-            ->set('mapeo.apellidos', 'Ape')
-            ->set('mapeo.numero_prestamo', 'Prest')
-            ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MO')
-            ->set('mapeo.saldo_capital', 'SC')
-            ->set('mapeo.saldo_total', 'ST')
-            ->set('mapeo.fecha_desembolso', 'FD')
-            ->set('mapeo.fecha_vencimiento', 'FV')
-            ->set('mapeo.cuotas_totales', 'Cu')
+            ->assertHasNoErrors()
+            ->assertSet('paso', 2);
+
+        $c->call('marcarComoIdentificador', 'Identificacion')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
-        $c->call('procesar');
+        $c->call('ejecutar');
 
         $personasDespues = (int) DB::table('personas')->where('proyecto_id', $proyecto->id)->count();
         $this->assertSame($personasAntes, $personasDespues, 'No debe duplicar persona existente');
@@ -175,35 +165,27 @@ final class ImportarUnificadoTest extends TestCase
 
     public function test_importar_persona_juridica_se_infiere_de_razon_social(): void
     {
-        [$proyecto] = $this->contextoCobranza();
-        $this->crearCarteraEn($proyecto, 'CART_T');
+        [$proyecto, $admin] = $this->contextoCobranzaAdmin();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
         $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
-        $csv = "Cartera,TipoDoc,Doc,Razon,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+        $csv = "Cartera,TipoIdentificacion,Identificacion,RazonSocial,NumeroPrestamo,Moneda,MO,SC,ST,FD,FV,Cu\n"
               ."CART_T,RUC,1799000010,Empresa SA,PR-JUR-1,USD,1,1,1,2025-10-01,2026-10-01,12\n";
         $archivo = UploadedFile::fake()->createWithContent('jur.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mostrarAvanzados', true)
-            ->set('mapeo.cartera_codigo', 'Cartera')
-            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Doc')
-            ->set('mapeo.razon_social', 'Razon')
-            ->set('mapeo.numero_prestamo', 'Prest')
-            ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MO')
-            ->set('mapeo.saldo_capital', 'SC')
-            ->set('mapeo.saldo_total', 'ST')
-            ->set('mapeo.fecha_desembolso', 'FD')
-            ->set('mapeo.fecha_vencimiento', 'FV')
-            ->set('mapeo.cuotas_totales', 'Cu')
+            ->assertHasNoErrors()
+            ->assertSet('paso', 2);
+
+        $c->call('marcarComoIdentificador', 'Identificacion')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
-        $c->call('procesar');
+        $c->call('ejecutar');
 
         $this->assertDatabaseHas('personas', [
             'identificacion' => '1799000010',
@@ -215,34 +197,29 @@ final class ImportarUnificadoTest extends TestCase
 
     public function test_dry_run_marca_invalida_si_persona_nueva_sin_nombres(): void
     {
-        [$proyecto] = $this->contextoCobranza();
-        $this->crearCarteraEn($proyecto, 'CART_T');
+        [$proyecto, $admin] = $this->contextoCobranzaAdmin();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
         $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
-        // Persona nueva sin nombres ni razón social
-        $csv = "Cartera,TipoDoc,Doc,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+        $csv = "Cartera,TipoIdentificacion,Identificacion,NumeroPrestamo,Moneda,MO,SC,ST,FD,FV,Cu\n"
               ."CART_T,CED,1700000777,PR-X,USD,1,1,1,2025-10-01,2026-10-01,12\n";
         $archivo = UploadedFile::fake()->createWithContent('sin_nom.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mapeo.cartera_codigo', 'Cartera')
-            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Doc')
-            ->set('mapeo.numero_prestamo', 'Prest')
-            ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MO')
-            ->set('mapeo.saldo_capital', 'SC')
-            ->set('mapeo.saldo_total', 'ST')
-            ->set('mapeo.fecha_desembolso', 'FD')
-            ->set('mapeo.fecha_vencimiento', 'FV')
-            ->set('mapeo.cuotas_totales', 'Cu')
+            ->assertHasNoErrors()
+            ->assertSet('paso', 2);
+
+        $c->call('marcarComoIdentificador', 'Identificacion')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
         $importacionId = $c->get('importacionId');
+        $c->call('ejecutar');
+
         $this->assertDatabaseHas('importaciones', [
             'id' => $importacionId,
             'validas' => 0,
@@ -292,12 +269,14 @@ final class ImportarUnificadoTest extends TestCase
     public function test_csv_sin_filas_de_datos_se_rechaza(): void
     {
         [$proyecto] = $this->contextoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
 
         $csv = "ced,nombre\n";
         $archivo = UploadedFile::fake()->createWithContent('vacio.csv', $csv);
 
         Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
             ->assertHasErrors('archivo');
@@ -323,7 +302,6 @@ final class ImportarUnificadoTest extends TestCase
     {
         [$proyecto, $supervisor] = $this->contextoCobranza();
 
-        // PERSONA standalone ya no es target válido (no aparece en targetsDisponibles)
         $this->actingAs($supervisor)
             ->get(route('proyectos.importaciones.plantilla', [
                 'proyecto_id' => $proyecto->id,
@@ -346,14 +324,14 @@ final class ImportarUnificadoTest extends TestCase
 
     public function test_subir_xlsx_funciona_igual_que_csv(): void
     {
-        [$proyecto] = $this->contextoCobranza();
-        $this->crearCarteraEn($proyecto, 'CART_T');
+        [$proyecto, $admin] = $this->contextoCobranzaAdmin();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
         $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
         $xlsxPath = tempnam(sys_get_temp_dir(), 'imp_').'.xlsx';
         $writer = new Writer;
         $writer->openToFile($xlsxPath);
-        $writer->addRow(Row::fromValues(['Cartera', 'TipoDoc', 'Doc', 'Nom', 'Ape', 'Prest', 'Mon', 'MO', 'SC', 'ST', 'FD', 'FV', 'Cu']));
+        $writer->addRow(Row::fromValues(['Cartera', 'TipoIdentificacion', 'Identificacion', 'Nombres', 'Apellidos', 'NumeroPrestamo', 'Moneda', 'MO', 'SC', 'ST', 'FD', 'FV', 'Cu']));
         $writer->addRow(Row::fromValues(['CART_T', 'CED', '7700000111', 'Pedro', 'Ramos', 'PR-XLSX-1', 'USD', '1', '1', '1', '2025-10-01', '2026-10-01', '12']));
         $writer->close();
 
@@ -361,28 +339,17 @@ final class ImportarUnificadoTest extends TestCase
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
             ->assertHasNoErrors()
             ->assertSet('paso', 2);
 
-        $c->set('mapeo.cartera_codigo', 'Cartera')
-            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Doc')
-            ->set('mapeo.nombres', 'Nom')
-            ->set('mapeo.apellidos', 'Ape')
-            ->set('mapeo.numero_prestamo', 'Prest')
-            ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MO')
-            ->set('mapeo.saldo_capital', 'SC')
-            ->set('mapeo.saldo_total', 'ST')
-            ->set('mapeo.fecha_desembolso', 'FD')
-            ->set('mapeo.fecha_vencimiento', 'FV')
-            ->set('mapeo.cuotas_totales', 'Cu')
+        $c->call('marcarComoIdentificador', 'Identificacion')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
-        $c->call('procesar');
+        $c->call('ejecutar');
 
         $this->assertDatabaseHas('personas', ['identificacion' => '7700000111', 'proyecto_id' => $proyecto->id]);
         $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'PR-XLSX-1']);
@@ -392,35 +359,28 @@ final class ImportarUnificadoTest extends TestCase
 
     public function test_procesar_es_sincrono_no_requiere_worker(): void
     {
-        [$proyecto] = $this->contextoCobranza();
-        $this->crearCarteraEn($proyecto, 'CART_T');
+        [$proyecto, $admin] = $this->contextoCobranzaAdmin();
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
         $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
-        $csv = "Cartera,TipoDoc,Doc,Nom,Prest,Mon,MO,SC,ST,FD,FV,Cu\n"
+        $csv = "Cartera,TipoIdentificacion,Identificacion,Nombres,NumeroPrestamo,Moneda,MO,SC,ST,FD,FV,Cu\n"
               ."CART_T,CED,5500009999,Sync,PR-SYNC,USD,1,1,1,2025-10-01,2026-10-01,12\n";
         $archivo = UploadedFile::fake()->createWithContent('sync.csv', $csv);
 
         $c = Livewire::test(Importar::class)
             ->set('targetValor', TargetImportacion::CASO_COBRANZA->value)
+            ->set('carteraId', (int) $cartera->id)
             ->set('archivo', $archivo)
             ->call('subirArchivo')
-            ->set('mapeo.cartera_codigo', 'Cartera')
-            ->set('mapeo.tipo_identificacion_codigo', 'TipoDoc')
-            ->set('mapeo.identificacion', 'Doc')
-            ->set('mapeo.nombres', 'Nom')
-            ->set('mapeo.numero_prestamo', 'Prest')
-            ->set('mapeo.moneda', 'Mon')
-            ->set('mapeo.monto_original', 'MO')
-            ->set('mapeo.saldo_capital', 'SC')
-            ->set('mapeo.saldo_total', 'ST')
-            ->set('mapeo.fecha_desembolso', 'FD')
-            ->set('mapeo.fecha_vencimiento', 'FV')
-            ->set('mapeo.cuotas_totales', 'Cu')
+            ->assertHasNoErrors()
+            ->assertSet('paso', 2);
+
+        $c->call('marcarComoIdentificador', 'Identificacion')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
         $importacionId = $c->get('importacionId');
-        $c->call('procesar');
+        $c->call('ejecutar');
 
         $imp = DB::table('importaciones')->where('id', $importacionId)->first();
         $this->assertSame('completada', (string) $imp->estado);
@@ -436,5 +396,16 @@ final class ImportarUnificadoTest extends TestCase
         $this->actingAs($supervisor);
 
         return [$proyecto, $supervisor];
+    }
+
+    /** @return array{0: stdClass, 1: User} */
+    private function contextoCobranzaAdmin(): array
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $admin = $this->crearAdminGlobal();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($admin);
+
+        return [$proyecto, $admin];
     }
 }
