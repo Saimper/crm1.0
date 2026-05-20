@@ -34,10 +34,13 @@
             <hr class="border-ink-100"/>
 
             <form wire:submit.prevent="subirArchivo"
-                  x-data="{ dragging: false, fileName: '', fileSize: '', formatSize(bytes) { if (!bytes) return ''; const kb = bytes / 1024; return kb < 1024 ? Math.round(kb) + ' KB' : (kb / 1024).toFixed(1) + ' MB'; } }"
+                  x-data="{ dragging: false, fileName: '', fileSize: '', uploading: false, formatSize(bytes) { if (!bytes) return ''; const kb = bytes / 1024; return kb < 1024 ? Math.round(kb) + ' KB' : (kb / 1024).toFixed(1) + ' MB'; } }"
                   @dragover.prevent="dragging = true"
                   @dragleave.prevent="dragging = false"
                   @drop.prevent="dragging = false; if ($event.dataTransfer.files.length) { $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change', { bubbles: true })); }"
+                  @window:livewire-upload-start="uploading = true"
+                  @window:livewire-upload-finish="uploading = false"
+                  @window:livewire-upload-error="uploading = false"
                   class="space-y-3">
 
                 {{-- Dropzone area --}}
@@ -47,10 +50,10 @@
 
                     <input x-ref="fileInput"
                            type="file"
-                           wire:model.live="archivo"
+                           wire:model="archivo"
                            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                            class="hidden"
-                           @change="fileName = $event.target.files[0]?.name || ''; fileSize = ($event.target.files[0]?.size || 0)"/>
+                           @change="fileName = $event.target.files[0]?.name || ''; fileSize = ($event.target.files[0]?.size || 0); uploading = true"/>
 
                     {{-- Estado: dragging --}}
                     <div x-show="dragging" class="pointer-events-none">
@@ -87,11 +90,10 @@
 
                 <button type="submit"
                         class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 disabled:opacity-50"
-                        @disabled($targetValor === null)
-                        wire:loading.attr="disabled"
-                        wire:target="subirArchivo,archivo">
-                    <span wire:loading.remove wire:target="subirArchivo,archivo">Continuar al mapeo</span>
-                    <span wire:loading wire:target="subirArchivo,archivo">Procesando...</span>
+                        :disabled="$targetValor === null || uploading"
+                        wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="subirArchivo">Continuar al mapeo</span>
+                    <span wire:loading wire:target="subirArchivo">Procesando...</span>
                 </button>
             </form>
         </section>
