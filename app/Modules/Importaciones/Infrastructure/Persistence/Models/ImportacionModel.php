@@ -25,5 +25,13 @@ final class ImportacionModel extends Model
         'filas_error' => 'integer',
         'filas_importadas' => 'integer',
         'mapeo' => 'array',
+        'esquema' => 'array',
+        'procesadas' => 'integer',
+        'insertadas' => 'integer',
+        'actualizadas' => 'integer',
+        'validas' => 'integer',
+        'invalidas' => 'integer',
+        'omitidas' => 'integer',
+        'duplicadas' => 'integer',
     ];
 }

@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Infrastructure\Jobs;
 
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosCobranza;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosLeadVenta;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosServicio;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosTicketCx;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionPersonas;
+use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionDinamica;
+use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionInput;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
-use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Events\ImportacionFallada;
 use App\Modules\Importaciones\Domain\Events\ImportacionIniciada;
 use App\Modules\Importaciones\Domain\Events\ImportacionTerminada;
-use App\Modules\Importaciones\Domain\ValueObjects\ResumenChunk;
-use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
@@ -29,11 +23,12 @@ use Illuminate\Support\Facades\Event;
 use Throwable;
 
 /**
- * Job que ejecuta una importación en chunks.
+ * Job que ejecuta una importación dinámica en chunks.
+ *
  * - tries=3, backoff escalonado.
  * - uniqueId=importacion_id evita re-encolado del mismo batch.
  * - Lock advisory MySQL `GET_LOCK("import:{id}")`: si otro worker tiene la importación, sale silencioso.
- * - Detecta cancelación tras cada chunk: si estado=cancelada, abandona.
+ * - Delega todo el procesamiento a EjecutarImportacionDinamica (esquema dinámico).
  */
 final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
 {
@@ -49,7 +44,7 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
 
     public function __construct(
         public readonly int $importacionId,
-        public readonly string $modo,
+        public readonly string $modo = 'upsert',
     ) {
         $this->onQueue((string) config('imports.queue', 'imports'));
     }
@@ -69,7 +64,7 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
         return (int) config('imports.job_timeout', 3600);
     }
 
-    public function handle(): void
+    public function handle(EjecutarImportacionDinamica $ejecutarDinamica): void
     {
         $lockKey = 'import:'.$this->importacionId;
         $obtenido = (int) DB::selectOne('SELECT GET_LOCK(?, 0) AS got', [$lockKey])->got;
@@ -78,13 +73,13 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
         }
 
         try {
-            $this->procesar();
+            $this->procesar($ejecutarDinamica);
         } finally {
             DB::statement('SELECT RELEASE_LOCK(?)', [$lockKey]);
         }
     }
 
-    private function procesar(): void
+    private function procesar(EjecutarImportacionDinamica $ejecutarDinamica): void
     {
         /** @var ImportacionModel|null $importacion */
         $importacion = ImportacionModel::query()->sinScopeProyecto()->find($this->importacionId);
@@ -97,63 +92,20 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        if ($estado === EstadoImportacion::PREPARADA) {
-            $importacion->estado = EstadoImportacion::PROCESANDO->value;
-            $importacion->iniciado_en = CarbonImmutable::now();
-            $importacion->save();
+        $batchSize = (int) config('imports.batch_size', 1000);
+
+        try {
+            $resultado = $ejecutarDinamica->execute(new EjecutarImportacionInput(
+                importacionId: $this->importacionId,
+                chunkSize: $batchSize,
+            ));
+
+            $importacion->refresh();
+
             Event::dispatch(new ImportacionIniciada(
                 importacionId: (int) $importacion->id,
                 proyectoId: (int) $importacion->proyecto_id,
             ));
-        }
-
-        $modo = ModoImportacion::from($this->modo);
-        $batchSize = (int) config('imports.batch_size', 1000);
-        $tipo = (string) $importacion->tipo_entidad;
-
-        try {
-            $totalFilas = (int) ImportacionFilaModel::query()
-                ->sinScopeProyecto()
-                ->where('importacion_id', $this->importacionId)
-                ->count();
-
-            $procesadasIds = (int) ImportacionFilaModel::query()
-                ->sinScopeProyecto()
-                ->where('importacion_id', $this->importacionId)
-                ->where('estado', '!=', 'pendiente')
-                ->count();
-
-            $offset = $procesadasIds;
-
-            while ($offset < $totalFilas) {
-                $fresca = ImportacionModel::query()->sinScopeProyecto()->find($this->importacionId);
-                if ($fresca === null || (string) $fresca->estado === EstadoImportacion::CANCELADA->value) {
-                    return;
-                }
-
-                $resumen = $this->ejecutarChunk($tipo, $modo, $offset, $batchSize);
-
-                ImportacionModel::query()->sinScopeProyecto()
-                    ->where('id', $this->importacionId)
-                    ->update([
-                        'procesadas' => DB::raw('procesadas + '.$resumen->procesadas),
-                        'validas' => DB::raw('validas + '.$resumen->validas),
-                        'invalidas' => DB::raw('invalidas + '.$resumen->invalidas),
-                        'omitidas' => DB::raw('omitidas + '.$resumen->omitidas),
-                        'duplicadas' => DB::raw('duplicadas + '.$resumen->duplicadas),
-                    ]);
-
-                if ($resumen->filasEnChunk === 0) {
-                    break;
-                }
-
-                $offset += $resumen->filasEnChunk;
-            }
-
-            $importacion->refresh();
-            $importacion->estado = EstadoImportacion::COMPLETADA->value;
-            $importacion->terminado_en = CarbonImmutable::now();
-            $importacion->save();
 
             Event::dispatch(new ImportacionTerminada(
                 importacionId: (int) $importacion->id,
@@ -181,17 +133,5 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
 
             throw $e;
         }
-    }
-
-    private function ejecutarChunk(string $tipo, ModoImportacion $modo, int $offset, int $limit): ResumenChunk
-    {
-        return DB::transaction(fn (): ResumenChunk => match ($tipo) {
-            'persona' => app(ProcesarImportacionPersonas::class)->ejecutar($this->importacionId, true, $modo, $offset, $limit),
-            'caso_cobranza' => app(ProcesarImportacionCasosCobranza::class)->ejecutar($this->importacionId, true, $modo, $offset, $limit),
-            'caso_ticket_cx' => app(ProcesarImportacionCasosTicketCx::class)->ejecutar($this->importacionId, true, $modo, $offset, $limit),
-            'caso_lead_venta' => app(ProcesarImportacionCasosLeadVenta::class)->ejecutar($this->importacionId, true, $modo, $offset, $limit),
-            'caso_servicio' => app(ProcesarImportacionCasosServicio::class)->ejecutar($this->importacionId, true, $modo, $offset, $limit),
-            default => ResumenChunk::vacio(),
-        });
     }
 }
