@@ -4,21 +4,27 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Infrastructure\Http\Livewire;
 
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Application\Services\LectorCsv;
 use App\Modules\Importaciones\Application\Services\LectorXlsx;
-use App\Modules\Importaciones\Application\Services\MapeadorPayload;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ConsultarProgresoImportacion;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosCobranza;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosLeadVenta;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosServicio;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionCasosTicketCx;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionPersonas;
-use App\Modules\Importaciones\Domain\Catalogo\CampoSistema;
+use App\Modules\Importaciones\Application\UseCases\EncolarImportacion;
+use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionInput;
+use App\Modules\Importaciones\Application\UseCases\InferirEsquemaDesdeHeaders;
+use App\Modules\Importaciones\Application\UseCases\InferirEsquemaInput;
+use App\Modules\Importaciones\Application\UseCases\InferirEsquemaOutput;
+use App\Modules\Importaciones\Application\UseCases\PrepararImportacionDinamica;
+use App\Modules\Importaciones\Application\UseCases\PrepararImportacionInput;
 use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
+use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
+use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
+use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
+use App\Modules\Importaciones\Domain\ValueObjects\ResultadoDryRun;
 use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
@@ -31,19 +37,14 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 /**
- * Wizard unificado de importación con mapeo libre de columnas CSV.
+ * Wizard unificado de importación dinámica.
  *
  * Flujo:
- *   1. subir   — selector target + upload CSV → lee headers + 5 filas muestra.
- *   2. mapeo   — usuario asocia cada campo del sistema a una columna del CSV.
- *                Auto-mapeo por nombre normalizado pre-llena coincidencias.
- *   3. preview — confirmado el mapeo: crea Importacion + filas (payload canónico),
- *                dry-run validación, selector modo (merge/skip_duplicados/overwrite).
- *   4. procesando — encolar EjecutarImportacionJob, polling progreso 2s.
- *
- * El payload almacenado en importacion_filas.payload usa keys CANÓNICAS (mismas
- * que esperan los UseCases procesadores). Por eso los procesadores no cambian.
- * El mapeo {campo_sistema => columna_csv} se persiste en importaciones.mapeo.
+ *   1. subir   — selector target + cartera + upload → infiere esquema.
+ *   2. mapeo   — usuario ajusta acción por columna (sistema/CP/ignorar)
+ *                y elige identificador de persona.
+ *   3. confirmar — valida esquema, crea CPs, prepara importación.
+ *   4. procesar — despacha job, polling progreso 2s.
  */
 final class Importar extends Component
 {
@@ -53,33 +54,27 @@ final class Importar extends Component
 
     public ?string $targetValor = null;
 
+    public ?int $carteraId = null;
+
+    public string $modo = 'upsert';
+
     public $archivo = null;
 
-    /**
-     * Flag que confirma que Livewire hidrato $archivo en PHP.
-     * Alpine lee este valor via $wire.archivoListo para habilitar el botón
-     * solo cuando el servidor realmente tiene el archivo — elimina la race
-     * condition entre el callback onSuccess de $wire.upload() y la hidratación
-     * del componente.
-     */
     public bool $archivoListo = false;
 
-    /** @var list<string> */
-    public array $cabecerasCsv = [];
+    /** @var list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}> */
+    public array $columnas = [];
 
-    /** @var list<list<string>> */
-    public array $filasMuestra = [];
-
-    /** @var array<string, string>  campo_sistema_codigo => columna_csv */
-    public array $mapeo = [];
+    public ?string $columnaIdentificadorNombre = null;
 
     public ?int $importacionId = null;
 
-    public string $modo = 'merge';
+    public ?array $resultadoDryRun = null;
+
+    /** @var list<string> */
+    public array $advertencias = [];
 
     public string $filtroFilas = 'todas';
-
-    public bool $mostrarAvanzados = false;
 
     public function mount(): void
     {
@@ -93,15 +88,11 @@ final class Importar extends Component
 
     public function updatedTargetValor(): void
     {
-        $this->reset(['archivo', 'cabecerasCsv', 'filasMuestra', 'mapeo']);
+        $this->reset(['archivo', 'columnas', 'columnaIdentificadorNombre', 'carteraId']);
         $this->archivoListo = false;
+        $this->paso = 1;
     }
 
-    /**
-     * Hook de Livewire — se ejecuta cada vez que $archivo cambia en el servidor.
-     * Es el único punto donde podemos garantizar que $archivo está hidratado.
-     * Pone archivoListo = true solo si es un UploadedFile real.
-     */
     public function updatedArchivo(): void
     {
         $this->archivoListo = ($this->archivo instanceof UploadedFile);
@@ -111,16 +102,21 @@ final class Importar extends Component
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
 
-        // Guard contra race condition: si Alpine llamó subirArchivo() antes de que
-        // Livewire haya hidratado $archivo, rechazamos con mensaje claro.
         if (! $this->archivoListo || ! ($this->archivo instanceof UploadedFile)) {
             $this->addError('archivo', 'El archivo aún no terminó de cargarse. Espera un momento e intenta de nuevo.');
 
             return;
         }
 
-        if ($this->target() === null) {
+        $target = $this->target();
+        if ($target === null) {
             $this->addError('targetValor', 'Selecciona qué deseas importar.');
+
+            return;
+        }
+
+        if ($target !== TargetImportacion::PERSONA && $this->carteraId === null) {
+            $this->addError('carteraId', 'Selecciona una cartera.');
 
             return;
         }
@@ -135,7 +131,7 @@ final class Importar extends Component
         $file = $this->archivo;
 
         try {
-            [$headers, $muestra, $totalFilas] = $this->leerArchivo($file);
+            [$headers, $muestra] = $this->leerArchivo($file);
         } catch (\Throwable $e) {
             $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
 
@@ -147,39 +143,59 @@ final class Importar extends Component
 
             return;
         }
-        if ($totalFilas === 0) {
+
+        if (empty($muestra)) {
             $this->addError('archivo', 'El archivo no contiene filas de datos.');
 
             return;
         }
 
-        $maxFilas = (int) config('imports.max_filas_por_archivo', 200000);
-        if ($totalFilas > $maxFilas) {
-            $this->addError('archivo', "El archivo supera el máximo permitido ({$maxFilas} filas).");
+        $proyectoId = $this->proyectoId();
 
-            return;
-        }
+        $output = app(InferirEsquemaDesdeHeaders::class)->execute(new InferirEsquemaInput(
+            headers: $headers,
+            filasMuestra: $muestra,
+            target: $target,
+            proyectoId: $proyectoId,
+            carteraId: $this->carteraId,
+        ));
 
-        $this->cabecerasCsv = $headers;
-        $this->filasMuestra = $muestra;
-        $this->mapeo = (new MapeadorPayload)->autoMapear($this->codigosCampoSistema(), $headers);
+        $this->columnas = $this->serializarColumnas($output->columnas);
+        $this->columnaIdentificadorNombre = $output->sugerenciaIdentificador;
+        $this->advertencias = $output->advertencias;
         $this->paso = 2;
     }
 
-    public function autoMapear(): void
+    public function actualizarAccionColumna(string $nombreOriginal, string $accion): void
     {
-        if ($this->cabecerasCsv === []) {
+        $accionEnum = AccionColumna::tryFrom($accion);
+        if ($accionEnum === null) {
             return;
         }
-        $this->mapeo = (new MapeadorPayload)->autoMapear($this->codigosCampoSistema(), $this->cabecerasCsv);
+
+        foreach ($this->columnas as $i => $col) {
+            if ($col['nombre_original'] === $nombreOriginal) {
+                $this->columnas[$i]['accion'] = $accion;
+
+                if ($accionEnum === AccionColumna::MAPEAR_SISTEMA) {
+                    $this->columnas[$i]['es_identificador_persona'] = false;
+                }
+
+                break;
+            }
+        }
     }
 
-    public function volverASubir(): void
+    public function marcarComoIdentificador(string $nombreOriginal): void
     {
-        $this->paso = 1;
-        $this->reset(['cabecerasCsv', 'filasMuestra', 'mapeo']);
-        // NO reseteamos $archivo ni $archivoListo: el archivo sigue disponible
-        // si el usuario vuelve sin reseleccionar, evitamos re-upload innecesario.
+        foreach ($this->columnas as $i => $col) {
+            if ($col['nombre_original'] === $nombreOriginal) {
+                $this->columnas[$i]['es_identificador_persona'] = true;
+                $this->columnaIdentificadorNombre = $nombreOriginal;
+            } else {
+                $this->columnas[$i]['es_identificador_persona'] = false;
+            }
+        }
     }
 
     public function confirmarMapeo(): void
@@ -187,21 +203,55 @@ final class Importar extends Component
         abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
 
         $target = $this->target();
-        if ($target === null || $this->cabecerasCsv === []) {
+        if ($target === null) {
             return;
         }
 
-        $faltantes = $this->camposRequeridosSinMapear();
-        if ($faltantes !== []) {
-            foreach ($faltantes as $codigo => $etiqueta) {
-                $this->addError("mapeo.{$codigo}", "Falta mapear: {$etiqueta}.");
+        $columnas = $this->deserializarColumnas();
+
+        if ($columnas === []) {
+            $this->addError('columnas', 'No hay columnas configuradas.');
+
+            return;
+        }
+
+        $tienePermisoCampos = auth()->user()?->tienePermiso('campos.definir') === true;
+        $tieneColumnasCP = false;
+
+        foreach ($columnas as $col) {
+            if ($col->accion === AccionColumna::CREAR_CP) {
+                $tieneColumnasCP = true;
+
+                break;
             }
+        }
+
+        if ($tieneColumnasCP && ! $tienePermisoCampos) {
+            $this->addError('columnas', 'No tienes permiso para crear campos personalizados. Solicita acceso a un administrador.');
 
             return;
         }
 
+        $esquema = new EsquemaImportacion(
+            target: $target,
+            proyectoId: $this->proyectoId(),
+            carteraId: $target === TargetImportacion::PERSONA ? null : $this->carteraId,
+            modo: ModoImportacion::from($this->modo),
+            columnas: $columnas,
+        );
+
+        try {
+            $esquema->validar();
+        } catch (\DomainException $e) {
+            $this->addError('columnas', $e->getMessage());
+
+            return;
+        }
+
+        $proyectoId = $this->proyectoId();
         /** @var UploadedFile|null $file */
         $file = $this->archivo;
+
         if ($file === null) {
             $this->addError('archivo', 'Sube el archivo nuevamente.');
             $this->paso = 1;
@@ -210,13 +260,12 @@ final class Importar extends Component
         }
 
         try {
-            [$headers, , , $filas] = $this->leerArchivo($file, leerTodas: true);
+            [$headers, , $totalFilas, $filas] = $this->leerArchivo($file, leerTodas: true);
         } catch (\Throwable $e) {
             $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
 
             return;
         }
-        $mapeador = new MapeadorPayload;
 
         if ($filas === []) {
             $this->addError('archivo', 'El archivo no contiene filas.');
@@ -224,14 +273,10 @@ final class Importar extends Component
             return;
         }
 
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
-        $defaults = $this->defaultsParaTarget($target, $proyectoId);
-
         $importacion = new ImportacionModel;
         $importacion->public_id = (string) Str::ulid();
         $importacion->proyecto_id = $proyectoId;
         $importacion->tipo_entidad = $target->tipoEntidadDb();
-        $importacion->mapeo = $this->mapeo;
         $importacion->modo = $this->modo;
         $importacion->estado = EstadoImportacion::PENDIENTE->value;
         $importacion->usuario_id = (int) auth()->id();
@@ -240,8 +285,7 @@ final class Importar extends Component
         $importacion->save();
 
         foreach ($filas as $i => $filaCruda) {
-            $payload = $mapeador->aPayloadCanonico($headers, $filaCruda, $this->mapeo);
-            $payload = $this->aplicarAutoFill($target, $payload, $defaults);
+            $payload = $this->construirPayload($headers, $filaCruda, $columnas);
 
             ImportacionFilaModel::query()->create([
                 'importacion_id' => $importacion->id,
@@ -253,23 +297,36 @@ final class Importar extends Component
         }
 
         $this->importacionId = (int) $importacion->id;
-        $this->ejecutarDryRun($target);
 
-        $invalidas = (int) ImportacionFilaModel::query()->sinScopeProyecto()
-            ->where('importacion_id', $this->importacionId)->where('estado', 'invalida')->count();
-        $validas = (int) ImportacionFilaModel::query()->sinScopeProyecto()
-            ->where('importacion_id', $this->importacionId)->where('estado', 'pendiente')->count();
+        try {
+            $resultado = app(PrepararImportacionDinamica::class)->execute(new PrepararImportacionInput(
+                importacionId: $this->importacionId,
+                esquema: $esquema,
+                usuarioId: (int) auth()->id(),
+                tienePermisoCampos: $tienePermisoCampos,
+            ));
 
-        ImportacionModel::query()->sinScopeProyecto()->where('id', $this->importacionId)->update([
-            'estado' => EstadoImportacion::PREPARADA->value,
-            'validas' => $validas,
-            'invalidas' => $invalidas,
-        ]);
+            $this->resultadoDryRun = [
+                'esValido' => $resultado->resultadoDryRun->esValido,
+                'filasTotales' => count($filas),
+                'filasValidas' => count($filas),
+                'filasConAdvertencia' => 0,
+                'filasInvalidas' => 0,
+                'camposPersonalizadosACrear' => $resultado->resultadoDryRun->camposPersonalizadosACrear,
+                'advertencias' => $resultado->resultadoDryRun->advertencias,
+                'camposCreados' => $resultado->camposCreados,
+                'camposReutilizados' => $resultado->camposReutilizados,
+            ];
+        } catch (ImportacionSinPermisoCamposException $e) {
+            $this->addError('columnas', $e->getMessage());
+
+            return;
+        }
 
         $this->paso = 3;
     }
 
-    public function procesar(): void
+    public function ejecutar(): void
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.procesar') === true, 403);
 
@@ -281,10 +338,7 @@ final class Importar extends Component
             ->where('id', $this->importacionId)
             ->update(['modo' => $this->modo]);
 
-        // F35-B fix: ejecución sync — evita depender de un worker `queue:work --queue=imports`
-        // corriendo en producción. El Job tiene lock advisory propio que previene doble ejecución.
-        // Para volúmenes grandes (cliente quiere async real), volver a `EncolarImportacion`.
-        EjecutarImportacionJob::dispatchSync($this->importacionId, $this->modo);
+        EjecutarImportacionJob::dispatchSync($this->importacionId);
         $this->paso = 4;
     }
 
@@ -297,24 +351,78 @@ final class Importar extends Component
 
     public function cerrar(): void
     {
-        $this->reset(['archivo', 'cabecerasCsv', 'filasMuestra', 'mapeo', 'importacionId', 'filtroFilas', 'mostrarAvanzados']);
+        $this->reset(['archivo', 'columnas', 'columnaIdentificadorNombre', 'importacionId', 'filtroFilas', 'resultadoDryRun', 'advertencias', 'carteraId']);
         $this->archivoListo = false;
         $this->paso = 1;
-        $this->modo = 'merge';
+        $this->modo = 'upsert';
+    }
+
+    public function render(): View
+    {
+        $proyecto = app('tenancy.proyecto_activo');
+        $proyectoId = (int) $proyecto->id;
+        $tipoOperacion = (string) $proyecto->tipo_operacion;
+
+        $disponibles = CatalogoCamposSistema::targetsDisponibles($tipoOperacion);
+        $target = $this->target();
+
+        $carteras = $target !== TargetImportacion::PERSONA
+            ? DB::table('carteras')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('nombre')->get()
+            : collect();
+
+        $progreso = null;
+        $importacionActual = null;
+        $preview = collect();
+
+        if ($this->importacionId !== null) {
+            $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
+            $importacionActual = DB::table('importaciones')->where('id', $this->importacionId)->first();
+
+            $q = DB::table('importacion_filas')->where('importacion_id', $this->importacionId);
+            if ($this->filtroFilas !== 'todas') {
+                $q->where('estado', $this->filtroFilas);
+            }
+            $preview = $q->orderBy('numero_fila')->limit(200)->get();
+        }
+
+        $historial = DB::table('importaciones as i')
+            ->leftJoin('users as u', 'u.id', '=', 'i.usuario_id')
+            ->where('i.proyecto_id', $proyectoId)
+            ->select([
+                'i.id', 'i.public_id', 'i.estado', 'i.modo', 'i.nombre_archivo', 'i.tipo_entidad',
+                'i.total_filas', 'i.procesadas', 'i.insertadas', 'i.actualizadas',
+                'i.validas', 'i.invalidas', 'i.omitidas', 'i.duplicadas',
+                'i.creada_en', 'u.name as usuario_nombre',
+            ])
+            ->orderByDesc('i.creada_en')
+            ->limit(30)
+            ->get();
+
+        $camposSistema = $target !== null ? CatalogoCamposSistema::paraTarget($target) : [];
+
+        return view('importaciones::livewire.importar', [
+            'targetsDisponibles' => $disponibles,
+            'target' => $target,
+            'carteras' => $carteras,
+            'camposSistema' => $camposSistema,
+            'progreso' => $progreso,
+            'importacionActual' => $importacionActual,
+            'preview' => $preview,
+            'historial' => $historial,
+            'tipoOperacion' => $tipoOperacion,
+        ]);
     }
 
     /**
-     * Lee headers + muestra + total. Si $leerTodas, devuelve también todas las filas.
+     * Lee headers + muestra del archivo. Si $leerTodas, devuelve también todas las filas.
      *
-     * @return array{0: list<string>, 1: list<list<string>>, 2: int, 3?: list<list<string>>}
+     * @return array{0: list<string>, 1: list<list<string>>, 2?: int, 3?: list<list<string>>}
      */
     private function leerArchivo(UploadedFile $file, bool $leerTodas = false): array
     {
         $ext = strtolower($file->getClientOriginalExtension());
 
         if (in_array($ext, ['xlsx', 'xlsm'], true)) {
-            // Livewire upload temp path puede contener caracteres (`==`, `?`) que rompen
-            // ZipArchive en Windows. Copiamos a un path limpio antes de leer con OpenSpout.
             $tmpPath = tempnam(sys_get_temp_dir(), 'imp_').'.xlsx';
             copy($file->getRealPath(), $tmpPath);
 
@@ -347,159 +455,86 @@ final class Importar extends Component
         return [$headers, $muestra, $total];
     }
 
-    public function render(): View
-    {
-        $proyecto = app('tenancy.proyecto_activo');
-        $proyectoId = (int) $proyecto->id;
-        $tipoOperacion = (string) $proyecto->tipo_operacion;
-
-        $disponibles = CatalogoCamposSistema::targetsDisponibles($tipoOperacion);
-        $target = $this->target();
-        $camposSistema = $target !== null ? CatalogoCamposSistema::paraTarget($target) : [];
-
-        $progreso = null;
-        $importacionActual = null;
-        $preview = collect();
-
-        if ($this->importacionId !== null) {
-            $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
-            $importacionActual = DB::table('importaciones')->where('id', $this->importacionId)->first();
-
-            $q = DB::table('importacion_filas')->where('importacion_id', $this->importacionId);
-            if ($this->filtroFilas !== 'todas') {
-                $q->where('estado', $this->filtroFilas);
-            }
-            $preview = $q->orderBy('numero_fila')->limit(200)->get();
-        }
-
-        $historial = DB::table('importaciones as i')
-            ->leftJoin('users as u', 'u.id', '=', 'i.usuario_id')
-            ->where('i.proyecto_id', $proyectoId)
-            ->select([
-                'i.id', 'i.public_id', 'i.estado', 'i.modo', 'i.nombre_archivo', 'i.tipo_entidad',
-                'i.total_filas', 'i.procesadas', 'i.validas', 'i.invalidas', 'i.omitidas', 'i.duplicadas',
-                'i.creada_en', 'u.name as usuario_nombre',
-            ])
-            ->orderByDesc('i.creada_en')
-            ->limit(30)
-            ->get();
-
-        return view('importaciones::livewire.importar', [
-            'targetsDisponibles' => $disponibles,
-            'target' => $target,
-            'camposSistema' => $camposSistema,
-            'progreso' => $progreso,
-            'importacionActual' => $importacionActual,
-            'preview' => $preview,
-            'historial' => $historial,
-            'tipoOperacion' => $tipoOperacion,
-        ]);
-    }
-
     /**
-     * Defaults aplicados cuando el campo no fue mapeado al payload canónico.
-     *
-     * @return array<string, mixed>
+     * @param list<string> $headers
+     * @param list<string> $filaCruda
+     * @param list<ColumnaExcel> $columnas
+     * @return array<string, string>
      */
-    private function defaultsParaTarget(TargetImportacion $target, int $proyectoId): array
+    private function construirPayload(array $headers, array $filaCruda, array $columnas): array
     {
-        if ($target === TargetImportacion::PERSONA) {
-            return [];
-        }
+        $indicePorHeader = array_flip($headers);
+        $payload = [];
 
-        $primerEstado = (string) DB::table('estados_caso')
-            ->where('proyecto_id', $proyectoId)
-            ->where('activo', true)
-            ->orderBy('orden')
-            ->orderBy('id')
-            ->value('codigo');
-
-        return [
-            'estado_caso_codigo' => $primerEstado !== '' ? $primerEstado : null,
-            'fecha_ingreso' => Carbon::now()->toDateString(),
-        ];
-    }
-
-    /**
-     * @param  array<string, string>  $payload
-     * @param  array<string, mixed>  $defaults
-     * @return array<string, mixed>
-     */
-    private function aplicarAutoFill(TargetImportacion $target, array $payload, array $defaults): array
-    {
-        if ($target === TargetImportacion::PERSONA) {
-            if (! isset($payload['tipo_persona']) || $payload['tipo_persona'] === '') {
-                $tieneRazon = isset($payload['razon_social']) && $payload['razon_social'] !== '';
-                $tieneNombres = isset($payload['nombres']) && $payload['nombres'] !== '';
-                if ($tieneRazon && ! $tieneNombres) {
-                    $payload['tipo_persona'] = 'juridica';
-                } elseif ($tieneNombres) {
-                    $payload['tipo_persona'] = 'fisica';
-                }
-            }
-
-            return $payload;
-        }
-
-        foreach ($defaults as $key => $valor) {
-            if ($valor === null) {
+        foreach ($columnas as $columna) {
+            if ($columna->accion === AccionColumna::IGNORAR) {
                 continue;
             }
-            if (! isset($payload[$key]) || $payload[$key] === '') {
-                $payload[$key] = (string) $valor;
+
+            $colIdx = $indicePorHeader[$columna->nombreOriginal] ?? null;
+            if ($colIdx === null) {
+                continue;
+            }
+
+            $valor = trim($filaCruda[$colIdx] ?? '');
+            if ($valor === '') {
+                continue;
+            }
+
+            if ($columna->accion === AccionColumna::MAPEAR_SISTEMA && $columna->campoSistemaMapeado !== null) {
+                $payload[$columna->campoSistemaMapeado] = $valor;
+            } else {
+                $payload[$columna->codigoSugerido()] = $valor;
             }
         }
 
         return $payload;
     }
 
-    private function ejecutarDryRun(TargetImportacion $target): void
+    /**
+     * @param list<ColumnaExcel> $columnas
+     * @return list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}>
+     */
+    private function serializarColumnas(array $columnas): array
     {
-        if ($this->importacionId === null) {
-            return;
-        }
-        $modo = ModoImportacion::from($this->modo);
+        $resultado = [];
 
-        match ($target) {
-            TargetImportacion::PERSONA => app(ProcesarImportacionPersonas::class)->ejecutar($this->importacionId, false, $modo),
-            TargetImportacion::CASO_COBRANZA => app(ProcesarImportacionCasosCobranza::class)->ejecutar($this->importacionId, false, $modo),
-            TargetImportacion::CASO_TICKET_CX => app(ProcesarImportacionCasosTicketCx::class)->ejecutar($this->importacionId, false, $modo),
-            TargetImportacion::CASO_LEAD_VENTA => app(ProcesarImportacionCasosLeadVenta::class)->ejecutar($this->importacionId, false, $modo),
-            TargetImportacion::CASO_SERVICIO => app(ProcesarImportacionCasosServicio::class)->ejecutar($this->importacionId, false, $modo),
-        };
+        foreach ($columnas as $col) {
+            $resultado[] = [
+                'nombre_original' => $col->nombreOriginal,
+                'tipo_inferido' => $col->tipoInferido->value,
+                'campo_sistema_mapeado' => $col->campoSistemaMapeado,
+                'es_identificador_persona' => $col->esIdentificadorPersona,
+                'accion' => $col->accion->value,
+            ];
+        }
+
+        return $resultado;
     }
 
     /**
-     * @return array<string, string> codigo => etiqueta
+     * @return list<ColumnaExcel>
      */
-    private function camposRequeridosSinMapear(): array
+    private function deserializarColumnas(): array
     {
-        $faltantes = [];
-        foreach ($this->camposSistemaActivos() as $campo) {
-            if (! $campo->requerido) {
-                continue;
-            }
-            $col = $this->mapeo[$campo->codigo] ?? '';
-            if ($col === '' || ! in_array($col, $this->cabecerasCsv, true)) {
-                $faltantes[$campo->codigo] = $campo->etiqueta;
-            }
+        $resultado = [];
+
+        foreach ($this->columnas as $col) {
+            $resultado[] = new ColumnaExcel(
+                nombreOriginal: $col['nombre_original'],
+                tipoInferido: TipoCampo::from($col['tipo_inferido']),
+                campoSistemaMapeado: $col['campo_sistema_mapeado'] ?: null,
+                esIdentificadorPersona: (bool) $col['es_identificador_persona'],
+                accion: AccionColumna::from($col['accion']),
+            );
         }
 
-        return $faltantes;
+        return $resultado;
     }
 
-    /** @return list<CampoSistema> */
-    private function camposSistemaActivos(): array
+    private function proyectoId(): int
     {
-        $target = $this->target();
-
-        return $target !== null ? CatalogoCamposSistema::paraTarget($target) : [];
-    }
-
-    /** @return list<string> */
-    private function codigosCampoSistema(): array
-    {
-        return array_map(static fn (CampoSistema $c): string => $c->codigo, $this->camposSistemaActivos());
+        return (int) app('tenancy.proyecto_activo')->id;
     }
 
     /** @return list<TargetImportacion> */
