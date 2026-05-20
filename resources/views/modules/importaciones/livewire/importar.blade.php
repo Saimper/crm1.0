@@ -33,6 +33,13 @@
 
             <hr class="border-ink-100"/>
 
+            {{--
+                FIX RACE CONDITION:
+                - $wire.upload() sube el archivo y cuando termina pone uploading=false en Alpine.
+                - Livewire entonces ejecuta updatedArchivo() en PHP y pone archivoListo=true.
+                - El botón solo se habilita cuando $wire.archivoListo === true (confirmación del servidor).
+                - Esto elimina el gap entre "Alpine sabe que terminó" y "PHP tiene el archivo hidratado".
+            --}}
             <form @submit.prevent="enviarFormulario"
                   x-data="{
                       dragging: false,
@@ -52,31 +59,32 @@
                           this.fileSize = file.size;
                           this.uploading = true;
                           this.submitted = false;
-                          $refs.fileInput.value = '';
-                          $wire.upload('archivo', file,
+                          $wire.upload(
+                              'archivo',
+                              file,
                               () => { this.uploading = false; },
-                              () => { this.uploading = false; },
-                              () => { this.uploading = false; }
+                              () => { this.uploading = false; this.submitted = false; },
+                              () => {}
                           );
                       },
                       enviarFormulario() {
-                          if (this.uploading || this.submitted || @entangle('targetValor') === null) return;
+                          if (this.uploading || this.submitted) return;
+                          if (!$wire.archivoListo) {
+                              return;
+                          }
                           this.submitted = true;
-                          $wire.subirArchivo();
-                      },
-                      resetArchivo() {
-                          this.fileName = '';
-                          this.fileSize = '';
-                          this.uploading = false;
-                          this.submitted = false;
+                          $wire.subirArchivo().catch(() => { this.submitted = false; });
                       }
                   }"
                   @dragover.prevent="dragging = true"
                   @dragleave.prevent="dragging = false"
-                  @drop.prevent="dragging = false; if ($event.dataTransfer.files.length) { $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change', { bubbles: true })); }"
-                  @window:livewire-upload-start="uploading = true"
-                  @window:livewire-upload-finish="uploading = false"
-                  @window:livewire-upload-error="uploading = false"
+                  @drop.prevent="
+                      dragging = false;
+                      if ($event.dataTransfer.files.length) {
+                          $refs.fileInput.files = $event.dataTransfer.files;
+                          $refs.fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+                      }
+                  "
                   class="space-y-3">
 
                 {{-- Dropzone area --}}
@@ -98,8 +106,17 @@
                         <div class="text-sm font-medium text-brand-700">Suelta el archivo aquí</div>
                     </div>
 
-                    {{-- Estado: archivo cargado --}}
-                    <template x-if="!dragging && fileName">
+                    {{-- Estado: subiendo --}}
+                    <div x-show="!dragging && uploading" class="pointer-events-none">
+                        <svg class="mx-auto h-8 w-8 text-brand-400 mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <div class="text-sm font-medium text-ink-600">Subiendo <span x-text="fileName"></span>…</div>
+                        <div class="text-xs text-ink-400 mt-1" x-text="formatSize(fileSize)"></div>
+                    </div>
+
+                    {{-- Estado: archivo listo (uploading=false y fileName existe) --}}
+                    <template x-if="!dragging && !uploading && fileName">
                         <div class="pointer-events-none">
                             <svg class="mx-auto h-8 w-8 text-success-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -109,28 +126,35 @@
                         </div>
                     </template>
 
-                    {{-- Estado: default --}}
-                    <template x-if="!dragging && !fileName">
+                    {{-- Estado: default (sin archivo) --}}
+                    <template x-if="!dragging && !uploading && !fileName">
                         <div class="pointer-events-none">
                             <svg class="mx-auto h-8 w-8 text-ink-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
                             </svg>
                             <div class="text-sm font-medium text-ink-700">Arrastra tu archivo aquí o <span class="text-brand-600 underline">selecciona</span></div>
-                            <div class="text-xs text-ink-500 mt-1">CSV o XLSX</div>
+                            <div class="text-xs text-ink-500 mt-1">CSV o XLSX · máx. 16 MB</div>
                         </div>
                     </template>
                 </div>
 
                 @error('archivo')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror
 
+                {{--
+                    BOTÓN: deshabilitado mientras:
+                    - uploading=true  → archivo aún en tránsito hacia el servidor
+                    - submitted=true  → llamada a subirArchivo() ya encolada, evita doble submit
+                    - !$wire.archivoListo → Livewire no ha ejecutado updatedArchivo() aún (gap post-upload)
+                --}}
                 <button type="submit"
                         class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        :disabled="$targetValor === null || uploading || submitted"
+                        :disabled="uploading || submitted || !$wire.archivoListo"
                         wire:loading.attr="disabled"
                         wire:target="subirArchivo">
                     <span wire:loading.remove wire:target="subirArchivo">Continuar al mapeo</span>
                     <span wire:loading wire:target="subirArchivo">Procesando...</span>
                 </button>
+
             </form>
         </section>
     @endif

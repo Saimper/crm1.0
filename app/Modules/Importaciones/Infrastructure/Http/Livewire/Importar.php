@@ -55,6 +55,15 @@ final class Importar extends Component
 
     public $archivo = null;
 
+    /**
+     * Flag que confirma que Livewire hidrato $archivo en PHP.
+     * Alpine lee este valor via $wire.archivoListo para habilitar el botón
+     * solo cuando el servidor realmente tiene el archivo — elimina la race
+     * condition entre el callback onSuccess de $wire.upload() y la hidratación
+     * del componente.
+     */
+    public bool $archivoListo = false;
+
     /** @var list<string> */
     public array $cabecerasCsv = [];
 
@@ -85,11 +94,30 @@ final class Importar extends Component
     public function updatedTargetValor(): void
     {
         $this->reset(['archivo', 'cabecerasCsv', 'filasMuestra', 'mapeo']);
+        $this->archivoListo = false;
+    }
+
+    /**
+     * Hook de Livewire — se ejecuta cada vez que $archivo cambia en el servidor.
+     * Es el único punto donde podemos garantizar que $archivo está hidratado.
+     * Pone archivoListo = true solo si es un UploadedFile real.
+     */
+    public function updatedArchivo(): void
+    {
+        $this->archivoListo = ($this->archivo instanceof UploadedFile);
     }
 
     public function subirArchivo(): void
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+
+        // Guard contra race condition: si Alpine llamó subirArchivo() antes de que
+        // Livewire haya hidratado $archivo, rechazamos con mensaje claro.
+        if (! $this->archivoListo || ! ($this->archivo instanceof UploadedFile)) {
+            $this->addError('archivo', 'El archivo aún no terminó de cargarse. Espera un momento e intenta de nuevo.');
+
+            return;
+        }
 
         if ($this->target() === null) {
             $this->addError('targetValor', 'Selecciona qué deseas importar.');
@@ -150,6 +178,8 @@ final class Importar extends Component
     {
         $this->paso = 1;
         $this->reset(['cabecerasCsv', 'filasMuestra', 'mapeo']);
+        // NO reseteamos $archivo ni $archivoListo: el archivo sigue disponible
+        // si el usuario vuelve sin reseleccionar, evitamos re-upload innecesario.
     }
 
     public function confirmarMapeo(): void
@@ -268,6 +298,7 @@ final class Importar extends Component
     public function cerrar(): void
     {
         $this->reset(['archivo', 'cabecerasCsv', 'filasMuestra', 'mapeo', 'importacionId', 'filtroFilas', 'mostrarAvanzados']);
+        $this->archivoListo = false;
         $this->paso = 1;
         $this->modo = 'merge';
     }
