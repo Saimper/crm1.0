@@ -31,39 +31,67 @@
             </div>
             @error('targetValor')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror
 
-            @if($targetValor !== null)
-                <div class="rounded-md border border-warning-200 bg-warning-50 p-3 text-xs text-warning-700">
-                    <div class="font-semibold mb-1">¿Primera vez? Descarga la plantilla:</div>
-                    <p class="mb-2">
-                        Plantilla XLSX con columnas listas, ejemplos y colores
-                        (<span class="inline-block w-2 h-2 rounded-sm align-middle" style="background:var(--danger-soft)"></span> requerido,
-                        <span class="inline-block w-2 h-2 rounded-sm align-middle" style="background:var(--bg-subtle)"></span> opcional)
-                        + hoja de instrucciones con códigos válidos del proyecto.
-                    </p>
-                    <a href="{{ route('proyectos.importaciones.plantilla', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'target' => $targetValor]) }}"
-                       class="inline-flex items-center gap-1 rounded bg-warning-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-warning-700">
-                        Descargar plantilla XLSX
-                    </a>
-                </div>
-            @endif
-
             <hr class="border-ink-100"/>
 
-            <form wire:submit.prevent="subirArchivo" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-medium text-ink-700">Archivo (CSV o XLSX)</label>
-                    <input type="file" wire:model="archivo" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                           class="mt-1 block w-full text-sm text-ink-700"/>
-                    @error('archivo')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                    <p class="text-[11px] text-ink-500 mt-1">
-                        Cualquier nombre de columna funciona. En el siguiente paso vincularás cada columna a un campo del sistema.
-                    </p>
+            <form wire:submit.prevent="subirArchivo"
+                  x-data="{ dragging: false, fileName: '', fileSize: '', formatSize(bytes) { if (!bytes) return ''; const kb = bytes / 1024; return kb < 1024 ? Math.round(kb) + ' KB' : (kb / 1024).toFixed(1) + ' MB'; } }"
+                  @dragover.prevent="dragging = true"
+                  @dragleave.prevent="dragging = false"
+                  @drop.prevent="dragging = false; if ($event.dataTransfer.files.length) { $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change', { bubbles: true })); }"
+                  class="space-y-3">
+
+                {{-- Dropzone area --}}
+                <div class="relative cursor-pointer rounded-lg border-2 border-dashed border-ink-300 bg-surface-50 p-6 text-center transition-all duration-fast ease-ui hover:border-brand-400 hover:bg-brand-50"
+                     :class="{ '!border-brand-500 !bg-brand-50': dragging }"
+                     @click="$refs.fileInput.click()">
+
+                    <input x-ref="fileInput"
+                           type="file"
+                           wire:model.live="archivo"
+                           accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                           class="hidden"
+                           @change="fileName = $event.target.files[0]?.name || ''; fileSize = ($event.target.files[0]?.size || 0)"/>
+
+                    {{-- Estado: dragging --}}
+                    <div x-show="dragging" class="pointer-events-none">
+                        <svg class="mx-auto h-8 w-8 text-brand-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
+                        </svg>
+                        <div class="text-sm font-medium text-brand-700">Suelta el archivo aquí</div>
+                    </div>
+
+                    {{-- Estado: archivo cargado --}}
+                    <template x-if="!dragging && fileName">
+                        <div class="pointer-events-none">
+                            <svg class="mx-auto h-8 w-8 text-success-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="text-sm font-medium text-ink-900" x-text="fileName"></div>
+                            <div class="text-xs text-ink-500 mt-1" x-text="formatSize(fileSize)"></div>
+                        </div>
+                    </template>
+
+                    {{-- Estado: default --}}
+                    <template x-if="!dragging && !fileName">
+                        <div class="pointer-events-none">
+                            <svg class="mx-auto h-8 w-8 text-ink-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
+                            </svg>
+                            <div class="text-sm font-medium text-ink-700">Arrastra tu archivo aquí o <span class="text-brand-600 underline">selecciona</span></div>
+                            <div class="text-xs text-ink-500 mt-1">CSV o XLSX</div>
+                        </div>
+                    </template>
                 </div>
+
+                @error('archivo')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror
 
                 <button type="submit"
                         class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 disabled:opacity-50"
-                        @disabled($targetValor === null)>
-                    Continuar al mapeo
+                        @disabled($targetValor === null)
+                        wire:loading.attr="disabled"
+                        wire:target="subirArchivo,archivo">
+                    <span wire:loading.remove wire:target="subirArchivo,archivo">Continuar al mapeo</span>
+                    <span wire:loading wire:target="subirArchivo,archivo">Procesando...</span>
                 </button>
             </form>
         </section>
