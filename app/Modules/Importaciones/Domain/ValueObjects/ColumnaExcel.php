@@ -6,6 +6,8 @@ namespace App\Modules\Importaciones\Domain\ValueObjects;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
+use App\Modules\Importaciones\Domain\Services\NormalizadorEtiqueta;
+use Normalizer;
 
 /**
  * Representa una columna del archivo importado con toda la metadata
@@ -18,7 +20,9 @@ final readonly class ColumnaExcel
         public TipoCampo $tipoInferido,
         public ?string $campoSistemaMapeado = null,
         public bool $esIdentificadorPersona = false,
+        public bool $esIdentificadorCaso = false,
         public AccionColumna $accion = AccionColumna::IGNORAR,
+        public ?string $etiquetaPersonalizada = null,
     ) {}
 
     /**
@@ -27,20 +31,24 @@ final readonly class ColumnaExcel
      */
     public function codigoSugerido(): string
     {
-        $codigo = strtolower($this->nombreOriginal);
-        $codigo = preg_replace('/[^a-z0-9]+/', '_', $codigo) ?? $codigo;
+        $codigo = mb_strtolower($this->nombreOriginal, 'UTF-8');
+        $codigo = Normalizer::normalize($codigo, Normalizer::FORM_D);
+        $codigo = (string) preg_replace('/\p{Mn}/u', '', $codigo);
+        $codigo = (string) preg_replace('/[^a-z0-9]+/', '_', $codigo);
         $codigo = trim($codigo, '_');
-        $codigo = preg_replace('/_+/', '_', $codigo) ?? $codigo;
+        $codigo = (string) preg_replace('/_+/', '_', $codigo);
 
         return substr($codigo, 0, 60);
     }
 
     /**
      * Etiqueta legible para mostrar en UI.
+     * Si el usuario definió una personalizada, la usa; si no, deriva del header.
      */
     public function etiquetaSugerida(): string
     {
-        return ucwords(str_replace(['_', '-'], ' ', $this->nombreOriginal));
+        return $this->etiquetaPersonalizada
+            ?? (new NormalizadorEtiqueta)->sugerir($this->nombreOriginal);
     }
 
     public function esCampoDeSistema(): bool

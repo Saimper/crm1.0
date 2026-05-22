@@ -13,7 +13,6 @@ use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
-use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;

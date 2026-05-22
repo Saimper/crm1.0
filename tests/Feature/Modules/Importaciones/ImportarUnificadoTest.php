@@ -110,6 +110,7 @@ final class ImportarUnificadoTest extends TestCase
             ->assertSet('paso', 2);
 
         $c->call('marcarComoIdentificador', 'Identificacion')
+            ->call('marcarComoIdentificadorCaso', 'NumeroPrestamo')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
@@ -153,6 +154,7 @@ final class ImportarUnificadoTest extends TestCase
             ->assertSet('paso', 2);
 
         $c->call('marcarComoIdentificador', 'Identificacion')
+            ->call('marcarComoIdentificadorCaso', 'NumeroPrestamo')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
@@ -182,6 +184,7 @@ final class ImportarUnificadoTest extends TestCase
             ->assertSet('paso', 2);
 
         $c->call('marcarComoIdentificador', 'Identificacion')
+            ->call('marcarComoIdentificadorCaso', 'NumeroPrestamo')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
@@ -195,7 +198,7 @@ final class ImportarUnificadoTest extends TestCase
         ]);
     }
 
-    public function test_dry_run_marca_invalida_si_persona_nueva_sin_nombres(): void
+    public function test_persona_sin_nombres_se_crea_con_identificacion_fallback(): void
     {
         [$proyecto, $admin] = $this->contextoCobranzaAdmin();
         $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
@@ -214,6 +217,7 @@ final class ImportarUnificadoTest extends TestCase
             ->assertSet('paso', 2);
 
         $c->call('marcarComoIdentificador', 'Identificacion')
+            ->call('marcarComoIdentificadorCaso', 'NumeroPrestamo')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
@@ -222,8 +226,8 @@ final class ImportarUnificadoTest extends TestCase
 
         $this->assertDatabaseHas('importaciones', [
             'id' => $importacionId,
-            'validas' => 0,
-            'invalidas' => 1,
+            'estado' => 'completada',
+            'invalidas' => 0,
         ]);
     }
 
@@ -346,6 +350,7 @@ final class ImportarUnificadoTest extends TestCase
             ->assertSet('paso', 2);
 
         $c->call('marcarComoIdentificador', 'Identificacion')
+            ->call('marcarComoIdentificadorCaso', 'NumeroPrestamo')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 
@@ -376,6 +381,7 @@ final class ImportarUnificadoTest extends TestCase
             ->assertSet('paso', 2);
 
         $c->call('marcarComoIdentificador', 'Identificacion')
+            ->call('marcarComoIdentificadorCaso', 'NumeroPrestamo')
             ->call('confirmarMapeo')
             ->assertHasNoErrors();
 

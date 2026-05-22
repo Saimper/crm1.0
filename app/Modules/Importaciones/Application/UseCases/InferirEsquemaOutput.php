@@ -12,12 +12,13 @@ use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 final readonly class InferirEsquemaOutput
 {
     /**
-     * @param list<ColumnaExcel> $columnas
-     * @param list<string> $advertencias
+     * @param  list<ColumnaExcel>  $columnas
+     * @param  list<string>  $advertencias
      */
     public function __construct(
         public array $columnas,
         public ?string $sugerenciaIdentificador,
+        public ?string $sugerenciaIdentificadorCaso,
         public array $advertencias,
     ) {}
 }

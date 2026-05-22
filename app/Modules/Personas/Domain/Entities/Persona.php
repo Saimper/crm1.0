@@ -39,9 +39,6 @@ final readonly class Persona
     ): self {
         if ($tipoPersona === TipoPersona::FISICA) {
             $nombres = self::normalizar($nombres);
-            if ($nombres === null) {
-                throw new DatosPersonaInvalidos('Una persona física debe tener nombres.');
-            }
             $apellidos = self::normalizar($apellidos);
             $razonSocial = null;
         } else {
@@ -116,9 +113,13 @@ final readonly class Persona
 
     public function nombreCompleto(): string
     {
-        return $this->tipoPersona === TipoPersona::JURIDICA
-            ? (string) $this->razonSocial
-            : trim((string) $this->nombres.' '.(string) $this->apellidos);
+        if ($this->tipoPersona === TipoPersona::JURIDICA) {
+            return (string) $this->razonSocial;
+        }
+
+        $completo = trim((string) $this->nombres.' '.(string) $this->apellidos);
+
+        return $completo !== '' ? $completo : $this->identificacion->asString();
     }
 
     private static function normalizar(?string $valor): ?string

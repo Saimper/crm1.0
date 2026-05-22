@@ -16,11 +16,11 @@ use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 final readonly class ProcesarFilaInput
 {
     /**
-     * @param array<string, string> $fila
-     * @param array<string, array{id: int, tipo: string}> $mapaCampos
-     * @param array<string, int> $tiposIdentificacion codigo → id
-     * @param array<string, int> $personasExistentes "tipoIdentId:identificacion" → personaId
-     * @param array<string, int> $casosExistentes "valorUnique" → casoId
+     * @param  array<string, string>  $fila
+     * @param  array<string, array{id: int, tipo: string}>  $mapaCampos
+     * @param  array<string, int>  $tiposIdentificacion  codigo → id
+     * @param  array<string, int>  $personasExistentes  "tipoIdentId:identificacion" → personaId
+     * @param  array<string, int>  $casosExistentes  "valorUnique" → casoId
      */
     public function __construct(
         public array $fila,

@@ -13,7 +13,7 @@ use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 final readonly class InferidorTiposColumnas
 {
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     public function inferir(array $valores): TipoCampo
     {
@@ -64,7 +64,7 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function todosBooleanos(array $valores): bool
     {
@@ -80,7 +80,7 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function todosFechaHora(array $valores): bool
     {
@@ -109,7 +109,7 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function todosFecha(array $valores): bool
     {
@@ -138,7 +138,7 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function todosNumericos(array $valores): bool
     {
@@ -154,12 +154,12 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function todosEnteros(array $valores): bool
     {
         foreach ($valores as $v) {
-            $limpio = str_replace(',', '', trim($v));
+            $limpio = str_replace(',', '.', trim($v));
 
             if (! is_numeric($limpio)) {
                 return false;
@@ -177,7 +177,7 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function bajaCardinalidad(array $valores): bool
     {
@@ -187,7 +187,7 @@ final readonly class InferidorTiposColumnas
     }
 
     /**
-     * @param list<string> $valores
+     * @param  list<string>  $valores
      */
     private function algunoLargo(array $valores): bool
     {

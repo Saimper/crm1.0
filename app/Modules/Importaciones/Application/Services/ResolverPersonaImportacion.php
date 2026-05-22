@@ -22,7 +22,7 @@ use Throwable;
  * Encapsula el lookup + creación + manejo de race con imports paralelos
  * (IdentificacionYaRegistradaEnProyecto → re-lookup).
  */
-final readonly class ResolverPersonaImportacion
+readonly class ResolverPersonaImportacion
 {
     public function __construct(
         private RegistrarPersona $registrar,

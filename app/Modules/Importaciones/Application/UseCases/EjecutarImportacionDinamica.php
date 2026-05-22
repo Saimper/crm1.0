@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Application\UseCases;
 
 use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
+use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoFila;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
+use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -222,13 +225,13 @@ final readonly class EjecutarImportacionDinamica
      * Carga en un solo query todas las personas del chunk que ya existen
      * en el proyecto, keyeadas por "tipoIdentId:identificacion".
      *
-     * @param \Illuminate\Support\Collection<int, \App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel> $filas
-     * @param array<string, int> $tiposIdentificacion
+     * @param  Collection<int, ImportacionFilaModel>  $filas
+     * @param  array<string, int>  $tiposIdentificacion
      * @return array<string, int>
      */
     private function cargarPersonasExistentes(
         $filas,
-        \App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion $esquema,
+        EsquemaImportacion $esquema,
         int $proyectoId,
         array $tiposIdentificacion,
     ): array {
@@ -244,7 +247,7 @@ final readonly class EjecutarImportacionDinamica
 
         foreach ($filas as $fila) {
             $payload = is_array($fila->payload) ? $fila->payload : [];
-            $identKey = $columnaIdentidad->accion === \App\Modules\Importaciones\Domain\Enums\AccionColumna::MAPEAR_SISTEMA
+            $identKey = $columnaIdentidad->accion === AccionColumna::MAPEAR_SISTEMA
                 ? $columnaIdentidad->campoSistemaMapeado
                 : $columnaIdentidad->codigoSugerido();
             $valor = trim($payload[$identKey] ?? '');
@@ -291,29 +294,29 @@ final readonly class EjecutarImportacionDinamica
 
     /**
      * Carga en un solo query todos los casos del chunk que ya existen
-     * en el proyecto, keyeados por su valor unique.
+     * en el proyecto, keyeados por id_cpelegido.
      *
-     * @param \Illuminate\Support\Collection<int, \App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel> $filas
+     * @param  Collection<int, ImportacionFilaModel>  $filas
      * @return array<string, int>
      */
     private function cargarCasosExistentes(
         $filas,
-        \App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion $esquema,
+        EsquemaImportacion $esquema,
         int $proyectoId,
     ): array {
         $tabla = match ($esquema->target) {
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_COBRANZA => 'casos_cobranza',
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_TICKET_CX => 'casos_ticket_cx',
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_LEAD_VENTA => 'casos_lead_venta',
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_SERVICIO => 'casos_servicio',
+            TargetImportacion::CASO_COBRANZA => 'casos_cobranza',
+            TargetImportacion::CASO_TICKET_CX => 'casos_ticket_cx',
+            TargetImportacion::CASO_LEAD_VENTA => 'casos_lead_venta',
+            TargetImportacion::CASO_SERVICIO => 'casos_servicio',
             default => null,
         };
 
         $columnaUnique = match ($esquema->target) {
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_COBRANZA => 'numero_prestamo',
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_TICKET_CX => 'codigo_ticket',
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_LEAD_VENTA => 'codigo_lead',
-            \App\Modules\Importaciones\Domain\Enums\TargetImportacion::CASO_SERVICIO => 'codigo_servicio',
+            TargetImportacion::CASO_COBRANZA => 'numero_prestamo',
+            TargetImportacion::CASO_TICKET_CX => 'codigo_ticket',
+            TargetImportacion::CASO_LEAD_VENTA => 'codigo_lead',
+            TargetImportacion::CASO_SERVICIO => 'codigo_servicio',
             default => null,
         };
 
@@ -321,17 +324,11 @@ final readonly class EjecutarImportacionDinamica
             return [];
         }
 
-        $columnasSistema = $esquema->columnasParaSistema();
-        $colSistema = $columnasSistema[$columnaUnique] ?? null;
-        if ($colSistema === null) {
-            return [];
-        }
-
         $valores = [];
 
         foreach ($filas as $fila) {
             $payload = is_array($fila->payload) ? $fila->payload : [];
-            $valor = trim($payload[$colSistema->campoSistemaMapeado] ?? '');
+            $valor = trim($payload['id_cpelegido'] ?? '');
             if ($valor !== '') {
                 $valores[] = $valor;
             }

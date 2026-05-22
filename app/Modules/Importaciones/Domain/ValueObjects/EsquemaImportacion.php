@@ -19,7 +19,7 @@ use App\Modules\Importaciones\Domain\Exceptions\EsquemaInvalidoException;
 final readonly class EsquemaImportacion
 {
     /**
-     * @param list<ColumnaExcel> $columnas
+     * @param  list<ColumnaExcel>  $columnas
      */
     public function __construct(
         public TargetImportacion $target,
@@ -37,6 +37,19 @@ final readonly class EsquemaImportacion
         $candidatas = array_values(array_filter(
             $this->columnas,
             static fn (ColumnaExcel $c): bool => $c->esIdentificadorPersona,
+        ));
+
+        return $candidatas[0] ?? null;
+    }
+
+    /**
+     * Retorna la columna marcada como identificador único del caso, o null si no hay.
+     */
+    public function columnaIdentificadorCaso(): ?ColumnaExcel
+    {
+        $candidatas = array_values(array_filter(
+            $this->columnas,
+            static fn (ColumnaExcel $c): bool => $c->esIdentificadorCaso,
         ));
 
         return $candidatas[0] ?? null;
@@ -99,7 +112,7 @@ final readonly class EsquemaImportacion
         );
 
         if (count($identificadores) > 1) {
-            throw new ColumnaIdentificadorAmbiguaException();
+            throw new ColumnaIdentificadorAmbiguaException;
         }
 
         $codigos = [];
@@ -135,7 +148,9 @@ final readonly class EsquemaImportacion
                     'tipo_inferido' => $c->tipoInferido->value,
                     'campo_sistema_mapeado' => $c->campoSistemaMapeado,
                     'es_identificador_persona' => $c->esIdentificadorPersona,
+                    'es_identificador_caso' => $c->esIdentificadorCaso,
                     'accion' => $c->accion->value,
+                    'etiqueta_personalizada' => $c->etiquetaPersonalizada,
                 ],
                 $this->columnas,
             ),
@@ -155,7 +170,7 @@ final readonly class EsquemaImportacion
             $datos = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
             throw new \InvalidArgumentException(
-                'El JSON del esquema de importación está malformado: ' . $e->getMessage(),
+                'El JSON del esquema de importación está malformado: '.$e->getMessage(),
                 0,
                 $e,
             );
@@ -164,7 +179,7 @@ final readonly class EsquemaImportacion
         $clavesRequeridas = ['target', 'proyecto_id', 'cartera_id', 'modo', 'columnas'];
 
         foreach ($clavesRequeridas as $clave) {
-            if (!array_key_exists($clave, $datos)) {
+            if (! array_key_exists($clave, $datos)) {
                 throw new \InvalidArgumentException(
                     sprintf('Falta la clave requerida "%s" en el esquema de importación.', $clave),
                 );
@@ -179,7 +194,9 @@ final readonly class EsquemaImportacion
                 tipoInferido: TipoCampo::from($col['tipo_inferido']),
                 campoSistemaMapeado: $col['campo_sistema_mapeado'] ?? null,
                 esIdentificadorPersona: (bool) ($col['es_identificador_persona'] ?? false),
+                esIdentificadorCaso: (bool) ($col['es_identificador_caso'] ?? false),
                 accion: AccionColumna::from($col['accion']),
+                etiquetaPersonalizada: $col['etiqueta_personalizada'] ?? null,
             );
         }
 

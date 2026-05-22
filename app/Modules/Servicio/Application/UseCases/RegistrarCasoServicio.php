@@ -19,7 +19,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
-final readonly class RegistrarCasoServicio
+readonly class RegistrarCasoServicio
 {
     public function __construct(
         private CasoRepository $casoRepo,

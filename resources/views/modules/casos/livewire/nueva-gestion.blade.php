@@ -164,6 +164,63 @@
         </div>
     @endif
 
+    {{-- Campos personalizados ámbito caso × cartera. Siempre visibles si el caso tiene definiciones. --}}
+    @if($camposCaso->isNotEmpty())
+        <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-secondary);letter-spacing:0.06em;">
+                Campos del caso
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                @foreach($camposCaso as $campo)
+                    <div>
+                        <label class="block text-xs font-medium text-ink-700">
+                            {{ $campo->etiqueta }}
+                            @if($campo->obligatorio)<span class="text-danger-600">*</span>@endif
+                        </label>
+                        @switch($campo->tipo)
+                            @case('texto_corto')
+                                <input type="text" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+                                @break
+                            @case('texto_largo')
+                                <textarea wire:model="valoresCamposCaso.{{ $campo->codigo }}" rows="2"
+                                          class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"></textarea>
+                                @break
+                            @case('numero_entero')
+                                <input type="number" step="1" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+                                @break
+                            @case('numero_decimal')
+                            @case('moneda')
+                                <input type="text" wire:model="valoresCamposCaso.{{ $campo->codigo }}" placeholder="0.00"
+                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+                                @break
+                            @case('fecha')
+                                <input type="date" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+                                @break
+                            @case('fecha_hora')
+                                <input type="datetime-local" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+                                @break
+                            @case('booleano')
+                                <select wire:model="valoresCamposCaso.{{ $campo->codigo }}"
+                                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
+                                    <option value="">—</option>
+                                    <option value="1">Sí</option>
+                                    <option value="0">No</option>
+                                </select>
+                                @break
+                            @default
+                                <input type="text" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
+                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+                        @endswitch
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($requiereCompromiso && $tipoCaso === 'cobranza')
         <div class="mt-3 rounded-md border border-warning-200 bg-warning-50 p-3">
             <div class="text-xs font-semibold uppercase tracking-wider text-warning-700">Promesa de pago</div>

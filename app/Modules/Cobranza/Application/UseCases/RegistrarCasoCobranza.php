@@ -28,7 +28,7 @@ use Illuminate\Support\Str;
  * detallados (saldos, fechas, cuotas) los configura el admin del proyecto vía
  * Campos Personalizados §7 y se persisten aparte.
  */
-final readonly class RegistrarCasoCobranza
+readonly class RegistrarCasoCobranza
 {
     public function __construct(
         private CasoRepository $casoRepo,

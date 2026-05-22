@@ -24,6 +24,39 @@ final readonly class InferirEsquemaDesdeHeaders
         'dni', 'pasaporte', 'num_documento', 'nro_documento',
     ];
 
+    /** @var list<string> Patrones de nombres que sugieren identificador único del caso */
+    private const PATRONES_IDENTIDAD_CASO = [
+        'prestamo', 'préstamo', 'credito', 'crédito', 'loan',
+        'ticket', 'tkt', 'codigoticket', 'codigo_ticket',
+        'lead', 'codigolead', 'codigo_lead',
+        'servicio', 'codigoservicio', 'codigo_servicio',
+        'numeroprestamo', 'numero_prestamo', 'nro_prestamo',
+        'idcaso', 'id_caso', 'casoid', 'caso_id',
+        'codigo', 'código', 'code', 'id_unico', 'idunico',
+        'referencia', 'reference',
+    ];
+
+    /**
+     * Sinónimos para auto-mapeo de headers a campos del sistema.
+     * Cada entrada: campo_sistema => [lista de sinónimos normalizados].
+     */
+    private const SINONIMOS_SISTEMA = [
+        'identificacion' => [
+            'cedula', 'cédula', 'ced', 'documento', 'doc',
+            'dni', 'id', 'identificacion', 'identificación',
+            'nit', 'ruc', 'pasaporte', 'curp',
+            'num_documento', 'nro_documento', 'nrodocumento',
+            'numerodocumento', 'numerodedocumento',
+            'identificaciondelcliente', 'documentodeidentidad',
+        ],
+        'tipo_identificacion_codigo' => [
+            'tipoidentificacion', 'tipoidentificación', 'tipodocumento',
+            'tipodedocumento', 'tipodoc', 'tipo_documento',
+            'tipo_identificacion', 'tipo_de_identificacion',
+            'tipo_de_documento', 'tipo_doc',
+        ],
+    ];
+
     public function __construct(
         private InferidorTiposColumnas $inferidor,
     ) {}
@@ -58,6 +91,7 @@ final readonly class InferirEsquemaDesdeHeaders
         }
 
         $sugerenciaIdentificador = $this->sugerirIdentificador($columnas, $input->filasMuestra);
+        $sugerenciaIdentificadorCaso = $this->sugerirIdentificadorCaso($columnas);
 
         if ($sugerenciaIdentificador === null) {
             $advertencias[] = 'No se detectó automáticamente una columna de identidad de persona. Deberás seleccionarla manualmente.';
@@ -66,12 +100,13 @@ final readonly class InferirEsquemaDesdeHeaders
         return new InferirEsquemaOutput(
             columnas: $columnas,
             sugerenciaIdentificador: $sugerenciaIdentificador,
+            sugerenciaIdentificadorCaso: $sugerenciaIdentificadorCaso,
             advertencias: $advertencias,
         );
     }
 
     /**
-     * @param list<CampoSistema> $campos
+     * @param  list<CampoSistema>  $campos
      * @return array<string, CampoSistema>
      */
     private function construirMapaSistema(array $campos): array
@@ -86,19 +121,29 @@ final readonly class InferirEsquemaDesdeHeaders
     }
 
     /**
-     * @param array<string, CampoSistema> $mapaSistema
+     * @param  array<string, CampoSistema>  $mapaSistema
      */
     private function buscarMatchSistema(string $header, array $mapaSistema): ?string
     {
         $normalizado = $this->normalizar($header);
-        $campo = $mapaSistema[$normalizado] ?? null;
 
-        return $campo?->codigo;
+        $campo = $mapaSistema[$normalizado] ?? null;
+        if ($campo !== null) {
+            return $campo->codigo;
+        }
+
+        foreach (self::SINONIMOS_SISTEMA as $codigo => $sinonimos) {
+            if (in_array($normalizado, $sinonimos, true)) {
+                return $codigo;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * @param list<ColumnaExcel> $columnas
-     * @param list<array<string, string>> $filasMuestra
+     * @param  list<ColumnaExcel>  $columnas
+     * @param  list<array<string, string>>  $filasMuestra
      */
     private function sugerirIdentificador(array $columnas, array $filasMuestra): ?string
     {
@@ -131,7 +176,25 @@ final readonly class InferirEsquemaDesdeHeaders
     }
 
     /**
-     * @param list<array<string, string>> $filasMuestra
+     * @param  list<ColumnaExcel>  $columnas
+     */
+    private function sugerirIdentificadorCaso(array $columnas): ?string
+    {
+        foreach ($columnas as $columna) {
+            $headerLower = mb_strtolower($columna->nombreOriginal);
+
+            foreach (self::PATRONES_IDENTIDAD_CASO as $patron) {
+                if (str_contains($headerLower, $patron)) {
+                    return $columna->nombreOriginal;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<array<string, string>>  $filasMuestra
      */
     private function cardinalidadEnMuestra(string $header, array $filasMuestra): int
     {
@@ -148,7 +211,7 @@ final readonly class InferirEsquemaDesdeHeaders
     }
 
     /**
-     * @param list<array<string, string>> $filasMuestra
+     * @param  list<array<string, string>>  $filasMuestra
      * @return list<string>
      */
     private function extraerValoresColumna(string $header, array $filasMuestra): array

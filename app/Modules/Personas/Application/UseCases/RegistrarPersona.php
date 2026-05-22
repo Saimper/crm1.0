@@ -11,7 +11,7 @@ use App\Modules\Personas\Domain\Entities\Persona;
 use App\Modules\Personas\Domain\Exceptions\IdentificacionYaRegistradaEnProyecto;
 use Illuminate\Database\ConnectionInterface;
 
-final readonly class RegistrarPersona
+readonly class RegistrarPersona
 {
     public function __construct(
         private PersonaRepository $repositorio,

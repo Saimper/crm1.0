@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Domain\ValueObjects;
 
-use App\Modules\Importaciones\Domain\ValueObjects\ResultadoFila;
-
 /**
  * Resultado de la validación en seco (dry-run) de una importación.
  */
 final readonly class ResultadoDryRun
 {
     /**
-     * @param list<ResultadoFila> $erroresMuestra
-     * @param list<string> $camposPersonalizadosACrear
-     * @param list<string> $advertencias
+     * @param  list<ResultadoFila>  $erroresMuestra
+     * @param  list<string>  $camposPersonalizadosACrear
+     * @param  list<string>  $advertencias
      */
     public function __construct(
         public bool $esValido,

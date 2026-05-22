@@ -9,12 +9,10 @@ use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionDinamica;
 use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionInput;
 use App\Modules\Importaciones\Application\UseCases\PrepararImportacionDinamica;
 use App\Modules\Importaciones\Application\UseCases\PrepararImportacionInput;
-use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
-use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
@@ -57,20 +55,18 @@ final class ImportacionUpsertTest extends TestCase
             new ColumnaExcel(
                 nombreOriginal: 'prestamo',
                 tipoInferido: TipoCampo::TEXTO_CORTO,
-                campoSistemaMapeado: 'numero_prestamo',
-                accion: AccionColumna::MAPEAR_SISTEMA,
+                esIdentificadorCaso: true,
+                accion: AccionColumna::CREAR_CP,
             ),
             new ColumnaExcel(
-                nombreOriginal: 'nom',
+                nombreOriginal: 'nombres',
                 tipoInferido: TipoCampo::TEXTO_CORTO,
-                campoSistemaMapeado: 'nombres',
-                accion: AccionColumna::MAPEAR_SISTEMA,
+                accion: AccionColumna::CREAR_CP,
             ),
             new ColumnaExcel(
-                nombreOriginal: 'ape',
+                nombreOriginal: 'apellidos',
                 tipoInferido: TipoCampo::TEXTO_CORTO,
-                campoSistemaMapeado: 'apellidos',
-                accion: AccionColumna::MAPEAR_SISTEMA,
+                accion: AccionColumna::CREAR_CP,
             ),
             new ColumnaExcel(
                 nombreOriginal: 'saldo',
@@ -99,9 +95,9 @@ final class ImportacionUpsertTest extends TestCase
         $importacion->save();
 
         $filas = [
-            ['ced' => '1700000001', 'prestamo' => 'PR-001', 'saldo' => '1000.50', 'nom' => 'Persona', 'ape' => 'Uno'],
-            ['ced' => '1700000002', 'prestamo' => 'PR-002', 'saldo' => '2000.75', 'nom' => 'Persona', 'ape' => 'Dos'],
-            ['ced' => '1700000003', 'prestamo' => 'PR-003', 'saldo' => '3000.00', 'nom' => 'Persona', 'ape' => 'Tres'],
+            ['identificacion' => '1700000001', 'prestamo' => 'PR-001', 'id_cpelegido' => 'PR-001', 'saldo' => '1000.50', 'nombres' => 'Persona Uno', 'apellidos' => 'Uno'],
+            ['identificacion' => '1700000002', 'prestamo' => 'PR-002', 'id_cpelegido' => 'PR-002', 'saldo' => '2000.75', 'nombres' => 'Persona Dos', 'apellidos' => 'Dos'],
+            ['identificacion' => '1700000003', 'prestamo' => 'PR-003', 'id_cpelegido' => 'PR-003', 'saldo' => '3000.00', 'nombres' => 'Persona Tres', 'apellidos' => 'Tres'],
         ];
 
         foreach ($filas as $i => $fila) {
@@ -152,20 +148,18 @@ final class ImportacionUpsertTest extends TestCase
             new ColumnaExcel(
                 nombreOriginal: 'prestamo',
                 tipoInferido: TipoCampo::TEXTO_CORTO,
-                campoSistemaMapeado: 'numero_prestamo',
-                accion: AccionColumna::MAPEAR_SISTEMA,
+                esIdentificadorCaso: true,
+                accion: AccionColumna::CREAR_CP,
             ),
             new ColumnaExcel(
-                nombreOriginal: 'nom',
+                nombreOriginal: 'nombres',
                 tipoInferido: TipoCampo::TEXTO_CORTO,
-                campoSistemaMapeado: 'nombres',
-                accion: AccionColumna::MAPEAR_SISTEMA,
+                accion: AccionColumna::CREAR_CP,
             ),
             new ColumnaExcel(
-                nombreOriginal: 'ape',
+                nombreOriginal: 'apellidos',
                 tipoInferido: TipoCampo::TEXTO_CORTO,
-                campoSistemaMapeado: 'apellidos',
-                accion: AccionColumna::MAPEAR_SISTEMA,
+                accion: AccionColumna::CREAR_CP,
             ),
         ];
 
@@ -189,8 +183,8 @@ final class ImportacionUpsertTest extends TestCase
         $importacion->save();
 
         $filas = [
-            ['ced' => '1700000001', 'prestamo' => 'PR-001', 'nom' => 'Persona', 'ape' => 'Uno'],
-            ['ced' => '1700000002', 'prestamo' => 'PR-002', 'nom' => 'Persona', 'ape' => 'Dos'],
+            ['identificacion' => '1700000001', 'prestamo' => 'PR-001', 'id_cpelegido' => 'PR-001', 'nombres' => 'Persona', 'apellidos' => 'Uno'],
+            ['identificacion' => '1700000002', 'prestamo' => 'PR-002', 'id_cpelegido' => 'PR-002', 'nombres' => 'Persona', 'apellidos' => 'Dos'],
         ];
 
         foreach ($filas as $i => $fila) {
@@ -263,11 +257,11 @@ final class ImportacionUpsertTest extends TestCase
         $importacion->save();
 
         $filas = [
-            ['ced' => '1700000001'],
-            ['ced' => '1700000002'],
-            ['ced' => '1700000003'],
-            ['ced' => '1700000004'],
-            ['ced' => '1700000005'],
+            ['identificacion' => '1700000001'],
+            ['identificacion' => '1700000002'],
+            ['identificacion' => '1700000003'],
+            ['identificacion' => '1700000004'],
+            ['identificacion' => '1700000005'],
         ];
 
         foreach ($filas as $i => $fila) {
@@ -345,11 +339,11 @@ final class ImportacionUpsertTest extends TestCase
         $importacion->save();
 
         $filas = [
-            ['ced' => '1700000001'],
-            ['ced' => '1700000002'],
-            ['ced' => '1700000003'],
-            ['ced' => '1700000099'],
-            ['ced' => '1700000098'],
+            ['identificacion' => '1700000001'],
+            ['identificacion' => '1700000002'],
+            ['identificacion' => '1700000003'],
+            ['identificacion' => '1700000099'],
+            ['identificacion' => '1700000098'],
         ];
 
         foreach ($filas as $i => $fila) {

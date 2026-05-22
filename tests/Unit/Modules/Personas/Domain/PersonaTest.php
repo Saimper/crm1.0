@@ -35,21 +35,43 @@ final class PersonaTest extends TestCase
         $this->assertNull($persona->razonSocial);
     }
 
-    public function test_throws_cuando_persona_fisica_no_tiene_nombres(): void
+    public function test_crea_persona_fisica_con_solo_apellidos_muestra_apellidos(): void
     {
-        $this->expectException(DatosPersonaInvalidos::class);
-        Persona::registrar(
+        $persona = Persona::registrar(
             publicId: '01HXPERSONA000000000000002',
             proyectoId: 10,
             tipoPersona: TipoPersona::FISICA,
             tipoIdentificacionId: 1,
             identificacion: new Identificacion('0102030405'),
-            nombres: '  ',
+            nombres: null,
             apellidos: 'Pérez',
             razonSocial: null,
             fechaNacimiento: null,
             creadaEn: new DateTimeImmutable('2026-04-17'),
         );
+
+        $this->assertNull($persona->nombres);
+        $this->assertSame('Pérez', $persona->nombreCompleto());
+    }
+
+    public function test_crea_persona_fisica_sin_nombres_ni_apellidos_usa_identificacion_como_fallback(): void
+    {
+        $persona = Persona::registrar(
+            publicId: '01HXPERSONA000000000000006',
+            proyectoId: 10,
+            tipoPersona: TipoPersona::FISICA,
+            tipoIdentificacionId: 1,
+            identificacion: new Identificacion('0102030405'),
+            nombres: null,
+            apellidos: null,
+            razonSocial: null,
+            fechaNacimiento: null,
+            creadaEn: new DateTimeImmutable('2026-04-17'),
+        );
+
+        $this->assertNull($persona->nombres);
+        $this->assertNull($persona->apellidos);
+        $this->assertSame('0102030405', $persona->nombreCompleto());
     }
 
     public function test_crea_persona_juridica_descarta_nombres_y_fecha_nacimiento(): void

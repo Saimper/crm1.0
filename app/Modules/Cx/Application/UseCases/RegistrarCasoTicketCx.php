@@ -24,7 +24,7 @@ use Illuminate\Support\Str;
  * Crea un Caso base + CasoTicketCx (CTI) en la misma transacción.
  * Dispara CasoCreado para que los listeners del núcleo reaccionen.
  */
-final readonly class RegistrarCasoTicketCx
+readonly class RegistrarCasoTicketCx
 {
     public function __construct(
         private CasoRepository $casoRepo,

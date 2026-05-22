@@ -20,9 +20,9 @@ final class CatalogoCamposSistemaTest extends TestCase
         $codigos = $this->codigos(CatalogoCamposSistema::paraTarget(TargetImportacion::PERSONA));
 
         $this->assertSame(
-            ['tipo_identificacion_codigo', 'identificacion', 'nombres', 'apellidos'],
+            ['identificacion', 'tipo_identificacion_codigo'],
             $codigos,
-            'Persona debe limitarse a 4 campos básicos. razon_social, tipo_persona, fecha_nacimiento eliminados.'
+            'Solo identificación + tipo identificación. Nombres/apellidos/razon_social via Campos Personalizados.'
         );
     }
 
@@ -31,7 +31,7 @@ final class CatalogoCamposSistemaTest extends TestCase
         $codigos = $this->codigos(CatalogoCamposSistema::paraTarget(TargetImportacion::CASO_COBRANZA));
 
         $this->assertSame(
-            ['cartera_codigo', 'tipo_identificacion_codigo', 'identificacion', 'nombres', 'apellidos', 'numero_prestamo'],
+            ['identificacion', 'tipo_identificacion_codigo'],
             $codigos,
         );
     }
@@ -41,7 +41,7 @@ final class CatalogoCamposSistemaTest extends TestCase
         $codigos = $this->codigos(CatalogoCamposSistema::paraTarget(TargetImportacion::CASO_TICKET_CX));
 
         $this->assertSame(
-            ['cartera_codigo', 'tipo_identificacion_codigo', 'identificacion', 'nombres', 'apellidos', 'codigo_ticket'],
+            ['identificacion', 'tipo_identificacion_codigo'],
             $codigos,
         );
     }
@@ -51,7 +51,7 @@ final class CatalogoCamposSistemaTest extends TestCase
         $codigos = $this->codigos(CatalogoCamposSistema::paraTarget(TargetImportacion::CASO_LEAD_VENTA));
 
         $this->assertSame(
-            ['cartera_codigo', 'tipo_identificacion_codigo', 'identificacion', 'nombres', 'apellidos', 'codigo_lead'],
+            ['identificacion', 'tipo_identificacion_codigo'],
             $codigos,
         );
     }
@@ -61,7 +61,7 @@ final class CatalogoCamposSistemaTest extends TestCase
         $codigos = $this->codigos(CatalogoCamposSistema::paraTarget(TargetImportacion::CASO_SERVICIO));
 
         $this->assertSame(
-            ['cartera_codigo', 'tipo_identificacion_codigo', 'identificacion', 'nombres', 'apellidos', 'codigo_servicio'],
+            ['identificacion', 'tipo_identificacion_codigo'],
             $codigos,
         );
     }

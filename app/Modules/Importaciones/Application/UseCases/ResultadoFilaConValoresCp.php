@@ -13,7 +13,7 @@ use App\Modules\Importaciones\Domain\ValueObjects\ResultadoFila;
 final readonly class ResultadoFilaConValoresCp
 {
     /**
-     * @param list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string}> $valoresCp
+     * @param  list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string}>  $valoresCp
      */
     public function __construct(
         public ResultadoFila $resultadoFila,

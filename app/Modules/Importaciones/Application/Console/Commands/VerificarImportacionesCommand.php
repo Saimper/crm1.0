@@ -11,6 +11,7 @@ use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Livewire\Component;
 use Throwable;
 
 final class VerificarImportacionesCommand extends Command
@@ -140,7 +141,7 @@ final class VerificarImportacionesCommand extends Command
             'Clase Livewire Importar existe y es válida',
             static function (): bool {
                 return class_exists(Importar::class)
-                    && is_subclass_of(Importar::class, \Livewire\Component::class);
+                    && is_subclass_of(Importar::class, Component::class);
             },
         );
     }

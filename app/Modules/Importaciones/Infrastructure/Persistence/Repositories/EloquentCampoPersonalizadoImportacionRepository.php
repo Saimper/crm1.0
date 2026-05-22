@@ -73,6 +73,12 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
         return $mapa;
     }
 
+    /**
+     * Límite seguro de placeholders MySQL (menor a 65535) dividido por ~7 columnas
+     * (campo_personalizado_id, entidad_id, creada_en, actualizada_en + 2-3 de valor).
+     */
+    private const CHUNK_UPSERT = 2000;
+
     public function guardarValoresEnLote(array $lote): void
     {
         if ($lote === []) {
@@ -107,8 +113,10 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
 
         $columnas = array_keys($rows[0]);
 
-        $this->db->table('valores_campo_personalizado')
-            ->upsert($rows, ['campo_personalizado_id', 'entidad_id'], array_slice($columnas, 2));
+        foreach (array_chunk($rows, self::CHUNK_UPSERT) as $chunk) {
+            $this->db->table('valores_campo_personalizado')
+                ->upsert($chunk, ['campo_personalizado_id', 'entidad_id'], array_slice($columnas, 2));
+        }
     }
 
     /**
@@ -119,7 +127,7 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
     private function mapearValorAColumna(string $tipo, mixed $valor): array
     {
         return match ($tipo) {
-            'texto_corto' => ['valor_texto_corto' => $valor !== null ? (string) $valor : null],
+            'texto_corto' => ['valor_texto_corto' => $valor !== null ? mb_substr((string) $valor, 0, 255) : null],
             'texto_largo' => ['valor_texto_largo' => $valor !== null ? (string) $valor : null],
             'numero_entero' => ['valor_numero_entero' => $valor !== null ? (int) $valor : null],
             'numero_decimal' => ['valor_numero_decimal' => $valor !== null ? (float) $valor : null],

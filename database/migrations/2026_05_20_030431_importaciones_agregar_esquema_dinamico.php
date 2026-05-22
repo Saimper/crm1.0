@@ -31,7 +31,7 @@ return new class extends Migration
         });
 
         DB::statement(
-            "ALTER TABLE importaciones MODIFY COLUMN modo "
+            'ALTER TABLE importaciones MODIFY COLUMN modo '
             ."ENUM('merge','skip_duplicados','overwrite','insert','update','upsert') "
             ."NOT NULL DEFAULT 'upsert'"
         );
@@ -53,7 +53,7 @@ return new class extends Migration
         Schema::dropIfExists('importacion_campos_personalizados');
 
         DB::statement(
-            "ALTER TABLE importaciones MODIFY COLUMN modo "
+            'ALTER TABLE importaciones MODIFY COLUMN modo '
             ."ENUM('merge','skip_duplicados','overwrite') "
             ."NOT NULL DEFAULT 'merge'"
         );

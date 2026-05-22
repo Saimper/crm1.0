@@ -9,11 +9,8 @@ use App\Modules\Importaciones\Application\Services\LectorCsv;
 use App\Modules\Importaciones\Application\Services\LectorXlsx;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ConsultarProgresoImportacion;
-use App\Modules\Importaciones\Application\UseCases\EncolarImportacion;
-use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionInput;
 use App\Modules\Importaciones\Application\UseCases\InferirEsquemaDesdeHeaders;
 use App\Modules\Importaciones\Application\UseCases\InferirEsquemaInput;
-use App\Modules\Importaciones\Application\UseCases\InferirEsquemaOutput;
 use App\Modules\Importaciones\Application\UseCases\PrepararImportacionDinamica;
 use App\Modules\Importaciones\Application\UseCases\PrepararImportacionInput;
 use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
@@ -24,14 +21,13 @@ use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
-use App\Modules\Importaciones\Domain\ValueObjects\ResultadoDryRun;
 use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -67,6 +63,8 @@ final class Importar extends Component
 
     public ?string $columnaIdentificadorNombre = null;
 
+    public ?string $columnaCasoIdentificadorNombre = null;
+
     public ?int $importacionId = null;
 
     public ?array $resultadoDryRun = null;
@@ -75,6 +73,12 @@ final class Importar extends Component
     public array $advertencias = [];
 
     public string $filtroFilas = 'todas';
+
+    public function boot(): void
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(0);
+    }
 
     public function mount(): void
     {
@@ -88,7 +92,7 @@ final class Importar extends Component
 
     public function updatedTargetValor(): void
     {
-        $this->reset(['archivo', 'columnas', 'columnaIdentificadorNombre', 'carteraId']);
+        $this->reset(['archivo', 'columnas', 'columnaIdentificadorNombre', 'columnaCasoIdentificadorNombre', 'carteraId']);
         $this->archivoListo = false;
         $this->paso = 1;
     }
@@ -162,6 +166,12 @@ final class Importar extends Component
 
         $this->columnas = $this->serializarColumnas($output->columnas);
         $this->columnaIdentificadorNombre = $output->sugerenciaIdentificador;
+        if ($output->sugerenciaIdentificador !== null) {
+            $this->marcarComoIdentificador($output->sugerenciaIdentificador);
+        }
+        if ($output->sugerenciaIdentificadorCaso !== null) {
+            $this->marcarComoIdentificadorCaso($output->sugerenciaIdentificadorCaso);
+        }
         $this->advertencias = $output->advertencias;
         $this->paso = 2;
     }
@@ -198,7 +208,44 @@ final class Importar extends Component
         }
     }
 
+    public function marcarComoIdentificadorCaso(string $nombreOriginal): void
+    {
+        foreach ($this->columnas as $i => $col) {
+            if ($col['nombre_original'] === $nombreOriginal) {
+                $this->columnas[$i]['es_identificador_caso'] = true;
+                $this->columnaCasoIdentificadorNombre = $nombreOriginal;
+            } else {
+                $this->columnas[$i]['es_identificador_caso'] = false;
+            }
+        }
+    }
+
+    public function actualizarEtiquetaPersonalizada(string $nombreOriginal, string $etiqueta): void
+    {
+        foreach ($this->columnas as $i => $col) {
+            if ($col['nombre_original'] === $nombreOriginal) {
+                $this->columnas[$i]['etiqueta_personalizada'] = trim($etiqueta) !== '' ? trim($etiqueta) : null;
+                break;
+            }
+        }
+    }
+
     public function confirmarMapeo(): void
+    {
+        try {
+            $this->confirmarMapeoInterno();
+        } catch (\Throwable $e) {
+            Log::error('[importar] confirmarMapeo failed', [
+                'msg' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->addError('columnas', 'Error interno: '.$e->getMessage());
+        }
+    }
+
+    private function confirmarMapeoInterno(): void
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
 
@@ -351,7 +398,7 @@ final class Importar extends Component
 
     public function cerrar(): void
     {
-        $this->reset(['archivo', 'columnas', 'columnaIdentificadorNombre', 'importacionId', 'filtroFilas', 'resultadoDryRun', 'advertencias', 'carteraId']);
+        $this->reset(['archivo', 'columnas', 'columnaIdentificadorNombre', 'columnaCasoIdentificadorNombre', 'importacionId', 'filtroFilas', 'resultadoDryRun', 'advertencias', 'carteraId']);
         $this->archivoListo = false;
         $this->paso = 1;
         $this->modo = 'upsert';
@@ -456,9 +503,9 @@ final class Importar extends Component
     }
 
     /**
-     * @param list<string> $headers
-     * @param list<string> $filaCruda
-     * @param list<ColumnaExcel> $columnas
+     * @param  list<string>  $headers
+     * @param  list<string>  $filaCruda
+     * @param  list<ColumnaExcel>  $columnas
      * @return array<string, string>
      */
     private function construirPayload(array $headers, array $filaCruda, array $columnas): array
@@ -486,13 +533,17 @@ final class Importar extends Component
             } else {
                 $payload[$columna->codigoSugerido()] = $valor;
             }
+
+            if ($columna->esIdentificadorCaso) {
+                $payload['id_cpelegido'] = $valor;
+            }
         }
 
         return $payload;
     }
 
     /**
-     * @param list<ColumnaExcel> $columnas
+     * @param  list<ColumnaExcel>  $columnas
      * @return list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}>
      */
     private function serializarColumnas(array $columnas): array
@@ -505,7 +556,9 @@ final class Importar extends Component
                 'tipo_inferido' => $col->tipoInferido->value,
                 'campo_sistema_mapeado' => $col->campoSistemaMapeado,
                 'es_identificador_persona' => $col->esIdentificadorPersona,
+                'es_identificador_caso' => $col->esIdentificadorCaso,
                 'accion' => $col->accion->value,
+                'etiqueta_personalizada' => $col->etiquetaPersonalizada,
             ];
         }
 
@@ -524,8 +577,10 @@ final class Importar extends Component
                 nombreOriginal: $col['nombre_original'],
                 tipoInferido: TipoCampo::from($col['tipo_inferido']),
                 campoSistemaMapeado: $col['campo_sistema_mapeado'] ?: null,
-                esIdentificadorPersona: (bool) $col['es_identificador_persona'],
+                esIdentificadorPersona: (bool) ($col['es_identificador_persona'] ?? false),
+                esIdentificadorCaso: (bool) ($col['es_identificador_caso'] ?? false),
                 accion: AccionColumna::from($col['accion']),
+                etiquetaPersonalizada: $col['etiqueta_personalizada'] ?? null,
             );
         }
 

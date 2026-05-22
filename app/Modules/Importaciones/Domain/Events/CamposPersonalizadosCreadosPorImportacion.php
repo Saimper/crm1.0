@@ -7,7 +7,7 @@ namespace App\Modules\Importaciones\Domain\Events;
 final readonly class CamposPersonalizadosCreadosPorImportacion
 {
     /**
-     * @param list<int> $camposPersonalizadosIds
+     * @param  list<int>  $camposPersonalizadosIds
      */
     public function __construct(
         public int $importacionId,

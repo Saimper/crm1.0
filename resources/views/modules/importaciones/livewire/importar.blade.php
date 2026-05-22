@@ -182,7 +182,7 @@
                             <th class="px-3 py-2 text-left">Columna del archivo</th>
                             <th class="px-3 py-2 text-left">Tipo inferido</th>
                             <th class="px-3 py-2 text-left">Acción</th>
-                            <th class="px-3 py-2 text-center">¿Identificador persona?</th>
+                            <th class="px-3 py-2 text-center" colspan="2">Identificador</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-ink-100">
@@ -214,7 +214,16 @@
                                 };
                             @endphp
                             <tr>
-                                <td class="px-3 py-2 font-mono text-xs text-ink-800">{{ $col['nombre_original'] }}</td>
+                                <td class="px-3 py-2">
+                                    <div class="font-mono text-xs text-ink-800">{{ $col['nombre_original'] }}</div>
+                                    @if($col['accion'] === 'crear_cp')
+                                        <input type="text"
+                                               class="mt-1 block w-full text-xs border-ink-300 rounded"
+                                               value="{{ $col['etiqueta_personalizada'] ?? '' }}"
+                                               placeholder="{{ $col['nombre_original'] }}"
+                                               wire:blur="actualizarEtiquetaPersonalizada('{{ $col['nombre_original'] }}', $event.target.value)"/>
+                                    @endif
+                                </td>
                                 <td class="px-3 py-2">
                                     <span class="inline-block rounded px-1.5 py-0.5 text-[10px] font-medium {{ $tipoBadge }}">
                                         {{ $tipoLabel }}
@@ -232,12 +241,23 @@
                                     </select>
                                 </td>
                                 <td class="px-3 py-2 text-center">
+                                    <div class="text-[10px] text-ink-500 mb-1">Persona</div>
                                     <input type="radio"
                                            name="columna_identificador"
                                            wire:click="marcarComoIdentificador('{{ $col['nombre_original'] }}')"
                                            @checked($col['es_identificador_persona'])
                                            class="text-brand-600"/>
                                 </td>
+                                @if($target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
+                                <td class="px-3 py-2 text-center">
+                                    <div class="text-[10px] text-ink-500 mb-1">Caso</div>
+                                    <input type="radio"
+                                           name="columna_identificador_caso"
+                                           wire:click="marcarComoIdentificadorCaso('{{ $col['nombre_original'] }}')"
+                                           @checked($col['es_identificador_caso'] ?? false)
+                                           class="text-brand-600"/>
+                                </td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>
@@ -248,7 +268,8 @@
                 $mapeadasSistema = collect($columnas)->filter(fn($c) => $c['accion'] === 'mapear_sistema')->count();
                 $crearCP = collect($columnas)->filter(fn($c) => $c['accion'] === 'crear_cp')->count();
                 $ignoradas = collect($columnas)->filter(fn($c) => $c['accion'] === 'ignorar')->count();
-                $tieneId = collect($columnas)->filter(fn($c) => $c['es_identificador_persona'])->count() > 0;
+                $tieneIdPersona = collect($columnas)->filter(fn($c) => $c['es_identificador_persona'])->count() > 0;
+                $tieneIdCaso = collect($columnas)->filter(fn($c) => ($c['es_identificador_caso'] ?? false))->count() > 0;
             @endphp
 
             <div class="flex items-center gap-4 text-xs text-ink-600">
@@ -264,8 +285,11 @@
                     <span class="inline-block w-2 h-2 rounded-full bg-ink-300"></span>
                     {{ $ignoradas }} ignoradas
                 </span>
-                @if(! $tieneId)
-                    <span class="text-warning-700 font-medium">⚠ Ninguna columna marcada como identificador</span>
+                @if(! $tieneIdPersona)
+                    <span class="text-warning-700 font-medium">⚠ Sin identificador de persona</span>
+                @endif
+                @if(! $tieneIdCaso && $target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
+                    <span class="text-warning-700 font-medium">⚠ Sin identificador de caso</span>
                 @endif
             </div>
 
@@ -275,8 +299,11 @@
                     Descartar
                 </button>
                 <button type="button" wire:click="confirmarMapeo"
-                        class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                    Validar y continuar
+                        class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        wire:loading.attr="disabled"
+                        wire:target="confirmarMapeo">
+                    <span wire:loading.remove wire:target="confirmarMapeo">Validar y continuar</span>
+                    <span wire:loading wire:target="confirmarMapeo">Procesando...</span>
                 </button>
             </div>
             @error('columnas')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror
@@ -354,8 +381,11 @@
                 </button>
                 <button type="button" wire:click="ejecutar"
                         wire:confirm="¿Confirmar importación? Este proceso puede tardar varios minutos."
-                        class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                    Ejecutar importación
+                        class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        wire:loading.attr="disabled"
+                        wire:target="ejecutar">
+                    <span wire:loading.remove wire:target="ejecutar">Ejecutar importación</span>
+                    <span wire:loading wire:target="ejecutar">Procesando...</span>
                 </button>
             </div>
             @error('columnas')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Application\UseCases;
 
-use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 
 /**

@@ -23,7 +23,7 @@ use Illuminate\Support\Str;
 /**
  * Crea un Caso base + CasoLeadVenta (CTI) en la misma transacción.
  */
-final readonly class RegistrarCasoLeadVenta
+readonly class RegistrarCasoLeadVenta
 {
     public function __construct(
         private CasoRepository $casoRepo,

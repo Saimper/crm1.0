@@ -93,6 +93,14 @@ final class NuevaGestion extends Component
      */
     public array $valoresCamposGestion = [];
 
+    /**
+     * Valores de campos personalizados ámbito `caso × cartera`.
+     * Se cargan al montar el componente y se persisten al guardar la gestión.
+     *
+     * @var array<string, mixed>
+     */
+    public array $valoresCamposCaso = [];
+
     public function mount(int $casoId, int $personaId, string $tipoCaso): void
     {
         $this->casoId = $casoId;
@@ -207,6 +215,17 @@ final class NuevaGestion extends Component
                 entidadId: $output->id,
                 valoresPorCodigo: $this->valoresCamposGestion,
             );
+
+            // Persistir valores de campos personalizados ámbito `caso × cartera`
+            // cuando el usuario modificó algún valor durante la gestión.
+            $carteraId = (int) DB::table('casos')->where('id', $this->casoId)->value('cartera_id');
+            $servicioCampos->guardarValores(
+                proyectoId: $proyectoId,
+                ambito: AmbitoCampo::CASO,
+                ambitoId: $carteraId,
+                entidadId: $this->casoId,
+                valoresPorCodigo: $this->valoresCamposCaso,
+            );
         } catch (Throwable $e) {
             $this->addError('general', $e->getMessage());
 
@@ -237,6 +256,12 @@ final class NuevaGestion extends Component
             ? $servicioCampos->campos($proyectoId, AmbitoCampo::GESTION, (int) $this->tipoGestionId)
             : collect();
 
+        $carteraId = (int) DB::table('casos')->where('id', $this->casoId)->value('cartera_id');
+        $camposCaso = $servicioCampos->campos($proyectoId, AmbitoCampo::CASO, $carteraId);
+        if ($this->valoresCamposCaso === [] && $camposCaso->isNotEmpty()) {
+            $this->valoresCamposCaso = $this->cargarValoresCamposCaso($proyectoId, $carteraId);
+        }
+
         return view('casos::livewire.nueva-gestion', [
             'canales' => $this->canales(),
             'tiposGestion' => $this->tiposGestion($proyectoId),
@@ -252,7 +277,42 @@ final class NuevaGestion extends Component
             'requiereCompromiso' => $resultadoActual ? (bool) $resultadoActual->requiere_compromiso : false,
             'esContactoEfectivo' => $resultadoActual ? (bool) $resultadoActual->es_contacto_efectivo : false,
             'camposGestion' => $camposGestion,
+            'camposCaso' => $camposCaso,
         ]);
+    }
+
+    private function cargarValoresCamposCaso(int $proyectoId, int $carteraId): array
+    {
+        $filas = DB::table('valores_campo_personalizado as v')
+            ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
+            ->where('v.entidad_id', $this->casoId)
+            ->where('c.proyecto_id', $proyectoId)
+            ->where('c.ambito', AmbitoCampo::CASO->value)
+            ->where('c.ambito_id', $carteraId)
+            ->select(['c.codigo', 'c.tipo', 'v.*'])
+            ->get();
+
+        $valores = [];
+        foreach ($filas as $f) {
+            $valores[(string) $f->codigo] = $this->leerValorCampo($f, (string) $f->tipo);
+        }
+
+        return $valores;
+    }
+
+    private function leerValorCampo(object $fila, string $tipo): mixed
+    {
+        return match ($tipo) {
+            'texto_corto' => $fila->valor_texto_corto,
+            'texto_largo' => $fila->valor_texto_largo,
+            'numero_entero' => $fila->valor_numero_entero === null ? null : (int) $fila->valor_numero_entero,
+            'numero_decimal' => $fila->valor_numero_decimal,
+            'fecha' => $fila->valor_fecha,
+            'fecha_hora' => $fila->valor_fecha_hora,
+            'booleano' => $fila->valor_booleano === null ? null : (bool) $fila->valor_booleano,
+            'moneda' => $fila->valor_moneda_monto,
+            default => null,
+        };
     }
 
     private function resultadoSeleccionado(int $proyectoId): ?object

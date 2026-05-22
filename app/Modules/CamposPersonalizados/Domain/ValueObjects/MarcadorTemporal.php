@@ -42,11 +42,11 @@ final readonly class MarcadorTemporal
             return new self(CarbonImmutable::today()->addDays($dias));
         }
 
-        try {
-            $carbon = CarbonImmutable::parse($expresion);
-        } catch (\Throwable) {
+        $ts = @strtotime($expresion);
+        if ($ts === false) {
             throw new ReglaViolada("Marcador temporal inválido: «{$expresion}».");
         }
+        $carbon = CarbonImmutable::createFromTimestamp($ts);
 
         return new self($carbon);
     }

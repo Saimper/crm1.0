@@ -100,7 +100,7 @@ final class ColumnaExcelTest extends TestCase
             tipoInferido: TipoCampo::TEXTO_CORTO,
         );
 
-        self::assertSame('Numero Prestamo', $col->etiquetaSugerida());
+        self::assertSame('Número Préstamo', $col->etiquetaSugerida());
     }
 
     public function test_es_campo_de_sistema_retorna_true_cuando_mapeado(): void

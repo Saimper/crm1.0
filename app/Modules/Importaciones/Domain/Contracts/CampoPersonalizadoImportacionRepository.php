@@ -30,7 +30,7 @@ interface CampoPersonalizadoImportacionRepository
      * Persiste valores de campos personalizados en lote usando
      * INSERT ON DUPLICATE KEY UPDATE.
      *
-     * @param list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string}> $lote
+     * @param  list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string}>  $lote
      */
     public function guardarValoresEnLote(array $lote): void;
 
@@ -46,7 +46,7 @@ interface CampoPersonalizadoImportacionRepository
      * Registra en la tabla de auditoría qué campos personalizados fueron
      * creados o reutilizados por una importación.
      *
-     * @param list<array{campo_id: int, columna_original: string}> $campos
+     * @param  list<array{campo_id: int, columna_original: string}>  $campos
      */
     public function registrarAuditoriaCampos(int $importacionId, array $campos): void;
 }

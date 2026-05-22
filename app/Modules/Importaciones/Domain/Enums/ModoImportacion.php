@@ -75,6 +75,6 @@ enum ModoImportacion: string
 
     public function permiteDuplicados(): bool
     {
-        return !($this === self::INSERT);
+        return ! ($this === self::INSERT);
     }
 }
