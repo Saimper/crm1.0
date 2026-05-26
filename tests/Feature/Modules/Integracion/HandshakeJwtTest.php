@@ -297,6 +297,30 @@ final class HandshakeJwtTest extends TestCase
         );
     }
 
+    public function test_identificacion_sin_tipo_redirige_a_vista_de_trabajo(): void
+    {
+        $persona = $this->crearPersonaEn($this->proyecto, '87654321');
+
+        $jwt = $this->firmar([
+            'sub' => 'persona.solo.id@wrapper.io',
+            'name' => 'Persona Solo ID',
+            'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'identificacion' => $persona->identificacion,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ]);
+
+        $response = $this->get("/integracion/handshake?token={$jwt}");
+        $response->assertRedirect();
+        $this->assertStringContainsString(
+            "/proyectos/{$this->proyectoId}/trabajo/",
+            (string) $response->headers->get('Location'),
+        );
+    }
+
     public function test_usuario_existente_no_duplica_pivot(): void
     {
         $usuario = User::query()->create([

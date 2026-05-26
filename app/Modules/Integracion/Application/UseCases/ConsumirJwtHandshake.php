@@ -76,18 +76,22 @@ final class ConsumirJwtHandshake
         ?string $identificacion,
         ?string $tipoIdentificacionCodigo,
     ): ?string {
-        if ($identificacion === null || $tipoIdentificacionCodigo === null) {
+        if ($identificacion === null) {
             return null;
         }
 
-        $row = $this->db->table('personas as p')
+        $query = $this->db->table('personas as p')
             ->join('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
             ->where('p.proyecto_id', $proyectoId)
-            ->where('ti.codigo', $tipoIdentificacionCodigo)
             ->where('p.identificacion', $identificacion)
             ->whereNull('p.eliminada_en')
-            ->select('p.public_id')
-            ->first();
+            ->select('p.public_id');
+
+        if ($tipoIdentificacionCodigo !== null) {
+            $query->where('ti.codigo', $tipoIdentificacionCodigo);
+        }
+
+        $row = $query->first();
 
         return $row?->public_id !== null ? (string) $row->public_id : null;
     }
