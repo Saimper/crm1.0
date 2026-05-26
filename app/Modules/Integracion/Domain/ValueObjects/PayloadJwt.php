@@ -28,6 +28,7 @@ final readonly class PayloadJwt
         public ?string $redirectPath,
         public ?string $identificacion,
         public ?string $tipoIdentificacionCodigo,
+        public ?string $numeroPrestamo,
         public ?string $iss,
         public ?string $aud,
     ) {}
@@ -68,6 +69,7 @@ final readonly class PayloadJwt
         $redirectPath = isset($claims->redirect_path) ? (string) $claims->redirect_path : null;
         $identificacion = isset($claims->identificacion) ? (string) $claims->identificacion : null;
         $tipoIdentificacionCodigo = isset($claims->tipo_identificacion_codigo) ? (string) $claims->tipo_identificacion_codigo : null;
+        $numeroPrestamo = isset($claims->numero_prestamo) ? (string) $claims->numero_prestamo : null;
 
         return new self(
             jti: $jti,
@@ -80,6 +82,7 @@ final readonly class PayloadJwt
             redirectPath: $redirectPath,
             identificacion: $identificacion,
             tipoIdentificacionCodigo: $tipoIdentificacionCodigo,
+            numeroPrestamo: $numeroPrestamo,
             iss: $iss,
             aud: $aud,
         );

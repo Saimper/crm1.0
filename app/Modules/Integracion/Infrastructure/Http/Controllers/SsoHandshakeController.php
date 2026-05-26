@@ -73,7 +73,12 @@ final class SsoHandshakeController
         }
 
         if ($output->personaPublicId !== null) {
-            return "/proyectos/{$output->proyectoId}/trabajo/{$output->personaPublicId}";
+            $url = "/proyectos/{$output->proyectoId}/trabajo/{$output->personaPublicId}";
+            if ($output->casoPublicId !== null) {
+                $url .= "/{$output->casoPublicId}";
+            }
+
+            return $url;
         }
 
         return "/proyectos/{$output->proyectoId}/bandeja";

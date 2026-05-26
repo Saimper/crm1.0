@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -456,6 +457,82 @@ final class HandshakeJwtTest extends TestCase
     public function test_token_mal_formado_devuelve_400(): void
     {
         $this->get('/integracion/handshake?token=no.es.jwt')->assertStatus(400);
+    }
+
+    public function test_numero_prestamo_redirige_a_trabajo_con_caso(): void
+    {
+        $persona = $this->crearPersonaEn($this->proyecto);
+        $cartera = $this->crearCarteraEn($this->proyecto);
+        $estado = $this->crearEstadoCasoEn($this->proyecto);
+
+        $casoPublicId = (string) Str::ulid();
+        $numeroPrestamo = 'LOAN-'.Str::random(8);
+
+        $casoId = (int) DB::table('casos')->insertGetId([
+            'public_id' => $casoPublicId,
+            'proyecto_id' => $this->proyectoId,
+            'cartera_id' => $cartera->id,
+            'persona_id' => $persona->id,
+            'tipo_caso' => 'cobranza',
+            'estado_caso_id' => $estado->id,
+            'fecha_ingreso' => Carbon::today(),
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        DB::table('casos_cobranza')->insert([
+            'caso_id' => $casoId,
+            'proyecto_id' => $this->proyectoId,
+            'numero_prestamo' => $numeroPrestamo,
+            'moneda' => 'USD',
+            'monto_original' => 1000.00,
+            'saldo_capital' => 1000.00,
+            'saldo_total' => 1000.00,
+            'cuota_mensual' => 100.00,
+            'cuotas_totales' => 12,
+            'fecha_desembolso' => Carbon::today()->subYear(),
+            'fecha_vencimiento' => Carbon::today()->addYear(),
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        $jwt = $this->firmar([
+            'sub' => 'agente.prestamo@wrapper.io',
+            'name' => 'Agente Prestamo',
+            'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'numero_prestamo' => $numeroPrestamo,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ]);
+
+        $response = $this->get("/integracion/handshake?token={$jwt}");
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $this->assertStringContainsString(
+            "/proyectos/{$this->proyectoId}/trabajo/{$persona->public_id}/{$casoPublicId}",
+            $location,
+        );
+    }
+
+    public function test_numero_prestamo_inexistente_cae_a_bandeja(): void
+    {
+        $jwt = $this->firmar([
+            'sub' => 'agente.prestamo.no@wrapper.io',
+            'name' => 'Agente Sin Prestamo',
+            'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'numero_prestamo' => 'NO-EXISTE-'.Str::random(8),
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja");
     }
 
     /**
