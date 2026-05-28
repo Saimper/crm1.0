@@ -13,25 +13,25 @@ class LocaleSwitchTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_profile_renders_in_spanish_for_es_user(): void
+    public function test_ui_renders_in_spanish_for_es_user(): void
     {
         $user = User::factory()->create(['locale' => 'es']);
 
         $this->actingAs($user)
             ->get('/profile')
             ->assertOk()
-            ->assertSee('Idioma de la interfaz', false)
+            ->assertSee('Idioma', false)
             ->assertSee('Cerrar sesión', false);
     }
 
-    public function test_profile_renders_in_english_for_en_user(): void
+    public function test_ui_renders_in_english_for_en_user(): void
     {
         $user = User::factory()->create(['locale' => 'en']);
 
         $this->actingAs($user)
             ->get('/profile')
             ->assertOk()
-            ->assertSee('Interface language', false)
+            ->assertSee('Language', false)
             ->assertSee('Sign out', false);
     }
 
@@ -40,20 +40,19 @@ class LocaleSwitchTest extends TestCase
         $user = User::factory()->create(['locale' => 'es']);
         $this->actingAs($user);
 
-        Volt::test('profile.update-language-form')
+        Volt::test('layout.navigation')
             ->call('setLocale', 'en');
 
         $this->assertSame('en', $user->fresh()->locale);
     }
 
-    public function test_language_switch_rejects_unsupported_locale(): void
+    public function test_language_switch_ignores_unsupported_locale(): void
     {
         $user = User::factory()->create(['locale' => 'es']);
         $this->actingAs($user);
 
-        Volt::test('profile.update-language-form')
-            ->call('setLocale', 'fr')
-            ->assertHasErrors('locale');
+        Volt::test('layout.navigation')
+            ->call('setLocale', 'fr');
 
         $this->assertSame('es', $user->fresh()->locale);
     }

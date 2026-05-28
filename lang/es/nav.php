@@ -69,6 +69,7 @@ return [
 
     // Menú de usuario
     'profile' => 'Perfil',
+    'language' => 'Idioma',
     'logout' => 'Cerrar sesión',
     'role_admin_global' => 'Admin Global',
     'role_user' => 'Usuario',

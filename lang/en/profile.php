@@ -6,7 +6,6 @@ return [
 
     'section_info' => 'Profile information',
     'section_password' => 'Password',
-    'section_language' => 'Language',
     'section_delete' => 'Delete account',
 
     // Profile information
@@ -17,10 +16,6 @@ return [
 
     // Password
     'password_hint' => 'Use a long, random password to keep your account secure.',
-
-    // Language
-    'language_hint' => 'Choose the interface language.',
-    'language_label' => 'Interface language',
 
     // Delete account
     'delete_hint' => 'Once your account is deleted, all of its data will be permanently removed. Download any information you want to keep before continuing.',

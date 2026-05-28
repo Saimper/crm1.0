@@ -12,10 +12,6 @@
                 <livewire:profile.update-profile-information-form />
             </x-ui.card>
 
-            <x-ui.card :title="__('profile.section_language')">
-                <livewire:profile.update-language-form />
-            </x-ui.card>
-
             <x-ui.card :title="__('profile.section_password')">
                 <livewire:profile.update-password-form />
             </x-ui.card>

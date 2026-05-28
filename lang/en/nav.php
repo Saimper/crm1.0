@@ -69,6 +69,7 @@ return [
 
     // User menu
     'profile' => 'Profile',
+    'language' => 'Language',
     'logout' => 'Sign out',
     'role_admin_global' => 'Global Admin',
     'role_user' => 'User',

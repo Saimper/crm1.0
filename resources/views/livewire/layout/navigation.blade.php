@@ -1,10 +1,28 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 
 new class extends Component
 {
+    /**
+     * Cambia el idioma de interfaz del usuario y recarga la página actual
+     * para que el middleware SetLocale aplique el nuevo locale en toda la UI.
+     */
+    public function setLocale(string $locale): void
+    {
+        $soportados = array_keys((array) config('locales.supported', []));
+
+        if (! in_array($locale, $soportados, true)) {
+            return;
+        }
+
+        Auth::user()->update(['locale' => $locale]);
+
+        $this->redirect(request()->header('Referer') ?: route('dashboard'), navigate: true);
+    }
+
     public function logout(Logout $logout): void
     {
         $logout();
@@ -39,6 +57,21 @@ new class extends Component
             <x-ui.icon name="user" :size="14" />
             <span>{{ __('nav.profile') }}</span>
         </a>
+
+        <div style="height:1px;background:var(--border);margin:6px 0;"></div>
+        <div style="padding:2px 10px 4px;font-size:11px;color:var(--text-tertiary);">{{ __('nav.language') }}</div>
+        @foreach(config('locales.supported') as $code => $label)
+            <button type="button" wire:click="setLocale('{{ $code }}')"
+                    @class(['sb-item'])
+                    style="border-radius:6px;height:32px;width:100%;justify-content:space-between;">
+                <span @style(['font-weight:600;color:var(--text)' => app()->getLocale() === $code])>{{ $label }}</span>
+                @if(app()->getLocale() === $code)
+                    <span style="color:var(--primary);">✓</span>
+                @endif
+            </button>
+        @endforeach
+
+        <div style="height:1px;background:var(--border);margin:6px 0;"></div>
         <button type="button" wire:click="logout"
                 class="sb-item" style="border-radius:6px;height:32px;width:100%;color:var(--danger);">
             <x-ui.icon name="log-out" :size="14" />

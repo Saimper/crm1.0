@@ -6,7 +6,6 @@ return [
 
     'section_info' => 'Información de perfil',
     'section_password' => 'Contraseña',
-    'section_language' => 'Idioma',
     'section_delete' => 'Eliminar cuenta',
 
     // Información de perfil
@@ -17,10 +16,6 @@ return [
 
     // Contraseña
     'password_hint' => 'Usa una contraseña larga y aleatoria para mantener tu cuenta segura.',
-
-    // Idioma
-    'language_hint' => 'Elige el idioma de la interfaz.',
-    'language_label' => 'Idioma de la interfaz',
 
     // Eliminar cuenta
     'delete_hint' => 'Al eliminar tu cuenta, todos los datos asociados se borrarán permanentemente. Descarga la información que quieras conservar antes de continuar.',
