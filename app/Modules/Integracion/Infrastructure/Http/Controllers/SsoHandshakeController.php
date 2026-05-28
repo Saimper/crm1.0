@@ -58,6 +58,14 @@ final class SsoHandshakeController
         Auth::loginUsingId($output->usuarioId);
         $request->session()->regenerate();
 
+        // Origin del wrapper que embebe el CRM. Lo persistimos en sesión para que
+        // el layout lo exponga y el relay JS haga postMessage solo a ese origin.
+        if ($output->parentOrigin !== null) {
+            $request->session()->put('crm_parent_origin', $output->parentOrigin);
+        } else {
+            $request->session()->forget('crm_parent_origin');
+        }
+
         return redirect()->to($this->resolverDestino($output));
     }
 

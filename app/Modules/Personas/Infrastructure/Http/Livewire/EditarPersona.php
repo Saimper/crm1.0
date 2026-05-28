@@ -119,6 +119,15 @@ final class EditarPersona extends Component
             ->where('proyecto_id', $proyectoId)
             ->update($payload);
 
+        // Reenvía la edición al wrapper (ViciDial) si el CRM está embebido. El
+        // relay JS solo postea si hay wrapper-origin firmado en la sesión.
+        if ($this->tipoPersona === 'fisica') {
+            $this->dispatch('crm-sync', tipo: 'persona', cambios: [
+                'nombres' => $this->nombres,
+                'apellidos' => $this->apellidos,
+            ]);
+        }
+
         session()->flash('persona_editada', 'Persona actualizada.');
 
         $this->redirectRoute('proyectos.trabajo', [

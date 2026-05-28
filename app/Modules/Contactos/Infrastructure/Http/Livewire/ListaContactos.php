@@ -74,6 +74,11 @@ final class ListaContactos extends Component
             throw ValidationException::withMessages(['valor' => $e->getMessage()]);
         }
 
+        // Solo el contacto principal representa el campo canónico del lead.
+        if ($this->esPrincipal) {
+            $this->dispatch('crm-sync', tipo: 'contacto', cambios: [$this->tipo => $this->valor]);
+        }
+
         $this->mensajeExito = 'Contacto agregado.';
         $this->reset(['valor', 'etiqueta', 'esPrincipal']);
     }
@@ -151,6 +156,10 @@ final class ListaContactos extends Component
                     'actualizada_en' => $ahora,
                 ]);
         });
+
+        if ($this->esPrincipal) {
+            $this->dispatch('crm-sync', tipo: 'contacto', cambios: [$this->tipo => $this->valor]);
+        }
 
         $this->mensajeExito = 'Contacto actualizado.';
         $this->editandoId = null;

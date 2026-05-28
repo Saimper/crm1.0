@@ -160,6 +160,24 @@ final class EditarPersonaTest extends TestCase
         $this->assertSame('ACME SA', (string) $row->razon_social);
     }
 
+    public function test_guardar_emite_evento_crm_sync_para_wrapper(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->actuarComoSupervisor($proyecto);
+
+        Livewire::test(EditarPersona::class, ['persona' => $persona->public_id])
+            ->set('nombres', 'Editado')
+            ->set('apellidos', 'B1')
+            ->call('guardar')
+            ->assertHasNoErrors()
+            ->assertDispatched('crm-sync', function (string $event, array $params): bool {
+                return ($params['tipo'] ?? null) === 'persona'
+                    && ($params['cambios']['nombres'] ?? null) === 'Editado'
+                    && ($params['cambios']['apellidos'] ?? null) === 'B1';
+            });
+    }
+
     private function actuarComoSupervisor(stdClass $proyecto): void
     {
         $this->activarProyecto($proyecto);
