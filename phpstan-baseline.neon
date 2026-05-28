@@ -1,0 +1,1123 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified constructor expects Illuminate\\Contracts\\Auth\\MustVerifyEmail, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Auth/VerifyEmailController.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:rolesGlobales\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Modules\\Asignaciones\\Application\\UseCases\\CerrarAsignacion\:\:execute\(\) invoked with 1 parameter, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Http/Livewire/Bandeja.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Http/Livewire/Bandeja.php
+
+		-
+			message: '#^Method App\\Modules\\Asignaciones\\Infrastructure\\Persistence\\Models\\AsignacionModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Persistence/Models/AsignacionModel.php
+
+		-
+			message: '#^Method App\\Modules\\Asignaciones\\Infrastructure\\Persistence\\Models\\AsignacionModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Persistence/Models/AsignacionModel.php
+
+		-
+			message: '#^Instanceof between Carbon\\CarbonImmutable and DateTimeImmutable will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: app/Modules/Asignaciones/Infrastructure/Persistence/Repositories/EloquentAsignacionRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Asignaciones\\Infrastructure\\Persistence\\Models\\AsignacionModel\:\:\$cerrada_en \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Persistence/Repositories/EloquentAsignacionRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Asignaciones\\Infrastructure\\Persistence\\Models\\AsignacionModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Persistence/Repositories/EloquentAsignacionRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Asignaciones\\Infrastructure\\Persistence\\Models\\AsignacionModel\:\:\$fecha_asignacion \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Asignaciones/Infrastructure/Persistence/Repositories/EloquentAsignacionRepository.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Http\\Request\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Modules/Auditoria/Application/Observers/AuditoriaObserver.php
+
+		-
+			message: '#^Method App\\Modules\\Campanas\\Infrastructure\\Persistence\\Models\\CampanaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Campanas/Infrastructure/Persistence/Models/CampanaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Campanas\\Infrastructure\\Persistence\\Models\\CampanaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Campanas/Infrastructure/Persistence/Models/CampanaModel.php
+
+		-
+			message: '#^Property App\\Modules\\Campanas\\Infrastructure\\Persistence\\Models\\CampanaModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Campanas/Infrastructure/Persistence/Repositories/EloquentCampanaRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Campanas\\Infrastructure\\Persistence\\Models\\CampanaModel\:\:\$fecha_fin \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Campanas/Infrastructure/Persistence/Repositories/EloquentCampanaRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Campanas\\Infrastructure\\Persistence\\Models\\CampanaModel\:\:\$fecha_inicio \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Campanas/Infrastructure/Persistence/Repositories/EloquentCampanaRepository.php
+
+		-
+			message: '#^Method App\\Modules\\CamposPersonalizados\\Infrastructure\\Persistence\\Models\\CampoPersonalizadoModel\:\:opciones\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/CamposPersonalizados/Infrastructure/Persistence/Models/CampoPersonalizadoModel.php
+
+		-
+			message: '#^Method App\\Modules\\CamposPersonalizados\\Infrastructure\\Persistence\\Models\\CampoPersonalizadoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/CamposPersonalizados/Infrastructure/Persistence/Models/CampoPersonalizadoModel.php
+
+		-
+			message: '#^Method App\\Modules\\CamposPersonalizados\\Infrastructure\\Persistence\\Models\\CampoPersonalizadoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/CamposPersonalizados/Infrastructure/Persistence/Models/CampoPersonalizadoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:canales\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:cargarValoresCamposCaso\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:causas\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:contactos\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:etapasEmbudo\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:motivos\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:nivelesEscalamiento\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:resultados\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:tiposAccionServicio\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:tiposGestion\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:tiposPago\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Http/Livewire/VistaDeTrabajo.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\CasoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Models/CasoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\CasoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Models/CasoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\EstadoCasoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Models/EstadoCasoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\EstadoCasoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Models/EstadoCasoModel.php
+
+		-
+			message: '#^Property App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\CasoModel\:\:\$cerrado_en \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Repositories/EloquentCasoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\CasoModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Repositories/EloquentCasoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Casos\\Infrastructure\\Persistence\\Models\\CasoModel\:\:\$fecha_ingreso \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Casos/Infrastructure/Persistence/Repositories/EloquentCasoRepository.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\CasoCobranzaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/CasoCobranzaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\CasoCobranzaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/CasoCobranzaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\CompromisoPromesaPagoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/CompromisoPromesaPagoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\CompromisoPromesaPagoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/CompromisoPromesaPagoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\TipoPagoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/TipoPagoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\TipoPagoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/TipoPagoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\TramoMoraModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/TramoMoraModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\TramoMoraModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Models/TramoMoraModel.php
+
+		-
+			message: '#^Property App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\CasoCobranzaModel\:\:\$fecha_desembolso \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Repositories/EloquentCasoCobranzaRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Cobranza\\Infrastructure\\Persistence\\Models\\CasoCobranzaModel\:\:\$fecha_vencimiento \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Repositories/EloquentCasoCobranzaRepository.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>moneda" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 3
+			path: app/Modules/Cobranza/Infrastructure/Persistence/Repositories/EloquentCasoCobranzaRepository.php
+
+		-
+			message: '#^Method App\\Modules\\Compromisos\\Infrastructure\\Persistence\\Models\\CompromisoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Models/CompromisoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Compromisos\\Infrastructure\\Persistence\\Models\\CompromisoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Models/CompromisoModel.php
+
+		-
+			message: '#^Instanceof between Carbon\\CarbonImmutable and DateTimeImmutable will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 2
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Repositories/EloquentCompromisoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Compromisos\\Infrastructure\\Persistence\\Models\\CompromisoModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Repositories/EloquentCompromisoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Compromisos\\Infrastructure\\Persistence\\Models\\CompromisoModel\:\:\$fecha_resolucion \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Repositories/EloquentCompromisoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Compromisos\\Infrastructure\\Persistence\\Models\\CompromisoModel\:\:\$fecha_vencimiento \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Repositories/EloquentCompromisoRepository.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and null will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: app/Modules/Compromisos/Infrastructure/Persistence/Repositories/EloquentCompromisoRepository.php
+
+		-
+			message: '#^PHPDoc tag @var with type App\\Modules\\Personas\\Infrastructure\\Persistence\\Models\\PersonaModel\|null is not subtype of native type string\.$#'
+			identifier: varTag.nativeType
+			count: 1
+			path: app/Modules/Contactos/Infrastructure/Http/Livewire/ListaContactos.php
+
+		-
+			message: '#^Method App\\Modules\\Contactos\\Infrastructure\\Persistence\\Models\\ContactoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Contactos/Infrastructure/Persistence/Models/ContactoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Contactos\\Infrastructure\\Persistence\\Models\\ContactoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Contactos/Infrastructure/Persistence/Models/ContactoModel.php
+
+		-
+			message: '#^Property App\\Modules\\Contactos\\Infrastructure\\Persistence\\Models\\ContactoModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Contactos/Infrastructure/Persistence/Repositories/EloquentContactoRepository.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CasoTicketCxModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/CasoTicketCxModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CasoTicketCxModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/CasoTicketCxModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CategoriaTicketModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/CategoriaTicketModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CategoriaTicketModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/CategoriaTicketModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CompromisoResolucionTicketModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/CompromisoResolucionTicketModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CompromisoResolucionTicketModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/CompromisoResolucionTicketModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\NivelEscalamientoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/NivelEscalamientoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\NivelEscalamientoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/NivelEscalamientoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\NivelSlaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/NivelSlaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\NivelSlaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/NivelSlaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\PrioridadTicketModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/PrioridadTicketModel.php
+
+		-
+			message: '#^Method App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\PrioridadTicketModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Models/PrioridadTicketModel.php
+
+		-
+			message: '#^Property App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CasoTicketCxModel\:\:\$fecha_limite_sla \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Repositories/EloquentCasoTicketCxRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CasoTicketCxModel\:\:\$fecha_reporte \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Repositories/EloquentCasoTicketCxRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Cx\\Infrastructure\\Persistence\\Models\\CompromisoResolucionTicketModel\:\:\$fecha_limite_sla \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Cx/Infrastructure/Persistence/Repositories/EloquentCompromisoResolucionTicketRepository.php
+
+		-
+			message: '#^Method App\\Modules\\EntidadesConfigurables\\Infrastructure\\Persistence\\Models\\EntidadConfigurableModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/EntidadesConfigurables/Infrastructure/Persistence/Models/EntidadConfigurableModel.php
+
+		-
+			message: '#^Method App\\Modules\\EntidadesConfigurables\\Infrastructure\\Persistence\\Models\\EntidadConfigurableModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/EntidadesConfigurables/Infrastructure/Persistence/Models/EntidadConfigurableModel.php
+
+		-
+			message: '#^Method App\\Modules\\EntidadesConfigurables\\Infrastructure\\Persistence\\Models\\EntidadRegistroModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/EntidadesConfigurables/Infrastructure/Persistence/Models/EntidadRegistroModel.php
+
+		-
+			message: '#^Method App\\Modules\\EntidadesConfigurables\\Infrastructure\\Persistence\\Models\\EntidadRegistroModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/EntidadesConfigurables/Infrastructure/Persistence/Models/EntidadRegistroModel.php
+
+		-
+			message: '#^Method App\\Modules\\Gestiones\\Infrastructure\\Persistence\\Models\\GestionModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Gestiones/Infrastructure/Persistence/Models/GestionModel.php
+
+		-
+			message: '#^Method App\\Modules\\Gestiones\\Infrastructure\\Persistence\\Models\\GestionModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Gestiones/Infrastructure/Persistence/Models/GestionModel.php
+
+		-
+			message: '#^Method App\\Modules\\Gestiones\\Infrastructure\\Persistence\\Models\\ResultadoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Gestiones/Infrastructure/Persistence/Models/ResultadoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Gestiones\\Infrastructure\\Persistence\\Models\\ResultadoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Gestiones/Infrastructure/Persistence/Models/ResultadoModel.php
+
+		-
+			message: '#^Property App\\Modules\\Gestiones\\Infrastructure\\Persistence\\Models\\GestionModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Gestiones/Infrastructure/Persistence/Repositories/EloquentGestionRepository.php
+
+		-
+			message: '#^Call to function is_subclass_of\(\) with ''App\\\\Modules\\\\Importaciones\\\\Infrastructure\\\\Http\\\\Livewire\\\\Importar'' and ''Livewire\\\\Component'' will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Importaciones/Application/Console/Commands/VerificarImportacionesCommand.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Repositories\\EloquentCampoPersonalizadoImportacionRepository and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Modules/Importaciones/Application/Console/Commands/VerificarImportacionesCommand.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Repositories\\EloquentImportacionRepository and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Modules/Importaciones/Application/Console/Commands/VerificarImportacionesCommand.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:\$terminado_en \(string\|null\) does not accept Carbon\\CarbonImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/CancelarImportacion.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 3
+			path: app/Modules/Importaciones/Application/UseCases/EjecutarImportacionDinamica.php
+
+		-
+			message: '#^Method App\\Modules\\Importaciones\\Application\\UseCases\\ProcesarFilaDinamica\:\:buscarEnCp\(\) has parameter \$fila with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarFilaDinamica.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between int\<min, \-1\>\|int\<1, max\> and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarFilaDinamica.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosCobranza.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''duplicada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosCobranza.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''procesada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosCobranza.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosLeadVenta.php
+
+		-
+			message: '#^Offset ''fecha_estimada…''\|''fecha_primer…''\|''origen_lead''\|''valor_estimado'' on array\{valor_estimado\: ''valor_estimado_monto'', origen_lead\: ''origen_lead'', fecha_primer_contacto\: ''fecha_primer…'', fecha_estimada_cierre\: ''fecha_estimada…''\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosLeadVenta.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''duplicada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosLeadVenta.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''procesada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosLeadVenta.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosServicio.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''duplicada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosServicio.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''procesada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosServicio.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosTicketCx.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''duplicada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosTicketCx.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''procesada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionCasosTicketCx.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionPersonas.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Application\\UseCases\\ProcesarImportacionPersonas\:\:\$db is never read, only written\.$#'
+			identifier: property.onlyWritten
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionPersonas.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''duplicada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionPersonas.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:\$estado \(''importada''\|''invalida''\|''omitida''\|''pendiente''\|''valida''\) does not accept ''procesada''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionPersonas.php
+
+		-
+			message: '#^Offset ''es_identificador…'' on array\{nombre_original\: string, tipo_inferido\: string, campo_sistema_mapeado\: string\|null, es_identificador_persona\: bool, accion\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Offset ''es_identificador…'' on array\{nombre_original\: string, tipo_inferido\: string, campo_sistema_mapeado\: string\|null, es_identificador_persona\: bool, accion\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Offset ''etiqueta…'' on array\{nombre_original\: string, tipo_inferido\: string, campo_sistema_mapeado\: string\|null, es_identificador_persona\: bool, accion\: string\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Parameter \$filasMuestra of class App\\Modules\\Importaciones\\Application\\UseCases\\InferirEsquemaInput constructor expects list\<array\<string, string\>\>, non\-empty\-list\<list\<string\>\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Http\\Livewire\\Importar\:\:\$archivo has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Http\\Livewire\\Importar\:\:\$resultadoDryRun type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:\$estado \(''borrador''\|''cancelada''\|''completada''\|''fallida''\|''procesando''\|''validada''\) does not accept ''pendiente''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 2
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarCasos.php
+
+		-
+			message: '#^Parameter \#3 \$preview of method App\\Modules\\Importaciones\\Infrastructure\\Http\\Livewire\\ImportarCasos\:\:resolverCasosDePreview\(\) expects Illuminate\\Support\\Collection\<int, object\>, Illuminate\\Support\\Collection\<int, stdClass\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarCasos.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Http\\Livewire\\ImportarCasos\:\:\$archivo has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarCasos.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:\$estado \(''borrador''\|''cancelada''\|''completada''\|''fallida''\|''procesando''\|''validada''\) does not accept ''pendiente''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarCasos.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:\$tipo_entidad \(''persona''\) does not accept ''caso_cobranza''\|''caso_lead_venta''\|''caso_servicio''\|''caso_ticket_cx''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarCasos.php
+
+		-
+			message: '#^Parameter \#2 \$preview of method App\\Modules\\Importaciones\\Infrastructure\\Http\\Livewire\\ImportarPersonas\:\:resolverPersonasDePreview\(\) expects Illuminate\\Support\\Collection\<int, object\>, Illuminate\\Support\\Collection\<int, stdClass\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarPersonas.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Http\\Livewire\\ImportarPersonas\:\:\$archivo has no type specified\.$#'
+			identifier: missingType.property
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarPersonas.php
+
+		-
+			message: '#^Property App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:\$estado \(''borrador''\|''cancelada''\|''completada''\|''fallida''\|''procesando''\|''validada''\) does not accept ''pendiente''\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/ImportarPersonas.php
+
+		-
+			message: '#^Method App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Persistence/Models/ImportacionFilaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionFilaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Persistence/Models/ImportacionFilaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Persistence/Models/ImportacionModel.php
+
+		-
+			message: '#^Method App\\Modules\\Importaciones\\Infrastructure\\Persistence\\Models\\ImportacionModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Persistence/Models/ImportacionModel.php
+
+		-
+			message: '#^Offset ''tipo'' on array\{campo_id\: int, entidad_id\: int, valor\: mixed, tipo\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Persistence/Repositories/EloquentCampoPersonalizadoImportacionRepository.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-empty\-list\<non\-empty\-array\<string, mixed\>\> and array\{\} will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Modules/Importaciones/Infrastructure/Persistence/Repositories/EloquentCampoPersonalizadoImportacionRepository.php
+
+		-
+			message: '#^Method App\\Modules\\Integracion\\Application\\UseCases\\ConsumirJwtHandshake\:\:resolverCasoPorNumeroPrestamo\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Integracion/Application/UseCases/ConsumirJwtHandshake.php
+
+		-
+			message: '#^Method App\\Modules\\Integracion\\Infrastructure\\Http\\Livewire\\AdminSsoSecrets\:\:mandantes\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Integracion/Infrastructure/Http/Livewire/AdminSsoSecrets.php
+
+		-
+			message: '#^Method App\\Modules\\Notificaciones\\Infrastructure\\Persistence\\Models\\NotificacionModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Notificaciones/Infrastructure/Persistence/Models/NotificacionModel.php
+
+		-
+			message: '#^Method App\\Modules\\Notificaciones\\Infrastructure\\Persistence\\Models\\NotificacionModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Notificaciones/Infrastructure/Persistence/Models/NotificacionModel.php
+
+		-
+			message: '#^Method App\\Modules\\Personas\\Infrastructure\\Persistence\\Models\\PersonaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Personas/Infrastructure/Persistence/Models/PersonaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Personas\\Infrastructure\\Persistence\\Models\\PersonaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Personas/Infrastructure/Persistence/Models/PersonaModel.php
+
+		-
+			message: '#^Property App\\Modules\\Personas\\Infrastructure\\Persistence\\Models\\PersonaModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Personas/Infrastructure/Persistence/Repositories/EloquentPersonaRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Personas\\Infrastructure\\Persistence\\Models\\PersonaModel\:\:\$fecha_nacimiento \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Personas/Infrastructure/Persistence/Repositories/EloquentPersonaRepository.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Modules/Reportes/Domain/Constructor/ValueObjects/ColumnaReporte.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Modules/Reportes/Infrastructure/Http/Livewire/ConstructorReporte.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$_$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Modules/Reportes/Infrastructure/Http/Livewire/ReporteEquipos.php
+
+		-
+			message: '#^Method App\\Modules\\Reportes\\Infrastructure\\Persistence\\Models\\DefinicionReporteModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Reportes/Infrastructure/Persistence/Models/DefinicionReporteModel.php
+
+		-
+			message: '#^Method App\\Modules\\Reportes\\Infrastructure\\Persistence\\Models\\DefinicionReporteModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Reportes/Infrastructure/Persistence/Models/DefinicionReporteModel.php
+
+		-
+			message: '#^Method App\\Modules\\Reportes\\Infrastructure\\Persistence\\Models\\EjecucionReporteModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Reportes/Infrastructure/Persistence/Models/EjecucionReporteModel.php
+
+		-
+			message: '#^Method App\\Modules\\Reportes\\Infrastructure\\Persistence\\Models\\EjecucionReporteModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Reportes/Infrastructure/Persistence/Models/EjecucionReporteModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CasoServicioModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/CasoServicioModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CasoServicioModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/CasoServicioModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CompromisoAccionServicioModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/CompromisoAccionServicioModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CompromisoAccionServicioModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/CompromisoAccionServicioModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\EstadoTecnicoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/EstadoTecnicoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\EstadoTecnicoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/EstadoTecnicoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\TipoAccionServicioModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/TipoAccionServicioModel.php
+
+		-
+			message: '#^Method App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\TipoAccionServicioModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Models/TipoAccionServicioModel.php
+
+		-
+			message: '#^Property App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CasoServicioModel\:\:\$fecha_programada \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Repositories/EloquentCasoServicioRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CasoServicioModel\:\:\$fecha_solicitud \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Repositories/EloquentCasoServicioRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Servicio\\Infrastructure\\Persistence\\Models\\CompromisoAccionServicioModel\:\:\$fecha_programada \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Servicio/Infrastructure/Persistence/Repositories/EloquentCompromisoAccionServicioRepository.php
+
+		-
+			message: '#^Call to function is_scalar\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Tenancy/Domain/ConfiguracionProyecto/AvanceConfiguracion.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Modules/Tenancy/Domain/ConfiguracionProyecto/AvanceConfiguracion.php
+
+		-
+			message: '#^Method App\\Modules\\Tenancy\\Infrastructure\\Http\\Livewire\\ConfiguradorPasos\\CatalogosTipo\\CatalogoCategoriasTicket\:\:getCategoriasDisponiblesProperty\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Http/Livewire/ConfiguradorPasos/CatalogosTipo/CatalogoCategoriasTicket.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between App\\Modules\\Tenancy\\Domain\\ValueObjects\\TipoOperacion\:\:COBRANZA\|App\\Modules\\Tenancy\\Domain\\ValueObjects\\TipoOperacion\:\:CX\|App\\Modules\\Tenancy\\Domain\\ValueObjects\\TipoOperacion\:\:SERVICIO\|App\\Modules\\Tenancy\\Domain\\ValueObjects\\TipoOperacion\:\:VENTA and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Http/Livewire/ConfiguradorPasos/PasoResumen.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Tenancy\\Infrastructure\\Http\\Livewire\\ConfiguradorProyecto\:\:\$avance\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Tenancy/Infrastructure/Http/Livewire/ConfiguradorProyecto.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Tenancy\\Infrastructure\\Http\\Livewire\\ConfiguradorProyecto\:\:\$pasosVisibles\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Http/Livewire/ConfiguradorProyecto.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Http/Livewire/SelectorProyecto.php
+
+		-
+			message: '#^Method App\\Modules\\Tenancy\\Infrastructure\\Http\\Livewire\\SelectorProyecto\:\:mount\(\) never returns Illuminate\\Routing\\Redirector so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Http/Livewire/SelectorProyecto.php
+
+		-
+			message: '#^Property App\\Modules\\Tenancy\\Infrastructure\\Persistence\\Models\\CarteraModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Persistence/Repositories/EloquentCarteraRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Tenancy\\Infrastructure\\Persistence\\Models\\MandanteModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Persistence/Repositories/EloquentMandanteRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Tenancy\\Infrastructure\\Persistence\\Models\\ProyectoModel\:\:\$creada_en \(Carbon\\CarbonImmutable\) does not accept DateTimeImmutable\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Persistence/Repositories/EloquentProyectoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Tenancy\\Infrastructure\\Persistence\\Models\\ProyectoModel\:\:\$fecha_fin \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Persistence/Repositories/EloquentProyectoRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Tenancy\\Infrastructure\\Persistence\\Models\\ProyectoModel\:\:\$fecha_inicio \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Tenancy/Infrastructure/Persistence/Repositories/EloquentProyectoRepository.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Modules/Usuarios/Application/RolesCustom/UseCases/ActualizarRolCustom.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<string\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Modules/Usuarios/Application/RolesCustom/UseCases/CrearRolCustom.php
+
+		-
+			message: '#^Method App\\Modules\\Usuarios\\Infrastructure\\Persistence\\Models\\EquipoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Usuarios/Infrastructure/Persistence/Models/EquipoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Usuarios\\Infrastructure\\Persistence\\Models\\EquipoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Usuarios/Infrastructure/Persistence/Models/EquipoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Usuarios\\Infrastructure\\Persistence\\Models\\PermisoModel\:\:roles\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Usuarios/Infrastructure/Persistence/Models/PermisoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Usuarios\\Infrastructure\\Persistence\\Models\\RolCustomModel\:\:permisos\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Usuarios/Infrastructure/Persistence/Models/RolCustomModel.php
+
+		-
+			message: '#^Method App\\Modules\\Usuarios\\Infrastructure\\Persistence\\Models\\RolModel\:\:permisos\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Usuarios/Infrastructure/Persistence/Models/RolModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\CasoLeadVentaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/CasoLeadVentaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\CasoLeadVentaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/CasoLeadVentaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\CompromisoCierreVentaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/CompromisoCierreVentaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\CompromisoCierreVentaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/CompromisoCierreVentaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\EtapaEmbudoModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/EtapaEmbudoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\EtapaEmbudoModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/EtapaEmbudoModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\ProductoVentaModel\:\:scopeSinScopeProyecto\(\) has parameter \$query with generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/ProductoVentaModel.php
+
+		-
+			message: '#^Method App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\ProductoVentaModel\:\:scopeSinScopeProyecto\(\) return type with generic class Illuminate\\Database\\Eloquent\\Builder does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Models/ProductoVentaModel.php
+
+		-
+			message: '#^Property App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\CasoLeadVentaModel\:\:\$fecha_estimada_cierre \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Repositories/EloquentCasoLeadVentaRepository.php
+
+		-
+			message: '#^Property App\\Modules\\Venta\\Infrastructure\\Persistence\\Models\\CasoLeadVentaModel\:\:\$fecha_primer_contacto \(Carbon\\CarbonImmutable\|null\) does not accept DateTimeImmutable\|null\.$#'
+			identifier: assign.propertyType
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Repositories/EloquentCasoLeadVentaRepository.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>moneda" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Venta/Infrastructure/Persistence/Repositories/EloquentCasoLeadVentaRepository.php
