@@ -62,6 +62,17 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Build assets
+        run: |
+          npm ci
+          npm run build
+
       - name: Run Pint (lint only)
         run: ./vendor/bin/pint --test
 
@@ -76,17 +87,6 @@ jobs:
 
       - name: Run tests
         run: php artisan test
-
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-
-      - name: Build assets
-        run: |
-          npm ci
-          npm run build
 
   deploy:
     name: Deploy to VPS
