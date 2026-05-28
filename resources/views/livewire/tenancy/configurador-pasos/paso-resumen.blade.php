@@ -5,7 +5,7 @@
     <div class="card card-pad" style="padding:20px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
             <div>
-                <div class="label-xs" style="margin-bottom:4px;">Resumen de configuración</div>
+                <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.resumen.titulo') }}</div>
                 <div style="font-size:18px;font-weight:600;color:var(--text);">{{ $proyecto->nombre }}</div>
                 <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
                     <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $proyecto->codigo }}</span>
@@ -15,16 +15,16 @@
             </div>
             <div style="text-align:right;">
                 @if($estaCompleto)
-                    <span class="badge badge-success" style="padding:6px 12px;font-size:12px;">Configuración completa</span>
+                    <span class="badge badge-success" style="padding:6px 12px;font-size:12px;">{{ __('configurador.resumen.configuracion_completa') }}</span>
                 @else
-                    <span class="badge badge-warning" style="padding:6px 12px;font-size:12px;">{{ count($pasosPendientes) }} paso(s) pendiente(s)</span>
+                    <span class="badge badge-warning" style="padding:6px 12px;font-size:12px;">{{ __('configurador.resumen.pasos_pendientes', ['n' => count($pasosPendientes)]) }}</span>
                 @endif
             </div>
         </div>
     </div>
 
     <div class="card card-pad" style="padding:18px;margin-bottom:14px;">
-        <div class="label-xs" style="margin-bottom:12px;">Pasos del wizard</div>
+        <div class="label-xs" style="margin-bottom:12px;">{{ __('configurador.resumen.pasos_wizard') }}</div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
             @foreach($pasos as $paso)
                 @php
@@ -49,11 +49,11 @@
                     </span>
                     <span style="flex:1;font-size:13px;color:var(--text);">{{ $etiquetasPasos[$codigo] }}</span>
                     @if($opcional)
-                        <span style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;">Opcional</span>
+                        <span style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;">{{ __('configurador.opcional') }}</span>
                     @endif
                     @if(! $esResumen && $codigo !== 'datos_proyecto' && $conteo !== null)
                         <span style="font-size:12px;color:var(--text-secondary);">
-                            {{ $conteo }} {{ $conteo === 1 ? 'registro' : 'registros' }}
+                            {{ $conteo }} {{ $conteo === 1 ? __('configurador.resumen.registro') : __('configurador.resumen.registros') }}
                         </span>
                     @endif
                 </li>
@@ -63,7 +63,7 @@
 
     @if(count($catalogosTipo) > 0)
         <div class="card card-pad" style="padding:18px;margin-bottom:14px;">
-            <div class="label-xs" style="margin-bottom:12px;">Catálogos del tipo {{ $proyecto->tipo_operacion }}</div>
+            <div class="label-xs" style="margin-bottom:12px;">{{ __('configurador.resumen.catalogos_tipo', ['tipo' => $proyecto->tipo_operacion]) }}</div>
             <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
                 @foreach($catalogosTipo as $cat)
                     <li style="display:flex;align-items:center;gap:10px;padding:6px 10px;">
@@ -74,7 +74,7 @@
                         "></span>
                         <span style="flex:1;font-size:13px;color:var(--text);">{{ $cat['etiqueta'] }}</span>
                         <span style="font-size:12px;color:var(--text-secondary);">
-                            {{ $cat['conteo'] }} {{ $cat['conteo'] === 1 ? 'registro' : 'registros' }}
+                            {{ $cat['conteo'] }} {{ $cat['conteo'] === 1 ? __('configurador.resumen.registro') : __('configurador.resumen.registros') }}
                         </span>
                     </li>
                 @endforeach
@@ -84,7 +84,7 @@
 
     @if(($conteos['campos_personalizados'] ?? 0) === 0)
         <div class="alert alert-info" style="margin-bottom:14px;font-size:12px;">
-            Sin campos personalizados configurados. Puedes crearlos más adelante desde la configuración.
+            {{ __('configurador.resumen.sin_campos_info') }}
         </div>
     @endif
 
@@ -92,11 +92,11 @@
         <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding-top:14px;margin-top:14px;">
             <button type="button" wire:click="volverAlInicio" class="btn btn-ghost">
                 <x-ui.icon name="arrow-left" :size="13"/>
-                <span>Volver al inicio del wizard</span>
+                <span>{{ __('configurador.resumen.volver_inicio') }}</span>
             </button>
             <button type="button" wire:click="finalizar" class="btn btn-primary"
-                    @if(! $estaCompleto) disabled title="Faltan: {{ implode(', ', $pasosPendientes) }}" @endif>
-                <span>Marcar proyecto como configurado</span>
+                    @if(! $estaCompleto) disabled title="{{ __('configurador.resumen.faltan', ['pasos' => implode(', ', $pasosPendientes)]) }}" @endif>
+                <span>{{ __('configurador.resumen.marcar_configurado') }}</span>
                 <x-ui.icon name="check" :size="13"/>
             </button>
         </div>

@@ -6,7 +6,7 @@
     @endif
 
     @if($entidad === null)
-        <div class="p-6 text-sm text-ink-500 text-center">Entidad no encontrada.</div>
+        <div class="p-6 text-sm text-ink-500 text-center">{{ __('entidades.entity_not_found') }}</div>
     @else
         <section class="rounded-lg border border-ink-200 bg-white p-4 flex items-center justify-between">
             <div>
@@ -16,7 +16,7 @@
             @if(auth()->user()->tienePermiso('entidades.crear', $proyectoId) && ! $formVisible)
                 <button type="button" wire:click="abrirFormCrear"
                         class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                    Nuevo registro
+                    {{ __('entidades.new_record') }}
                 </button>
             @endif
         </section>
@@ -24,14 +24,14 @@
         @if($formVisible)
             <section class="rounded-lg border border-brand-200 bg-brand-50 p-4">
                 <h4 class="text-sm font-semibold text-brand-900 mb-3">
-                    {{ $registroEditandoId === null ? 'Crear registro' : 'Editar registro' }}
+                    {{ $registroEditandoId === null ? __('entidades.new_record') : __('entidades.edit_record') }}
                 </h4>
                 <form wire:submit.prevent="guardar" class="space-y-3 text-sm">
                     <div>
-                        <label class="block text-xs font-medium text-ink-700">Título</label>
+                        <label class="block text-xs font-medium text-ink-700">{{ __('entidades.label_title') }}</label>
                         <input type="text" wire:model="titulo"
                                class="mt-1 block w-full border-ink-300 rounded-md text-sm"
-                               placeholder="Identificador visible"/>
+                               :placeholder="__('entidades.label_title_placeholder')"/>
                         @error('titulo')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                     </div>
 
@@ -66,7 +66,7 @@
                                     <label class="mt-1 flex items-center gap-2 text-sm">
                                         <input type="checkbox" wire:model="valores.{{ $codigo }}"
                                                class="rounded border-ink-300"/>
-                                        <span>Sí</span>
+                                        <span>{{ __('entidades.si') }}</span>
                                     </label>
                                     @break
                                 @default
@@ -78,9 +78,9 @@
 
                     <div class="flex items-center justify-end gap-2">
                         <button type="button" wire:click="cerrarForm"
-                                class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">Cancelar</button>
+                                class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">{{ __('common.cancel') }}</button>
                         <button type="submit"
-                                class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">Guardar</button>
+                                class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('common.save') }}</button>
                     </div>
                 </form>
             </section>
@@ -88,17 +88,17 @@
 
         <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
             <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-                Registros ({{ $registros->count() }})
+                {{ __('entidades.records_count', ['count' => $registros->count()]) }}
             </div>
             @if($registros->isEmpty())
-                <div class="p-6 text-sm text-ink-500 text-center">Aún no hay registros para esta entidad.</div>
+                <div class="p-6 text-sm text-ink-500 text-center">{{ __('entidades.no_records') }}</div>
             @else
                 <table class="min-w-full divide-y divide-ink-200 text-sm">
                     <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                         <tr>
-                            <th class="px-3 py-2 text-left">Título</th>
-                            <th class="px-3 py-2 text-left">Creado</th>
-                            <th class="px-3 py-2 text-right">Acciones</th>
+                            <th class="px-3 py-2 text-left">{{ __('entidades.col_title') }}</th>
+                            <th class="px-3 py-2 text-left">{{ __('entidades.col_created') }}</th>
+                            <th class="px-3 py-2 text-right">{{ __('entidades.col_actions') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-ink-100">
@@ -111,12 +111,12 @@
                                 <td class="px-3 py-2 text-right text-xs space-x-2">
                                     @if(auth()->user()->tienePermiso('entidades.editar', $proyectoId))
                                         <button type="button" wire:click="abrirFormEditar({{ $r->id }})"
-                                                class="text-ink-700 hover:underline">Editar</button>
+                                                class="text-ink-700 hover:underline">{{ __('common.edit') }}</button>
                                     @endif
                                     @if(auth()->user()->tienePermiso('entidades.eliminar', $proyectoId))
                                         <button type="button" wire:click="eliminar({{ $r->id }})"
-                                                wire:confirm="¿Eliminar este registro?"
-                                                class="text-danger-600 hover:underline">Eliminar</button>
+                                                wire:confirm="{{ __('entidades.confirm_delete_record') }}"
+                                                class="text-danger-600 hover:underline">{{ __('common.delete') }}</button>
                                     @endif
                                 </td>
                             </tr>

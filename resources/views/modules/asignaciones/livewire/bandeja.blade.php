@@ -14,10 +14,10 @@
         <div class="flex flex-wrap items-center gap-2">
             @php
                 $chips = [
-                    'todos'      => ['label' => 'Todas',      'count' => $totalGeneral],
-                    'pendiente'  => ['label' => 'Pendientes', 'count' => (int) ($conteoPorEstado['pendiente']  ?? 0)],
-                    'en_trabajo' => ['label' => 'En trabajo', 'count' => (int) ($conteoPorEstado['en_trabajo'] ?? 0)],
-                    'cerrada'    => ['label' => 'Cerradas',   'count' => (int) ($conteoPorEstado['cerrada']    ?? 0)],
+                    'todos'      => ['label' => __('asignaciones.filter_all'),         'count' => $totalGeneral],
+                    'pendiente'  => ['label' => __('asignaciones.filter_pending'),      'count' => (int) ($conteoPorEstado['pendiente']  ?? 0)],
+                    'en_trabajo' => ['label' => __('asignaciones.filter_in_progress'),  'count' => (int) ($conteoPorEstado['en_trabajo'] ?? 0)],
+                    'cerrada'    => ['label' => __('asignaciones.filter_closed'),        'count' => (int) ($conteoPorEstado['cerrada']    ?? 0)],
                 ];
             @endphp
             @foreach($chips as $valor => $chip)
@@ -43,7 +43,7 @@
                 </span>
                 <input type="text"
                        wire:model.live.debounce.300ms="busqueda"
-                       placeholder="Buscar identificación o nombre..."
+                       placeholder="{{ __('asignaciones.search_placeholder') }}"
                        class="w-full rounded-lg border-surface-border pl-9 text-sm focus:border-brand-500 focus:ring-brand-500">
             </div>
         </div>
@@ -51,18 +51,18 @@
 
     @if($asignaciones->isEmpty())
         <x-ui.empty-state
-            title="Sin asignaciones"
-            message="No hay asignaciones que coincidan con los filtros actuales." />
+            :title="__('asignaciones.empty_title')"
+            :message="__('asignaciones.empty_message')" />
     @else
         <x-ui.table>
             <x-slot name="head">
-                <x-ui.th>Prio</x-ui.th>
-                <x-ui.th>Persona</x-ui.th>
-                <x-ui.th>Cartera</x-ui.th>
-                <x-ui.th>Tipo</x-ui.th>
-                <x-ui.th>Estado caso</x-ui.th>
-                <x-ui.th>Última gestión</x-ui.th>
-                <x-ui.th>Asignación</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_priority') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_person') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_portfolio') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_type') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_case_status') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_last_management') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_assignment') }}</x-ui.th>
                 <x-ui.th align="right">&nbsp;</x-ui.th>
             </x-slot>
 
@@ -108,7 +108,7 @@
                         <div class="text-xs text-ink-800">{{ $a->estado_caso_nombre }}</div>
                         @if($a->tiene_compromiso_vigente)
                             <div class="mt-0.5">
-                                <x-ui.badge tone="success" size="sm">Compromiso vigente</x-ui.badge>
+                                <x-ui.badge tone="success" size="sm">{{ __('asignaciones.active_commitment') }}</x-ui.badge>
                             </div>
                         @endif
                     </x-ui.td>
@@ -117,7 +117,7 @@
                             <div class="text-xs text-ink-800">{{ $a->resultado_ultimo ?? '—' }}</div>
                             <div class="text-xs text-ink-500">{{ \Illuminate\Support\Carbon::parse($a->fecha_ultima_gestion)->diffForHumans() }}</div>
                         @else
-                            <span class="text-xs text-ink-400">sin gestiones</span>
+                            <span class="text-xs text-ink-400">{{ __('asignaciones.no_managements') }}</span>
                         @endif
                     </x-ui.td>
                     <x-ui.td>
@@ -132,15 +132,15 @@
                                 size="sm"
                                 :href="route('proyectos.trabajo', ['proyecto_id' => $proyectoActivo->id, 'persona' => $a->persona_public_id, 'caso' => $a->caso_public_id])"
                                 wire:navigate>
-                                Trabajar
+                                {{ __('asignaciones.btn_work') }}
                             </x-ui.button>
                             @if($a->estado !== 'cerrada')
                                 <x-ui.button
                                     variant="secondary"
                                     size="sm"
                                     wire:click="cerrarAsignacion({{ $a->id }})"
-                                    wire:confirm="¿Cerrar esta asignación? La acción es reversible solo reabriéndola manualmente.">
-                                    Cerrar
+                                    wire:confirm="{{ __('asignaciones.confirm_close') }}">
+                                    {{ __('asignaciones.btn_close') }}
                                 </x-ui.button>
                             @endif
                         </div>

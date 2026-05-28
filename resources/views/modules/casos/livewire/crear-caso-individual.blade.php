@@ -1,18 +1,15 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Nuevo caso</h1>
+            <h1 class="page-title">{{ __('casos.title_create') }}</h1>
             <div class="page-subtitle">
-                Tipo de proyecto: <strong>{{ ucfirst(str_replace('_', ' ', $tipoOperacion)) }}</strong>
+                {{ __('casos.subtitle_type', ['tipo' => ucfirst(str_replace('_', ' ', $tipoOperacion))]) }}
                 @if($persona)
-                    · Persona:
-                    <strong>
-                        @if($persona->tipo_persona === 'juridica')
-                            {{ $persona->razon_social }}
-                        @else
-                            {{ trim(($persona->nombres ?? '').' '.($persona->apellidos ?? '')) }}
-                        @endif
-                    </strong>
+                    · {{ __('casos.subtitle_person', [
+                        'nombre' => $persona->tipo_persona === 'juridica'
+                            ? $persona->razon_social
+                            : trim(($persona->nombres ?? '').' '.($persona->apellidos ?? ''))
+                    ]) }}
                     · <span class="font-mono">{{ $persona->identificacion }}</span>
                 @endif
             </div>
@@ -22,8 +19,7 @@
     @if($persona === null)
         <div class="card card-pad">
             <div class="alert alert-warning">
-                Selecciona una persona desde el listado para crear un caso. La pantalla
-                espera <code>?persona={ulid}</code>.
+                {!! __('casos.no_person_alert') !!}
             </div>
         </div>
     @else
@@ -32,9 +28,9 @@
         <div class="card card-pad" style="max-width:920px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                 <div>
-                    <label class="field-label">Cartera</label>
+                    <label class="field-label">{{ __('casos.field_wallet') }}</label>
                     <select wire:model.live="carteraId" class="input @error('carteraId') input-error @enderror">
-                        <option value="">— Selecciona —</option>
+                        <option value="">{{ __('casos.select_wallet') }}</option>
                         @foreach($carteras as $c)
                             <option value="{{ $c->id }}">{{ $c->nombre }}</option>
                         @endforeach
@@ -47,7 +43,7 @@
                     @error('idUnico')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
-                    <label class="field-label">Prioridad (0–9)</label>
+                    <label class="field-label">{{ __('casos.field_priority') }}</label>
                     <input type="number" min="0" max="9" wire:model="prioridad" class="input"/>
                 </div>
             </div>
@@ -55,10 +51,10 @@
             @if($carteraId !== '')
                 <hr style="margin:20px 0;border:0;border-top:1px solid var(--border);">
                 <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">
-                    Información adicional del caso
+                    {{ __('casos.additional_info') }}
                     @if($camposPersonalizados->isEmpty())
                         <span style="font-weight:400;color:var(--text-tertiary);font-size:11px;">
-                            (sin campos definidos por el administrador para esta cartera)
+                            {{ __('casos.no_custom_fields') }}
                         </span>
                     @endif
                 </h3>
@@ -100,7 +96,7 @@
                                     @case('booleano')
                                         <label style="display:flex;align-items:center;gap:6px;">
                                             <input type="checkbox" wire:model="valoresCp.{{ $key }}"/>
-                                            <span style="font-size:12px;">Sí</span>
+                                            <span style="font-size:12px;">{{ __('casos.yes') }}</span>
                                         </label>
                                         @break
                                     @default
@@ -117,9 +113,9 @@
 
             <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
                 <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId]) }}"
-                   wire:navigate class="btn btn-ghost">Cancelar</a>
+                   wire:navigate class="btn btn-ghost">{{ __('common.cancel') }}</a>
                 <button type="button" wire:click="guardar" class="btn btn-primary">
-                    Crear caso
+                    {{ __('casos.create_case') }}
                 </button>
             </div>
         </div>

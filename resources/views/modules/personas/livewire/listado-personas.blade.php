@@ -1,15 +1,15 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Personas del proyecto</h1>
-            <div class="page-subtitle">{{ $totalProyecto }} registradas</div>
+            <h1 class="page-title">{{ __('personas.title_list') }}</h1>
+            <div class="page-subtitle">{{ __('personas.subtitle_registered', ['count' => $totalProyecto]) }}</div>
         </div>
         <div style="display:flex;gap:8px;">
             @can('personas.crear', app('tenancy.proyecto_activo')->id)
                 <a href="{{ route('proyectos.personas.crear', ['proyecto_id' => app('tenancy.proyecto_activo')->id]) }}"
                    wire:navigate class="btn btn-primary">
                     <x-ui.icon name="plus" :size="14" />
-                    Nueva persona
+                    {{ __('personas.new_person') }}
                 </a>
             @endcan
         </div>
@@ -22,29 +22,29 @@
                     <x-ui.icon name="search" :size="13" />
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="Buscar por identificación, nombre o razón…" style="padding-left:28px;"/>
+                       class="input" placeholder="{{ __('personas.search_placeholder') }}" style="padding-left:28px;"/>
             </div>
             <select wire:model.live="tipoPersona" class="input" style="width:160px;">
-                <option value="">Todos los tipos</option>
-                <option value="fisica">Física</option>
-                <option value="juridica">Jurídica</option>
+                <option value="">{{ __('personas.all_types') }}</option>
+                <option value="fisica">{{ __('personas.type_physical') }}</option>
+                <option value="juridica">{{ __('personas.type_legal') }}</option>
             </select>
             @if($busqueda !== '' || $tipoPersona !== '')
-                <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">Limpiar</button>
+                <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('personas.clear_filters') }}</button>
             @endif
             <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ $personas->total() }} resultados</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('personas.results', ['count' => $personas->total()]) }}</span>
         </div>
 
         @if($personas->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="user" :size="32" /></div>
-                <div class="empty-title">Sin personas</div>
+                <div class="empty-title">{{ __('personas.empty_title') }}</div>
                 <div class="empty-desc">
                     @if($busqueda !== '' || $tipoPersona !== '')
-                        No hay personas que coincidan con los filtros.
+                        {{ __('personas.empty_with_filters') }}
                     @else
-                        Aún no hay personas registradas en este proyecto.
+                        {{ __('personas.empty_no_filters') }}
                     @endif
                 </div>
             </div>
@@ -52,11 +52,11 @@
             <table class="table table-compact table-clickable">
                 <thead>
                     <tr>
-                        <th style="width:80px;">Tipo</th>
-                        <th style="width:170px;">Identificación</th>
-                        <th>Nombre / Razón social</th>
-                        <th class="num" style="width:80px;">Casos</th>
-                        <th style="width:130px;">Creada</th>
+                        <th style="width:80px;">{{ __('personas.col_type') }}</th>
+                        <th style="width:170px;">{{ __('personas.col_id_doc') }}</th>
+                        <th>{{ __('personas.col_name') }}</th>
+                        <th class="num" style="width:80px;">{{ __('personas.col_cases') }}</th>
+                        <th style="width:130px;">{{ __('personas.col_created') }}</th>
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>

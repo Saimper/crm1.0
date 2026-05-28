@@ -7,38 +7,37 @@
 
     <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
         <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">Importar personas</h3>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('importaciones.import_personas_title') }}</h3>
             <p class="text-xs text-ink-500 mt-1">
-                Columnas esperadas: <code>tipo_persona, tipo_identificacion_codigo, identificacion, nombres, apellidos, razon_social, fecha_nacimiento</code>.
+                {{ __('importaciones.import_personas_subtitle') }}
             </p>
         </div>
 
         @if($importacionId === null)
             <form wire:submit.prevent="guardarArchivo" class="space-y-3">
                 <div>
-                    <label class="block text-xs font-medium text-ink-700">Archivo CSV</label>
+                    <label class="block text-xs font-medium text-ink-700">{{ __('importaciones.csv_file_label') }}</label>
                     <input type="file" wire:model="archivo" accept=".csv,text/csv"
                            class="mt-1 block w-full text-sm text-ink-700"/>
                     @error('archivo')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-ink-700 mb-1">Modo de importación</label>
+                    <label class="block text-xs font-medium text-ink-700 mb-1">{{ __('importaciones.import_mode_label') }}</label>
                     <select wire:model="modo" class="mt-1 block w-full text-sm border-ink-300 rounded-md">
-                        <option value="merge">merge — rellena solo campos vacíos en registros existentes</option>
-                        <option value="skip_duplicados">skip_duplicados — ignora existentes (continúa el batch)</option>
-                        <option value="overwrite">overwrite — pisa todos los campos en registros existentes</option>
+                        <option value="merge">{{ __('importaciones.mode_merge_personas') }}</option>
+                        <option value="skip_duplicados">{{ __('importaciones.mode_skip_personas') }}</option>
+                        <option value="overwrite">{{ __('importaciones.mode_overwrite_personas') }}</option>
                     </select>
                     <p class="text-[11px] text-ink-500 mt-1">
-                        Aplica cuando una persona ya existe en el proyecto (mismo tipo + identificación).
-                        Para nuevas personas, los tres modos insertan igual.
+                        {{ __('importaciones.mode_hint') }}
                     </p>
                 </div>
 
                 <div>
                     <button type="submit"
                             class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700">
-                        Subir y validar
+                        {{ __('importaciones.upload_and_validate') }}
                     </button>
                 </div>
             </form>
@@ -48,27 +47,27 @@
             <div class="space-y-3">
                 <div class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-sm">
                     <div class="rounded border border-ink-200 p-3">
-                        <div class="text-[10px] uppercase text-ink-500">Archivo</div>
+                        <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.col_file') }}</div>
                         <div class="mt-1 font-medium text-ink-900 truncate">{{ $importacionActual->nombre_archivo ?? '—' }}</div>
                     </div>
                     <div class="rounded border border-ink-200 p-3">
-                        <div class="text-[10px] uppercase text-ink-500">Total</div>
+                        <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_total') }}</div>
                         <div class="mt-1 font-semibold text-ink-900">{{ $progreso?->totalFilas ?? 0 }}</div>
                     </div>
                     <div class="rounded border border-success-200 bg-success-50 p-3">
-                        <div class="text-[10px] uppercase text-success-700">Procesadas</div>
+                        <div class="text-[10px] uppercase text-success-700">{{ __('importaciones.label_processed') }}</div>
                         <div class="mt-1 font-semibold text-success-700">{{ $progreso?->procesadas ?? 0 }}</div>
                     </div>
                     <div class="rounded border border-brand-200 bg-brand-50 p-3">
-                        <div class="text-[10px] uppercase text-brand-700">Válidas</div>
+                        <div class="text-[10px] uppercase text-brand-700">{{ __('importaciones.label_valid') }}</div>
                         <div class="mt-1 font-semibold text-brand-900">{{ $progreso?->validas ?? 0 }}</div>
                     </div>
                     <div class="rounded border border-warning-200 bg-warning-50 p-3">
-                        <div class="text-[10px] uppercase text-warning-700">Duplicadas</div>
+                        <div class="text-[10px] uppercase text-warning-700">{{ __('importaciones.label_duplicated') }}</div>
                         <div class="mt-1 font-semibold text-warning-700">{{ $progreso?->duplicadas ?? 0 }}</div>
                     </div>
                     <div class="rounded border border-danger-200 bg-danger-50 p-3">
-                        <div class="text-[10px] uppercase text-danger-700">Inválidas</div>
+                        <div class="text-[10px] uppercase text-danger-700">{{ __('importaciones.label_invalid') }}</div>
                         <div class="mt-1 font-semibold text-danger-700">{{ $progreso?->invalidas ?? 0 }}</div>
                     </div>
                 </div>
@@ -76,38 +75,38 @@
                 @if($progreso !== null)
                     <div class="space-y-1">
                         <div class="flex items-center justify-between text-xs text-ink-700">
-                            <span>Estado: <code>{{ $estadoActual }}</code> · Modo: <code>{{ $progreso->modo->value }}</code></span>
+                            <span>{{ __('importaciones.label_status') }}: <code>{{ $estadoActual }}</code> · {{ __('importaciones.label_mode') }}: <code>{{ $progreso->modo->value }}</code></span>
                             <span class="font-mono">{{ $progreso->porcentaje() }}%</span>
                         </div>
                         <div class="w-full bg-ink-200 rounded h-2 overflow-hidden">
                             <div class="bg-brand-600 h-2 transition-all duration-500" style="width: {{ $progreso->porcentaje() }}%"></div>
                         </div>
                         @if($progreso->errorGlobal)
-                            <div class="text-xs text-danger-700 mt-1">Error: {{ $progreso->errorGlobal }}</div>
+                            <div class="text-xs text-danger-700 mt-1">{{ __('importaciones.error_prefix', ['message' => $progreso->errorGlobal]) }}</div>
                         @endif
                     </div>
                 @endif
 
                 @if($estadoActual === 'preparada')
                     <div>
-                        <label class="block text-xs font-medium text-ink-700 mb-1">Cambiar modo antes de procesar</label>
+                        <label class="block text-xs font-medium text-ink-700 mb-1">{{ __('importaciones.change_mode_label') }}</label>
                         <select wire:model="modo" class="block w-full text-sm border-ink-300 rounded-md">
-                            <option value="merge">merge — rellena solo campos vacíos</option>
-                            <option value="skip_duplicados">skip_duplicados — ignora existentes</option>
-                            <option value="overwrite">overwrite — pisa todos los campos</option>
+                            <option value="merge">{{ __('importaciones.mode_merge_short') }}</option>
+                            <option value="skip_duplicados">{{ __('importaciones.mode_skip_short') }}</option>
+                            <option value="overwrite">{{ __('importaciones.mode_overwrite_short') }}</option>
                         </select>
                     </div>
                 @endif
 
                 <div class="flex items-center gap-2">
-                    <label class="text-xs text-ink-600">Filtrar filas:</label>
+                    <label class="text-xs text-ink-600">{{ __('importaciones.filter_rows_label') }}</label>
                     <select wire:model.live="filtroFilas" class="text-xs border-ink-300 rounded">
-                        <option value="todas">Todas</option>
-                        <option value="pendiente">Pendientes</option>
-                        <option value="procesada">Procesadas</option>
-                        <option value="duplicada">Duplicadas</option>
-                        <option value="invalida">Inválidas</option>
-                        <option value="omitida">Omitidas</option>
+                        <option value="todas">{{ __('importaciones.filter_all') }}</option>
+                        <option value="pendiente">{{ __('importaciones.filter_pending') }}</option>
+                        <option value="procesada">{{ __('importaciones.filter_processed') }}</option>
+                        <option value="duplicada">{{ __('importaciones.filter_duplicated') }}</option>
+                        <option value="invalida">{{ __('importaciones.filter_invalid') }}</option>
+                        <option value="omitida">{{ __('importaciones.filter_omitted') }}</option>
                     </select>
                 </div>
 
@@ -115,12 +114,12 @@
                     <table class="min-w-full divide-y divide-ink-200 text-xs">
                         <thead class="bg-ink-50 uppercase tracking-wider text-ink-600 sticky top-0">
                             <tr>
-                                <th class="px-2 py-2 text-left">#</th>
-                                <th class="px-2 py-2 text-left">Estado</th>
-                                <th class="px-2 py-2 text-left">Identificación</th>
-                                <th class="px-2 py-2 text-left">Nombre / Razón</th>
-                                <th class="px-2 py-2 text-left">Detalle</th>
-                                <th class="px-2 py-2 text-left">Acción</th>
+                                <th class="px-2 py-2 text-left">{{ __('importaciones.col_row_num') }}</th>
+                                <th class="px-2 py-2 text-left">{{ __('importaciones.col_row_status') }}</th>
+                                <th class="px-2 py-2 text-left">{{ __('importaciones.col_identification') }}</th>
+                                <th class="px-2 py-2 text-left">{{ __('importaciones.col_name_razon') }}</th>
+                                <th class="px-2 py-2 text-left">{{ __('importaciones.col_detail') }}</th>
+                                <th class="px-2 py-2 text-left">{{ __('importaciones.col_row_action') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-ink-100">
@@ -154,7 +153,7 @@
                                     <td class="px-2 py-1">
                                         @if($personaPublicId !== null)
                                             <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId]) }}"
-                                               wire:navigate class="text-brand-600 hover:underline">Ver</a>
+                                               wire:navigate class="text-brand-600 hover:underline">{{ __('importaciones.link_view') }}</a>
                                         @endif
                                     </td>
                                 </tr>
@@ -167,23 +166,23 @@
                     @if($estadoActual === 'preparada')
                         <button type="button" wire:click="cerrar"
                                 class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
-                            Descartar
+                            {{ __('importaciones.btn_discard') }}
                         </button>
                         <button type="button" wire:click="confirmar"
-                                wire:confirm="¿Confirmar importación con modo {{ $modo }}? El proceso correrá en segundo plano."
+                                wire:confirm="{{ __('importaciones.confirm_process', ['mode' => $modo]) }}"
                                 class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                            Procesar en segundo plano
+                            {{ __('importaciones.btn_process_background') }}
                         </button>
                     @elseif($estadoActual === 'procesando')
                         <button type="button" wire:click="cancelar"
-                                wire:confirm="¿Cancelar la importación en curso?"
+                                wire:confirm="{{ __('importaciones.confirm_cancel') }}"
                                 class="px-3 py-1.5 text-xs text-white bg-danger-600 rounded hover:bg-danger-700">
-                            Cancelar importación
+                            {{ __('importaciones.btn_cancel_active') }}
                         </button>
                     @elseif(in_array($estadoActual, ['completada', 'fallida', 'cancelada']))
                         <button type="button" wire:click="cerrar"
                                 class="px-3 py-1.5 text-xs text-white bg-success-600 rounded hover:bg-success-700">
-                            Cerrar
+                            {{ __('importaciones.btn_close') }}
                         </button>
                     @endif
                 </div>
@@ -193,23 +192,23 @@
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            Historial de importaciones ({{ $historial->count() }})
+            {{ __('importaciones.history_title', ['count' => $historial->count()]) }}
         </div>
         @if($historial->isEmpty())
-            <div class="p-6 text-sm text-ink-500 text-center">Aún no hay importaciones en este proyecto.</div>
+            <div class="p-6 text-sm text-ink-500 text-center">{{ __('importaciones.history_empty') }}</div>
         @else
             <table class="min-w-full divide-y divide-ink-200 text-sm">
                 <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">Fecha</th>
-                        <th class="px-3 py-2 text-left">Archivo</th>
-                        <th class="px-3 py-2 text-left">Modo</th>
-                        <th class="px-3 py-2 text-left">Usuario</th>
-                        <th class="px-3 py-2 text-right">Total</th>
-                        <th class="px-3 py-2 text-right">Procesadas</th>
-                        <th class="px-3 py-2 text-right">Duplicadas</th>
-                        <th class="px-3 py-2 text-right">Inválidas</th>
-                        <th class="px-3 py-2 text-left">Estado</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_date') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_file') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_mode') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_user') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_total') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_processed') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_duplicated') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_invalid') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_status') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-100">
@@ -232,17 +231,17 @@
     </section>
 
     <section class="rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
-        <div class="text-sm font-semibold text-brand-900">Exportaciones CSV del proyecto</div>
+        <div class="text-sm font-semibold text-brand-900">{{ __('importaciones.exports_title') }}</div>
         @php $pid = app('tenancy.proyecto_activo')->id; @endphp
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
             <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Personas</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_personas') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Casos</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_casos') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Gestiones</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_gestiones') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Compromisos</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_compromisos') }}</a>
         </div>
     </section>
 </div>

@@ -8,7 +8,7 @@
             x-on:click="open = true; $nextTick(() => $refs.searchInput?.focus())"
             class="search-global">
         <x-ui.icon name="search" :size="14" />
-        <span style="flex:1;text-align:left;">Buscar persona, caso, gestión…</span>
+        <span style="flex:1;text-align:left;">{{ __('personas.search_global_button') }}</span>
         <span class="kbd">Ctrl</span>
         <span class="kbd">K</span>
     </button>
@@ -21,29 +21,28 @@
                 <input x-ref="searchInput"
                        type="text"
                        wire:model.live.debounce.300ms="query"
-                       placeholder="Buscar identificación o nombre de persona en el proyecto activo..."
+                       placeholder="{{ __('personas.search_global_ph') }}"
                        style="flex:1;border:0;outline:none;background:transparent;font-size:14px;color:var(--text);">
             </div>
 
             <div style="max-height:420px;overflow-y:auto;">
                 @if($proyectoActivo === null)
                     <div class="empty" style="padding:32px 16px;">
-                        <div class="empty-desc">Selecciona un proyecto activo para buscar.</div>
+                        <div class="empty-desc">{{ __('personas.search_select_project') }}</div>
                     </div>
                 @elseif(mb_strlen(trim($query)) < 3)
                     <div class="empty" style="padding:32px 16px;">
                         <div class="empty-desc">
-                            Escribe al menos 3 caracteres para buscar en el proyecto
-                            <strong>{{ $proyectoActivo->nombre }}</strong>.
+                            {{ __('personas.search_min_chars', ['proyecto' => $proyectoActivo->nombre]) }}
                         </div>
                     </div>
                 @elseif($personas->isEmpty() && $casos->isEmpty())
                     <div class="empty" style="padding:32px 16px;">
-                        <div class="empty-desc">Sin resultados en el proyecto activo.</div>
+                        <div class="empty-desc">{{ __('personas.search_no_results') }}</div>
                     </div>
                 @else
                     @if($personas->isNotEmpty())
-                        <div class="label-xs" style="padding:12px 16px 4px;">Personas</div>
+                        <div class="label-xs" style="padding:12px 16px 4px;">{{ __('personas.search_section_persons') }}</div>
                         @foreach($personas as $p)
                             @php
                                 $nombre = $p->tipo_persona === 'juridica'
@@ -65,7 +64,7 @@
                     @endif
 
                     @if($casos->isNotEmpty())
-                        <div class="label-xs" style="padding:12px 16px 4px;">Casos</div>
+                        <div class="label-xs" style="padding:12px 16px 4px;">{{ __('personas.search_section_cases') }}</div>
                         @foreach($casos as $c)
                             @php
                                 $nombre = $c->tipo_persona === 'juridica'
@@ -98,8 +97,8 @@
             </div>
 
             <div style="border-top:1px solid var(--border);background:var(--bg-subtle);padding:8px 16px;font-size:11px;color:var(--text-tertiary);display:flex;align-items:center;justify-content:space-between;">
-                <span>proyecto: <strong style="color:var(--text);">{{ $proyectoActivo?->nombre ?? '—' }}</strong></span>
-                <span><span class="kbd">Esc</span> cerrar</span>
+                <span>{{ __('personas.search_project_label') }} <strong style="color:var(--text);">{{ $proyectoActivo?->nombre ?? '—' }}</strong></span>
+                <span><span class="kbd">Esc</span> {{ __('personas.search_close_hint') }}</span>
             </div>
         </div>
     </div>

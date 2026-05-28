@@ -2,38 +2,38 @@
     <section class="rounded-lg border border-ink-200 bg-white p-4">
         <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
             <div>
-                <label class="block text-xs font-medium text-ink-700">Entidad</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_entity') }}</label>
                 <select wire:model.live="entidadTipo" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
-                    <option value="">Todas</option>
+                    <option value="">{{ __('auditoria.filter_all_entities') }}</option>
                     @foreach($tiposEntidad as $t)
                         <option value="{{ $t }}">{{ $t }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-ink-700">Usuario</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_user') }}</label>
                 <select wire:model.live="usuarioId" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
-                    <option value="">Todos</option>
+                    <option value="">{{ __('auditoria.filter_all_users') }}</option>
                     @foreach($usuarios as $u)
                         <option value="{{ $u->id }}">{{ $u->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-ink-700">Evento</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_event') }}</label>
                 <select wire:model.live="evento" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
-                    <option value="">Todos</option>
-                    <option value="creado">Creado</option>
-                    <option value="actualizado">Actualizado</option>
-                    <option value="eliminado">Eliminado</option>
+                    <option value="">{{ __('auditoria.filter_all_events') }}</option>
+                    <option value="creado">{{ __('auditoria.event_created') }}</option>
+                    <option value="actualizado">{{ __('auditoria.event_updated') }}</option>
+                    <option value="eliminado">{{ __('auditoria.event_deleted') }}</option>
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-ink-700">Desde</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_from') }}</label>
                 <input type="date" wire:model.live="desde" class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
             </div>
             <div>
-                <label class="block text-xs font-medium text-ink-700">Hasta</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_to') }}</label>
                 <input type="date" wire:model.live="hasta" class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
             </div>
         </div>
@@ -51,34 +51,34 @@
                 @php $pid = (int) app('tenancy.proyecto_activo')->id; @endphp
                 <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
                    class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                    Exportar CSV
+                    {{ __('auditoria.btn_export_csv') }}
                 </a>
             @endif
             <button type="button" wire:click="limpiarFiltros"
                     class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
-                Limpiar filtros
+                {{ __('auditoria.btn_clear_filters') }}
             </button>
         </div>
     </section>
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            Eventos ({{ $registros->total() }})
+            {{ __('auditoria.section_events', ['count' => $registros->total()]) }}
         </div>
         @if($registros->isEmpty())
-            <div class="p-6 text-sm text-ink-500 text-center">No hay eventos que coincidan con los filtros.</div>
+            <div class="p-6 text-sm text-ink-500 text-center">{{ __('auditoria.empty_events') }}</div>
         @else
             <table class="min-w-full divide-y divide-ink-200 text-sm">
                 <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">Fecha</th>
-                        @if($modoGlobal)<th class="px-3 py-2 text-left">Proyecto</th>@endif
-                        <th class="px-3 py-2 text-left">Usuario</th>
-                        <th class="px-3 py-2 text-left">Entidad</th>
-                        <th class="px-3 py-2 text-left">ID</th>
-                        <th class="px-3 py-2 text-left">Evento</th>
-                        <th class="px-3 py-2 text-left">IP</th>
-                        <th class="px-3 py-2 text-right">Acciones</th>
+                        <th class="px-3 py-2 text-left">{{ __('auditoria.col_date') }}</th>
+                        @if($modoGlobal)<th class="px-3 py-2 text-left">{{ __('auditoria.col_project') }}</th>@endif
+                        <th class="px-3 py-2 text-left">{{ __('auditoria.col_user') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('auditoria.col_entity') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('auditoria.col_id') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('auditoria.col_event') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('auditoria.col_ip') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('auditoria.col_actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-100">
@@ -98,7 +98,7 @@
                                     @if($r->proyecto_id)
                                         <span class="font-mono text-ink-600">{{ $r->proyecto_codigo }}</span>
                                     @else
-                                        <span class="text-ink-400 italic">global</span>
+                                        <span class="text-ink-400 italic">{{ __('auditoria.tag_global') }}</span>
                                     @endif
                                 </td>
                             @endif
@@ -111,7 +111,7 @@
                             <td class="px-3 py-2 text-xs font-mono text-ink-500">{{ $r->ip ?? '—' }}</td>
                             <td class="px-3 py-2 text-right">
                                 <button type="button" wire:click="verDetalle({{ $r->id }})"
-                                        class="text-xs text-brand-700 hover:underline">Detalle</button>
+                                        class="text-xs text-brand-700 hover:underline">{{ __('auditoria.btn_detail') }}</button>
                             </td>
                         </tr>
                     @endforeach
@@ -127,7 +127,7 @@
                  wire:click.stop>
                 <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
                     <div>
-                        <div class="text-xs text-ink-500">Auditoría #{{ $detalle->id }}</div>
+                        <div class="text-xs text-ink-500">{{ __('auditoria.modal_title', ['id' => $detalle->id]) }}</div>
                         <div class="text-sm font-semibold text-ink-800">
                             {{ $detalle->entidad_tipo }} · id {{ $detalle->entidad_id }} · {{ $detalle->evento }}
                         </div>
@@ -153,13 +153,13 @@
                     @endphp
                     @if(is_array($cambiosArr) && $cambiosArr !== [])
                         <div>
-                            <div class="font-semibold text-ink-700 mb-2">Cambios ({{ count($cambiosArr) }})</div>
+                            <div class="font-semibold text-ink-700 mb-2">{{ __('auditoria.modal_changes', ['count' => count($cambiosArr)]) }}</div>
                             <table class="min-w-full divide-y divide-ink-200 border border-ink-200 rounded">
                                 <thead class="bg-ink-50">
                                     <tr>
-                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-ink-600">Campo</th>
-                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-danger-700">Antes</th>
-                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-success-700">Después</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-ink-600">{{ __('auditoria.col_field') }}</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-danger-700">{{ __('auditoria.col_before') }}</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-success-700">{{ __('auditoria.col_after') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-ink-100">
@@ -175,13 +175,13 @@
                         </div>
                     @elseif(is_array($antesArr) || is_array($despuesArr))
                         <div>
-                            <div class="font-semibold text-ink-700 mb-2">Snapshot</div>
+                            <div class="font-semibold text-ink-700 mb-2">{{ __('auditoria.modal_snapshot') }}</div>
                             <table class="min-w-full divide-y divide-ink-200 border border-ink-200 rounded">
                                 <thead class="bg-ink-50">
                                     <tr>
-                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-ink-600">Campo</th>
-                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-danger-700">Antes</th>
-                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-success-700">Después</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-ink-600">{{ __('auditoria.col_field') }}</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-danger-700">{{ __('auditoria.col_before') }}</th>
+                                        <th class="px-2 py-1.5 text-left text-[10px] uppercase tracking-wider text-success-700">{{ __('auditoria.col_after') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-ink-100">
@@ -202,7 +202,7 @@
                             </table>
                         </div>
                     @else
-                        <div class="text-ink-500 italic">Sin datos de diff registrados.</div>
+                        <div class="text-ink-500 italic">{{ __('auditoria.modal_no_diff') }}</div>
                     @endif
                 </div>
             </div>

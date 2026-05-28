@@ -20,7 +20,7 @@
                             <button type="button"
                                     wire:click="abrirFormCrear({{ $entidad->id }})"
                                     class="btn btn-ghost btn-sm">
-                                + Agregar registro
+                                {{ __('entidades.add_record') }}
                             </button>
                         </div>
                     @endif
@@ -28,11 +28,11 @@
                     @if($formVisible && $entidadActivaId === (int) $entidad->id)
                         <div class="card card-pad" style="margin-bottom:10px;background:var(--bg-subtle);">
                             <h4 style="font-size:12px;font-weight:600;margin-bottom:8px;">
-                                {{ $registroEditandoId === null ? 'Nuevo registro' : 'Editar registro' }}
+                                {{ $registroEditandoId === null ? __('entidades.new_record') : __('entidades.edit_record') }}
                             </h4>
                             <form wire:submit.prevent="guardar" class="space-y-2">
                                 <div>
-                                    <label class="field-label">Título</label>
+                                    <label class="field-label">{{ __('entidades.label_title') }}</label>
                                     <input type="text" wire:model="titulo"
                                            class="input @error('titulo') input-error @enderror"/>
                                     @error('titulo')<div class="field-error">{{ $message }}</div>@enderror
@@ -65,7 +65,7 @@
                                             @case('booleano')
                                                 <label style="display:flex;align-items:center;gap:6px;font-size:13px;">
                                                     <input type="checkbox" wire:model="valores.{{ $codigo }}"/>
-                                                    <span>Sí</span>
+                                                    <span>{{ __('entidades.si') }}</span>
                                                 </label>
                                                 @break
                                             @default
@@ -76,9 +76,9 @@
 
                                 <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
                                     <button type="button" wire:click="cerrarForm" class="btn btn-ghost btn-sm">
-                                        Cancelar
+                                        {{ __('common.cancel') }}
                                     </button>
-                                    <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                                    <button type="submit" class="btn btn-primary btn-sm">{{ __('common.save') }}</button>
                                 </div>
                             </form>
                         </div>
@@ -86,15 +86,15 @@
 
                     @if($registros->isEmpty())
                         <div style="padding:8px;font-size:12px;color:var(--text-tertiary);">
-                            Sin registros · Agrega el primero.
+                            {{ __('entidades.empty_records') }}
                         </div>
                     @else
                         <table class="table table-compact" style="font-size:12px;">
                             <thead>
                                 <tr>
-                                    <th>Título</th>
-                                    <th>Creado</th>
-                                    <th style="text-align:right;">Acciones</th>
+                                    <th>{{ __('entidades.col_title') }}</th>
+                                    <th>{{ __('entidades.col_created') }}</th>
+                                    <th style="text-align:right;">{{ __('entidades.col_actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -108,14 +108,14 @@
                                             @if(auth()->user()->tienePermiso('entidades.editar', $proyectoId))
                                                 <button type="button"
                                                         wire:click="abrirFormEditar({{ $entidad->id }}, {{ $r->id }})"
-                                                        class="btn btn-ghost btn-xs">Editar</button>
+                                                        class="btn btn-ghost btn-xs">{{ __('common.edit') }}</button>
                                             @endif
                                             @if(auth()->user()->tienePermiso('entidades.eliminar', $proyectoId))
                                                 <button type="button"
                                                         wire:click="eliminar({{ $r->id }})"
-                                                        wire:confirm="¿Eliminar este registro?"
+                                                        wire:confirm="{{ __('entidades.confirm_delete_record') }}"
                                                         class="btn btn-ghost btn-xs"
-                                                        style="color:var(--danger);">Eliminar</button>
+                                                        style="color:var(--danger);">{{ __('common.delete') }}</button>
                                             @endif
                                         </td>
                                     </tr>

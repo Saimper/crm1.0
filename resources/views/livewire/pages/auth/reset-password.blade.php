@@ -70,27 +70,27 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Restablecer contraseña</h1>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Define una nueva contraseña.</p>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">{{ __('auth.reset_title') }}</h1>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">{{ __('auth.reset_subtitle') }}</p>
 
     <form wire:submit="resetPassword" style="display:flex;flex-direction:column;gap:14px;">
-        <x-ui.form-field label="Email" :error="$errors->first('email')">
+        <x-ui.form-field :label="__('common.email')" :error="$errors->first('email')">
             <input wire:model="email" id="email" type="email" name="email" required autofocus
                    autocomplete="username" class="input">
         </x-ui.form-field>
 
-        <x-ui.form-field label="Contraseña" :error="$errors->first('password')">
+        <x-ui.form-field :label="__('common.password')" :error="$errors->first('password')">
             <input wire:model="password" id="password" type="password" name="password" required
                    autocomplete="new-password" class="input">
         </x-ui.form-field>
 
-        <x-ui.form-field label="Confirmar contraseña" :error="$errors->first('password_confirmation')">
+        <x-ui.form-field :label="__('common.password_confirm')" :error="$errors->first('password_confirmation')">
             <input wire:model="password_confirmation" id="password_confirmation" type="password"
                    name="password_confirmation" required autocomplete="new-password" class="input">
         </x-ui.form-field>
 
         <div style="display:flex;justify-content:flex-end;">
-            <x-ui.button type="submit">Restablecer</x-ui.button>
+            <x-ui.button type="submit">{{ __('auth.reset_button') }}</x-ui.button>
         </div>
     </form>
 </div>

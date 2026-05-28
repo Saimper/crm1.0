@@ -18,7 +18,7 @@ new class extends Component
     $iniciales = $user
         ? mb_strtoupper(mb_substr($user->name, 0, 1) . (str_contains((string) $user->name, ' ') ? mb_substr(explode(' ', $user->name)[1] ?? '', 0, 1) : ''))
         : '·';
-    $rol = $user?->esAdminGlobal() ? 'Admin Global' : 'Usuario';
+    $rol = $user?->esAdminGlobal() ? __('nav.role_admin_global') : __('nav.role_user');
 @endphp
 
 <div x-data="{ open: false }" class="relative" style="display:flex;align-items:center;gap:8px;padding-left:8px;margin-left:4px;border-left:1px solid var(--border);">
@@ -37,12 +37,12 @@ new class extends Component
         <a href="{{ route('profile') }}" wire:navigate
            class="sb-item" style="border-radius:6px;height:32px;">
             <x-ui.icon name="user" :size="14" />
-            <span>Perfil</span>
+            <span>{{ __('nav.profile') }}</span>
         </a>
         <button type="button" wire:click="logout"
                 class="sb-item" style="border-radius:6px;height:32px;width:100%;color:var(--danger);">
             <x-ui.icon name="log-out" :size="14" />
-            <span>Cerrar sesión</span>
+            <span>{{ __('nav.logout') }}</span>
         </button>
     </div>
 </div>

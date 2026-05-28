@@ -1,8 +1,8 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Casos del proyecto</h1>
-            <div class="page-subtitle">{{ $totalProyecto }} casos abiertos</div>
+            <h1 class="page-title">{{ __('casos.title_list') }}</h1>
+            <div class="page-subtitle">{{ __('casos.subtitle_open', ['count' => $totalProyecto]) }}</div>
         </div>
     </div>
 
@@ -13,36 +13,36 @@
                     <x-ui.icon name="search" :size="13" />
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="Buscar por persona…" style="padding-left:28px;"/>
+                       class="input" placeholder="{{ __('casos.search_placeholder') }}" style="padding-left:28px;"/>
             </div>
             <select wire:model.live="carteraId" class="input" style="width:180px;">
-                <option value="">Todas las carteras</option>
+                <option value="">{{ __('casos.all_wallets') }}</option>
                 @foreach($carteras as $c)
                     <option value="{{ $c->id }}">{{ $c->nombre }}</option>
                 @endforeach
             </select>
             <select wire:model.live="estadoCasoId" class="input" style="width:180px;">
-                <option value="">Todos los estados</option>
+                <option value="">{{ __('casos.all_states') }}</option>
                 @foreach($estados as $e)
                     <option value="{{ $e->id }}">{{ $e->nombre }}</option>
                 @endforeach
             </select>
             @if($busqueda !== '' || $carteraId !== '' || $estadoCasoId !== '')
-                <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">Limpiar</button>
+                <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('casos.clear_filters') }}</button>
             @endif
             <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ $casos->total() }} resultados</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('casos.results', ['count' => $casos->total()]) }}</span>
         </div>
 
         @if($casos->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="folder" :size="32" /></div>
-                <div class="empty-title">Sin casos</div>
+                <div class="empty-title">{{ __('casos.empty_title') }}</div>
                 <div class="empty-desc">
                     @if($busqueda !== '' || $carteraId !== '' || $estadoCasoId !== '')
-                        No hay casos que coincidan con los filtros.
+                        {{ __('casos.empty_with_filters') }}
                     @else
-                        Aún no hay casos en este proyecto.
+                        {{ __('casos.empty_no_filters') }}
                     @endif
                 </div>
             </div>
@@ -50,13 +50,13 @@
             <table class="table table-compact table-clickable">
                 <thead>
                     <tr>
-                        <th style="width:100px;">Tipo</th>
-                        <th>Persona</th>
-                        <th>Identificación</th>
-                        <th>Cartera</th>
-                        <th>Estado</th>
-                        <th class="num" style="width:60px;">Prio</th>
-                        <th style="width:100px;">Compromiso</th>
+                        <th style="width:100px;">{{ __('casos.col_type') }}</th>
+                        <th>{{ __('casos.col_person') }}</th>
+                        <th>{{ __('casos.col_id_doc') }}</th>
+                        <th>{{ __('casos.col_wallet') }}</th>
+                        <th>{{ __('casos.col_state') }}</th>
+                        <th class="num" style="width:60px;">{{ __('casos.col_priority') }}</th>
+                        <th style="width:100px;">{{ __('casos.col_commitment') }}</th>
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>
@@ -92,7 +92,7 @@
                             <td class="num">{{ $caso->prioridad }}</td>
                             <td>
                                 @if($caso->tiene_compromiso_vigente)
-                                    <x-ui.badge tone="success" size="sm">Vigente</x-ui.badge>
+                                    <x-ui.badge tone="success" size="sm">{{ __('casos.commitment_active') }}</x-ui.badge>
                                 @else
                                     <span style="font-size:11px;color:var(--text-tertiary);">—</span>
                                 @endif

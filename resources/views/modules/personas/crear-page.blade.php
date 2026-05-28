@@ -4,13 +4,13 @@
     <div class="page">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Nueva persona</h1>
+                <h1 class="page-title">{{ __('personas.title_create') }}</h1>
                 <div class="page-subtitle">{{ $proyecto->nombre }}</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
                 <span class="text-xs text-ink-500 font-mono">{{ $proyecto->codigo }}</span>
                 <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]) }}"
-                   wire:navigate class="btn btn-ghost btn-sm">← Volver al proyecto</a>
+                   wire:navigate class="btn btn-ghost btn-sm">{{ __('personas.back_project') }}</a>
             </div>
         </div>
 

@@ -1,7 +1,7 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">{{ $modo === 'edicion' ? 'Editar configuración' : 'Configurar proyecto' }}</h1>
+            <h1 class="page-title">{{ $modo === 'edicion' ? __('configurador.titulo_editar') : __('configurador.titulo_configurar') }}</h1>
             <div class="page-subtitle">
                 <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $proyecto->codigo }}</span>
                 <span style="margin:0 6px;color:var(--text-tertiary);">·</span>
@@ -13,7 +13,7 @@
         <div style="display:flex;gap:8px;align-items:center;">
             <a href="{{ route('admin.proyectos') }}" wire:navigate class="btn btn-ghost btn-sm">
                 <x-ui.icon name="arrow-left" :size="13" />
-                <span>Volver</span>
+                <span>{{ __('configurador.volver') }}</span>
             </a>
         </div>
     </div>
@@ -27,7 +27,7 @@
     <div style="display:grid;grid-template-columns:280px 1fr;gap:18px;align-items:start;">
         {{-- Panel izquierdo: stepper (wizard) o tabs (edicion) --}}
         <aside class="card card-pad" style="padding:14px;position:sticky;top:14px;">
-            <div class="label-xs" style="margin-bottom:10px;">{{ $modo === 'edicion' ? 'Secciones' : 'Pasos' }}</div>
+            <div class="label-xs" style="margin-bottom:10px;">{{ $modo === 'edicion' ? __('configurador.secciones') : __('configurador.pasos_label') }}</div>
 
             @if($modo === 'wizard')
                 @php
@@ -99,7 +99,7 @@
                             </span>
 
                             @if($paso->esOpcional())
-                                <span style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;">Opcional</span>
+                                <span style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;">{{ __('configurador.opcional') }}</span>
                             @endif
                         </button>
                     </li>
@@ -112,20 +112,20 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
                 <div>
                     @if($modo === 'wizard')
-                        <div class="label-xs" style="margin-bottom:4px;">Paso {{ $pasoActivo->indice() }} de {{ count($pasos) }}</div>
+                        <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.paso_de', ['n' => $pasoActivo->indice(), 'total' => count($pasos)]) }}</div>
                     @else
-                        <div class="label-xs" style="margin-bottom:4px;">Sección</div>
+                        <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.seccion_label') }}</div>
                     @endif
                     <h2 style="font-size:18px;font-weight:600;color:var(--text);margin:0;">{{ $pasoActivo->etiqueta() }}</h2>
                 </div>
                 @if($modo === 'edicion')
                     @if($this->avance->estaCompleto())
-                        <span class="badge badge-success" style="font-size:11px;">Configurado</span>
+                        <span class="badge badge-success" style="font-size:11px;">{{ __('configurador.configurado') }}</span>
                     @else
-                        <span class="badge badge-warning" style="font-size:11px;">Configuración parcial</span>
+                        <span class="badge badge-warning" style="font-size:11px;">{{ __('configurador.configuracion_parcial') }}</span>
                     @endif
                 @elseif($pasoActivo->esOpcional())
-                    <span class="badge badge-ghost" style="font-size:11px;">Paso opcional</span>
+                    <span class="badge badge-ghost" style="font-size:11px;">{{ __('configurador.paso_opcional') }}</span>
                 @endif
             </div>
 
@@ -185,11 +185,11 @@
                     <button type="button" wire:click="anterior" class="btn btn-ghost"
                         @if($pasoActivo->anterior() === null) disabled @endif>
                         <x-ui.icon name="arrow-left" :size="13" />
-                        <span>Anterior</span>
+                        <span>{{ __('configurador.anterior') }}</span>
                     </button>
                     <button type="button" wire:click="siguiente" class="btn btn-primary"
                         @if($pasoActivo->siguiente() === null || ! $this->avance->estaCompletado($pasoActivo)) disabled @endif>
-                        <span>Siguiente</span>
+                        <span>{{ __('configurador.siguiente') }}</span>
                         <x-ui.icon name="arrow-right" :size="13" />
                     </button>
                 </div>

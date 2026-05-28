@@ -4,13 +4,13 @@
         <div class="card card-pad" style="background:var(--primary-soft);border-color:var(--primary-soft-border);">
             <div class="flex items-center justify-between gap-4">
                 <div>
-                    <div class="label-xs" style="color:var(--primary-text);">Administrador global</div>
+                    <div class="label-xs" style="color:var(--primary-text);">{{ __('tenancy.admin_global_label') }}</div>
                     <p style="margin-top:4px;font-size:13px;color:var(--primary-text);">
-                        Acceso cross-project a administración y reportes consolidados.
+                        {{ __('tenancy.admin_global_desc') }}
                     </p>
                 </div>
                 <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-primary">
-                    <span>Ir a administración</span>
+                    <span>{{ __('tenancy.go_to_admin') }}</span>
                     <x-ui.icon name="arrow-right" :size="14" />
                 </a>
             </div>
@@ -19,15 +19,15 @@
 
     <section>
         <x-ui.section-title
-            title="Proyectos disponibles"
-            :hint="$proyectos->count() . ' ' . ($proyectos->count() === 1 ? 'proyecto' : 'proyectos')" />
+            :title="__('tenancy.available_projects')"
+            :hint="trans_choice('tenancy.project_count', $proyectos->count(), ['count' => $proyectos->count()])" />
 
         @if($proyectos->isEmpty())
             <div class="card">
                 <div class="empty">
                     <div class="empty-icon"><x-ui.icon name="folder" :size="32" /></div>
-                    <div class="empty-title">Sin proyectos asignados</div>
-                    <div class="empty-desc">Contacta a tu supervisor o al administrador para obtener acceso.</div>
+                    <div class="empty-title">{{ __('tenancy.empty_projects') }}</div>
+                    <div class="empty-desc">{{ __('tenancy.empty_projects_desc') }}</div>
                 </div>
             </div>
         @else

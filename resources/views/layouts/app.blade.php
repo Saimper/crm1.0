@@ -50,12 +50,12 @@
 
         {{-- Header --}}
         <header class="app-header">
-            <button type="button" class="icon-btn md:hidden" @click="sidebarOpen = !sidebarOpen" aria-label="Menú">
+            <button type="button" class="icon-btn md:hidden" @click="sidebarOpen = !sidebarOpen" aria-label="{{ __('nav.menu') }}">
                 <x-ui.icon name="layers" :size="16" />
             </button>
 
             <div class="breadcrumb" style="flex:1;min-width:0;">
-                <a href="{{ route('dashboard') }}" wire:navigate style="color:var(--text-tertiary);">Proyectos</a>
+                <a href="{{ route('dashboard') }}" wire:navigate style="color:var(--text-tertiary);">{{ __('nav.breadcrumb_projects') }}</a>
                 @if($proyectoActivo)
                     <x-ui.icon name="chevron-right" :size="12" class="sep" />
                     <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyectoActivo->id]) }}"
@@ -85,7 +85,7 @@
             @if($proyectoActivo)
                 <div style="padding:0 12px 12px;">
                     <div class="card card-pad" style="padding:10px;background:var(--bg-subtle);">
-                        <div class="label-xs" style="margin-bottom:4px;">Proyecto activo</div>
+                        <div class="label-xs" style="margin-bottom:4px;">{{ __('nav.active_project') }}</div>
                         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
                             <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">
                                 {{ $proyectoActivo->codigo ?? str_pad((string) $proyectoActivo->id, 4, '0', STR_PAD_LEFT) }}
@@ -97,9 +97,9 @@
                         @if($puedeCambiarProyecto)
                             <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm"
                                style="width:100%;justify-content:center;text-decoration:none;"
-                               title="Volver al selector de proyectos">
+                               title="{{ __('nav.back_to_selector') }}">
                                 <x-ui.icon name="refresh" :size="13" />
-                                <span>Cambiar proyecto</span>
+                                <span>{{ __('nav.change_project') }}</span>
                             </a>
                         @endif
                     </div>
@@ -108,33 +108,33 @@
 
             @if($proyectoActivo)
                 <div class="sb-group">
-                    <div class="sb-group-title">Operación</div>
+                    <div class="sb-group-title">{{ __('nav.group_operation') }}</div>
                     @can('asignaciones.ver_propia', $proyectoActivo->id)
                         <a href="{{ route('proyectos.bandeja', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja')) active @endif">
                             <x-ui.icon name="inbox" :size="15" />
-                            <span>Mi Bandeja</span>
+                            <span>{{ __('nav.inbox') }}</span>
                         </a>
                     @endcan
                     @can('personas.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.personas.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.personas.lista', 'proyectos.personas.crear')) active @endif">
                             <x-ui.icon name="user" :size="15" />
-                            <span>Personas</span>
+                            <span>{{ __('nav.people') }}</span>
                         </a>
                     @endcan
                     @can('casos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.casos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.casos.lista')) active @endif">
                             <x-ui.icon name="folder" :size="15" />
-                            <span>Casos</span>
+                            <span>{{ __('nav.cases') }}</span>
                         </a>
                     @endcan
                     @can('compromisos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.compromisos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.compromisos.lista')) active @endif">
                             <x-ui.icon name="tag" :size="15" />
-                            <span>Compromisos</span>
+                            <span>{{ __('nav.commitments') }}</span>
                         </a>
                     @endcan
                     @can('entidades.ver', $proyectoActivo->id)
@@ -161,61 +161,61 @@
                         <a href="{{ route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja.equipo')) active @endif">
                             <x-ui.icon name="users" :size="15" />
-                            <span>Bandeja del Equipo</span>
+                            <span>{{ __('nav.team_inbox') }}</span>
                         </a>
                     @endcan
                     @can('asignaciones.reasignar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.asignaciones.masiva', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.asignaciones.masiva')) active @endif">
                             <x-ui.icon name="arrow-right" :size="15" />
-                            <span>Asignación Masiva</span>
+                            <span>{{ __('nav.bulk_assignment') }}</span>
                         </a>
                     @endcan
                     @can('asignaciones.reasignar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.asignaciones.reasignar', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.asignaciones.reasignar')) active @endif">
                             <x-ui.icon name="refresh" :size="15" />
-                            <span>Reasignación</span>
+                            <span>{{ __('nav.reassignment') }}</span>
                         </a>
                     @endcan
                     @can('usuarios.gestionar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.equipos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.equipos')) active @endif">
                             <x-ui.icon name="briefcase" :size="15" />
-                            <span>Equipos</span>
+                            <span>{{ __('nav.teams') }}</span>
                         </a>
                     @endcan
                 </div>
 
                 @if($verGrupoReportes)
                 <div class="sb-group">
-                    <div class="sb-group-title">Reportes</div>
+                    <div class="sb-group-title">{{ __('nav.group_reports') }}</div>
                     @can('reportes.operativos', $proyectoActivo->id)
                         <a href="{{ route('proyectos.reportes.operativos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.reportes.operativos')) active @endif">
                             <x-ui.icon name="bar-chart" :size="15" />
-                            <span>Operativos</span>
+                            <span>{{ __('nav.reports_operational') }}</span>
                         </a>
                     @endcan
                     @can('reportes.analiticos', $proyectoActivo->id)
                         <a href="{{ route('proyectos.reportes.analiticos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.reportes.analiticos')) active @endif">
                             <x-ui.icon name="pie-chart" :size="15" />
-                            <span>Analíticos</span>
+                            <span>{{ __('nav.reports_analytical') }}</span>
                         </a>
                     @endcan
                     @can('reportes.operativos', $proyectoActivo->id)
                         <a href="{{ route('proyectos.reportes.equipos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.reportes.equipos')) active @endif">
                             <x-ui.icon name="users" :size="15" />
-                            <span>Por Equipo</span>
+                            <span>{{ __('nav.reports_by_team') }}</span>
                         </a>
                     @endcan
                     @can('reportes.constructor.ejecutar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.reportes.custom', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.reportes.custom', 'proyectos.reportes.custom.nuevo', 'proyectos.reportes.custom.editar')) active @endif">
                             <x-ui.icon name="layers" :size="15" />
-                            <span>Reportes custom</span>
+                            <span>{{ __('nav.reports_custom') }}</span>
                         </a>
                     @endcan
                 </div>
@@ -223,13 +223,13 @@
 
                 @if($verGrupoDatos)
                 <div class="sb-group">
-                    <div class="sb-group-title">Datos</div>
+                    <div class="sb-group-title">{{ __('nav.group_data') }}</div>
                     {{-- Catálogos y Carteras absorbidos por el wizard "Configurar proyecto" (F36 P8). --}}
                     @can('importaciones.crear', $proyectoActivo->id)
                         <a href="{{ route('proyectos.importaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.importaciones*')) active @endif">
                             <x-ui.icon name="upload" :size="15" />
-                            <span>Importaciones</span>
+                            <span>{{ __('nav.imports') }}</span>
                         </a>
                     @endcan
                 </div>
@@ -237,19 +237,19 @@
 
                 @if($verGrupoTrazabilidad)
                 <div class="sb-group">
-                    <div class="sb-group-title">Trazabilidad</div>
+                    <div class="sb-group-title">{{ __('nav.group_traceability') }}</div>
                     @can('auditoria.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.auditoria', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.auditoria*')) active @endif">
                             <x-ui.icon name="shield" :size="15" />
-                            <span>Auditoría</span>
+                            <span>{{ __('nav.audit') }}</span>
                         </a>
                     @endcan
                     @can('notificaciones.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.notificaciones', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.notificaciones')) active @endif">
                             <x-ui.icon name="bell" :size="15" />
-                            <span>Notificaciones</span>
+                            <span>{{ __('nav.notifications') }}</span>
                         </a>
                     @endcan
                 </div>
@@ -257,27 +257,27 @@
 
                 @can('usuarios.gestionar', $proyectoActivo->id)
                     <div class="sb-group">
-                        <div class="sb-group-title">Supervisión</div>
+                        <div class="sb-group-title">{{ __('nav.group_supervision') }}</div>
                         <a href="{{ route('proyectos.usuarios', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.usuarios')) active @endif">
                             <x-ui.icon name="user" :size="15" />
-                            <span>Usuarios del Proyecto</span>
+                            <span>{{ __('nav.project_users') }}</span>
                         </a>
                     </div>
                 @endcan
 
                 @can('roles.gestionar', $proyectoActivo->id)
                     <div class="sb-group">
-                        <div class="sb-group-title">Permisos</div>
+                        <div class="sb-group-title">{{ __('nav.group_permissions') }}</div>
                         <a href="{{ route('proyectos.admin.roles-custom', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.admin.roles-custom')) active @endif">
                             <x-ui.icon name="shield" :size="15" />
-                            <span>Roles custom</span>
+                            <span>{{ __('nav.custom_roles') }}</span>
                         </a>
                         <a href="{{ route('proyectos.admin.matriz-permisos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.admin.matriz-permisos')) active @endif">
                             <x-ui.icon name="hash" :size="15" />
-                            <span>Matriz de permisos</span>
+                            <span>{{ __('nav.permissions_matrix') }}</span>
                         </a>
                     </div>
                 @endcan
@@ -293,19 +293,19 @@
 
                         if ($avanceConfigurador->estaCompleto()) {
                             $configHref    = route('admin.proyectos.configurar.editar', ['proyecto' => $proyectoActivo->public_id]);
-                            $configTooltip = 'Editar configuración del proyecto';
+                            $configTooltip = __('nav.configure_project_edit_tooltip');
                         } else {
                             $configHref    = route('admin.proyectos.configurar', ['proyecto' => $proyectoActivo->public_id]);
-                            $configTooltip = 'Completa la configuración inicial';
+                            $configTooltip = __('nav.configure_project_init_tooltip');
                         }
                     @endphp
                     <div class="sb-group">
-                        <div class="sb-group-title">Configuración</div>
+                        <div class="sb-group-title">{{ __('nav.group_configuration') }}</div>
                         <a href="{{ $configHref }}" wire:navigate
                            title="{{ $configTooltip }}"
                            class="sb-item @if($rid('admin.proyectos.configurar', 'admin.proyectos.configurar.editar')) active @endif">
                             <x-ui.icon name="settings" :size="15" />
-                            <span>Configurar proyecto</span>
+                            <span>{{ __('nav.configure_project') }}</span>
                         </a>
                     </div>
                 @endcan
@@ -313,51 +313,51 @@
 
             @if($esAdminAlguno)
                 <div class="sb-group">
-                    <div class="sb-group-title">{{ $esAdmin ? 'Administración' : 'Administración (Mandante)' }}</div>
+                    <div class="sb-group-title">{{ $esAdmin ? __('nav.group_administration') : __('nav.group_administration_mandante') }}</div>
                     <a href="{{ route('admin.dashboard') }}" wire:navigate
                        class="sb-item @if($rid('admin.dashboard')) active @endif">
                         <x-ui.icon name="bar-chart" :size="15" />
-                        <span>Panel Admin</span>
+                        <span>{{ __('nav.admin_panel') }}</span>
                     </a>
                     <a href="{{ route('admin.proyectos') }}" wire:navigate
                        class="sb-item @if($rid('admin.proyectos')) active @endif">
                         <x-ui.icon name="briefcase" :size="15" />
-                        <span>Proyectos</span>
+                        <span>{{ __('nav.projects') }}</span>
                     </a>
                     @if($esAdmin)
                         <a href="{{ route('admin.mandantes') }}" wire:navigate
                            class="sb-item @if($rid('admin.mandantes')) active @endif">
                             <x-ui.icon name="building" :size="15" />
-                            <span>Mandantes</span>
+                            <span>{{ __('nav.mandantes') }}</span>
                         </a>
                     @endif
                     <a href="{{ route('admin.usuarios') }}" wire:navigate
                        class="sb-item @if($rid('admin.usuarios')) active @endif">
                         <x-ui.icon name="users" :size="15" />
-                        <span>Usuarios</span>
+                        <span>{{ __('nav.users') }}</span>
                     </a>
                     @if($esAdmin)
                         <a href="{{ route('admin.campos-personalizados') }}" wire:navigate
                            class="sb-item @if($rid('admin.campos-personalizados')) active @endif">
                             <x-ui.icon name="hash" :size="15" />
-                            <span>Campos Personalizados</span>
+                            <span>{{ __('nav.custom_fields') }}</span>
                         </a>
                         <a href="{{ route('admin.entidades-configurables') }}" wire:navigate
                            class="sb-item @if($rid('admin.entidades-configurables')) active @endif">
                             <x-ui.icon name="layers" :size="15" />
-                            <span>Entidades Configurables</span>
+                            <span>{{ __('nav.configurable_entities') }}</span>
                         </a>
                     @endif
                     <a href="{{ route('admin.auditoria') }}" wire:navigate
                        class="sb-item @if($rid('admin.auditoria')) active @endif">
                         <x-ui.icon name="shield" :size="15" />
-                        <span>{{ $esAdmin ? 'Auditoría global' : 'Auditoría' }}</span>
+                        <span>{{ $esAdmin ? __('nav.audit_global') : __('nav.audit') }}</span>
                     </a>
                     @if($esAdmin)
                         <a href="{{ route('admin.integracion.secrets') }}" wire:navigate
                            class="sb-item @if($rid('admin.integracion.secrets')) active @endif">
                             <x-ui.icon name="key" :size="15" />
-                            <span>SSO secrets</span>
+                            <span>{{ __('nav.sso_secrets') }}</span>
                         </a>
                     @endif
                 </div>
@@ -365,11 +365,11 @@
 
             @if(!$proyectoActivo && !$esAdminAlguno)
                 <div class="sb-group">
-                    <div class="sb-group-title">Inicio</div>
+                    <div class="sb-group-title">{{ __('nav.group_home') }}</div>
                     <a href="{{ route('dashboard') }}" wire:navigate
                        class="sb-item @if($rid('dashboard')) active @endif">
                         <x-ui.icon name="briefcase" :size="15" />
-                        <span>Mis Proyectos</span>
+                        <span>{{ __('nav.my_projects') }}</span>
                     </a>
                 </div>
             @endif

@@ -2,63 +2,63 @@
     <x-ui.card padding="p-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
             <div>
-                <label class="block text-xs font-medium text-ink-700">Equipo</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_team') }}</label>
                 <select wire:model.live="equipoId" class="mt-1 block w-full border-surface-border rounded-lg text-sm focus:border-brand-500 focus:ring-brand-500">
-                    <option value="">Selecciona…</option>
+                    <option value="">{{ __('asignaciones.select_placeholder') }}</option>
                     @foreach($equipos as $e)
                         <option value="{{ $e->id }}">{{ $e->nombre }} ({{ $e->codigo }})</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-ink-700">Miembro</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_member') }}</label>
                 <select wire:model.live="miembroId" class="mt-1 block w-full border-surface-border rounded-lg text-sm focus:border-brand-500 focus:ring-brand-500"
                         @if($miembros->isEmpty()) disabled @endif>
-                    <option value="">Todos</option>
+                    <option value="">{{ __('asignaciones.option_all_members') }}</option>
                     @foreach($miembros as $m)
                         <option value="{{ $m->id }}">{{ $m->name }}</option>
                     @endforeach
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-ink-700">Estado</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_status') }}</label>
                 <select wire:model.live="estadoFiltro" class="mt-1 block w-full border-surface-border rounded-lg text-sm focus:border-brand-500 focus:ring-brand-500">
-                    <option value="todos">Todos</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="en_trabajo">En trabajo</option>
-                    <option value="cerrada">Cerrada</option>
+                    <option value="todos">{{ __('asignaciones.option_all_states') }}</option>
+                    <option value="pendiente">{{ __('asignaciones.option_pending') }}</option>
+                    <option value="en_trabajo">{{ __('asignaciones.option_in_progress') }}</option>
+                    <option value="cerrada">{{ __('asignaciones.option_closed') }}</option>
                 </select>
             </div>
             <div class="relative">
-                <label class="block text-xs font-medium text-ink-700">Buscar</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_search') }}</label>
                 <span class="absolute top-[2.1rem] left-3 flex items-center text-ink-400 pointer-events-none">
                     <x-ui.icon name="search" class="w-4 h-4" />
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       placeholder="Identificación o nombre"
+                       placeholder="{{ __('asignaciones.search_placeholder_team') }}"
                        class="mt-1 block w-full border-surface-border rounded-lg pl-9 text-sm focus:border-brand-500 focus:ring-brand-500"/>
             </div>
         </div>
     </x-ui.card>
 
     @if($equipoId === null)
-        <x-ui.empty-state title="Selecciona un equipo"
-                          message="Elige un equipo arriba para ver la bandeja agregada." />
+        <x-ui.empty-state :title="__('asignaciones.empty_select_team')"
+                          :message="__('asignaciones.empty_select_team_msg')" />
     @elseif($miembros->isEmpty())
-        <x-ui.alert tone="warning" title="Equipo sin miembros">
-            El equipo seleccionado aún no tiene miembros activos.
+        <x-ui.alert tone="warning" :title="__('asignaciones.alert_no_members_title')">
+            {{ __('asignaciones.alert_no_members_msg') }}
         </x-ui.alert>
     @else
         @if(! $conteoPorMiembro->isEmpty())
             <div>
-                <x-ui.section-title title="KPIs por miembro" />
+                <x-ui.section-title :title="__('asignaciones.section_kpis')" />
                 <x-ui.table>
                     <x-slot name="head">
-                        <x-ui.th>Miembro</x-ui.th>
-                        <x-ui.th align="right">Pendiente</x-ui.th>
-                        <x-ui.th align="right">En trabajo</x-ui.th>
-                        <x-ui.th align="right">Cerrada</x-ui.th>
-                        <x-ui.th align="right">Total</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_member') }}</x-ui.th>
+                        <x-ui.th align="right">{{ __('asignaciones.col_pending') }}</x-ui.th>
+                        <x-ui.th align="right">{{ __('asignaciones.col_in_progress') }}</x-ui.th>
+                        <x-ui.th align="right">{{ __('asignaciones.col_closed') }}</x-ui.th>
+                        <x-ui.th align="right">{{ __('asignaciones.col_total') }}</x-ui.th>
                     </x-slot>
                     @php $porMiembro = $conteoPorMiembro->groupBy('id'); @endphp
                     @foreach($miembros as $m)
@@ -82,24 +82,24 @@
         @endif
 
         <div>
-            <x-ui.section-title title="Asignaciones filtradas"
-                                hint="Pendientes: {{ $conteoPorEstado['pendiente'] ?? 0 }} · En trabajo: {{ $conteoPorEstado['en_trabajo'] ?? 0 }} · Cerradas: {{ $conteoPorEstado['cerrada'] ?? 0 }}" />
+            <x-ui.section-title :title="__('asignaciones.section_filtered')"
+                                :hint="__('asignaciones.section_filtered_hint', ['pending' => $conteoPorEstado['pendiente'] ?? 0, 'in_progress' => $conteoPorEstado['en_trabajo'] ?? 0, 'closed' => $conteoPorEstado['cerrada'] ?? 0])" />
 
             @if($asignaciones->isEmpty())
-                <x-ui.empty-state title="Sin resultados"
-                                  message="No hay asignaciones con estos filtros." />
+                <x-ui.empty-state :title="__('asignaciones.empty_no_results')"
+                                  :message="__('asignaciones.empty_no_results_msg')" />
             @else
                 <x-ui.table>
                     <x-slot name="head">
-                        <x-ui.th>Gestor</x-ui.th>
-                        <x-ui.th>Persona</x-ui.th>
-                        <x-ui.th>Cartera</x-ui.th>
-                        <x-ui.th>Tipo</x-ui.th>
-                        <x-ui.th>Estado caso</x-ui.th>
-                        <x-ui.th>Último resultado</x-ui.th>
-                        <x-ui.th>Estado asig.</x-ui.th>
-                        <x-ui.th align="right">Prioridad</x-ui.th>
-                        <x-ui.th>Última gestión</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_agent') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_person_eq') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_portfolio_eq') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_type_eq') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_case_status_eq') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_last_result') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_assign_status') }}</x-ui.th>
+                        <x-ui.th align="right">{{ __('asignaciones.col_priority_eq') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_last_management_eq') }}</x-ui.th>
                     </x-slot>
 
                     @foreach($asignaciones as $a)

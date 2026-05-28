@@ -13,30 +13,30 @@
                     <x-ui.icon name="search" :size="13" />
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="Buscar…" style="padding-left:28px;"/>
+                       class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/>
             </div>
             <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ $tipos->count() }} tipos</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.tipos_gestion.n_tipos', ['n' => $tipos->count()]) }}</span>
             <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
-                <span>Nuevo tipo</span>
+                <span>{{ __('configurador.tipos_gestion.nuevo') }}</span>
             </button>
         </div>
 
         @if($tipos->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="folder" :size="32" /></div>
-                <div class="empty-title">Sin tipos de gestión</div>
-                <div class="empty-desc">Define los tipos de gestión (ej. Llamada, Visita, Email).</div>
+                <div class="empty-title">{{ __('configurador.tipos_gestion.sin_titulo') }}</div>
+                <div class="empty-desc">{{ __('configurador.tipos_gestion.sin_desc') }}</div>
             </div>
         @else
             <table class="table table-compact table-clickable">
                 <thead>
                     <tr>
-                        <th style="width:160px;">Código</th>
-                        <th>Nombre</th>
-                        <th class="num" style="width:70px;">Orden</th>
-                        <th style="width:110px;">Estado</th>
+                        <th style="width:160px;">{{ __('configurador.campo_codigo') }}</th>
+                        <th>{{ __('common.name') }}</th>
+                        <th class="num" style="width:70px;">{{ __('configurador.campo_orden') }}</th>
+                        <th style="width:110px;">{{ __('configurador.campo_estado') }}</th>
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>
@@ -49,7 +49,7 @@
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:6px;">
                                     <span class="dot dot-{{ $t->activo ? 'success' : 'neutral' }}"></span>
-                                    {{ $t->activo ? 'Activo' : 'Inactivo' }}
+                                    {{ $t->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
                             </td>
                             <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
@@ -65,38 +65,38 @@
         <div class="drawer" wire:key="paso-tipo-drawer">
             <div class="drawer-header">
                 <div style="font-size:14px;font-weight:600;">
-                    {{ $editandoId === null ? 'Nuevo tipo de gestión' : 'Editar tipo de gestión' }}
+                    {{ $editandoId === null ? __('configurador.tipos_gestion.drawer_nuevo') : __('configurador.tipos_gestion.drawer_editar') }}
                 </div>
-                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="Cerrar">
+                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}">
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
             <div class="drawer-body">
                 <div style="display:grid;grid-template-columns:1fr;gap:14px;">
                     <div>
-                        <label class="field-label">Código</label>
+                        <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="LLAMADA" maxlength="50"
                                class="input mono uppercase @error('form.codigo') input-error @enderror"/>
                         @error('form.codigo')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="field-label">Nombre</label>
+                        <label class="field-label">{{ __('common.name') }}</label>
                         <input type="text" wire:model="form.nombre" maxlength="150"
                                class="input @error('form.nombre') input-error @enderror"/>
                         @error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
-                            <label class="field-label">Orden</label>
+                            <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"
                                    class="input @error('form.orden') input-error @enderror"/>
                             @error('form.orden')<div class="field-error">{{ $message }}</div>@enderror
                         </div>
                         <div>
-                            <label class="field-label">Estado</label>
+                            <label class="field-label">{{ __('configurador.campo_estado') }}</label>
                             <label style="display:flex;align-items:center;gap:8px;padding-top:8px;">
                                 <input type="checkbox" wire:model="form.activo"/>
-                                <span style="font-size:13px;color:var(--text-secondary);">Activo</span>
+                                <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.activo') }}</span>
                             </label>
                         </div>
                     </div>
@@ -106,14 +106,14 @@
                 @if($editandoId !== null)
                     <button type="button"
                             wire:click="eliminar({{ $editandoId }})"
-                            wire:confirm="¿Eliminar este tipo de gestión? Solo se permite si no hay gestiones registradas."
+                            wire:confirm="{{ __('configurador.tipos_gestion.confirm_eliminar') }}"
                             class="btn btn-ghost"
                             style="color:var(--danger-text);margin-right:auto;">
-                        Eliminar
+                        {{ __('common.delete') }}
                     </button>
                 @endif
-                <button type="button" wire:click="cerrarForm" class="btn btn-ghost">Cancelar</button>
-                <button type="button" wire:click="guardar" class="btn btn-primary">Guardar</button>
+                <button type="button" wire:click="cerrarForm" class="btn btn-ghost">{{ __('common.cancel') }}</button>
+                <button type="button" wire:click="guardar" class="btn btn-primary">{{ __('common.save') }}</button>
             </div>
         </div>
     @endif

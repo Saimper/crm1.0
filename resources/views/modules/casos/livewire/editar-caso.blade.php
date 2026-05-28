@@ -1,10 +1,10 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Editar caso</h1>
+            <h1 class="page-title">{{ __('casos.title_edit') }}</h1>
             <div class="page-subtitle">
-                Tipo: <strong>{{ ucfirst(str_replace('_', ' ', $tipoCaso)) }}</strong>
-                · Estado: <em>se modifica vía gestiones</em>
+                {{ __('casos.subtitle_type_edit', ['tipo' => ucfirst(str_replace('_', ' ', $tipoCaso))]) }}
+                · {{ __('casos.subtitle_state_via') }}
             </div>
         </div>
     </div>
@@ -12,9 +12,9 @@
     <div class="card card-pad" style="max-width:920px;">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
             <div>
-                <label class="field-label">Cartera</label>
+                <label class="field-label">{{ __('casos.field_wallet') }}</label>
                 <select wire:model.live="carteraId" class="input @error('carteraId') input-error @enderror">
-                    <option value="">— Selecciona —</option>
+                    <option value="">{{ __('casos.select_wallet') }}</option>
                     @foreach($carteras as $c)
                         <option value="{{ $c->id }}">{{ $c->nombre }}</option>
                     @endforeach
@@ -22,11 +22,11 @@
                 @error('carteraId')<div class="field-error">{{ $message }}</div>@enderror
             </div>
             <div>
-                <label class="field-label">Prioridad (0–9)</label>
+                <label class="field-label">{{ __('casos.field_priority') }}</label>
                 <input type="number" min="0" max="9" wire:model="prioridad" class="input"/>
             </div>
             <div>
-                <label class="field-label">Fecha ingreso</label>
+                <label class="field-label">{{ __('casos.field_entry_date') }}</label>
                 <input type="date" wire:model="fechaIngreso" class="input @error('fechaIngreso') input-error @enderror"/>
                 @error('fechaIngreso')<div class="field-error">{{ $message }}</div>@enderror
             </div>
@@ -37,7 +37,7 @@
         @if($camposCaso->isNotEmpty())
             <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
                 <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-secondary);letter-spacing:0.06em;">
-                    Campos personalizados
+                    {{ __('casos.custom_fields_title') }}
                 </h4>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     @foreach($camposCaso as $campo)
@@ -70,8 +70,8 @@
                                 @case('booleano')
                                     <select wire:model="valoresCamposCaso.{{ $campo->codigo }}" class="input">
                                         <option value="">—</option>
-                                        <option value="1">Sí</option>
-                                        <option value="0">No</option>
+                                        <option value="1">{{ __('casos.yes') }}</option>
+                                        <option value="0">{{ __('casos.no') }}</option>
                                     </select>
                                     @break
                                 @default
@@ -85,9 +85,9 @@
 
         <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
             <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId, 'caso' => $casoPublicId]) }}"
-               wire:navigate class="btn btn-ghost">Cancelar</a>
+               wire:navigate class="btn btn-ghost">{{ __('common.cancel') }}</a>
             <button type="button" wire:click="guardar" class="btn btn-primary">
-                Guardar cambios
+                {{ __('casos.save_changes') }}
             </button>
         </div>
     </div>

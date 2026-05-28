@@ -1,12 +1,12 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between">
         <div style="font-size:12px;color:var(--text-tertiary);">
-            Lectura. Cada fila es un permiso, cada columna un rol.
+            {{ __('usuarios.matrix_read_hint') }}
         </div>
         <div class="flex items-center gap-2">
-            <label class="field-label" style="margin:0;">Grupo</label>
+            <label class="field-label" style="margin:0;">{{ __('usuarios.label_group') }}</label>
             <select wire:model.live="filtroGrupo" class="select" style="min-width:160px;">
-                <option value="">— todos —</option>
+                <option value="">{{ __('usuarios.option_all_groups') }}</option>
                 @foreach($grupos as $g)
                     <option value="{{ $g }}">{{ $g }}</option>
                 @endforeach
@@ -18,7 +18,7 @@
         <table class="table-compact" style="font-size:12px;">
             <thead>
                 <tr>
-                    <th style="position:sticky;left:0;background:var(--surface);min-width:280px;">Permiso</th>
+                    <th style="position:sticky;left:0;background:var(--surface);min-width:280px;">{{ __('usuarios.col_permission') }}</th>
                     @foreach($rolesBase as $r)
                         <th style="text-align:center;min-width:80px;">
                             <span class="badge badge-neutral">{{ $r->codigo }}</span>

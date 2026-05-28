@@ -13,32 +13,32 @@
                     <x-ui.icon name="search" :size="13" />
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="Buscar…" style="padding-left:28px;"/>
+                       class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/>
             </div>
             <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ $estados->count() }} estados</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.estados_caso.n_estados', ['n' => $estados->count()]) }}</span>
             <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
-                <span>Nuevo estado</span>
+                <span>{{ __('configurador.estados_caso.nuevo') }}</span>
             </button>
         </div>
 
         @if($estados->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="folder" :size="32" /></div>
-                <div class="empty-title">Sin estados</div>
-                <div class="empty-desc">Define los estados operativos del caso (ej. Abierto, En gestión, Cerrado).</div>
+                <div class="empty-title">{{ __('configurador.estados_caso.sin_titulo') }}</div>
+                <div class="empty-desc">{{ __('configurador.estados_caso.sin_desc') }}</div>
             </div>
         @else
             <table class="table table-compact table-clickable">
                 <thead>
                     <tr>
-                        <th style="width:160px;">Código</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th style="width:90px;">Terminal</th>
-                        <th class="num" style="width:70px;">Orden</th>
-                        <th style="width:110px;">Estado</th>
+                        <th style="width:160px;">{{ __('configurador.campo_codigo') }}</th>
+                        <th>{{ __('common.name') }}</th>
+                        <th>{{ __('configurador.campo_descripcion') }}</th>
+                        <th style="width:90px;">{{ __('configurador.estados_caso.col_terminal') }}</th>
+                        <th class="num" style="width:70px;">{{ __('configurador.campo_orden') }}</th>
+                        <th style="width:110px;">{{ __('configurador.campo_estado') }}</th>
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>
@@ -50,7 +50,7 @@
                             <td><span style="font-size:12px;color:var(--text-secondary);">{{ $e->descripcion ?? '—' }}</span></td>
                             <td>
                                 @if($e->es_terminal)
-                                    <span class="badge badge-warning">Terminal</span>
+                                    <span class="badge badge-warning">{{ __('configurador.estados_caso.terminal_badge') }}</span>
                                 @else
                                     <span style="font-size:12px;color:var(--text-muted);">—</span>
                                 @endif
@@ -59,7 +59,7 @@
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:6px;">
                                     <span class="dot dot-{{ $e->activo ? 'success' : 'neutral' }}"></span>
-                                    {{ $e->activo ? 'Activo' : 'Inactivo' }}
+                                    {{ $e->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
                             </td>
                             <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
@@ -75,51 +75,51 @@
         <div class="drawer" wire:key="paso-estado-drawer">
             <div class="drawer-header">
                 <div style="font-size:14px;font-weight:600;">
-                    {{ $editandoId === null ? 'Nuevo estado' : 'Editar estado' }}
+                    {{ $editandoId === null ? __('configurador.estados_caso.drawer_nuevo') : __('configurador.estados_caso.drawer_editar') }}
                 </div>
-                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="Cerrar">
+                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}">
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
             <div class="drawer-body">
                 <div style="display:grid;grid-template-columns:1fr;gap:14px;">
                     <div>
-                        <label class="field-label">Código</label>
+                        <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="ABIERTO" maxlength="50"
                                class="input mono uppercase @error('form.codigo') input-error @enderror"/>
                         @error('form.codigo')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="field-label">Nombre</label>
+                        <label class="field-label">{{ __('common.name') }}</label>
                         <input type="text" wire:model="form.nombre" maxlength="150"
                                class="input @error('form.nombre') input-error @enderror"/>
                         @error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label class="field-label">Descripción (opcional)</label>
+                        <label class="field-label">{{ __('configurador.campo_descripcion') }}</label>
                         <textarea wire:model="form.descripcion" rows="3" maxlength="500"
                                   class="input @error('form.descripcion') input-error @enderror"></textarea>
                         @error('form.descripcion')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
-                            <label class="field-label">Orden</label>
+                            <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"
                                    class="input @error('form.orden') input-error @enderror"/>
                             @error('form.orden')<div class="field-error">{{ $message }}</div>@enderror
                         </div>
                         <div>
-                            <label class="field-label">Estado</label>
+                            <label class="field-label">{{ __('configurador.campo_estado') }}</label>
                             <label style="display:flex;align-items:center;gap:8px;padding-top:8px;">
                                 <input type="checkbox" wire:model="form.activo"/>
-                                <span style="font-size:13px;color:var(--text-secondary);">Activo</span>
+                                <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.activo') }}</span>
                             </label>
                         </div>
                     </div>
                     <div>
                         <label style="display:flex;align-items:center;gap:8px;">
                             <input type="checkbox" wire:model="form.es_terminal"/>
-                            <span style="font-size:13px;color:var(--text-secondary);">Estado terminal (cierra el caso)</span>
+                            <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.estados_caso.es_terminal') }}</span>
                         </label>
                     </div>
                 </div>
@@ -128,14 +128,14 @@
                 @if($editandoId !== null)
                     <button type="button"
                             wire:click="eliminar({{ $editandoId }})"
-                            wire:confirm="¿Eliminar este estado? Solo se permite si no hay casos asociados."
+                            wire:confirm="{{ __('configurador.estados_caso.confirm_eliminar') }}"
                             class="btn btn-ghost"
                             style="color:var(--danger-text);margin-right:auto;">
-                        Eliminar
+                        {{ __('common.delete') }}
                     </button>
                 @endif
-                <button type="button" wire:click="cerrarForm" class="btn btn-ghost">Cancelar</button>
-                <button type="button" wire:click="guardar" class="btn btn-primary">Guardar</button>
+                <button type="button" wire:click="cerrarForm" class="btn btn-ghost">{{ __('common.cancel') }}</button>
+                <button type="button" wire:click="guardar" class="btn btn-primary">{{ __('common.save') }}</button>
             </div>
         </div>
     @endif

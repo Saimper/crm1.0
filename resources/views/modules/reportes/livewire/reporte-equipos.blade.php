@@ -1,36 +1,36 @@
 <div class="space-y-4">
     <section class="rounded-lg border border-ink-200 bg-white p-4 flex items-center justify-between">
         <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">Métricas operativas por equipo</h3>
-            <p class="text-xs text-ink-500 mt-1">Rango: <strong>{{ $etiquetaRango }}</strong> · Proyecto: {{ $proyecto->nombre }}</p>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('reportes.teams_metrics_title') }}</h3>
+            <p class="text-xs text-ink-500 mt-1">{{ __('reportes.teams_metrics_subtitle', ['rango' => $etiquetaRango, 'proyecto' => $proyecto->nombre]) }}</p>
         </div>
         <div class="flex items-center gap-2 text-sm">
-            <label class="text-xs text-ink-600">Rango:</label>
+            <label class="text-xs text-ink-600">{{ __('reportes.range_label') }}</label>
             <select wire:model.live="rango" class="border-ink-300 rounded-md text-sm">
-                <option value="hoy">Hoy</option>
-                <option value="ayer">Ayer</option>
-                <option value="semana">Últimos 7 días</option>
-                <option value="mes">Mes en curso</option>
+                <option value="hoy">{{ __('reportes.range_today') }}</option>
+                <option value="ayer">{{ __('reportes.range_yesterday') }}</option>
+                <option value="semana">{{ __('reportes.range_last7') }}</option>
+                <option value="mes">{{ __('reportes.range_current_month') }}</option>
             </select>
         </div>
     </section>
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         @if(empty($filas))
-            <div class="p-6 text-sm text-ink-500 text-center">No hay equipos activos en este proyecto.</div>
+            <div class="p-6 text-sm text-ink-500 text-center">{{ __('reportes.empty_teams') }}</div>
         @else
             <table class="min-w-full divide-y divide-ink-200 text-sm">
                 <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">Equipo</th>
-                        <th class="px-3 py-2 text-right">Miembros</th>
-                        <th class="px-3 py-2 text-right">Gestiones</th>
-                        <th class="px-3 py-2 text-right">Casos intentados</th>
-                        <th class="px-3 py-2 text-right">Gestionados</th>
-                        <th class="px-3 py-2 text-right">Efectividad</th>
-                        <th class="px-3 py-2 text-right">Comp. vigentes</th>
-                        <th class="px-3 py-2 text-right">Comp. vencidos</th>
-                        <th class="px-3 py-2 text-center">Detalle</th>
+                        <th class="px-3 py-2 text-left">{{ __('reportes.col_team') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_members') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_gestiones') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted_cases') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed_cases') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_effectiveness') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_active_commitments') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_overdue_commitments') }}</th>
+                        <th class="px-3 py-2 text-center">{{ __('reportes.col_detail') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-100">
@@ -51,7 +51,7 @@
                             <td class="px-3 py-2 text-center">
                                 <button type="button" wire:click="expandir({{ $eq->id }})"
                                         class="text-xs text-brand-700 hover:underline">
-                                    {{ $expandido ? 'Ocultar' : 'Miembros' }}
+                                    {{ $expandido ? __('reportes.btn_hide') : __('reportes.btn_members') }}
                                 </button>
                             </td>
                         </tr>
@@ -59,17 +59,17 @@
                             <tr class="bg-brand-50/30">
                                 <td colspan="9" class="px-6 py-3">
                                     @if(empty($detalle))
-                                        <div class="text-xs text-ink-500">El equipo no tiene miembros activos.</div>
+                                        <div class="text-xs text-ink-500">{{ __('reportes.empty_team_members') }}</div>
                                     @else
                                         <table class="min-w-full text-xs">
                                             <thead class="text-ink-600">
                                                 <tr>
-                                                    <th class="px-2 py-1 text-left">Miembro</th>
-                                                    <th class="px-2 py-1 text-left">Email</th>
-                                                    <th class="px-2 py-1 text-right">Gestiones</th>
-                                                    <th class="px-2 py-1 text-right">Intentadas</th>
-                                                    <th class="px-2 py-1 text-right">Gestionadas</th>
-                                                    <th class="px-2 py-1 text-right">Efectividad</th>
+                                                    <th class="px-2 py-1 text-left">{{ __('reportes.col_member') }}</th>
+                                                    <th class="px-2 py-1 text-left">{{ __('reportes.col_email') }}</th>
+                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_gestiones') }}</th>
+                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_attempted_m') }}</th>
+                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_managed_m') }}</th>
+                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_effectiveness') }}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>

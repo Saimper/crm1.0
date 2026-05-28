@@ -2,8 +2,8 @@
     <div class="page">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Mis Proyectos</h1>
-                <div class="page-subtitle">Selecciona un proyecto para operar</div>
+                <h1 class="page-title">{{ __('dashboard.title') }}</h1>
+                <div class="page-subtitle">{{ __('dashboard.subtitle') }}</div>
             </div>
         </div>
 

@@ -64,28 +64,28 @@ new class extends Component
 
 <section>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
-        Actualiza tu nombre y email de la cuenta.
+        {{ __('profile.info_hint') }}
     </p>
 
     <form wire:submit="updateProfileInformation" style="display:flex;flex-direction:column;gap:14px;">
-        <x-ui.form-field label="Nombre" :error="$errors->first('name')">
+        <x-ui.form-field :label="__('common.name')" :error="$errors->first('name')">
             <input wire:model="name" id="name" name="name" type="text" required autofocus
                    autocomplete="name" class="input">
         </x-ui.form-field>
 
-        <x-ui.form-field label="Email" :error="$errors->first('email')">
+        <x-ui.form-field :label="__('common.email')" :error="$errors->first('email')">
             <input wire:model="email" id="email" name="email" type="email" required
                    autocomplete="username" class="input">
             @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! auth()->user()->hasVerifiedEmail())
                 <div style="margin-top:8px;font-size:12px;color:var(--text-secondary);">
-                    Tu email no está verificado.
+                    {{ __('profile.email_unverified') }}
                     <button type="button" wire:click.prevent="sendVerification"
                             style="background:transparent;border:0;color:var(--primary);cursor:pointer;text-decoration:underline;font-size:12px;padding:0;">
-                        Reenviar verificación
+                        {{ __('profile.resend_verification') }}
                     </button>
                     @if (session('status') === 'verification-link-sent')
                         <div style="margin-top:6px;color:var(--success);font-weight:500;">
-                            Enlace de verificación enviado.
+                            {{ __('profile.verification_sent') }}
                         </div>
                     @endif
                 </div>
@@ -93,9 +93,9 @@ new class extends Component
         </x-ui.form-field>
 
         <div style="display:flex;align-items:center;gap:12px;">
-            <x-ui.button type="submit">Guardar</x-ui.button>
+            <x-ui.button type="submit">{{ __('common.save') }}</x-ui.button>
             <x-action-message on="profile-updated">
-                <span style="font-size:12px;color:var(--success);">Guardado.</span>
+                <span style="font-size:12px;color:var(--success);">{{ __('common.saved') }}</span>
             </x-action-message>
         </div>
     </form>

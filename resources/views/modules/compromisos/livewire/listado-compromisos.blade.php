@@ -1,11 +1,11 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Compromisos del proyecto</h1>
+            <h1 class="page-title">{{ __('compromisos.title_list') }}</h1>
             <div class="page-subtitle">
-                <strong>{{ $resumen['pendientes'] }}</strong> pendientes ·
-                <span style="color:var(--danger);"><strong>{{ $resumen['vencidos'] }}</strong> vencidos</span> ·
-                {{ $resumen['cumplidos'] }} cumplidos · {{ $resumen['rotos'] }} rotos
+                <strong>{{ $resumen['pendientes'] }}</strong> {{ __('compromisos.state_pending') }} ·
+                <span style="color:var(--danger);"><strong>{{ $resumen['vencidos'] }}</strong> {{ __('compromisos.filter_expired') }}</span> ·
+                {{ $resumen['cumplidos'] }} {{ __('compromisos.state_fulfilled') }} · {{ $resumen['rotos'] }} {{ __('compromisos.state_broken') }}
             </div>
         </div>
     </div>
@@ -13,49 +13,49 @@
     <div class="card" style="padding:0;">
         <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <select wire:model.live="estado" class="input" style="width:160px;">
-                <option value="">Todos los estados</option>
-                <option value="pendiente">Pendiente</option>
-                <option value="cumplido">Cumplido</option>
-                <option value="roto">Roto</option>
-                <option value="cancelado">Cancelado</option>
+                <option value="">{{ __('compromisos.all_states') }}</option>
+                <option value="pendiente">{{ __('compromisos.state_pending') }}</option>
+                <option value="cumplido">{{ __('compromisos.state_fulfilled') }}</option>
+                <option value="roto">{{ __('compromisos.state_broken') }}</option>
+                <option value="cancelado">{{ __('compromisos.state_cancelled') }}</option>
             </select>
             <select wire:model.live="vencimiento" class="input" style="width:160px;">
-                <option value="">Cualquier vencimiento</option>
-                <option value="vigentes">Vigentes</option>
-                <option value="vencidos">Vencidos</option>
-                <option value="proximos7d">Próximos 7 días</option>
+                <option value="">{{ __('compromisos.any_expiry') }}</option>
+                <option value="vigentes">{{ __('compromisos.filter_active') }}</option>
+                <option value="vencidos">{{ __('compromisos.filter_expired') }}</option>
+                <option value="proximos7d">{{ __('compromisos.filter_next7d') }}</option>
             </select>
             <select wire:model.live="tipoCompromiso" class="input" style="width:200px;">
-                <option value="">Todos los tipos</option>
-                <option value="promesa_pago">Promesa de pago</option>
-                <option value="resolucion_ticket">Resolución ticket</option>
-                <option value="cierre_venta">Cierre de venta</option>
-                <option value="accion_servicio">Acción de servicio</option>
+                <option value="">{{ __('compromisos.all_types') }}</option>
+                <option value="promesa_pago">{{ __('compromisos.type_promise') }}</option>
+                <option value="resolucion_ticket">{{ __('compromisos.type_resolution') }}</option>
+                <option value="cierre_venta">{{ __('compromisos.type_close') }}</option>
+                <option value="accion_servicio">{{ __('compromisos.type_service') }}</option>
             </select>
             @if($estado !== '' || $vencimiento !== '' || $tipoCompromiso !== '')
-                <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">Limpiar</button>
+                <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('compromisos.clear_filters') }}</button>
             @endif
             <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ $compromisos->total() }} resultados</span>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('compromisos.results', ['count' => $compromisos->total()]) }}</span>
         </div>
 
         @if($compromisos->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="tag" :size="32" /></div>
-                <div class="empty-title">Sin compromisos</div>
-                <div class="empty-desc">No hay compromisos que coincidan con los filtros.</div>
+                <div class="empty-title">{{ __('compromisos.empty_title') }}</div>
+                <div class="empty-desc">{{ __('compromisos.empty_desc') }}</div>
             </div>
         @else
             <table class="table table-compact table-clickable">
                 <thead>
                     <tr>
-                        <th style="width:130px;">Tipo</th>
-                        <th style="width:100px;">Estado</th>
-                        <th>Persona</th>
-                        <th>Identificación</th>
-                        <th>Usuario</th>
-                        <th style="width:120px;">Vencimiento</th>
-                        <th style="width:120px;">Resuelto</th>
+                        <th style="width:130px;">{{ __('compromisos.col_type') }}</th>
+                        <th style="width:100px;">{{ __('compromisos.col_state') }}</th>
+                        <th>{{ __('compromisos.col_person') }}</th>
+                        <th>{{ __('compromisos.col_id_doc') }}</th>
+                        <th>{{ __('compromisos.col_user') }}</th>
+                        <th style="width:120px;">{{ __('compromisos.col_expiry') }}</th>
+                        <th style="width:120px;">{{ __('compromisos.col_resolved') }}</th>
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>

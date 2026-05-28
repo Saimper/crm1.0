@@ -3,7 +3,7 @@
 
     {{-- Stepper --}}
     <ol class="flex items-center gap-2 text-xs">
-        @foreach([1 => 'Subir archivo', 2 => 'Configurar columnas', 3 => 'Confirmar', 4 => 'Procesar'] as $idx => $nombre)
+        @foreach([1 => __('importaciones.step_upload'), 2 => __('importaciones.step_configure'), 3 => __('importaciones.step_confirm'), 4 => __('importaciones.step_process')] as $idx => $nombre)
             <li class="flex items-center gap-2">
                 <span class="inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold
                             {{ $paso === $idx ? 'bg-brand-600 text-white' : ($paso > $idx ? 'bg-success-500 text-white' : 'bg-ink-200 text-ink-600') }}">
@@ -18,7 +18,7 @@
     {{-- PASO 1: subir --}}
     @if($paso === 1)
         <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">¿Qué deseas importar?</h3>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('importaciones.what_to_import') }}</h3>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 @foreach($targetsDisponibles as $t)
@@ -33,9 +33,9 @@
 
             @if($target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
                 <div>
-                    <label class="block text-xs font-medium text-ink-700 mb-1">Cartera</label>
+                    <label class="block text-xs font-medium text-ink-700 mb-1">{{ __('importaciones.select_cartera') }}</label>
                     <select wire:model.live="carteraId" class="block w-full max-w-sm text-sm border-ink-300 rounded-md">
-                        <option value="">Selecciona una cartera…</option>
+                        <option value="">{{ __('importaciones.select_cartera_placeholder') }}</option>
                         @foreach($carteras as $c)
                             <option value="{{ $c->id }}">{{ $c->nombre }} ({{ $c->codigo }})</option>
                         @endforeach
@@ -105,14 +105,14 @@
                         <svg class="mx-auto h-8 w-8 text-brand-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
                         </svg>
-                        <div class="text-sm font-medium text-brand-700">Suelta el archivo aquí</div>
+                        <div class="text-sm font-medium text-brand-700">{{ __('importaciones.drop_here') }}</div>
                     </div>
 
                     <div x-show="!dragging && uploading" class="pointer-events-none">
                         <svg class="mx-auto h-8 w-8 text-brand-400 mb-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
-                        <div class="text-sm font-medium text-ink-600">Subiendo <span x-text="fileName"></span>…</div>
+                        <div class="text-sm font-medium text-ink-600">{{ __('importaciones.uploading', ['name' => '']) }}<span x-text="fileName"></span></div>
                         <div class="text-xs text-ink-400 mt-1" x-text="formatSize(fileSize)"></div>
                     </div>
 
@@ -131,8 +131,8 @@
                             <svg class="mx-auto h-8 w-8 text-ink-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3"/>
                             </svg>
-                            <div class="text-sm font-medium text-ink-700">Arrastra tu archivo aquí o <span class="text-brand-600 underline">selecciona</span></div>
-                            <div class="text-xs text-ink-500 mt-1">CSV, XLSX o XLSM · máx. 16 MB</div>
+                            <div class="text-sm font-medium text-ink-700">{!! __('importaciones.drag_or_select') !!}</div>
+                            <div class="text-xs text-ink-500 mt-1">{{ __('importaciones.file_hint') }}</div>
                         </div>
                     </template>
                 </div>
@@ -144,8 +144,8 @@
                         :disabled="uploading || submitted || !$wire.archivoListo"
                         wire:loading.attr="disabled"
                         wire:target="subirArchivo">
-                    <span wire:loading.remove wire:target="subirArchivo">Continuar al mapeo</span>
-                    <span wire:loading wire:target="subirArchivo">Procesando...</span>
+                    <span wire:loading.remove wire:target="subirArchivo">{{ __('importaciones.btn_continue_mapping') }}</span>
+                    <span wire:loading wire:target="subirArchivo">{{ __('importaciones.btn_processing') }}</span>
                 </button>
 
             </form>
@@ -157,10 +157,9 @@
         <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">Configurar columnas</h3>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('importaciones.configure_columns') }}</h3>
                     <p class="text-xs text-ink-500 mt-1">
-                        Importando: <strong>{{ $target?->etiqueta() }}</strong>
-                        · {{ count($columnas) }} columnas detectadas.
+                        {{ __('importaciones.importing_subtitle', ['target' => $target?->etiqueta(), 'count' => count($columnas)]) }}
                     </p>
                 </div>
             </div>
@@ -179,10 +178,10 @@
                 <table class="min-w-full divide-y divide-ink-200 text-sm">
                     <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                         <tr>
-                            <th class="px-3 py-2 text-left">Columna del archivo</th>
-                            <th class="px-3 py-2 text-left">Tipo inferido</th>
-                            <th class="px-3 py-2 text-left">Acción</th>
-                            <th class="px-3 py-2 text-center" colspan="2">Identificador</th>
+                            <th class="px-3 py-2 text-left">{{ __('importaciones.col_file_column') }}</th>
+                            <th class="px-3 py-2 text-left">{{ __('importaciones.col_inferred_type') }}</th>
+                            <th class="px-3 py-2 text-left">{{ __('importaciones.col_action') }}</th>
+                            <th class="px-3 py-2 text-center" colspan="2">{{ __('importaciones.col_identifier') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-ink-100">
@@ -201,15 +200,15 @@
                                     default => 'bg-ink-100 text-ink-700',
                                 };
                                 $tipoLabel = match($col['tipo_inferido']) {
-                                    'texto_corto' => 'Texto corto',
-                                    'texto_largo' => 'Texto largo',
-                                    'numero_entero' => 'Nº entero',
-                                    'numero_decimal' => 'Nº decimal',
-                                    'fecha' => 'Fecha',
-                                    'fecha_hora' => 'Fecha/hora',
-                                    'booleano' => 'Booleano',
-                                    'seleccion_unica' => 'Selección',
-                                    'moneda' => 'Moneda',
+                                    'texto_corto' => __('importaciones.tipo_texto_corto'),
+                                    'texto_largo' => __('importaciones.tipo_texto_largo'),
+                                    'numero_entero' => __('importaciones.tipo_numero_entero'),
+                                    'numero_decimal' => __('importaciones.tipo_numero_decimal'),
+                                    'fecha' => __('importaciones.tipo_fecha'),
+                                    'fecha_hora' => __('importaciones.tipo_fecha_hora'),
+                                    'booleano' => __('importaciones.tipo_booleano'),
+                                    'seleccion_unica' => __('importaciones.tipo_seleccion_unica'),
+                                    'moneda' => __('importaciones.tipo_moneda'),
                                     default => $col['tipo_inferido'],
                                 };
                             @endphp
@@ -236,12 +235,12 @@
                                         @if($col['campo_sistema_mapeado'])
                                             <option value="mapear_sistema" @selected($col['accion'] === 'mapear_sistema')>→ {{ $col['campo_sistema_mapeado'] }}</option>
                                         @endif
-                                        <option value="crear_cp" @selected($col['accion'] === 'crear_cp')>Crear campo personalizado</option>
-                                        <option value="ignorar" @selected($col['accion'] === 'ignorar')>Ignorar</option>
+                                        <option value="crear_cp" @selected($col['accion'] === 'crear_cp')>{{ __('importaciones.action_create_cp') }}</option>
+                                        <option value="ignorar" @selected($col['accion'] === 'ignorar')>{{ __('importaciones.action_ignore') }}</option>
                                     </select>
                                 </td>
                                 <td class="px-3 py-2 text-center">
-                                    <div class="text-[10px] text-ink-500 mb-1">Persona</div>
+                                    <div class="text-[10px] text-ink-500 mb-1">{{ __('importaciones.identifier_persona') }}</div>
                                     <input type="radio"
                                            name="columna_identificador"
                                            wire:click="marcarComoIdentificador('{{ $col['nombre_original'] }}')"
@@ -250,7 +249,7 @@
                                 </td>
                                 @if($target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
                                 <td class="px-3 py-2 text-center">
-                                    <div class="text-[10px] text-ink-500 mb-1">Caso</div>
+                                    <div class="text-[10px] text-ink-500 mb-1">{{ __('importaciones.identifier_caso') }}</div>
                                     <input type="radio"
                                            name="columna_identificador_caso"
                                            wire:click="marcarComoIdentificadorCaso('{{ $col['nombre_original'] }}')"
@@ -275,35 +274,35 @@
             <div class="flex items-center gap-4 text-xs text-ink-600">
                 <span class="inline-flex items-center gap-1">
                     <span class="inline-block w-2 h-2 rounded-full bg-brand-500"></span>
-                    {{ $mapeadasSistema }} mapeadas al sistema
+                    {{ __('importaciones.mapped_to_system', ['count' => $mapeadasSistema]) }}
                 </span>
                 <span class="inline-flex items-center gap-1">
                     <span class="inline-block w-2 h-2 rounded-full bg-success-500"></span>
-                    {{ $crearCP }} nuevas como CP
+                    {{ __('importaciones.new_as_cp', ['count' => $crearCP]) }}
                 </span>
                 <span class="inline-flex items-center gap-1">
                     <span class="inline-block w-2 h-2 rounded-full bg-ink-300"></span>
-                    {{ $ignoradas }} ignoradas
+                    {{ __('importaciones.ignored', ['count' => $ignoradas]) }}
                 </span>
                 @if(! $tieneIdPersona)
-                    <span class="text-warning-700 font-medium">⚠ Sin identificador de persona</span>
+                    <span class="text-warning-700 font-medium">{{ __('importaciones.warn_no_persona_id') }}</span>
                 @endif
                 @if(! $tieneIdCaso && $target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
-                    <span class="text-warning-700 font-medium">⚠ Sin identificador de caso</span>
+                    <span class="text-warning-700 font-medium">{{ __('importaciones.warn_no_case_id') }}</span>
                 @endif
             </div>
 
             <div class="flex items-center justify-end gap-2">
                 <button type="button" wire:click="cerrar"
                         class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
-                    Descartar
+                    {{ __('importaciones.btn_discard') }}
                 </button>
                 <button type="button" wire:click="confirmarMapeo"
                         class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         wire:loading.attr="disabled"
                         wire:target="confirmarMapeo">
-                    <span wire:loading.remove wire:target="confirmarMapeo">Validar y continuar</span>
-                    <span wire:loading wire:target="confirmarMapeo">Procesando...</span>
+                    <span wire:loading.remove wire:target="confirmarMapeo">{{ __('importaciones.btn_validate_continue') }}</span>
+                    <span wire:loading wire:target="confirmarMapeo">{{ __('importaciones.btn_processing') }}</span>
                 </button>
             </div>
             @error('columnas')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror
@@ -313,38 +312,38 @@
     {{-- PASO 3: confirmar --}}
     @if($paso === 3 && $resultadoDryRun !== null)
         <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">Confirmar importación</h3>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('importaciones.confirm_title') }}</h3>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div class="rounded border border-ink-200 p-3">
-                    <div class="text-[10px] uppercase text-ink-500">Target</div>
+                    <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_target') }}</div>
                     <div class="mt-1 font-medium text-ink-900">{{ $target?->etiqueta() }}</div>
                 </div>
                 <div class="rounded border border-ink-200 p-3">
-                    <div class="text-[10px] uppercase text-ink-500">Total filas</div>
+                    <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_total_rows') }}</div>
                     <div class="mt-1 font-semibold text-ink-900">{{ $resultadoDryRun['filasTotales'] }}</div>
                 </div>
                 <div class="rounded border border-brand-200 bg-brand-50 p-3">
-                    <div class="text-[10px] uppercase text-brand-700">Modo</div>
+                    <div class="text-[10px] uppercase text-brand-700">{{ __('importaciones.label_mode') }}</div>
                     <div class="mt-1 font-semibold text-brand-900">{{ collect(\App\Modules\Importaciones\Domain\Enums\ModoImportacion::cases())->first(fn($m) => $m->value === $modo)?->label() ?? $modo }}</div>
                 </div>
                 <div class="rounded border border-ink-200 p-3">
-                    <div class="text-[10px] uppercase text-ink-500">Campos sistema</div>
+                    <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_system_fields') }}</div>
                     <div class="mt-1 font-semibold text-ink-900">{{ collect($columnas)->filter(fn($c) => $c['accion'] === 'mapear_sistema')->count() }}</div>
                 </div>
                 <div class="rounded border border-success-200 bg-success-50 p-3">
-                    <div class="text-[10px] uppercase text-success-700">CP a crear</div>
+                    <div class="text-[10px] uppercase text-success-700">{{ __('importaciones.label_cp_to_create') }}</div>
                     <div class="mt-1 font-semibold text-success-900">{{ count($resultadoDryRun['camposPersonalizadosACrear'] ?? []) }}</div>
                 </div>
                 <div class="rounded border border-ink-200 p-3">
-                    <div class="text-[10px] uppercase text-ink-500">CP reutilizados</div>
+                    <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_cp_reused') }}</div>
                     <div class="mt-1 font-semibold text-ink-900">{{ $resultadoDryRun['camposReutilizados'] ?? 0 }}</div>
                 </div>
             </div>
 
             @if(isset($resultadoDryRun['camposPersonalizadosACrear']) && count($resultadoDryRun['camposPersonalizadosACrear']) > 0)
                 <details class="rounded border border-ink-200 bg-ink-50 p-3 text-xs">
-                    <summary class="cursor-pointer font-medium text-ink-700">Campos personalizados a crear ({{ count($resultadoDryRun['camposPersonalizadosACrear']) }})</summary>
+                    <summary class="cursor-pointer font-medium text-ink-700">{{ __('importaciones.cp_to_create_summary', ['count' => count($resultadoDryRun['camposPersonalizadosACrear'])]) }}</summary>
                     <ul class="mt-2 space-y-1">
                         @foreach($resultadoDryRun['camposPersonalizadosACrear'] as $cp)
                             <li class="font-mono text-ink-600">{{ $cp }}</li>
@@ -354,7 +353,7 @@
             @endif
 
             <div>
-                <label class="block text-xs font-medium text-ink-700 mb-1">Modo de importación</label>
+                <label class="block text-xs font-medium text-ink-700 mb-1">{{ __('importaciones.import_mode_label') }}</label>
                 <select wire:model="modo" class="block w-full text-sm border-ink-300 rounded-md">
                     @foreach(\App\Modules\Importaciones\Domain\Enums\ModoImportacion::cases() as $m)
                         @if($m->esNuevo() || $m === \App\Modules\Importaciones\Domain\Enums\ModoImportacion::MERGE)
@@ -377,15 +376,15 @@
             <div class="flex items-center justify-end gap-2">
                 <button type="button" wire:click="cerrar"
                         class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
-                    Descartar
+                    {{ __('importaciones.btn_discard') }}
                 </button>
                 <button type="button" wire:click="ejecutar"
-                        wire:confirm="¿Confirmar importación? Este proceso puede tardar varios minutos."
+                        wire:confirm="{{ __('importaciones.confirm_execute') }}"
                         class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         wire:loading.attr="disabled"
                         wire:target="ejecutar">
-                    <span wire:loading.remove wire:target="ejecutar">Ejecutar importación</span>
-                    <span wire:loading wire:target="ejecutar">Procesando...</span>
+                    <span wire:loading.remove wire:target="ejecutar">{{ __('importaciones.btn_execute') }}</span>
+                    <span wire:loading wire:target="ejecutar">{{ __('importaciones.btn_processing') }}</span>
                 </button>
             </div>
             @error('columnas')<div class="text-xs text-danger-600">{{ $message }}</div>@enderror
@@ -398,61 +397,61 @@
         <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-sm">
                 <div class="rounded border border-ink-200 p-3">
-                    <div class="text-[10px] uppercase text-ink-500">Estado</div>
+                    <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_status') }}</div>
                     <div class="mt-1 font-mono text-ink-900">{{ $estadoActual }}</div>
                 </div>
                 <div class="rounded border border-ink-200 p-3">
-                    <div class="text-[10px] uppercase text-ink-500">Total</div>
+                    <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_total') }}</div>
                     <div class="mt-1 font-semibold text-ink-900">{{ $progreso->totalFilas }}</div>
                 </div>
                 <div class="rounded border border-success-200 bg-success-50 p-3">
-                    <div class="text-[10px] uppercase text-success-700">Insertadas</div>
+                    <div class="text-[10px] uppercase text-success-700">{{ __('importaciones.label_inserted') }}</div>
                     <div class="mt-1 font-semibold text-success-700">{{ $progreso->insertadas }}</div>
                 </div>
                 <div class="rounded border border-blue-200 bg-blue-50 p-3">
-                    <div class="text-[10px] uppercase text-blue-700">Actualizadas</div>
+                    <div class="text-[10px] uppercase text-blue-700">{{ __('importaciones.label_updated') }}</div>
                     <div class="mt-1 font-semibold text-blue-700">{{ $progreso->actualizadas }}</div>
                 </div>
                 <div class="rounded border border-warning-200 bg-warning-50 p-3">
-                    <div class="text-[10px] uppercase text-warning-700">Duplicadas</div>
+                    <div class="text-[10px] uppercase text-warning-700">{{ __('importaciones.label_duplicated') }}</div>
                     <div class="mt-1 font-semibold text-warning-700">{{ $progreso->duplicadas }}</div>
                 </div>
                 <div class="rounded border border-danger-200 bg-danger-50 p-3">
-                    <div class="text-[10px] uppercase text-danger-700">Inválidas</div>
+                    <div class="text-[10px] uppercase text-danger-700">{{ __('importaciones.label_invalid') }}</div>
                     <div class="mt-1 font-semibold text-danger-700">{{ $progreso->invalidas }}</div>
                 </div>
             </div>
 
             <div class="space-y-1">
                 <div class="flex items-center justify-between text-xs text-ink-700">
-                    <span>Progreso</span>
+                    <span>{{ __('importaciones.label_progress') }}</span>
                     <span class="font-mono">{{ $progreso->porcentaje() }}%</span>
                 </div>
                 <div class="w-full bg-ink-200 rounded h-2 overflow-hidden">
                     <div class="bg-brand-600 h-2 transition-all duration-500" style="width: {{ $progreso->porcentaje() }}%"></div>
                 </div>
                 @if($progreso->errorGlobal)
-                    <div class="text-xs text-danger-700 mt-1">Error: {{ $progreso->errorGlobal }}</div>
+                    <div class="text-xs text-danger-700 mt-1">{{ __('importaciones.error_prefix', ['message' => $progreso->errorGlobal]) }}</div>
                 @endif
             </div>
 
             @if($resultadoDryRun !== null && ($resultadoDryRun['camposCreados'] ?? 0) > 0)
                 <div class="text-xs text-success-700">
-                    ✓ {{ $resultadoDryRun['camposCreados'] }} campos personalizados creados durante la importación.
+                    {{ __('importaciones.cp_created_notice', ['count' => $resultadoDryRun['camposCreados']]) }}
                 </div>
             @endif
 
             <div class="flex items-center justify-end gap-2">
                 @if($estadoActual === 'procesando')
                     <button type="button" wire:click="cancelar"
-                            wire:confirm="¿Cancelar la importación en curso?"
+                            wire:confirm="{{ __('importaciones.confirm_cancel') }}"
                             class="px-3 py-1.5 text-xs text-white bg-danger-600 rounded hover:bg-danger-700">
-                        Cancelar
+                        {{ __('importaciones.btn_cancel_import') }}
                     </button>
                 @elseif(in_array($estadoActual, ['completada', 'fallida', 'cancelada'], true))
                     <button type="button" wire:click="cerrar"
                             class="px-3 py-1.5 text-xs text-white bg-success-600 rounded hover:bg-success-700">
-                        Nueva importación
+                        {{ __('importaciones.btn_new_import') }}
                     </button>
                 @endif
             </div>
@@ -462,25 +461,25 @@
     {{-- Historial --}}
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            Historial de importaciones ({{ $historial->count() }})
+            {{ __('importaciones.history_title', ['count' => $historial->count()]) }}
         </div>
         @if($historial->isEmpty())
-            <div class="p-6 text-sm text-ink-500 text-center">Aún no hay importaciones en este proyecto.</div>
+            <div class="p-6 text-sm text-ink-500 text-center">{{ __('importaciones.history_empty') }}</div>
         @else
             <table class="min-w-full divide-y divide-ink-200 text-sm">
                 <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">Fecha</th>
-                        <th class="px-3 py-2 text-left">Archivo</th>
-                        <th class="px-3 py-2 text-left">Tipo</th>
-                        <th class="px-3 py-2 text-left">Modo</th>
-                        <th class="px-3 py-2 text-left">Usuario</th>
-                        <th class="px-3 py-2 text-right">Total</th>
-                        <th class="px-3 py-2 text-right">Insertadas</th>
-                        <th class="px-3 py-2 text-right">Actualizadas</th>
-                        <th class="px-3 py-2 text-right">Duplicadas</th>
-                        <th class="px-3 py-2 text-right">Inválidas</th>
-                        <th class="px-3 py-2 text-left">Estado</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_date') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_file') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_type') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_mode') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_user') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_total') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_inserted') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_updated') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_duplicated') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_invalid') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('importaciones.col_status') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-100">
@@ -506,17 +505,17 @@
 
     {{-- Exportaciones --}}
     <section class="rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
-        <div class="text-sm font-semibold text-brand-900">Exportaciones CSV del proyecto</div>
+        <div class="text-sm font-semibold text-brand-900">{{ __('importaciones.exports_title') }}</div>
         @php $pid = app('tenancy.proyecto_activo')->id; @endphp
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
             <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Personas</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_personas') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Casos</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_casos') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Gestiones</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_gestiones') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">Compromisos</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_compromisos') }}</a>
         </div>
     </section>
 </div>

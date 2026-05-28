@@ -2,15 +2,15 @@
     <div class="flex items-center gap-2">
         <button type="button" wire:click="abrir('cumplida')"
                 class="inline-flex items-center px-3 py-1.5 bg-success-600 text-white text-xs font-medium rounded hover:bg-success-700">
-            Cumplida
+            {{ __('cobranza.btn_cumplida') }}
         </button>
         <button type="button" wire:click="abrir('rota')"
                 class="inline-flex items-center px-3 py-1.5 bg-danger-600 text-white text-xs font-medium rounded hover:bg-danger-700">
-            Rota
+            {{ __('cobranza.btn_rota') }}
         </button>
         <button type="button" wire:click="abrir('cancelada')"
                 class="inline-flex items-center px-3 py-1.5 bg-ink-500 text-white text-xs font-medium rounded hover:bg-ink-600">
-            Cancelar
+            {{ __('cobranza.btn_cancelar') }}
         </button>
     </div>
 
@@ -26,9 +26,9 @@
              wire:key="modal-resolver-{{ $compromisoId }}">
             <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-5">
                 <div class="text-sm font-semibold text-ink-900 mb-2">
-                    Marcar promesa como <span class="capitalize">{{ $accion }}</span>
+                    {{ __('cobranza.modal_title') }} <span class="capitalize">{{ $accion }}</span>
                 </div>
-                <label class="block text-xs font-medium text-ink-700">Fecha de resolución</label>
+                <label class="block text-xs font-medium text-ink-700">{{ __('cobranza.fecha_resolucion') }}</label>
                 <input type="date" wire:model="fechaResolucion"
                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
                 @error('fechaResolucion')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
@@ -37,11 +37,11 @@
                 <div class="mt-4 flex items-center justify-end gap-2">
                     <button type="button" wire:click="cerrar"
                             class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
-                        Cancelar
+                        {{ __('common.cancel') }}
                     </button>
                     <button type="button" wire:click="confirmar"
                             class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                        Confirmar
+                        {{ __('common.confirm') }}
                     </button>
                 </div>
             </div>

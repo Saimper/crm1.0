@@ -1,6 +1,6 @@
 <div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-        <span class="label-xs">Catálogos del tipo</span>
+        <span class="label-xs">{{ __('configurador.catalogos_tipo.label') }}</span>
         <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;">
             {{ $proyecto->tipo_operacion }}
         </span>
@@ -44,7 +44,7 @@
         <livewire:dynamic-component :is="$aliasActivo" :proyecto="$proyecto" :key="'subcat-'.$tabActiva.'-'.$proyecto->id"/>
     @else
         <div class="empty">
-            <div class="empty-title">Tipo de proyecto sin catálogos específicos</div>
+            <div class="empty-title">{{ __('configurador.sin_catalogos_especificos') }}</div>
         </div>
     @endif
 </div>

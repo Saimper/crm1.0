@@ -34,19 +34,19 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Confirma tu contraseña</h1>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">{{ __('auth.confirm_title') }}</h1>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-        Esta es un área segura. Confirma tu contraseña para continuar.
+        {{ __('auth.confirm_subtitle') }}
     </p>
 
     <form wire:submit="confirmPassword" style="display:flex;flex-direction:column;gap:14px;">
-        <x-ui.form-field label="Contraseña" :error="$errors->first('password')">
+        <x-ui.form-field :label="__('common.password')" :error="$errors->first('password')">
             <input wire:model="password" id="password" type="password" name="password" required
                    autocomplete="current-password" class="input" autofocus>
         </x-ui.form-field>
 
         <div style="display:flex;justify-content:flex-end;">
-            <x-ui.button type="submit">Confirmar</x-ui.button>
+            <x-ui.button type="submit">{{ __('auth.confirm_button') }}</x-ui.button>
         </div>
     </form>
 </div>

@@ -4,17 +4,17 @@
     <div class="page">
         <div class="page-header">
             <div>
-                <h1 class="page-title">{{ $proyecto ? 'Auditoría' : 'Auditoría global' }}</h1>
+                <h1 class="page-title">{{ $proyecto ? __('auditoria.title') : __('auditoria.title_global') }}</h1>
                 <div class="page-subtitle">
-                    {{ $proyecto ? $proyecto->nombre : 'Eventos de todos los proyectos + eventos globales (admin).' }}
+                    {{ $proyecto ? $proyecto->nombre : __('auditoria.subtitle_global') }}
                 </div>
             </div>
             <div style="display:flex;gap:8px;">
                 @if($proyecto)
                     <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]) }}"
-                       wire:navigate class="btn btn-ghost btn-sm">← Volver al proyecto</a>
+                       wire:navigate class="btn btn-ghost btn-sm">{{ __('auditoria.back_to_project') }}</a>
                 @else
-                    <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">← Panel admin</a>
+                    <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('auditoria.back_to_admin') }}</a>
                 @endif
             </div>
         </div>

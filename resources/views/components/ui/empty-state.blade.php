@@ -1,5 +1,5 @@
 @props([
-    'title'   => 'Sin datos',
+    'title'   => null,
     'message' => null,
 ])
 
@@ -7,7 +7,7 @@
     @isset($icon)
         <div class="empty-icon">{!! $icon !!}</div>
     @endisset
-    <h3 class="empty-title">{{ $title }}</h3>
+    <h3 class="empty-title">{{ $title ?? __('common.no_data') }}</h3>
     @if($message)
         <p class="empty-desc">{{ $message }}</p>
     @endif

@@ -6,10 +6,10 @@
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                 <div>
                     <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;color:var(--success-text);">
-                        Compromiso vigente
+                        {{ __('casos.active_commitment') }}
                     </div>
                     <div style="font-size:14px;color:var(--text);font-weight:500;">
-                        Vence {{ \Illuminate\Support\Carbon::parse($compromisoActivo->fecha_vencimiento)->format('d/m/Y') }}
+                        {{ __('casos.expires', ['date' => \Illuminate\Support\Carbon::parse($compromisoActivo->fecha_vencimiento)->format('d/m/Y')]) }}
                         @if(isset($compromisoActivo->promesa) && $compromisoActivo->promesa)
                             · <span class="font-mono">{{ $compromisoActivo->promesa->moneda }} {{ number_format((float) $compromisoActivo->promesa->monto, 2, '.', ',') }}</span>
                         @elseif(isset($compromisoActivo->cierre) && $compromisoActivo->cierre)
@@ -30,7 +30,7 @@
                         <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
                            wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
                             <x-ui.icon name="edit" :size="13" />
-                            <span>Editar</span>
+                            <span>{{ __('common.edit') }}</span>
                         </a>
                     @endcan
                     @if($casoActivo && $casoActivo->tipo_caso === 'cobranza' && $compromisoActivo->tipo_compromiso === 'promesa_pago')
@@ -65,7 +65,7 @@
                         <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">
                             {{ ucfirst($persona->tipo_persona) }}
                             @if($persona->tipo_persona === 'fisica' && $persona->fecha_nacimiento)
-                                · nac. {{ \Illuminate\Support\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y') }}
+                                · {{ __('casos.born_abbrev') }} {{ \Illuminate\Support\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y') }}
                             @endif
                         </div>
                     </div>
@@ -74,13 +74,13 @@
                             <a href="{{ route('proyectos.personas.editar', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
                                wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
                                 <x-ui.icon name="edit" :size="14" />
-                                <span>Editar</span>
+                                <span>{{ __('common.edit') }}</span>
                             </a>
                         @endcan
                         <a href="{{ route('proyectos.personas.contactos', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
                            wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
                             <x-ui.icon name="phone" :size="14" />
-                            <span>Contactos</span>
+                            <span>{{ __('casos.contacts_button') }}</span>
                         </a>
                     </div>
                 </div>
@@ -92,7 +92,7 @@
                                 <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
                                     <span style="font-size:11px;font-weight:500;color:var(--text);">{{ ucfirst($c->tipo) }}</span>
                                     @if($c->es_principal)
-                                        <span style="font-size:9px;text-transform:uppercase;color:var(--primary);font-weight:600;">principal</span>
+                                        <span style="font-size:9px;text-transform:uppercase;color:var(--primary);font-weight:600;">{{ __('contactos.badge_principal') }}</span>
                                     @endif
                                 </div>
                                 <div style="font-size:12px;color:var(--text-secondary);word-break:break-all;">{{ $c->valor }}</div>
@@ -102,16 +102,16 @@
                 @endif
             </x-ui.card>
 
-            <x-ui.card title="Casos ({{ $casos->count() }})" style="margin-top:12px;">
+            <x-ui.card :title="__('casos.cases_count', ['count' => $casos->count()])" style="margin-top:12px;">
                 @can('casos.crear', $proyectoActivo->id)
                     <a href="{{ route('proyectos.casos.crear', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
                        wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;text-decoration:none;">
                         <x-ui.icon name="plus" :size="13" />
-                        <span>Nuevo caso</span>
+                        <span>{{ __('casos.new_case') }}</span>
                     </a>
                 @endcan
                 @if($casos->isEmpty())
-                    <x-ui.empty-state title="Sin casos abiertos" message="Esta persona aún no tiene casos en este proyecto." />
+                    <x-ui.empty-state :title="__('casos.no_open_cases')" :message="__('casos.no_open_cases_desc')" />
                 @else
                     <div style="display:flex;flex-direction:column;gap:6px;margin:-4px -4px 0;">
                         @foreach($casos as $c)
@@ -133,12 +133,12 @@
                                     <div style="font-size:11px;color:var(--text-tertiary);">
                                         {{ $c->estado_caso_nombre }}
                                         @if($c->tiene_compromiso_vigente)
-                                            · <span style="color:var(--success);font-weight:500;">compromiso vigente</span>
+                                            · <span style="color:var(--success);font-weight:500;">{{ __('casos.active_commitment_label') }}</span>
                                         @endif
                                     </div>
                                 </div>
                                 <div style="font-size:11px;color:var(--text-tertiary);text-align:right;">
-                                    prio {{ $c->prioridad }}
+                                    {{ __('casos.prio_label', ['value' => $c->prioridad]) }}
                                 </div>
                             </button>
                         @endforeach
@@ -163,14 +163,14 @@
                             <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
                                wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
                                 <x-ui.icon name="edit" :size="13" />
-                                <span>Editar caso</span>
+                                <span>{{ __('casos.edit_case') }}</span>
                             </a>
                         </div>
                     @endcan
                 </div>
 
                 @if(isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
-                    <x-ui.card title="Compromisos resueltos ({{ $compromisosResueltos->count() }})" style="margin-top:12px;">
+                    <x-ui.card :title="__('casos.resolved_commitments', ['count' => $compromisosResueltos->count()])" style="margin-top:12px;">
                         <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
                             @foreach($compromisosResueltos as $c)
                                 @php
@@ -190,15 +190,15 @@
                                             </span>
                                         </div>
                                         <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
-                                            Vencimiento: {{ \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y') }}
+                                            {{ __('casos.expiry_label', ['date' => \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y')]) }}
                                         </div>
                                     </div>
                                     <div style="font-size:11px;color:var(--text-secondary);text-align:right;">
                                         @if($c->fecha_resolucion)
-                                            Resuelto<br>
+                                            {{ __('casos.resolved_label') }}<br>
                                             <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
                                         @else
-                                            <span style="color:var(--text-tertiary);">sin fecha</span>
+                                            <span style="color:var(--text-tertiary);">{{ __('casos.no_date') }}</span>
                                         @endif
                                     </div>
                                 </li>
@@ -228,7 +228,7 @@
              se editan en "Editar caso"; aquí los del ámbito gestión van inline en NuevaGestion. --}}
         <div class="vt-col-mid">
             @if($casoActivo)
-                <x-ui.card title="Registrar gestión">
+                <x-ui.card :title="__('casos.register_gestion_title')">
                     <livewire:casos.nueva-gestion
                         :casoId="$casoActivo->id"
                         :personaId="$persona->id"
@@ -237,7 +237,7 @@
                 </x-ui.card>
             @else
                 <x-ui.card>
-                    <x-ui.empty-state title="Selecciona un caso" message="Elige un caso del listado para registrar gestiones." />
+                    <x-ui.empty-state :title="__('casos.select_case_title')" :message="__('casos.select_case_desc')" />
                 </x-ui.card>
             @endif
         </div>
@@ -245,9 +245,9 @@
         {{-- Col derecha: historial --}}
         <div class="vt-col-right">
             @if($casoActivo)
-                <x-ui.card title="Historial ({{ $historial->count() }})">
+                <x-ui.card :title="__('casos.history_title', ['count' => $historial->count()])">
                     @if($historial->isEmpty())
-                        <x-ui.empty-state title="Sin gestiones" message="Aún no hay gestiones registradas." />
+                        <x-ui.empty-state :title="__('casos.no_gestions')" :message="__('casos.no_gestions_desc')" />
                     @else
                         <x-ui.timeline>
                             @foreach($historial as $g)
@@ -276,10 +276,10 @@
                                     @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
                                         <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
                                             @if($g->motivo_no_contacto_nombre)
-                                                <x-ui.badge tone="warning" size="sm">No contacto: {{ $g->motivo_no_contacto_nombre }}</x-ui.badge>
+                                                <x-ui.badge tone="warning" size="sm">{{ __('casos.no_contact_badge', ['motivo' => $g->motivo_no_contacto_nombre]) }}</x-ui.badge>
                                             @endif
                                             @if($g->causa_nombre)
-                                                <x-ui.badge tone="info" size="sm">Causa: {{ $g->causa_nombre }}</x-ui.badge>
+                                                <x-ui.badge tone="info" size="sm">{{ __('casos.cause_badge', ['causa' => $g->causa_nombre]) }}</x-ui.badge>
                                             @endif
                                         </div>
                                     @endif
@@ -299,8 +299,8 @@
                     @endif
                 </x-ui.card>
             @else
-                <x-ui.card title="Campos personalizados">
-                    <x-ui.empty-state title="Sin caso activo" message="Selecciona un caso para ver sus campos personalizados e historial." />
+                <x-ui.card :title="__('casos.custom_fields_panel')">
+                    <x-ui.empty-state :title="__('casos.no_active_case')" :message="__('casos.no_active_case_desc')" />
                 </x-ui.card>
             @endif
         </div>

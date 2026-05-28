@@ -4,7 +4,7 @@
     <div class="page">
         <div class="page-header">
             <div>
-                <h1 class="page-title">Bandeja</h1>
+                <h1 class="page-title">{{ __('asignaciones.page_bandeja_title') }}</h1>
                 <div class="page-subtitle">{{ $proyecto->nombre }}</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">

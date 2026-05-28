@@ -2,7 +2,7 @@
     <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <h4 class="text-xs font-semibold uppercase tracking-wider" style="color:var(--text-secondary);letter-spacing:0.06em;">
-                Campos personalizados
+                {{ __('campos_personalizados.section_title') }}
             </h4>
             @if(session('campos-ok'))
                 <div class="text-xs text-success-700 bg-success-50 border border-success-200 rounded px-2 py-0.5"
@@ -18,7 +18,7 @@
 
         @if($campos->isEmpty())
             <div class="text-xs" style="color:var(--text-tertiary);">
-                Sin campos personalizados definidos para este ámbito.
+                {{ __('campos_personalizados.empty_scope') }}
             </div>
         @else
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -67,8 +67,8 @@
                                         @disabled($soloLectura)
                                         class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
                                     <option value="">—</option>
-                                    <option value="1">Sí</option>
-                                    <option value="0">No</option>
+                                    <option value="1">{{ __('entidades.si') }}</option>
+                                    <option value="0">{{ __('entidades.no') }}</option>
                                 </select>
                                 @break
                             @default
@@ -83,7 +83,7 @@
             @if(! $bloqueado)
                 <div class="mt-3 flex items-center justify-end">
                     <button type="button" wire:click="guardar" class="btn btn-ghost btn-sm">
-                        Guardar campos
+                        {{ __('campos_personalizados.save_fields') }}
                     </button>
                 </div>
             @endif

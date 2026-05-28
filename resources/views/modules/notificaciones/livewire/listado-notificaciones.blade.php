@@ -2,18 +2,18 @@
     <x-ui.card padding="p-4">
         <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 text-sm">
-                <span class="text-ink-700">Filtro:</span>
+                <span class="text-ink-700">{{ __('notificaciones.filter_label') }}</span>
                 <select wire:model.live="filtro" class="border-surface-border rounded-lg text-sm focus:border-brand-500 focus:ring-brand-500">
-                    <option value="no_leidas">Solo no leídas</option>
-                    <option value="todas">Todas</option>
+                    <option value="no_leidas">{{ __('notificaciones.filter_unread') }}</option>
+                    <option value="todas">{{ __('notificaciones.filter_all') }}</option>
                 </select>
                 <span class="text-xs text-ink-500">
-                    No leídas: <strong class="text-brand-700">{{ $totalNoLeidas }}</strong>
+                    {{ __('notificaciones.unread_count', ['count' => $totalNoLeidas]) }}
                 </span>
             </div>
             @if($totalNoLeidas > 0)
                 <x-ui.button variant="primary" size="sm" wire:click="marcarTodasLeidas">
-                    Marcar todas como leídas
+                    {{ __('notificaciones.btn_mark_all_read') }}
                 </x-ui.button>
             @endif
         </div>
@@ -21,8 +21,8 @@
 
     @if($notificaciones->isEmpty())
         <x-ui.empty-state
-            title="Sin notificaciones"
-            message="No tienes notificaciones en este filtro." />
+            :title="__('notificaciones.empty_title')"
+            :message="__('notificaciones.empty_message')" />
     @else
         <x-ui.card padding="p-0">
             <ul class="divide-y divide-surface-border">
@@ -76,7 +76,7 @@
                                 @if(!empty($meta['caso_id']))
                                     @if($linkUrl)
                                         <a href="{{ $linkUrl }}" wire:navigate class="text-[11px] text-brand-700 hover:underline">
-                                            Ver caso #{{ $meta['caso_id'] }}
+                                            {{ __('notificaciones.link_view_case', ['id' => $meta['caso_id']]) }}
                                         </a>
                                     @else
                                         <span class="text-[11px] text-ink-500">caso #{{ $meta['caso_id'] }}</span>
@@ -86,7 +86,7 @@
                         </div>
                         @unless($esLeida)
                             <x-ui.button variant="ghost" size="sm" wire:click="marcarLeida({{ $n->id }})">
-                                Marcar leída
+                                {{ __('notificaciones.btn_mark_read') }}
                             </x-ui.button>
                         @endunless
                     </li>

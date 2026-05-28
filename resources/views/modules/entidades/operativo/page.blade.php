@@ -15,7 +15,7 @@
             </div>
             <div style="display:flex;gap:8px;">
                 <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]) }}"
-                   wire:navigate class="btn btn-ghost btn-sm">← Volver al proyecto</a>
+                   wire:navigate class="btn btn-ghost btn-sm">{{ __('entidades.back_to_project') }}</a>
             </div>
         </div>
 

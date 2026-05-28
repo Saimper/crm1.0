@@ -37,20 +37,20 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Recuperar contraseña</h1>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">{{ __('auth.forgot_title') }}</h1>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-        Ingresa tu email y te enviaremos un enlace para restablecer la contraseña.
+        {{ __('auth.forgot_subtitle') }}
     </p>
 
     <x-auth-session-status :status="session('status')" />
 
     <form wire:submit="sendPasswordResetLink" style="display:flex;flex-direction:column;gap:14px;">
-        <x-ui.form-field label="Email" :error="$errors->first('email')">
+        <x-ui.form-field :label="__('common.email')" :error="$errors->first('email')">
             <input wire:model="email" id="email" type="email" name="email" required autofocus class="input">
         </x-ui.form-field>
 
         <div style="display:flex;justify-content:flex-end;">
-            <x-ui.button type="submit">Enviar enlace</x-ui.button>
+            <x-ui.button type="submit">{{ __('auth.send_link') }}</x-ui.button>
         </div>
     </form>
 </div>

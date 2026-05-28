@@ -22,35 +22,35 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Iniciar sesión</h1>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">Ingresa tus credenciales para acceder.</p>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">{{ __('auth.login_title') }}</h1>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">{{ __('auth.login_subtitle') }}</p>
 
     <x-auth-session-status :status="session('status')" />
 
     <form wire:submit="login" style="display:flex;flex-direction:column;gap:14px;">
-        <x-ui.form-field label="Email" :error="$errors->first('form.email')">
+        <x-ui.form-field :label="__('common.email')" :error="$errors->first('form.email')">
             <input wire:model="form.email" id="email" type="email" name="email" required autofocus
                    autocomplete="username" class="input">
         </x-ui.form-field>
 
-        <x-ui.form-field label="Contraseña" :error="$errors->first('form.password')">
+        <x-ui.form-field :label="__('common.password')" :error="$errors->first('form.password')">
             <input wire:model="form.password" id="password" type="password" name="password" required
                    autocomplete="current-password" class="input">
         </x-ui.form-field>
 
         <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);">
             <input wire:model="form.remember" id="remember" type="checkbox" name="remember" class="checkbox">
-            <span>Recordarme</span>
+            <span>{{ __('auth.remember_me') }}</span>
         </label>
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px;">
             @if (Route::has('password.request'))
                 <a href="{{ route('password.request') }}" wire:navigate
                    style="font-size:13px;color:var(--primary);text-decoration:none;">
-                    ¿Olvidaste tu contraseña?
+                    {{ __('auth.forgot_password') }}
                 </a>
             @endif
-            <x-ui.button type="submit">Ingresar</x-ui.button>
+            <x-ui.button type="submit">{{ __('auth.login_button') }}</x-ui.button>
         </div>
     </form>
 </div>

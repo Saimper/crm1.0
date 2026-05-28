@@ -1,7 +1,7 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between">
         <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">Dashboard analítico</h3>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('reportes.dashboard_analitico_title') }}</h3>
             <div class="text-xs text-ink-500">{{ $proyecto->nombre }} · {{ $proyecto->codigo }}</div>
         </div>
     </div>
@@ -9,10 +9,10 @@
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="rounded-lg border border-ink-200 bg-white overflow-hidden">
             <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-                Distribución por tipo de caso
+                {{ __('reportes.chart_cases_by_type') }}
             </div>
             @if($distribucionCasos->isEmpty())
-                <div class="p-4 text-sm text-ink-500">Sin casos.</div>
+                <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_cases') }}</div>
             @else
                 <table class="min-w-full text-sm">
                     <tbody class="divide-y divide-ink-100">
@@ -42,17 +42,17 @@
 
         <div class="rounded-lg border border-ink-200 bg-white overflow-hidden">
             <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-                Compromisos por tipo y estado
+                {{ __('reportes.chart_commitments_by_state') }}
             </div>
             @if($compromisosPorEstado->isEmpty())
-                <div class="p-4 text-sm text-ink-500">Sin compromisos.</div>
+                <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_commitments') }}</div>
             @else
                 <table class="min-w-full text-sm">
                     <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                         <tr>
-                            <th class="px-3 py-2 text-left">Tipo</th>
-                            <th class="px-3 py-2 text-left">Estado</th>
-                            <th class="px-3 py-2 text-right">Total</th>
+                            <th class="px-3 py-2 text-left">{{ __('reportes.col_type') }}</th>
+                            <th class="px-3 py-2 text-left">{{ __('reportes.col_state') }}</th>
+                            <th class="px-3 py-2 text-right">{{ __('reportes.col_total') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-ink-100">
@@ -82,10 +82,10 @@
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            Gestiones por mes (últimos 6 meses)
+            {{ __('reportes.chart_gestiones_by_month') }}
         </div>
         @if($gestionesPorMes->isEmpty())
-            <div class="p-4 text-sm text-ink-500">Sin actividad.</div>
+            <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_activity') }}</div>
         @else
             <div class="p-4 space-y-2">
                 @php $max = max($gestionesPorMes->pluck('total')->toArray() ?: [1]); @endphp
@@ -105,18 +105,18 @@
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            Efectividad por resultado · {{ number_format($totalGestiones) }} gestiones totales
+            {{ __('reportes.chart_effectiveness', ['total' => number_format($totalGestiones)]) }}
         </div>
         @if($efectividadPorResultado->isEmpty())
-            <div class="p-4 text-sm text-ink-500">Sin datos.</div>
+            <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_data') }}</div>
         @else
             <table class="min-w-full divide-y divide-ink-200 text-sm">
                 <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                     <tr>
-                        <th class="px-3 py-2 text-left">Resultado</th>
-                        <th class="px-3 py-2 text-left">Efectivo</th>
-                        <th class="px-3 py-2 text-right">Total</th>
-                        <th class="px-3 py-2 text-right">%</th>
+                        <th class="px-3 py-2 text-left">{{ __('reportes.col_result') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('reportes.col_effective') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_total') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_percent') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-100">
@@ -126,9 +126,9 @@
                             <td class="px-3 py-2">{{ $r->nombre }} <span class="text-[10px] text-ink-500 font-mono">({{ $r->codigo }})</span></td>
                             <td class="px-3 py-2 text-xs">
                                 @if($r->es_contacto_efectivo)
-                                    <span class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-success-50 text-success-800">sí</span>
+                                    <span class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-success-50 text-success-800">{{ __('reportes.yes') }}</span>
                                 @else
-                                    <span class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-ink-100 text-ink-700">no</span>
+                                    <span class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-ink-100 text-ink-700">{{ __('reportes.no') }}</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-right font-mono">{{ number_format($r->total) }}</td>
@@ -142,10 +142,10 @@
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            Top 5 días con más gestiones
+            {{ __('reportes.chart_top_days') }}
         </div>
         @if($topDias->isEmpty())
-            <div class="p-4 text-sm text-ink-500">Sin datos.</div>
+            <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_data') }}</div>
         @else
             <table class="min-w-full text-sm">
                 <tbody class="divide-y divide-ink-100">

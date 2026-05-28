@@ -16,28 +16,28 @@
             ($proyecto->fecha_fin ? \Illuminate\Support\Carbon::parse($proyecto->fecha_fin)->format('d M Y') : '∞');
 
         $cards = [
-            'Operación' => [
-                ['can' => 'asignaciones.ver_propia', 'route' => 'proyectos.bandeja',        'title' => 'Bandeja',            'desc' => 'Asignaciones activas en el proyecto.',                                        'icon' => 'briefcase'],
-                ['can' => 'personas.crear',           'route' => 'proyectos.personas.crear', 'title' => 'Crear persona',      'desc' => 'Registrar una persona física o jurídica.',                                    'icon' => 'plus'],
+            __('tenancy.section_operation') => [
+                ['can' => 'asignaciones.ver_propia', 'route' => 'proyectos.bandeja',        'title' => __('tenancy.tile_bandeja_title'),         'desc' => __('tenancy.tile_bandeja_desc'),         'icon' => 'briefcase'],
+                ['can' => 'personas.crear',           'route' => 'proyectos.personas.crear', 'title' => __('tenancy.tile_crear_persona_title'),   'desc' => __('tenancy.tile_crear_persona_desc'),   'icon' => 'plus'],
             ],
-            'Supervisión' => [
-                ['can' => 'reportes.operativos',    'route' => 'proyectos.reportes.operativos', 'title' => 'Reportes operativos',    'desc' => 'KPIs, efectividad, ranking, compromisos.',                                   'icon' => 'bar-chart'],
-                ['can' => 'reportes.operativos',    'route' => 'proyectos.reportes.equipos',    'title' => 'Reporte por equipos',    'desc' => 'Métricas agregadas por equipo con breakdown por miembro.',                   'icon' => 'users'],
-                ['can' => 'reportes.analiticos',    'route' => 'proyectos.reportes.analiticos', 'title' => 'Reportes analíticos',    'desc' => 'Distribución por tipo, tendencias, efectividad.',                             'icon' => 'pie-chart'],
-                ['can' => 'asignaciones.ver_equipo','route' => 'proyectos.bandeja.equipo',      'title' => 'Bandeja del equipo',     'desc' => 'Asignaciones de los miembros con KPIs por gestor.',                           'icon' => 'briefcase'],
-                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.masiva', 'title' => 'Asignación masiva',      'desc' => 'Distribuir casos pendientes round-robin al equipo.',                          'icon' => 'arrow-right'],
-                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar','title' => 'Re-asignar entre equipos','desc' => 'Mover pendientes respetando casos en trabajo.',                           'icon' => 'refresh'],
+            __('tenancy.section_supervision') => [
+                ['can' => 'reportes.operativos',    'route' => 'proyectos.reportes.operativos',    'title' => __('tenancy.tile_reportes_op_title'),     'desc' => __('tenancy.tile_reportes_op_desc'),      'icon' => 'bar-chart'],
+                ['can' => 'reportes.operativos',    'route' => 'proyectos.reportes.equipos',        'title' => __('tenancy.tile_reportes_eq_title'),     'desc' => __('tenancy.tile_reportes_eq_desc'),      'icon' => 'users'],
+                ['can' => 'reportes.analiticos',    'route' => 'proyectos.reportes.analiticos',     'title' => __('tenancy.tile_reportes_an_title'),     'desc' => __('tenancy.tile_reportes_an_desc'),      'icon' => 'pie-chart'],
+                ['can' => 'asignaciones.ver_equipo','route' => 'proyectos.bandeja.equipo',          'title' => __('tenancy.tile_bandeja_equipo_title'),  'desc' => __('tenancy.tile_bandeja_equipo_desc'),   'icon' => 'briefcase'],
+                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.masiva',     'title' => __('tenancy.tile_asig_masiva_title'),     'desc' => __('tenancy.tile_asig_masiva_desc'),      'icon' => 'arrow-right'],
+                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar',  'title' => __('tenancy.tile_reasignar_title'),       'desc' => __('tenancy.tile_reasignar_desc'),        'icon' => 'refresh'],
             ],
-            'Administración' => [
+            __('tenancy.section_administration') => [
                 // Tile "Catálogos del proyecto" absorbido por el wizard "Configurar proyecto" (F36 P9).
-                ['can' => 'usuarios.gestionar',  'route' => 'proyectos.usuarios',  'title' => 'Usuarios del proyecto',  'desc' => 'Asignar y quitar roles SUPERVISOR/GESTOR/AUDITOR.',   'icon' => 'users'],
-                ['can' => 'usuarios.gestionar',  'route' => 'proyectos.equipos',   'title' => 'Equipos del proyecto',   'desc' => 'Agrupar miembros en equipos para asignación.',        'icon' => 'briefcase'],
+                ['can' => 'usuarios.gestionar',  'route' => 'proyectos.usuarios',  'title' => __('tenancy.tile_usuarios_proy_title'),  'desc' => __('tenancy.tile_usuarios_proy_desc'),  'icon' => 'users'],
+                ['can' => 'usuarios.gestionar',  'route' => 'proyectos.equipos',   'title' => __('tenancy.tile_equipos_proy_title'),   'desc' => __('tenancy.tile_equipos_proy_desc'),   'icon' => 'briefcase'],
             ],
-            'Trazabilidad' => [
-                ['can' => 'auditoria.ver', 'route' => 'proyectos.auditoria', 'title' => 'Auditoría', 'desc' => 'Quién cambió qué, cuándo y desde qué IP.', 'icon' => 'shield'],
+            __('tenancy.section_traceability') => [
+                ['can' => 'auditoria.ver', 'route' => 'proyectos.auditoria', 'title' => __('tenancy.tile_auditoria_title'), 'desc' => __('tenancy.tile_auditoria_desc'), 'icon' => 'shield'],
             ],
-            'Datos' => [
-                ['can' => 'importaciones.crear', 'route' => 'proyectos.importaciones', 'title' => 'Importar / Exportar', 'desc' => 'CSVs de personas, casos, gestiones, compromisos.', 'icon' => 'upload'],
+            __('tenancy.section_data') => [
+                ['can' => 'importaciones.crear', 'route' => 'proyectos.importaciones', 'title' => __('tenancy.tile_importar_title'), 'desc' => __('tenancy.tile_importar_desc'), 'icon' => 'upload'],
             ],
         ];
     @endphp
@@ -50,7 +50,7 @@
             <div style="display:flex;gap:8px;align-items:center;">
                 <span class="badge {{ $tipoBadge }}">{{ ucfirst($proyecto->tipo_operacion) }}</span>
                 <span class="code-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $proyecto->codigo }}</span>
-                <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">← Cambiar proyecto</a>
+                <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('tenancy.change_project') }}</a>
             </div>
         </div>
 
@@ -61,17 +61,17 @@
             @endif
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <div class="label-xs">Tipo de operación</div>
+                    <div class="label-xs">{{ __('tenancy.label_operation_type') }}</div>
                     <div style="margin-top:6px;">
                         <span class="badge {{ $tipoBadge }}">{{ ucfirst($proyecto->tipo_operacion) }}</span>
                     </div>
                 </div>
                 <div>
-                    <div class="label-xs">Vigencia</div>
+                    <div class="label-xs">{{ __('tenancy.label_validity') }}</div>
                     <div style="margin-top:6px;font-size:13px;color:var(--text);">{{ $vigencia }}</div>
                 </div>
                 <div>
-                    <div class="label-xs">Código</div>
+                    <div class="label-xs">{{ __('tenancy.label_code_project') }}</div>
                     <div class="code-mono" style="margin-top:6px;font-size:13px;color:var(--text);">{{ $proyecto->codigo }}</div>
                 </div>
             </div>
@@ -116,19 +116,19 @@
         @if($kpis !== null)
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">Mis pendientes</div>
+                    <div class="label-xs">{{ __('tenancy.kpi_pending') }}</div>
                     <div style="font-size:22px;font-weight:600;color:var(--text);margin-top:4px;">{{ number_format($kpis['pendientes']) }}</div>
                 </div>
                 <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">Gestiones hoy</div>
+                    <div class="label-xs">{{ __('tenancy.kpi_gestiones_today') }}</div>
                     <div style="font-size:22px;font-weight:600;color:var(--text);margin-top:4px;">{{ number_format($kpis['gestiones_hoy']) }}</div>
                 </div>
                 <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">Compromisos próximos 7d</div>
+                    <div class="label-xs">{{ __('tenancy.kpi_commitments_next7') }}</div>
                     <div style="font-size:22px;font-weight:600;color:var(--success-text);margin-top:4px;">{{ number_format($kpis['compromisos_proximos']) }}</div>
                 </div>
                 <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">Compromisos vencidos</div>
+                    <div class="label-xs">{{ __('tenancy.kpi_commitments_overdue') }}</div>
                     <div style="font-size:22px;font-weight:600;color:var(--danger-text);margin-top:4px;">{{ number_format($kpis['compromisos_vencidos']) }}</div>
                 </div>
             </div>

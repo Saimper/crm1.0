@@ -36,20 +36,20 @@ new #[Layout('layouts.guest')] class extends Component
 }; ?>
 
 <div>
-    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">Verifica tu email</h1>
+    <h1 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;">{{ __('auth.verify_title') }}</h1>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">
-        Te enviamos un enlace de verificación. Si no llegó, podemos reenviarlo.
+        {{ __('auth.verify_subtitle') }}
     </p>
 
     @if (session('status') == 'verification-link-sent')
-        <x-ui.alert tone="success">Se envió un nuevo enlace de verificación a tu email.</x-ui.alert>
+        <x-ui.alert tone="success">{{ __('auth.verify_sent') }}</x-ui.alert>
     @endif
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;">
-        <x-ui.button wire:click="sendVerification">Reenviar verificación</x-ui.button>
+        <x-ui.button wire:click="sendVerification">{{ __('auth.verify_resend') }}</x-ui.button>
         <button type="button" wire:click="logout"
                 style="background:transparent;border:0;color:var(--text-secondary);font-size:13px;cursor:pointer;text-decoration:underline;">
-            Cerrar sesión
+            {{ __('nav.logout') }}
         </button>
     </div>
 </div>
