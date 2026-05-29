@@ -368,6 +368,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Rol `ADMIN_MANDANTE` mandante-scoped (cierre F37) — rol nuevo administra TODOS los proyectos de un mandante sin pivot por proyecto. Tabla nueva `usuario_mandante_rol` (PK `usuario_id`+`mandante_id`+`rol_id`, FKs cascade/restrict, sin cartera-scoping). Permisos nuevos `mandante.administrar` + `proyectos.crear`; `proyectos.configurar` (F36) y matriz operativa SUPERVISOR (gestiones/casos/personas/reportes/usuarios/equipos/catálogos/auditoria/etc) heredada al rol. Vetados: `campos.definir`, `entidades.definir`, `roles.gestionar` (siguen exclusivos ADMIN_GLOBAL). `User::tienePermiso` extendido con cuarta ruta de evaluación (rol base → rol custom → rol mandante via `usuario_mandante_rol` join `proyectos.mandante_id`). `User::tieneAccesoAProyecto` también incluye rol mandante. `User::mandantesAdministrados()` nuevo helper. `MapeoRolWrapper`: `admin_tenant`/`tenant_admin`/`admin_mandante` → `ADMIN_MANDANTE` (cambia el provisional F37). `MapeoRolWrapper::esRolMandante()` distingue qué tabla pivote usar. `AutenticadorPorJwt::garantizarPivotMandante` inserta en `usuario_mandante_rol` cuando rol es mandante; `garantizarPivotProyecto` queda solo para roles proyecto-scoped. `SelectorProyecto` UNION usuario_proyecto_rol + usuario_mandante_rol (admin_mandante ve todos los proyectos del mandante aunque no tenga pivot proyecto). 1 migración (`usuario_mandante_rol`). 18 tests nuevos (`RolMandantePermisosTest` 8 + `HandshakeAdminMandanteTest` 5 + `SelectorProyectoMandanteTest` 5). Sin UI scoped a mandante todavía: admin_mandante aterriza en SelectorProyecto del mandante y opera proyecto por proyecto vía pantallas existentes. UI dedicada queda diferida a fase posterior cuando haya feedback operativo real. | ✅ F38 |
 | Drop columna legacy `proyectos.sso_secret` (cleanup F37) — eliminada migración F37 dejó la columna por compat transitoria; F37c la dropea ahora que wrapper migró completo a `mandantes.sso_secret`. Borra excepción huérfana `ProyectoSsoNoConfigurado` y catches en `SsoHandshakeController` + `EmitirSanctumTokenController`. Limpia hook `ProyectoModel::booted()` que generaba secret automático. Limpia `EscenarioOperativo::crearProyecto` helper de tests. 1 migración drop. 0 tests nuevos (suite igual). | ✅ F37c |
 | UI admin reusada para ADMIN_MANDANTE (cierre F38) — sin pantallas nuevas: las admin globales ya existentes filtran por rol en server-side. Middleware nuevo `admin.dual` (alias de `RequiereAdminMandanteOGlobal`) acepta ADMIN_GLOBAL **o** ADMIN_MANDANTE. `routes/web.php` admin split: dashboard / proyectos / usuarios / auditoria → `admin.dual`; mandantes / campos-personalizados / entidades-configurables / integracion.secrets siguen `admin.global` exclusivo. Sidebar (`layouts/app.blade.php`) detecta `$esAdminMandante` (rol-mandante sin ser global) y `$esAdminAlguno`; oculta items vetados al admin_mandante (Mandantes, Campos, Entidades, SSO secrets); cambia título a "Administración (Mandante)" + "Auditoría". `AdminProyectos` Livewire scope: query `WHERE mandante_id IN mandantesPermitidos()`; pre-selecciona mandante propio al crear; `guardContraMandanteAjeno()` defensivo en abrirFormEditar/guardar/desactivar/activar (abort 403). `AdminUsuarios` Livewire scope: usuarios filtrados por `EXISTS pivot upr WHERE proyecto_id IN proyectosDelMandante OR EXISTS pivot umr WHERE mandante_id IN mandantes`; asignaciones limitadas a esos proyectos; dropdown proyectos limitado al mandante; `promoverAdminGlobal`/`revocarAdminGlobal` exigen ADMIN_GLOBAL via `soloAdminGlobal()`; `quitarAsignacion`/`guardarAsignacion` con `guardContraProyectoAjeno()`. `ListadoAuditoria` (modo global): admin_mandante ve solo eventos de proyectos de su mandante. Dashboard tiles: array filtrado por flag `solo_admin_global`; títulos cambian según rol. 0 migraciones, 0 tablas nuevas, 0 pantallas nuevas. 25 tests nuevos (`AdminMandanteAccesoTest` 12 + `AdminProyectosScopeMandanteTest` 7 + `AdminUsuariosScopeMandanteTest` 6). | ✅ F39 |
+| CI/CD GitHub Actions — pipeline roadmap (`setup` → `pint`/`larastan`/`tests` en paralelo → `ci-ok` → `deploy`) con despliegue automático por SSH al VPS en `main` tras CI verde. Larastan montado (nivel 6 + baseline 197 errores), `php artisan test` (PHPUnit) con MySQL efímero + artifact `vite-build`, Pint `--test`. Deps nuevas dev: `larastan/larastan ^3.0`, `laravel/boost ^2.4`. | ✅ F40 |
 
 ### Módulo Integracion (F28 + F37)
 
@@ -509,6 +510,39 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 - Tipografía, paleta, layout grid, anatomía de cada componente y tamaños: se determinan en la **auditoría literal del mockup** (Etapa 1 del prompt F29-bis) y se documentan aquí al cierre de la fase.
 
 El bloque "Design system F29" anterior (clases semánticas sobre CSS custom properties, IBM Plex + cool-gray como inferencia) queda **suspendido y no normativo** mientras F29-bis está en curso. Al cierre de F29-bis se reescribe esta sección con los valores efectivamente aplicados.
+
+### CI/CD — pipeline GitHub Actions (F40)
+
+**Workflow único `.github/workflows/deploy.yml`.** Grafo de jobs (roadmap visible en la pestaña Actions):
+
+```
+                    ┌─→ Estilo (Pint) ──────┐
+Preparar deps ──────┼─→ Análisis (Larastan)─┼──→ CI aprobado ──→ Deploy to VPS
+                    └─→ Tests ──────────────┘
+```
+
+- **Disparadores**: `push` (todas las ramas) y `pull_request` corren el CI. El job `deploy` corre solo en `push` a `main` y tras `ci-ok`. `concurrency` con `cancel-in-progress` (un push nuevo cancela el run anterior de la misma ref).
+- **`setup` (Preparar deps)**: nodo raíz. `composer install` (cache `vendor` por hash de `composer.lock`) + `npm ci && npm run build`; sube `public/build` como artifact `vite-build` (retención 1 día). Los tres chequeos dependen de él vía `needs`.
+- **`pint` (Estilo)**: `./vendor/bin/pint --test` (falla si hay formato sin aplicar; no modifica).
+- **`larastan` (Análisis)**: `php vendor/bin/phpstan analyse --memory-limit=1G`. Config `phpstan.neon` nivel 6 sobre `app/` + extension de Larastan + `phpstan-baseline.neon` (197 errores congelados). Solo falla ante errores nuevos. Nivel 8 en `Domain/` (§11) queda pendiente.
+- **`tests` (Tests)**: service `mysql:8` (`crm_test`, root/`password`), descarga el artifact `vite-build` (las vistas Feature renderizan `@vite` → sin el manifest dan 500), luego `php artisan test`. **Es PHPUnit, no Pest** (Pest no está instalado).
+- **`ci-ok` (CI aprobado)**: nodo de convergencia (`needs: [pint, larastan, tests]`).
+- **`deploy`**: `appleboy/ssh-action` al VPS. Script: `artisan down` → `git fetch` + `git reset --hard origin/main` → `composer install --no-dev --optimize-autoloader` → `migrate --force` → `npm ci && npm run build` → `optimize:clear` + `optimize` → `chown -R www-data:www-data storage bootstrap/cache` → `queue:restart` → `systemctl reload php82-fpm` → `artisan up`.
+
+**Infra del VPS (producción):**
+- nginx + `php82-fpm` (pools como `www-data`); proyecto en `/var/www/crm`; PHP CLI `/opt/php82/bin/php`; node/npm de sistema (`/usr/bin`), composer en `/usr/local/bin`.
+- **Dos canales SSH**: (1) GitHub Actions → VPS, clave dedicada cuya pública vive en `authorized_keys` del VPS y la privada en el secret `VPS_SSH_KEY`; (2) VPS → GitHub, *deploy key* read-only (`~/.ssh/crm_deploy`, registrada en el repo) con el remote del VPS en SSH. `github.com` en `known_hosts` del VPS; `safe.directory = /var/www/crm`.
+- **Secrets del repo**: `VPS_HOST`, `VPS_USER` (root), `VPS_SSH_KEY`, `VPS_PORT` (opcional, default 22).
+
+**Dependencias nuevas (require-dev, no afectan producción — deploy usa `--no-dev`):**
+- `larastan/larastan ^3.0` — análisis estático. `phpstan.neon` + `phpstan-baseline.neon` versionados.
+- `laravel/boost ^2.4` — servidor MCP de Laravel para desarrollo.
+
+**Notas operativas:**
+- El deploy usa `reset --hard origin/main` (no `pull`) para no atascarse con working trees sucios del VPS (p. ej. `.gitignore` de `storage/` regenerados). Descarta cambios locales en archivos versionados del VPS — correcto para un target de deploy.
+- `migrate --force` corre en cada deploy: una migración destructiva se aplicaría sin revisión manual. Una compuerta manual de migraciones queda como posible mejora.
+- Warning de deprecación de Node 20 en las actions: informativo (afecta el runtime de las actions, no la app). Forzable a Node 24 con `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F40, con acuerdo previo.
 
 ### Decisiones arquitectónicas vigentes
 
