@@ -6,6 +6,7 @@ namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,8 @@ use Livewire\Component;
  */
 final class EditarCaso extends Component
 {
+    use EmiteWritebackFicha;
+
     public string $casoPublicId = '';
 
     public ?int $casoId = null;
@@ -126,6 +129,10 @@ final class EditarCaso extends Component
                 valoresPorCodigo: $this->valoresCamposCaso,
             );
         });
+
+        // Writeback CRM→ViciDial: valores crudos; el emisor castea a string y descarta
+        // no-escalares (selección múltiple/moneda). Las claves son el `codigo` del campo.
+        $this->emitirWritebackFicha(['custom' => $this->valoresCamposCaso]);
 
         session()->flash('caso_editado', 'Caso actualizado.');
 

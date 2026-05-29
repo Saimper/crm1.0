@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Personas\Infrastructure\Http\Livewire;
 
+use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,8 @@ use Livewire\Component;
  */
 final class EditarPersona extends Component
 {
+    use EmiteWritebackFicha;
+
     public string $personaPublicId = '';
 
     public ?int $personaId = null;
@@ -118,6 +121,14 @@ final class EditarPersona extends Component
             ->where('id', $this->personaId)
             ->where('proyecto_id', $proyectoId)
             ->update($payload);
+
+        // Writeback CRM→ViciDial (solo persona física: el contrato mapea nombres/apellidos).
+        if ($this->tipoPersona === 'fisica') {
+            $this->emitirWritebackFicha(['persona' => [
+                'nombres' => $this->nombres,
+                'apellidos' => $this->apellidos,
+            ]]);
+        }
 
         session()->flash('persona_editada', 'Persona actualizada.');
 

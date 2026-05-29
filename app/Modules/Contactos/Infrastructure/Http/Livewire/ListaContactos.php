@@ -8,6 +8,7 @@ use App\Modules\Contactos\Application\DTOs\RegistrarContactoInput;
 use App\Modules\Contactos\Application\UseCases\RegistrarContacto;
 use App\Modules\Contactos\Domain\Exceptions\DatosContactoInvalidos;
 use App\Modules\Contactos\Domain\ValueObjects\TipoContacto;
+use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
@@ -18,6 +19,8 @@ use Livewire\Component;
 
 final class ListaContactos extends Component
 {
+    use EmiteWritebackFicha;
+
     public string $personaPublicId;
 
     public ?int $personaId = null;
@@ -73,6 +76,8 @@ final class ListaContactos extends Component
         } catch (DatosContactoInvalidos $e) {
             throw ValidationException::withMessages(['valor' => $e->getMessage()]);
         }
+
+        $this->emitirWritebackFicha(['contacto' => $this->construirGrupoContacto()]);
 
         $this->mensajeExito = 'Contacto agregado.';
         $this->reset(['valor', 'etiqueta', 'esPrincipal']);
@@ -152,10 +157,37 @@ final class ListaContactos extends Component
                 ]);
         });
 
+        $this->emitirWritebackFicha(['contacto' => $this->construirGrupoContacto()]);
+
         $this->mensajeExito = 'Contacto actualizado.';
         $this->editandoId = null;
         $this->reset(['valor', 'etiqueta', 'esPrincipal']);
         $this->tipo = 'telefono';
+    }
+
+    /**
+     * Grupo `contacto` del writeback: los contactos PRINCIPALES de la persona (uno por
+     * canal). Las claves (`telefono`/`correo`/`direccion`) coinciden con el contrato.
+     *
+     * @return array<string, string>
+     */
+    private function construirGrupoContacto(): array
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        $principales = DB::table('contactos')
+            ->where('proyecto_id', $proyectoId)
+            ->where('persona_id', $this->personaId)
+            ->where('es_principal', true)
+            ->whereNull('eliminada_en')
+            ->get(['tipo', 'valor']);
+
+        $grupo = [];
+        foreach ($principales as $contacto) {
+            $grupo[(string) $contacto->tipo] = (string) $contacto->valor;
+        }
+
+        return $grupo;
     }
 
     public function eliminar(int $id): void

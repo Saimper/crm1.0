@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Integracion\Infrastructure\Providers;
 
 use App\Modules\Integracion\Application\Console\Commands\PurgarSsoTokensConsumidosCommand;
+use App\Modules\Integracion\Application\Services\EmisorWritebackFichaPorWebhook;
+use App\Modules\Integracion\Domain\Contracts\EmisorWritebackFicha;
 use App\Modules\Integracion\Domain\Contracts\RepositorioTokensConsumidos;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\SsoHandshakeController;
 use App\Modules\Integracion\Infrastructure\Http\Livewire\AdminSsoSecrets;
@@ -21,6 +23,7 @@ final class IntegracionServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RepositorioTokensConsumidos::class, RepositorioTokensConsumidosEloquent::class);
+        $this->app->bind(EmisorWritebackFicha::class, EmisorWritebackFichaPorWebhook::class);
     }
 
     public function boot(Router $router): void

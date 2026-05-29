@@ -31,6 +31,7 @@ final readonly class PayloadJwt
         public ?string $numeroPrestamo,
         public ?string $iss,
         public ?string $aud,
+        public ?string $syncRef,
     ) {}
 
     public static function desdeClaims(object $claims, DateTimeImmutable $ahora): self
@@ -70,6 +71,7 @@ final readonly class PayloadJwt
         $identificacion = isset($claims->identificacion) ? (string) $claims->identificacion : null;
         $tipoIdentificacionCodigo = isset($claims->tipo_identificacion_codigo) ? (string) $claims->tipo_identificacion_codigo : null;
         $numeroPrestamo = isset($claims->numero_prestamo) ? (string) $claims->numero_prestamo : null;
+        $syncRef = isset($claims->sync_ref) ? (string) $claims->sync_ref : null;
 
         return new self(
             jti: $jti,
@@ -85,6 +87,7 @@ final readonly class PayloadJwt
             numeroPrestamo: $numeroPrestamo,
             iss: $iss,
             aud: $aud,
+            syncRef: $syncRef,
         );
     }
 }

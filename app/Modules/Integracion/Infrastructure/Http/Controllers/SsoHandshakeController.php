@@ -63,6 +63,17 @@ final class SsoHandshakeController
         // logout/perfil (la sesión la gestiona la app principal).
         $request->session()->put('crm_embedded', true);
 
+        // Writeback CRM→ViciDial: si el wrapper adjuntó un sync_ref (hay lead activo),
+        // lo persistimos junto al mandante_id del MISMO handshake (claim JWT). El webhook
+        // de writeback usa ese mandante_id como X-Mandante-Id para que coincida con el
+        // tenant que emitió el sync_ref (el wrapper falla 401/403 si no coincide).
+        if ($output->syncRef !== null) {
+            $request->session()->put('crm_sync_ref', $output->syncRef);
+            $request->session()->put('crm_mandante_id', $output->mandanteId);
+        } else {
+            $request->session()->forget(['crm_sync_ref', 'crm_mandante_id']);
+        }
+
         return redirect()->to($this->resolverDestino($output));
     }
 
