@@ -22,6 +22,9 @@ final class ListaContactos extends Component
 
     public ?int $personaId = null;
 
+    /** Identificación de la persona — pivote estable que el wrapper coteja con el lead en llamada. */
+    public string $personaIdentificacion = '';
+
     public string $tipo = 'telefono';
 
     public string $valor = '';
@@ -43,6 +46,7 @@ final class ListaContactos extends Component
         abort_unless($personaModel !== null, 404, 'Persona no encontrada en el proyecto activo.');
 
         $this->personaId = (int) $personaModel->id;
+        $this->personaIdentificacion = (string) ($personaModel->identificacion ?? '');
     }
 
     public function agregar(RegistrarContacto $useCase): void
@@ -76,7 +80,9 @@ final class ListaContactos extends Component
 
         // Solo el contacto principal representa el campo canónico del lead.
         if ($this->esPrincipal) {
-            $this->dispatch('crm-sync', tipo: 'contacto', cambios: [$this->tipo => $this->valor]);
+            $this->dispatch('crm-sync', tipo: 'contacto', cambios: [$this->tipo => $this->valor], pivote: [
+                'identificacion' => $this->personaIdentificacion,
+            ]);
         }
 
         $this->mensajeExito = 'Contacto agregado.';
@@ -158,7 +164,9 @@ final class ListaContactos extends Component
         });
 
         if ($this->esPrincipal) {
-            $this->dispatch('crm-sync', tipo: 'contacto', cambios: [$this->tipo => $this->valor]);
+            $this->dispatch('crm-sync', tipo: 'contacto', cambios: [$this->tipo => $this->valor], pivote: [
+                'identificacion' => $this->personaIdentificacion,
+            ]);
         }
 
         $this->mensajeExito = 'Contacto actualizado.';

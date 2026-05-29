@@ -23,6 +23,10 @@ document.addEventListener('livewire:init', () => {
                 type: 'CRM_FIELD_SYNC',
                 tipo: data.tipo ?? null,
                 cambios: data.cambios ?? {},
+                // Pivote estable de la entidad editada (identificación de la
+                // persona). El wrapper lo coteja con el lead en llamada para no
+                // escribir si el agente navegó a otra ficha.
+                pivote: data.pivote ?? null,
             },
             target,
         );
