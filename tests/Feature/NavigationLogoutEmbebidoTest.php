@@ -23,7 +23,7 @@ final class NavigationLogoutEmbebidoTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user);
-        session(['crm_parent_origin' => 'https://wrapper.example']);
+        session(['crm_embedded' => true]);
 
         Volt::test('layout.navigation')
             ->assertSee('disabled', false)

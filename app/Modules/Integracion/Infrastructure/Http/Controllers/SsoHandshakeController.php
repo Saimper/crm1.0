@@ -58,6 +58,11 @@ final class SsoHandshakeController
         Auth::loginUsingId($output->usuarioId);
         $request->session()->regenerate();
 
+        // El CRM solo entra por handshake cuando el wrapper lo embebe en su
+        // iframe. Marcamos la sesión como embebida para que el nav oculte el
+        // logout/perfil (la sesión la gestiona la app principal).
+        $request->session()->put('crm_embedded', true);
+
         return redirect()->to($this->resolverDestino($output));
     }
 

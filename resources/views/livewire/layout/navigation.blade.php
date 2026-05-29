@@ -28,7 +28,7 @@ new class extends Component
         // Embebido en el iframe del wrapper: la sesión la gestiona la app
         // principal. Ignoramos el cierre aunque llegue por una petición forjada
         // (el botón ya viene deshabilitado en la UI).
-        if (session()->has('crm_parent_origin')) {
+        if (session()->has('crm_embedded')) {
             return;
         }
 
@@ -45,9 +45,9 @@ new class extends Component
         : '·';
     $rol = $user?->esAdminGlobal() ? __('nav.role_admin_global') : __('nav.role_user');
     // El CRM embebido en el iframe del wrapper no gestiona su propia sesión:
-    // el cierre lo controla la app principal. session('crm_parent_origin') se
+    // el cierre lo controla la app principal. session('crm_embedded') se
     // setea en el handshake SSO y es la señal de que estamos embebidos.
-    $embebido = session()->has('crm_parent_origin');
+    $embebido = session()->has('crm_embedded');
 @endphp
 
 <div x-data="{ open: false }" class="relative" style="display:flex;align-items:center;gap:8px;padding-left:8px;margin-left:4px;border-left:1px solid var(--border);">
