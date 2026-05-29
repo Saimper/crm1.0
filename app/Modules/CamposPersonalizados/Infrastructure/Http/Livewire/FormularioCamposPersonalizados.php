@@ -89,6 +89,29 @@ final class FormularioCamposPersonalizados extends Component
 
         session()->flash('campos-ok', 'Campos guardados.');
         $this->dispatch('campos-personalizados-guardados');
+
+        // Reenvía los valores de caso al wrapper (ViciDial) si el CRM está
+        // embebido. El relay solo postea con wrapper-origin firmado, y el wrapper
+        // solo escribe los campos que el supervisor haya mapeado.
+        if ($this->ambito === 'caso') {
+            $cambios = [];
+            foreach ($this->valores as $codigo => $valor) {
+                $cambios[(string) $codigo] = $this->valorComoTexto($valor);
+            }
+            $this->dispatch('crm-sync', tipo: 'caso_cp', cambios: $cambios);
+        }
+    }
+
+    private function valorComoTexto(mixed $valor): string
+    {
+        if (is_array($valor)) {
+            return implode(',', $valor);
+        }
+        if (is_bool($valor)) {
+            return $valor ? '1' : '0';
+        }
+
+        return (string) ($valor ?? '');
     }
 
     public function render(): View

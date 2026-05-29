@@ -174,7 +174,8 @@ final class EditarPersonaTest extends TestCase
             ->assertDispatched('crm-sync', function (string $event, array $params): bool {
                 return ($params['tipo'] ?? null) === 'persona'
                     && ($params['cambios']['nombres'] ?? null) === 'Editado'
-                    && ($params['cambios']['apellidos'] ?? null) === 'B1';
+                    && ($params['cambios']['apellidos'] ?? null) === 'B1'
+                    && array_key_exists('identificacion', $params['cambios'] ?? []);
             });
     }
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Integracion\Infrastructure\Http\Controllers\CamposDisponiblesController;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\EmitirSanctumTokenController;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\PreviewPersonaController;
 use App\Modules\Integracion\Infrastructure\Http\Controllers\ProyectosMandanteController;
@@ -38,4 +39,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
 Route::middleware(['hmac.mandante', 'throttle:60,1'])->group(function (): void {
     Route::get('/integracion/proyectos', ProyectosMandanteController::class)
         ->name('api.integracion.proyectos');
+
+    // Campos del CRM mapeables a campos del lead de ViciDial (UI de mapeo del wrapper).
+    Route::get('/integracion/campos', CamposDisponiblesController::class)
+        ->name('api.integracion.campos');
 });
