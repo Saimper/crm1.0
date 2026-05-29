@@ -45,7 +45,6 @@ final class ConsumirJwtHandshake
             redirectPath: $resultado->payload->redirectPath,
             personaPublicId: $personaPublicId,
             casoPublicId: $casoResult['casoPublicId'] ?? null,
-            parentOrigin: $resultado->payload->parentOrigin,
         );
     }
 

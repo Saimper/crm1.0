@@ -69,10 +69,8 @@ return [
 
     // Menú de usuario
     'profile' => 'Perfil',
-    'profile_disabled_embedded' => 'El perfil se administra desde la aplicación principal',
     'language' => 'Idioma',
     'logout' => 'Cerrar sesión',
-    'logout_disabled_embedded' => 'La sesión se administra desde la aplicación principal',
     'role_admin_global' => 'Admin Global',
     'role_user' => 'Usuario',
 ];

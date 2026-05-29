@@ -31,7 +31,6 @@ final readonly class PayloadJwt
         public ?string $numeroPrestamo,
         public ?string $iss,
         public ?string $aud,
-        public ?string $parentOrigin = null,
     ) {}
 
     public static function desdeClaims(object $claims, DateTimeImmutable $ahora): self
@@ -71,7 +70,6 @@ final readonly class PayloadJwt
         $identificacion = isset($claims->identificacion) ? (string) $claims->identificacion : null;
         $tipoIdentificacionCodigo = isset($claims->tipo_identificacion_codigo) ? (string) $claims->tipo_identificacion_codigo : null;
         $numeroPrestamo = isset($claims->numero_prestamo) ? (string) $claims->numero_prestamo : null;
-        $parentOrigin = self::normalizarOrigen(isset($claims->parent_origin) ? (string) $claims->parent_origin : null);
 
         return new self(
             jti: $jti,
@@ -87,25 +85,6 @@ final readonly class PayloadJwt
             numeroPrestamo: $numeroPrestamo,
             iss: $iss,
             aud: $aud,
-            parentOrigin: $parentOrigin,
         );
-    }
-
-    /**
-     * Accepts only a bare origin (scheme://host[:port]); anything with a path,
-     * query or malformed value is rejected to avoid postMessage to an unsafe target.
-     */
-    private static function normalizarOrigen(?string $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $value = trim($value);
-        if ($value === '' || preg_match('~^https?://[^/?#]+$~', $value) !== 1) {
-            return null;
-        }
-
-        return $value;
     }
 }

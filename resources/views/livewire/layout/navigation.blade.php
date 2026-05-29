@@ -25,13 +25,6 @@ new class extends Component
 
     public function logout(Logout $logout): void
     {
-        // Embebido en el iframe del wrapper: la sesión la gestiona la app
-        // principal. Ignoramos el cierre aunque llegue por una petición forjada
-        // (el botón ya viene deshabilitado en la UI).
-        if (session()->has('crm_parent_origin')) {
-            return;
-        }
-
         $logout();
 
         $this->redirect('/', navigate: true);
@@ -44,10 +37,6 @@ new class extends Component
         ? mb_strtoupper(mb_substr($user->name, 0, 1) . (str_contains((string) $user->name, ' ') ? mb_substr(explode(' ', $user->name)[1] ?? '', 0, 1) : ''))
         : '·';
     $rol = $user?->esAdminGlobal() ? __('nav.role_admin_global') : __('nav.role_user');
-    // El CRM embebido en el iframe del wrapper no gestiona su propia sesión:
-    // el cierre lo controla la app principal. session('crm_parent_origin') se
-    // setea en el handshake SSO y es la señal de que estamos embebidos.
-    $embebido = session()->has('crm_parent_origin');
 @endphp
 
 <div x-data="{ open: false }" class="relative" style="display:flex;align-items:center;gap:8px;padding-left:8px;margin-left:4px;border-left:1px solid var(--border);">
@@ -63,20 +52,11 @@ new class extends Component
 
     <div x-show="open" @click.outside="open = false" x-transition x-cloak
          style="position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:var(--bg-elev);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,0.10);padding:6px;z-index:120;">
-        @if($embebido)
-            <button type="button" disabled
-                    title="{{ __('nav.profile_disabled_embedded') }}"
-                    class="sb-item" style="border-radius:6px;height:32px;width:100%;color:var(--text-tertiary);opacity:0.5;cursor:not-allowed;">
-                <x-ui.icon name="user" :size="14" />
-                <span>{{ __('nav.profile') }}</span>
-            </button>
-        @else
-            <a href="{{ route('profile') }}" wire:navigate
-               class="sb-item" style="border-radius:6px;height:32px;">
-                <x-ui.icon name="user" :size="14" />
-                <span>{{ __('nav.profile') }}</span>
-            </a>
-        @endif
+        <a href="{{ route('profile') }}" wire:navigate
+           class="sb-item" style="border-radius:6px;height:32px;">
+            <x-ui.icon name="user" :size="14" />
+            <span>{{ __('nav.profile') }}</span>
+        </a>
 
         <div style="height:1px;background:var(--border);margin:6px 0;"></div>
         <div style="padding:2px 10px 4px;font-size:11px;color:var(--text-tertiary);">{{ __('nav.language') }}</div>
@@ -92,19 +72,10 @@ new class extends Component
         @endforeach
 
         <div style="height:1px;background:var(--border);margin:6px 0;"></div>
-        @if($embebido)
-            <button type="button" disabled
-                    title="{{ __('nav.logout_disabled_embedded') }}"
-                    class="sb-item" style="border-radius:6px;height:32px;width:100%;color:var(--text-tertiary);opacity:0.5;cursor:not-allowed;">
-                <x-ui.icon name="log-out" :size="14" />
-                <span>{{ __('nav.logout') }}</span>
-            </button>
-        @else
-            <button type="button" wire:click="logout"
-                    class="sb-item" style="border-radius:6px;height:32px;width:100%;color:var(--danger);">
-                <x-ui.icon name="log-out" :size="14" />
-                <span>{{ __('nav.logout') }}</span>
-            </button>
-        @endif
+        <button type="button" wire:click="logout"
+                class="sb-item" style="border-radius:6px;height:32px;width:100%;color:var(--danger);">
+            <x-ui.icon name="log-out" :size="14" />
+            <span>{{ __('nav.logout') }}</span>
+        </button>
     </div>
 </div>

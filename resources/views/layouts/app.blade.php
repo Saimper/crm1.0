@@ -4,9 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @if(session('crm_parent_origin'))
-        <meta name="wrapper-origin" content="{{ session('crm_parent_origin') }}">
-    @endif
 
     <title>{{ config('app.name', 'Núcleo CRM') }}</title>
 

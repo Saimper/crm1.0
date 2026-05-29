@@ -13,6 +13,5 @@ final readonly class ConsumirJwtHandshakeOutput
         public ?string $redirectPath,
         public ?string $personaPublicId,
         public ?string $casoPublicId = null,
-        public ?string $parentOrigin = null,
     ) {}
 }

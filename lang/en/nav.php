@@ -69,10 +69,8 @@ return [
 
     // User menu
     'profile' => 'Profile',
-    'profile_disabled_embedded' => 'Your profile is managed by the host application',
     'language' => 'Language',
     'logout' => 'Sign out',
-    'logout_disabled_embedded' => 'Your session is managed by the host application',
     'role_admin_global' => 'Global Admin',
     'role_user' => 'User',
 ];
