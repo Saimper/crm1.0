@@ -8,6 +8,7 @@ use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonal
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\EntidadesConfigurables\Application\Services\ServicioEntidades;
 use App\Modules\EntidadesConfigurables\Domain\ValueObjects\RelacionEntidad;
+use App\Modules\EntidadesConfigurables\Infrastructure\Http\Livewire\Concerns\EmiteCrmSyncEntidadPersona;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,8 @@ use Throwable;
  */
 final class PanelEntidadesVinculadas extends Component
 {
+    use EmiteCrmSyncEntidadPersona;
+
     public int $proyectoId = 0;
 
     /** @var 'caso'|'persona' */
@@ -136,6 +139,12 @@ final class PanelEntidadesVinculadas extends Component
 
             return;
         }
+
+        $this->emitirCrmSyncEntidadPersona(
+            $this->entidadActivaId,
+            $this->vinculo === 'persona' ? $this->vinculoId : null,
+            $this->valores,
+        );
 
         $this->cerrarForm();
         session()->flash('entidades-registros-ok', 'Registro guardado.');
