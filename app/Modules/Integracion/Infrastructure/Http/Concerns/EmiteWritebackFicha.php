@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Integracion\Infrastructure\Http\Concerns;
 
 use App\Modules\Integracion\Domain\Contracts\EmisorWritebackFicha;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Concern para los Livewire de la ficha (EditarPersona, ListaContactos, EditarCaso).
@@ -27,8 +28,21 @@ trait EmiteWritebackFicha
         $mandanteId = (int) session('crm_mandante_id');
 
         if (! is_string($syncRef) || $syncRef === '' || $mandanteId === 0 || $changes === []) {
+            Log::warning('lead-writeback OMITIDO (no se emite)', [
+                'tiene_sync_ref' => is_string($syncRef) && $syncRef !== '',
+                'mandante_id' => $mandanteId,
+                'grupos' => array_keys($changes),
+                'sesion_id' => session()->getId(),
+            ]);
+
             return;
         }
+
+        Log::info('lead-writeback EMITIDO', [
+            'sync_ref' => substr($syncRef, 0, 8),
+            'mandante_id' => $mandanteId,
+            'grupos' => array_keys($changes),
+        ]);
 
         app(EmisorWritebackFicha::class)->emitir($mandanteId, $syncRef, $changes);
     }
