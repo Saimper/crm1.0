@@ -7,7 +7,6 @@ namespace App\Modules\EntidadesConfigurables\Infrastructure\Http\Livewire;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\EntidadesConfigurables\Application\Services\ServicioEntidades;
-use App\Modules\EntidadesConfigurables\Infrastructure\Http\Livewire\Concerns\EmiteCrmSyncEntidadPersona;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -27,8 +26,6 @@ use Throwable;
  */
 final class GestorRegistrosEntidad extends Component
 {
-    use EmiteCrmSyncEntidadPersona;
-
     public int $proyectoId = 0;
 
     public int $entidadId = 0;
@@ -148,8 +145,6 @@ final class GestorRegistrosEntidad extends Component
 
             return;
         }
-
-        $this->emitirCrmSyncEntidadPersona($this->entidadId, $this->personaId, $this->valores);
 
         $this->cerrarForm();
         session()->flash('entidades-registros-ok', 'Registro guardado.');

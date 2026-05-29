@@ -98,15 +98,7 @@ final class FormularioCamposPersonalizados extends Component
             foreach ($this->valores as $codigo => $valor) {
                 $cambios[(string) $codigo] = $this->valorComoTexto($valor);
             }
-            // Pivote estable: la identificación de la persona dueña del caso. El
-            // wrapper la coteja con el lead en llamada antes de escribir.
-            $identificacion = (string) (DB::table('casos as c')
-                ->join('personas as p', 'p.id', '=', 'c.persona_id')
-                ->where('c.id', $this->ambitoId)
-                ->value('p.identificacion') ?? '');
-            $this->dispatch('crm-sync', tipo: 'caso_cp', cambios: $cambios, pivote: [
-                'identificacion' => $identificacion,
-            ]);
+            $this->dispatch('crm-sync', tipo: 'caso_cp', cambios: $cambios);
         }
     }
 

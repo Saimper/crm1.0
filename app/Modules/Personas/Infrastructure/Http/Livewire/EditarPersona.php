@@ -33,14 +33,6 @@ final class EditarPersona extends Component
 
     public string $identificacion = '';
 
-    /**
-     * Identificación tal como se cargó (pre-edición). Es el pivote estable que
-     * el wrapper coteja con el vendor_lead_code del lead en llamada: aunque el
-     * agente corrija la identificación, este valor sigue coincidiendo con el
-     * lead (la corrección viaja en `cambios`).
-     */
-    public string $identificacionOriginal = '';
-
     public string $nombres = '';
 
     public string $apellidos = '';
@@ -64,7 +56,6 @@ final class EditarPersona extends Component
         $this->tipoPersona = (string) $row->tipo_persona;
         $this->tipoIdentificacionId = (int) $row->tipo_identificacion_id;
         $this->identificacion = (string) $row->identificacion;
-        $this->identificacionOriginal = (string) $row->identificacion;
         $this->nombres = (string) ($row->nombres ?? '');
         $this->apellidos = (string) ($row->apellidos ?? '');
         $this->razonSocial = (string) ($row->razon_social ?? '');
@@ -136,9 +127,7 @@ final class EditarPersona extends Component
             $cambios['nombres'] = $this->nombres;
             $cambios['apellidos'] = $this->apellidos;
         }
-        $this->dispatch('crm-sync', tipo: 'persona', cambios: $cambios, pivote: [
-            'identificacion' => $this->identificacionOriginal,
-        ]);
+        $this->dispatch('crm-sync', tipo: 'persona', cambios: $cambios);
 
         session()->flash('persona_editada', 'Persona actualizada.');
 
