@@ -70,7 +70,10 @@ final class EmitirWebhookLeadWriteback implements ShouldQueue
 
         $signature = hash_hmac('sha256', $bodyJson, (string) $row->sso_secret);
 
-        $response = Http::timeout(10)
+        // El writeback de campos custom hace que el wrapper consulte ViciDial dos veces
+        // (definiciones de la lista vía vdc_form_display + update_lead), lo que supera
+        // los 10s. Como el job es async + reintentable, damos margen amplio.
+        $response = Http::connectTimeout(10)->timeout(30)
             ->withHeaders([
                 'Content-Type' => 'application/json',
                 'X-Mandante-Id' => (string) $row->id,
