@@ -115,6 +115,133 @@ final readonly class ServicioCamposPersonalizados
         return $resultado;
     }
 
+    /**
+     * Serializa a strings planos los valores YA persistidos de una entidad, aptos
+     * para writeback externo (CRM→ViciDial). A diferencia de leer el binding del
+     * formulario (que guarda IDs de opción), resuelve selección→etiqueta y
+     * moneda→monto, y descarta nulos/vacíos. Las claves son el `codigo` del campo.
+     *
+     * @return array<string, string>
+     */
+    public function valoresSerializadosParaWriteback(
+        int $proyectoId,
+        AmbitoCampo $ambito,
+        int $ambitoId,
+        int $entidadId,
+    ): array {
+        $filas = $this->db->table('valores_campo_personalizado as v')
+            ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
+            ->where('c.proyecto_id', $proyectoId)
+            ->where('c.ambito', $ambito->value)
+            ->where('c.ambito_id', $ambitoId)
+            ->where('c.activo', true)
+            ->where('v.entidad_id', $entidadId)
+            ->get([
+                'c.codigo', 'c.tipo',
+                'v.valor_texto_corto', 'v.valor_texto_largo',
+                'v.valor_numero_entero', 'v.valor_numero_decimal',
+                'v.valor_fecha', 'v.valor_fecha_hora', 'v.valor_booleano',
+                'v.valor_opcion_id', 'v.valor_opciones_ids', 'v.valor_moneda_monto',
+            ]);
+
+        $out = [];
+        foreach ($filas as $fila) {
+            $cadena = $this->serializarValor($fila, (string) $fila->tipo);
+            if ($cadena === null || $cadena === '') {
+                continue;
+            }
+            $out[(string) $fila->codigo] = $cadena;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Etiquetas (label humano) de los campos indicados por `codigo`, para que el
+     * wrapper pueda emparejar por etiqueta cuando el `codigo` no calza con el
+     * nombre del campo en ViciDial.
+     *
+     * @param  list<string>  $codigos
+     * @return array<string, string> [codigo => etiqueta]
+     */
+    public function etiquetasDeCampos(int $proyectoId, AmbitoCampo $ambito, int $ambitoId, array $codigos): array
+    {
+        if ($codigos === []) {
+            return [];
+        }
+
+        /** @var array<string, string> $pares */
+        $pares = $this->db->table('campos_personalizados')
+            ->where('proyecto_id', $proyectoId)
+            ->where('ambito', $ambito->value)
+            ->where('ambito_id', $ambitoId)
+            ->whereIn('codigo', $codigos)
+            ->pluck('etiqueta', 'codigo')
+            ->all();
+
+        return $pares;
+    }
+
+    private function serializarValor(object $fila, string $tipo): ?string
+    {
+        return match ($tipo) {
+            'texto_corto' => $this->aCadena($fila->valor_texto_corto),
+            'texto_largo' => $this->aCadena($fila->valor_texto_largo),
+            'numero_entero' => $fila->valor_numero_entero === null ? null : (string) (int) $fila->valor_numero_entero,
+            'numero_decimal' => $this->aCadena($fila->valor_numero_decimal),
+            'fecha' => $this->aCadena($fila->valor_fecha),
+            'fecha_hora' => $this->aCadena($fila->valor_fecha_hora),
+            'booleano' => $fila->valor_booleano === null ? null : ((bool) $fila->valor_booleano ? '1' : '0'),
+            'moneda' => $this->aCadena($fila->valor_moneda_monto),
+            'seleccion_unica' => $this->etiquetaOpcion($fila->valor_opcion_id),
+            'seleccion_multiple' => $this->etiquetasOpciones($fila->valor_opciones_ids),
+            default => null,
+        };
+    }
+
+    private function aCadena(mixed $valor): ?string
+    {
+        if ($valor === null) {
+            return null;
+        }
+        $cadena = trim((string) $valor);
+
+        return $cadena === '' ? null : $cadena;
+    }
+
+    private function etiquetaOpcion(mixed $opcionId): ?string
+    {
+        if ($opcionId === null) {
+            return null;
+        }
+
+        $etiqueta = $this->db->table('opciones_campo_personalizado')
+            ->where('id', (int) $opcionId)
+            ->value('etiqueta');
+
+        return is_string($etiqueta) && $etiqueta !== '' ? $etiqueta : null;
+    }
+
+    private function etiquetasOpciones(mixed $opcionesIds): ?string
+    {
+        $ids = is_array($opcionesIds) ? $opcionesIds : json_decode((string) $opcionesIds, true);
+        if (! is_array($ids)) {
+            return null;
+        }
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if ($ids === []) {
+            return null;
+        }
+
+        $etiquetas = $this->db->table('opciones_campo_personalizado')
+            ->whereIn('id', $ids)
+            ->orderBy('orden')
+            ->pluck('etiqueta')
+            ->all();
+
+        return $etiquetas === [] ? null : implode(', ', $etiquetas);
+    }
+
     /** @return array<string, mixed> */
     private function mapearValorAColumna(TipoCampo $tipo, mixed $valor): array
     {

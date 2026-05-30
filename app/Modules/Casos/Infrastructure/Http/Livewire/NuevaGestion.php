@@ -15,6 +15,7 @@ use App\Modules\Cx\Domain\ValueObjects\FechaLimiteSla;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
 use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
+use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
 use App\Modules\Servicio\Domain\ValueObjects\DescripcionAccion;
 use App\Modules\Servicio\Domain\ValueObjects\FechaProgramada;
@@ -25,6 +26,7 @@ use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Throwable;
@@ -36,6 +38,8 @@ use Throwable;
  */
 final class NuevaGestion extends Component
 {
+    use EmiteWritebackFicha;
+
     public int $casoId = 0;
 
     public int $personaId = 0;
@@ -230,6 +234,37 @@ final class NuevaGestion extends Component
             $this->addError('general', $e->getMessage());
 
             return;
+        }
+
+        // Writeback CRM→ViciDial: sincroniza al lead activo SOLO los campos del
+        // caso (no los de la gestión). Serializa el estado ya persistido para
+        // resolver selección→etiqueta y moneda→monto, y adjunta las etiquetas
+        // para el emparejamiento por label en el wrapper. Best-effort: ningún
+        // fallo aquí debe abortar el flujo post-guardado (igual que EditarCaso).
+        try {
+            $carteraId = (int) DB::table('casos')->where('id', $this->casoId)->value('cartera_id');
+            $valores = $servicioCampos->valoresSerializadosParaWriteback(
+                $proyectoId,
+                AmbitoCampo::CASO,
+                $carteraId,
+                $this->casoId,
+            );
+            if ($valores !== []) {
+                $this->emitirWritebackFicha([
+                    'custom' => $valores,
+                    'custom_labels' => $servicioCampos->etiquetasDeCampos(
+                        $proyectoId,
+                        AmbitoCampo::CASO,
+                        $carteraId,
+                        array_keys($valores),
+                    ),
+                ]);
+            }
+        } catch (Throwable $e) {
+            Log::warning('lead-writeback: fallo al serializar/emitir', [
+                'caso_id' => $this->casoId,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $this->reset([

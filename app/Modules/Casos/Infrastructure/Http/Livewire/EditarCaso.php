@@ -10,7 +10,9 @@ use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
+use Throwable;
 
 /**
  * Edita datos descriptivos comunes de un caso del proyecto activo.
@@ -130,9 +132,34 @@ final class EditarCaso extends Component
             );
         });
 
-        // Writeback CRM→ViciDial: valores crudos; el emisor castea a string y descarta
-        // no-escalares (selección múltiple/moneda). Las claves son el `codigo` del campo.
-        $this->emitirWritebackFicha(['custom' => $this->valoresCamposCaso]);
+        // Writeback CRM→ViciDial: serializa el estado ya persistido (resuelve
+        // selección→etiqueta y moneda→monto). Las claves son el `codigo` del campo;
+        // se adjunta la etiqueta para que el wrapper pueda emparejar por label.
+        // Best-effort: ningún fallo de serialización/emisión debe abortar el guardado.
+        try {
+            $valores = $servicioCampos->valoresSerializadosParaWriteback(
+                $proyectoId,
+                AmbitoCampo::CASO,
+                (int) $this->carteraId,
+                (int) $this->casoId,
+            );
+            if ($valores !== []) {
+                $this->emitirWritebackFicha([
+                    'custom' => $valores,
+                    'custom_labels' => $servicioCampos->etiquetasDeCampos(
+                        $proyectoId,
+                        AmbitoCampo::CASO,
+                        (int) $this->carteraId,
+                        array_keys($valores),
+                    ),
+                ]);
+            }
+        } catch (Throwable $e) {
+            Log::warning('lead-writeback: fallo al serializar/emitir', [
+                'caso_id' => $this->casoId,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         session()->flash('caso_editado', 'Caso actualizado.');
 

@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Integracion;
 
 use App\Modules\Casos\Infrastructure\Http\Livewire\EditarCaso;
+use App\Modules\Casos\Infrastructure\Http\Livewire\NuevaGestion;
 use App\Modules\Contactos\Infrastructure\Http\Livewire\ListaContactos;
+use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Integracion\Domain\Contracts\EmisorWritebackFicha;
 use App\Modules\Integracion\Infrastructure\Jobs\EmitirWebhookLeadWriteback;
 use App\Modules\Personas\Infrastructure\Http\Livewire\EditarPersona;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -127,7 +130,76 @@ final class LeadWritebackFichaTest extends TestCase
             ->assertHasNoErrors();
 
         Queue::assertPushed(EmitirWebhookLeadWriteback::class, function (EmitirWebhookLeadWriteback $job): bool {
-            return ($job->cuerpo['changes']['custom']['vici_col'] ?? null) === 'VALOR-X';
+            return ($job->cuerpo['changes']['custom']['vici_col'] ?? null) === 'VALOR-X'
+                && ($job->cuerpo['changes']['custom_labels']['vici_col'] ?? null) === 'Columna ViciDial';
+        });
+    }
+
+    public function test_nueva_gestion_emite_custom_del_caso_al_guardar(): void
+    {
+        Queue::fake();
+        Event::fake([GestionRegistrada::class]); // evita el listener de desnormalización
+
+        $mandante = $this->crearMandanteConWebhook();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+
+        $casoId = (int) DB::table('casos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyecto->id,
+            'cartera_id' => $cartera->id,
+            'persona_id' => $persona->id,
+            'tipo_caso' => 'cobranza',
+            'estado_caso_id' => $estado->id,
+            'fecha_ingreso' => '2026-01-01',
+            'prioridad' => 100,
+            'creada_en' => now(),
+            'actualizada_en' => now(),
+        ]);
+
+        DB::table('campos_personalizados')->insert([
+            'proyecto_id' => $proyecto->id,
+            'ambito' => 'caso',
+            'ambito_id' => $cartera->id,
+            'tipo' => 'texto_corto',
+            'codigo' => 'saldo',
+            'etiqueta' => 'Saldo Actual',
+            'obligatorio' => false,
+            'activo' => true,
+            'orden' => 1,
+            'creada_en' => now(),
+            'actualizada_en' => now(),
+        ]);
+
+        $canalId = (int) DB::table('canales')->where('activo', true)->value('id');
+        $tipoGestionId = (int) DB::table('tipos_gestion')->insertGetId([
+            'proyecto_id' => $proyecto->id, 'codigo' => 'LLAMADA', 'nombre' => 'Llamada',
+            'activo' => true, 'orden' => 1, 'creada_en' => now(), 'actualizada_en' => now(),
+        ]);
+        $resultadoId = (int) DB::table('resultados')->insertGetId([
+            'proyecto_id' => $proyecto->id, 'codigo' => 'CONTACTO', 'nombre' => 'Contacto',
+            'activo' => true, 'orden' => 1,
+            'es_contacto_efectivo' => true, 'requiere_compromiso' => false, 'requiere_causa' => false,
+            'creada_en' => now(), 'actualizada_en' => now(),
+        ]);
+
+        $this->enContextoIframe($proyecto, $mandante, 'sync-gestion');
+
+        Livewire::test(NuevaGestion::class, [
+            'casoId' => $casoId, 'personaId' => (int) $persona->id, 'tipoCaso' => 'cobranza',
+        ])
+            ->set('canalId', $canalId)
+            ->set('tipoGestionId', $tipoGestionId)
+            ->set('resultadoId', $resultadoId)
+            ->set('valoresCamposCaso', ['saldo' => '1500'])
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        Queue::assertPushed(EmitirWebhookLeadWriteback::class, function (EmitirWebhookLeadWriteback $job): bool {
+            return ($job->cuerpo['changes']['custom']['saldo'] ?? null) === '1500'
+                && ($job->cuerpo['changes']['custom_labels']['saldo'] ?? null) === 'Saldo Actual';
         });
     }
 
