@@ -31,6 +31,14 @@ final class RescatarCamposNativosCommand extends Command
     /** Campos del sistema que viven en la tabla personas */
     private const CAMPOS_PERSONA = ['nombres', 'apellidos', 'razon_social'];
 
+    /**
+     * Columnas `int unsigned` del CTI: un "días en atraso" negativo significa
+     * días por vencer, no mora. Se omite en vez de forzarlo a 0.
+     *
+     * @var list<string>
+     */
+    private const COLUMNAS_SIN_NEGATIVOS = ['dias_mora', 'cuotas_totales', 'cuotas_pagadas'];
+
     /** campo del sistema => columna en casos_cobranza */
     private const CAMPOS_COBRANZA = [
         'saldo_total' => 'saldo_total',
@@ -140,6 +148,10 @@ final class RescatarCamposNativosCommand extends Command
 
         return $this->aplicar($filas, function (stdClass $fila) use ($columna): int {
             $numero = $this->aNumero((string) $fila->valor);
+
+            if ($numero !== null && (float) $numero < 0 && in_array($columna, self::COLUMNAS_SIN_NEGATIVOS, true)) {
+                return 0;
+            }
 
             return $numero === null ? 0 : DB::table('casos_cobranza')
                 ->where('caso_id', $fila->destino_id)

@@ -754,9 +754,9 @@ final readonly class ProcesarFilaDinamica
                     saldoInteres: $this->decimal('saldo_interes', $fila, $esquema),
                     saldoTotal: $this->decimal('saldo_total', $fila, $esquema),
                     cuotaMensual: $this->decimal('cuota_mensual', $fila, $esquema),
-                    cuotasTotales: $this->entero('cuotas_totales', $fila, $esquema),
-                    cuotasPagadas: $this->entero('cuotas_pagadas', $fila, $esquema),
-                    diasMora: $this->entero('dias_mora', $fila, $esquema),
+                    cuotasTotales: $this->enteroSinSigno('cuotas_totales', $fila, $esquema),
+                    cuotasPagadas: $this->enteroSinSigno('cuotas_pagadas', $fila, $esquema),
+                    diasMora: $this->enteroSinSigno('dias_mora', $fila, $esquema),
                     fechaDesembolso: $this->fecha('fecha_desembolso', $fila, $esquema),
                     fechaVencimiento: $this->fecha('fecha_vencimiento', $fila, $esquema),
                 ),
@@ -878,6 +878,19 @@ final readonly class ProcesarFilaDinamica
         $decimal = $this->decimal($campo, $fila, $esquema);
 
         return $decimal !== null ? (int) round((float) $decimal) : null;
+    }
+
+    /**
+     * Como `entero`, pero descarta negativos: las columnas de mora y cuotas del CTI
+     * son `int unsigned`, y un "días en atraso" negativo es días por vencer, no mora.
+     *
+     * @param  array<string, string>  $fila
+     */
+    private function enteroSinSigno(string $campo, array $fila, EsquemaImportacion $esquema): ?int
+    {
+        $valor = $this->entero($campo, $fila, $esquema);
+
+        return $valor !== null && $valor >= 0 ? $valor : null;
     }
 
     /**

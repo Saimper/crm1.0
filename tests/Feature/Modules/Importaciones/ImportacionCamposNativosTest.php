@@ -118,6 +118,37 @@ final class ImportacionCamposNativosTest extends TestCase
         self::assertSame('MASIVO', $valor);
     }
 
+    public function test_dias_de_atraso_negativos_no_rompen_la_carga(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ACTIVO');
+        $admin = $this->crearAdminGlobal();
+
+        // La base del cliente trae días negativos: son días por vencer, no mora.
+        // dias_mora es int unsigned, así que el valor se descarta en vez de fallar.
+        $this->ejecutarImportacion($proyecto, $cartera, $admin, [
+            [
+                'identificacion' => '8-333-444',
+                'nombres' => 'CARLOS DIAZ',
+                'saldo_total' => '900.00',
+                'saldo_capital' => '900.00',
+                'dias_mora' => '-147',
+                'segmento' => 'MASIVO',
+                'id_cpelegido' => '100777666',
+            ],
+        ]);
+
+        $cti = DB::table('casos_cobranza')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('numero_prestamo', '100777666')
+            ->first();
+
+        self::assertNotNull($cti, 'La fila debe cargarse igual.');
+        self::assertNull($cti->dias_mora);
+        self::assertSame('900.00', (string) $cti->saldo_total, 'El resto de la fila sí se guarda.');
+    }
+
     public function test_la_inferencia_reconoce_sola_las_columnas_del_archivo_del_cliente(): void
     {
         $proyecto = $this->crearProyectoCobranza();
