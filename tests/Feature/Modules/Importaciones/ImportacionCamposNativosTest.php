@@ -120,6 +120,9 @@ final class ImportacionCamposNativosTest extends TestCase
 
     public function test_la_inferencia_reconoce_sola_las_columnas_del_archivo_del_cliente(): void
     {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+
         $salida = app(InferirEsquemaDesdeHeaders::class)->execute(new InferirEsquemaInput(
             headers: self::HEADERS,
             filasMuestra: [[
@@ -132,6 +135,8 @@ final class ImportacionCamposNativosTest extends TestCase
                 'SEGMENTO' => 'PREMIUM',
             ]],
             target: TargetImportacion::CASO_COBRANZA,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
         ));
 
         $mapeadas = [];
@@ -151,10 +156,15 @@ final class ImportacionCamposNativosTest extends TestCase
 
     public function test_dos_columnas_no_pueden_reclamar_el_mismo_campo(): void
     {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+
         $salida = app(InferirEsquemaDesdeHeaders::class)->execute(new InferirEsquemaInput(
             headers: ['CEDULA', 'NOMBRE', 'NOMBRE DEL TITULAR'],
             filasMuestra: [['CEDULA' => '8-1-1', 'NOMBRE' => 'A', 'NOMBRE DEL TITULAR' => 'B']],
             target: TargetImportacion::CASO_COBRANZA,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
         ));
 
         $aNombres = array_filter(
