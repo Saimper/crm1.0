@@ -44,10 +44,12 @@ final readonly class EjecutarImportacionDinamica
             throw new \RuntimeException("Importación {$input->importacionId} no encontrada.");
         }
 
+        // PREPARADA: ejecución directa. PROCESANDO: ya fue marcada por EncolarImportacion
+        // al despachar el job (o el worker reanuda tras un corte); el job serializa con GET_LOCK.
         $estado = EstadoImportacion::from((string) $importacion->estado);
-        if ($estado !== EstadoImportacion::PREPARADA) {
+        if (! in_array($estado, [EstadoImportacion::PREPARADA, EstadoImportacion::PROCESANDO], true)) {
             throw new \RuntimeException(
-                "La importación está en estado {$estado->value}, se requiere PREPARADA."
+                "La importación está en estado {$estado->value}, se requiere PREPARADA o PROCESANDO."
             );
         }
 
