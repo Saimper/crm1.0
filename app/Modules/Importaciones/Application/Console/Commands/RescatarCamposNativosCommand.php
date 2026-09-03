@@ -78,7 +78,7 @@ final class RescatarCamposNativosCommand extends Command
     {
         $q = DB::table('campos_personalizados')
             ->where('ambito', 'caso')
-            ->whereNull('eliminada_en');
+            ->where('activo', true);
 
         $proyecto = $this->option('proyecto');
         if (is_string($proyecto) && ctype_digit($proyecto)) {
