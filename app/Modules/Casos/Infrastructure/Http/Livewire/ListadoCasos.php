@@ -9,6 +9,7 @@ use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -146,7 +147,7 @@ final class ListadoCasos extends Component
      *
      * @param  array<string, ColumnaCaso>  $columnas
      * @param  list<string>  $visibles
-     * @return list<string|\Illuminate\Database\Query\Expression>
+     * @return list<string|Expression<string>>
      */
     private function seleccion(array $columnas, array $visibles): array
     {

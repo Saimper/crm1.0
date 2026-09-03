@@ -23,109 +23,101 @@ final class SinonimosCampoSistema
     public const MAPA = [
         'identificacion' => [
             'cedula', 'cédula', 'ced', 'documento', 'doc',
-            'dni', 'id', 'identificacion', 'identificación',
-            'nit', 'ruc', 'pasaporte', 'curp',
-            'num_documento', 'nro_documento', 'nrodocumento',
-            'numerodocumento', 'numerodedocumento',
-            'identificaciondelcliente', 'documentodeidentidad',
-            'cedulacliente', 'ceduladelcliente', 'cedulatitular',
+            'dni', 'id', 'identificación', 'nit', 'ruc',
+            'pasaporte', 'curp', 'numdocumento', 'nrodocumento', 'numerodocumento',
+            'numerodedocumento', 'identificaciondelcliente', 'documentodeidentidad', 'cedulacliente', 'ceduladelcliente',
+            'cedulatitular',
         ],
         'tipo_identificacion_codigo' => [
-            'tipoidentificacion', 'tipoidentificación', 'tipodocumento',
-            'tipodedocumento', 'tipodoc', 'tipo_documento',
-            'tipo_identificacion', 'tipo_de_identificacion',
-            'tipo_de_documento', 'tipo_doc',
+            'tipoidentificacion', 'tipoidentificación', 'tipodocumento', 'tipodedocumento', 'tipodoc',
+            'tipodeidentificacion',
         ],
         'nombres' => [
-            'nombre', 'nombres', 'nombrecompleto', 'nombredeltitular',
-            'nombretitular', 'titular', 'nombredelcliente', 'nombrecliente',
-            'cliente', 'nombreyapellido', 'nombresyapellidos', 'nombreapellido',
-            'deudor', 'nombredeudor', 'nombredeldeudor', 'name', 'fullname',
+            'nombre', 'nombrecompleto', 'nombredeltitular', 'nombretitular', 'titular',
+            'nombredelcliente', 'nombrecliente', 'cliente', 'nombreyapellido', 'nombresyapellidos',
+            'nombreapellido', 'deudor', 'nombredeudor', 'nombredeldeudor', 'name',
+            'fullname',
         ],
         'apellidos' => [
-            'apellido', 'apellidos', 'apellidocompleto', 'apellidopaterno',
-            'apellidosdelcliente', 'apellidocliente', 'lastname', 'surname',
+            'apellido', 'apellidocompleto', 'apellidopaterno', 'apellidosdelcliente', 'apellidocliente',
+            'lastname', 'surname',
         ],
         'razon_social' => [
-            'razonsocial', 'razón social', 'razonsocialcliente', 'empresa',
-            'nombreempresa', 'compania', 'compañia', 'compañía', 'company',
+            'razónsocial', 'razonsocialcliente', 'empresa', 'nombreempresa', 'compania',
+            'compañia', 'compañía', 'company',
         ],
         'saldo_total' => [
-            'saldototal', 'saldo', 'saldoactual', 'saldovigente', 'deuda',
-            'deudatotal', 'totaldeuda', 'montototal', 'totaladeudado',
-            'saldoadeudado', 'saldopendiente',
+            'saldo', 'saldoactual', 'saldovigente', 'deuda', 'deudatotal',
+            'totaldeuda', 'montototal', 'totaladeudado', 'saldoadeudado', 'saldopendiente',
         ],
         'saldo_capital' => [
-            'capital', 'saldocapital', 'montocapital', 'capitalpendiente',
-            'capitaladeudado', 'principal',
+            'capital', 'montocapital', 'capitalpendiente', 'capitaladeudado', 'principal',
         ],
         'saldo_interes' => [
-            'interes', 'interés', 'intereses', 'saldointeres', 'saldointereses',
-            'interesespendientes', 'montointeres',
+            'interes', 'interés', 'intereses', 'saldointereses', 'interesespendientes',
+            'montointeres',
         ],
         'monto_original' => [
-            'montooriginal', 'montoriginal', 'valororiginal', 'montodesembolsado',
-            'montootorgado', 'montoprestamo', 'montocredito', 'valorcredito',
+            'montoriginal', 'valororiginal', 'montodesembolsado', 'montootorgado', 'montoprestamo',
+            'montocredito', 'valorcredito',
         ],
         'cuota_mensual' => [
-            'cuota', 'cuotamensual', 'cuotadepago', 'valorcuota', 'montocuota',
-            'cuotapactada', 'pagomensual',
+            'cuota', 'cuotadepago', 'valorcuota', 'montocuota', 'cuotapactada',
+            'pagomensual',
         ],
         'dias_mora' => [
-            'diasmora', 'diasenmora', 'diasdemora', 'diasatraso', 'diasenatraso',
-            'diasdeatraso', 'diasvencidos', 'mora', 'atraso', 'diasvencido',
+            'diasenmora', 'diasdemora', 'diasatraso', 'diasenatraso', 'diasdeatraso',
+            'diasvencidos', 'mora', 'atraso', 'diasvencido',
         ],
         'cuotas_totales' => [
-            'cuotastotales', 'totalcuotas', 'numerocuotas', 'nrocuotas', 'plazo',
+            'totalcuotas', 'numerocuotas', 'nrocuotas', 'plazo',
         ],
         'cuotas_pagadas' => [
-            'cuotaspagadas', 'cuotascanceladas', 'cuotasabonadas',
+            'cuotascanceladas', 'cuotasabonadas',
         ],
         'fecha_desembolso' => [
-            'fechadesembolso', 'fechadeotorgamiento', 'fechaotorgamiento',
-            'fechacredito', 'fechaprestamo',
+            'fechadeotorgamiento', 'fechaotorgamiento', 'fechacredito', 'fechaprestamo',
         ],
         'fecha_vencimiento' => [
-            'fechavencimiento', 'fechadevencimiento', 'fechavence', 'vencimiento',
+            'fechadevencimiento', 'fechavence', 'vencimiento',
         ],
         'asunto' => [
-            'asunto', 'titulo', 'título', 'subject', 'motivo', 'tema',
+            'titulo', 'título', 'subject', 'motivo', 'tema',
         ],
         'descripcion' => [
-            'descripcion', 'descripción', 'detalle', 'observacion', 'observación',
-            'description', 'comentario',
+            'descripción', 'detalle', 'observacion', 'observación', 'description',
+            'comentario',
         ],
         'fecha_reporte' => [
-            'fechareporte', 'fechadereporte', 'fechaapertura', 'fechacreacion',
+            'fechadereporte', 'fechaapertura', 'fechacreacion',
         ],
         'fecha_limite_sla' => [
-            'fechalimitesla', 'fechasla', 'limitesla', 'vencimientosla',
+            'fechasla', 'limitesla', 'vencimientosla',
         ],
         'valor_estimado_monto' => [
-            'valorestimado', 'montoestimado', 'valorpotencial', 'montopotencial',
-            'valoroportunidad',
+            'valorestimado', 'montoestimado', 'valorpotencial', 'montopotencial', 'valoroportunidad',
         ],
         'origen_lead' => [
-            'origen', 'origenlead', 'fuente', 'canalorigen', 'fuentelead',
+            'origen', 'fuente', 'canalorigen', 'fuentelead',
         ],
         'fecha_primer_contacto' => [
-            'fechaprimercontacto', 'primercontacto', 'fechacontacto',
+            'primercontacto', 'fechacontacto',
         ],
         'fecha_estimada_cierre' => [
-            'fechaestimadacierre', 'fechacierreestimada', 'cierreestimado',
+            'fechacierreestimada', 'cierreestimado',
         ],
         'direccion_servicio' => [
-            'direccion', 'dirección', 'direccionservicio', 'direcciondelservicio',
-            'domicilio', 'ubicacion', 'ubicación',
+            'direccion', 'dirección', 'direcciondelservicio', 'domicilio', 'ubicacion',
+            'ubicación',
         ],
         'tecnico_asignado' => [
-            'tecnico', 'técnico', 'tecnicoasignado', 'tecnicoresponsable',
+            'tecnico', 'técnico', 'tecnicoresponsable',
         ],
         'fecha_solicitud' => [
-            'fechasolicitud', 'fechadesolicitud', 'fecharequerimiento',
+            'fechadesolicitud', 'fecharequerimiento',
         ],
         'fecha_programada' => [
-            'fechaprogramada', 'fechaagendada', 'fechavisita', 'fechaatencion',
+            'fechaagendada', 'fechavisita', 'fechaatencion',
         ],
     ];
 
