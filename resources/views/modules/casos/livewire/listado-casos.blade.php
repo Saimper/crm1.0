@@ -40,8 +40,9 @@
                 </button>
 
                 @if($selectorColumnasAbierto)
-                    <div style="position:absolute;right:0;top:34px;z-index:40;width:290px;background:var(--surface);
-                                border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:12px;">
+                    <div style="position:absolute;right:0;top:34px;z-index:60;width:290px;background:var(--bg-elev);
+                                border:1px solid var(--border);border-radius:10px;
+                                box-shadow:0 10px 28px rgba(15,23,42,.18);padding:12px;">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
                             <strong style="font-size:12px;">{{ __('casos.columns_title') }}</strong>
                             <button type="button" wire:click="restaurarColumnas"
@@ -55,11 +56,13 @@
                                     $posicion = array_search($columna->clave, $columnasVisibles, true);
                                 @endphp
                                 <div style="display:flex;align-items:center;gap:6px;padding:3px 2px;">
-                                    <label style="display:flex;align-items:center;gap:7px;flex:1;cursor:pointer;font-size:12px;">
-                                        <input type="checkbox" @checked($activa)
-                                               wire:click="alternarColumna('{{ $columna->clave }}')"/>
-                                        <span>{{ $columna->etiqueta }}</span>
-                                    </label>
+                                    {{-- input fuera del label: anidarlo hace que el click burbujee
+                                         al label y este lo reenvíe, disparando wire:click dos veces
+                                         (la columna se activaba y desactivaba en el mismo clic). --}}
+                                    <input type="checkbox" id="col-{{ $columna->clave }}" @checked($activa)
+                                           wire:click="alternarColumna('{{ $columna->clave }}')"/>
+                                    <label for="col-{{ $columna->clave }}"
+                                           style="flex:1;cursor:pointer;font-size:12px;">{{ $columna->etiqueta }}</label>
                                     @if($activa)
                                         <button type="button" wire:click="moverColumna('{{ $columna->clave }}', -1)"
                                                 class="btn btn-ghost btn-sm" style="padding:1px 5px;"

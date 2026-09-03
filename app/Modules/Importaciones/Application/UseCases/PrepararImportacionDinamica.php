@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Application\UseCases;
 
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Events\CamposPersonalizadosCreadosPorImportacion;
@@ -88,7 +89,7 @@ final readonly class PrepararImportacionDinamica
                         $input->esquema->carteraId,
                         $codigo,
                         $etiqueta,
-                        $columna->tipoInferido,
+                        $this->tipoCreable($columna->tipoInferido),
                     );
                     $camposCreados++;
                     $camposIds[] = $campoId;
@@ -147,5 +148,21 @@ final readonly class PrepararImportacionDinamica
                 resultadoDryRun: $resultadoDryRun,
             );
         });
+    }
+
+    /**
+     * Tipo con el que se puede crear un campo desde una importación.
+     *
+     * La inferencia propone selección única/múltiple cuando una columna tiene pocos
+     * valores distintos, pero la importación no define catálogos de opciones (§7: eso
+     * lo hace el admin). Un campo de selección sin opciones no se puede llenar —el
+     * valor del archivo es una etiqueta, no un id—, así que se crea como texto.
+     */
+    private function tipoCreable(TipoCampo $inferido): TipoCampo
+    {
+        return match ($inferido) {
+            TipoCampo::SELECCION_UNICA, TipoCampo::SELECCION_MULTIPLE => TipoCampo::TEXTO_CORTO,
+            default => $inferido,
+        };
     }
 }

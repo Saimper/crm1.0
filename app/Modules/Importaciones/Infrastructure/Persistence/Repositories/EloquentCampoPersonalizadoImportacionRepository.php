@@ -100,7 +100,8 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
         }
 
         $ahora = CarbonImmutable::now();
-        $rows = array_map(fn (array $item): array => $this->filaNormalizada($item, $ahora), $lote);
+        $opciones = $this->opcionesDeLote($lote);
+        $rows = array_map(fn (array $item): array => $this->filaNormalizada($item, $ahora, $opciones), $lote);
         $actualizables = [...self::COLUMNAS_VALOR, 'actualizada_en'];
 
         foreach (array_chunk($rows, self::CHUNK_UPSERT) as $chunk) {
@@ -111,26 +112,111 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
 
     /**
      * @param  array{campo_id: int, entidad_id: int, valor: mixed, tipo?: string}  $item
+     * @param  array<int, array<string, int>>  $opciones
      * @return array<string, mixed>
      */
-    private function filaNormalizada(array $item, CarbonImmutable $ahora): array
+    private function filaNormalizada(array $item, CarbonImmutable $ahora, array $opciones): array
     {
+        $campoId = (int) $item['campo_id'];
+
         return [
-            'campo_personalizado_id' => (int) $item['campo_id'],
+            'campo_personalizado_id' => $campoId,
             'entidad_id' => (int) $item['entidad_id'],
             'creada_en' => $ahora,
             'actualizada_en' => $ahora,
             ...array_fill_keys(self::COLUMNAS_VALOR, null),
-            ...$this->mapearValorAColumna($item['tipo'] ?? 'texto_corto', $item['valor']),
+            ...$this->mapearValorAColumna(
+                $item['tipo'] ?? 'texto_corto',
+                $item['valor'],
+                $opciones[$campoId] ?? [],
+            ),
         ];
+    }
+
+    /**
+     * Opciones de los campos de selección presentes en el lote, indexadas por campo
+     * y por forma normalizada de su etiqueta y de su código.
+     *
+     * @param  list<array{campo_id: int, entidad_id: int, valor: mixed, tipo?: string}>  $lote
+     * @return array<int, array<string, int>>
+     */
+    private function opcionesDeLote(array $lote): array
+    {
+        $campos = [];
+        foreach ($lote as $item) {
+            if (in_array($item['tipo'] ?? '', ['seleccion_unica', 'seleccion_multiple'], true)) {
+                $campos[(int) $item['campo_id']] = true;
+            }
+        }
+
+        if ($campos === []) {
+            return [];
+        }
+
+        $mapa = [];
+        $filas = $this->db->table('opciones_campo_personalizado')
+            ->whereIn('campo_personalizado_id', array_keys($campos))
+            ->where('activo', true)
+            ->select(['id', 'campo_personalizado_id', 'codigo', 'etiqueta'])
+            ->get();
+
+        foreach ($filas as $fila) {
+            $campoId = (int) $fila->campo_personalizado_id;
+            $mapa[$campoId][$this->claveOpcion((string) $fila->etiqueta)] = (int) $fila->id;
+            $mapa[$campoId][$this->claveOpcion((string) $fila->codigo)] = (int) $fila->id;
+        }
+
+        return $mapa;
+    }
+
+    /**
+     * El archivo trae la etiqueta de la opción, no su id: hay que resolverla contra
+     * el catálogo del campo. Si no coincide con ninguna opción se guarda null, en vez
+     * de castear el texto a int y violar la FK con un id inexistente.
+     *
+     * @param  array<string, int>  $opciones
+     */
+    private function idOpcion(mixed $valor, array $opciones): ?int
+    {
+        if ($valor === null || trim((string) $valor) === '') {
+            return null;
+        }
+
+        return $opciones[$this->claveOpcion((string) $valor)] ?? null;
+    }
+
+    /**
+     * @param  array<string, int>  $opciones
+     */
+    private function idsOpciones(mixed $valor, array $opciones): ?string
+    {
+        if ($valor === null || trim((string) $valor) === '') {
+            return null;
+        }
+
+        $ids = [];
+        foreach (explode(',', (string) $valor) as $parte) {
+            $id = $opciones[$this->claveOpcion($parte)] ?? null;
+            if ($id !== null) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids === [] ? null : (string) json_encode($ids);
+    }
+
+    private function claveOpcion(string $valor): string
+    {
+        return mb_strtolower(trim($valor));
     }
 
     /**
      * Mapea un valor a la columna tipada correspondiente en valores_campo_personalizado.
      *
+     * @param  array<string, int>  $opciones
      * @return array<string, mixed>
      */
-    private function mapearValorAColumna(string $tipo, mixed $valor): array
+    private function mapearValorAColumna(string $tipo, mixed $valor, array $opciones = []): array
     {
         return match ($tipo) {
             'texto_corto' => ['valor_texto_corto' => $valor !== null ? mb_substr((string) $valor, 0, 255) : null],
@@ -140,8 +226,8 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
             'fecha' => ['valor_fecha' => $valor !== null ? (string) $valor : null],
             'fecha_hora' => ['valor_fecha_hora' => $valor !== null ? (string) $valor : null],
             'booleano' => ['valor_booleano' => $valor !== null ? (bool) $valor : null],
-            'seleccion_unica' => ['valor_opcion_id' => $valor !== null ? (int) $valor : null],
-            'seleccion_multiple' => ['valor_opciones_ids' => $valor !== null ? (string) $valor : null],
+            'seleccion_unica' => ['valor_opcion_id' => $this->idOpcion($valor, $opciones)],
+            'seleccion_multiple' => ['valor_opciones_ids' => $this->idsOpciones($valor, $opciones)],
             'moneda' => [
                 'valor_moneda_monto' => $valor !== null ? (float) $valor : null,
                 'valor_moneda_codigo' => 'USD',

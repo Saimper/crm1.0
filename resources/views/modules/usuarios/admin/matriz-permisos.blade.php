@@ -18,7 +18,7 @@
         <table class="table-compact" style="font-size:12px;">
             <thead>
                 <tr>
-                    <th style="position:sticky;left:0;background:var(--surface);min-width:280px;">{{ __('usuarios.col_permission') }}</th>
+                    <th style="position:sticky;left:0;background:var(--bg-elev);min-width:280px;">{{ __('usuarios.col_permission') }}</th>
                     @foreach($rolesBase as $r)
                         <th style="text-align:center;min-width:80px;">
                             <span class="badge badge-neutral">{{ $r->codigo }}</span>
@@ -34,7 +34,7 @@
             <tbody>
                 @foreach($permisos as $p)
                     <tr>
-                        <td style="position:sticky;left:0;background:var(--surface);">
+                        <td style="position:sticky;left:0;background:var(--bg-elev);">
                             <div class="font-mono" style="color:var(--text-tertiary);font-size:11px;">{{ $p->grupo }}</div>
                             <div style="font-weight:600;">{{ $p->codigo }}</div>
                             <div style="color:var(--text-secondary);font-size:11px;">{{ $p->nombre }}</div>

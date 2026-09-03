@@ -207,6 +207,70 @@ final class ImportacionCamposNativosTest extends TestCase
         self::assertNotEmpty($salida->advertencias);
     }
 
+    public function test_una_columna_repetitiva_no_crea_un_campo_de_seleccion_sin_opciones(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ACTIVO');
+        $admin = $this->crearAdminGlobal();
+
+        // La inferencia propone selección única cuando una columna tiene pocos valores
+        // distintos, pero la importación no define catálogos de opciones: el campo se
+        // crea como texto. Antes se creaba como selección y el guardado casteaba la
+        // etiqueta a int, violando la FK contra opciones_campo_personalizado.
+        $esquema = new EsquemaImportacion(
+            target: TargetImportacion::CASO_COBRANZA,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            modo: ModoImportacion::UPSERT,
+            columnas: [
+                new ColumnaExcel('CEDULA', TipoCampo::TEXTO_CORTO, 'identificacion', true, false, AccionColumna::MAPEAR_SISTEMA),
+                new ColumnaExcel('CUENTA', TipoCampo::TEXTO_CORTO, null, false, true, AccionColumna::CREAR_CP),
+                new ColumnaExcel('SEGMENTO', TipoCampo::SELECCION_UNICA, null, false, false, AccionColumna::CREAR_CP),
+            ],
+        );
+
+        $importacion = new ImportacionModel;
+        $importacion->public_id = (string) Str::ulid();
+        $importacion->proyecto_id = $proyecto->id;
+        $importacion->tipo_entidad = 'caso_cobranza';
+        $importacion->modo = 'upsert';
+        $importacion->estado = EstadoImportacion::PENDIENTE->value;
+        $importacion->usuario_id = $admin->id;
+        $importacion->nombre_archivo = 'base azteca.xlsx';
+        $importacion->total_filas = 1;
+        $importacion->save();
+
+        ImportacionFilaModel::query()->create([
+            'importacion_id' => $importacion->id,
+            'proyecto_id' => $proyecto->id,
+            'numero_fila' => 1,
+            'estado' => 'pendiente',
+            'payload' => ['identificacion' => '8-1-1', 'cuenta' => '900', 'segmento' => 'SEGMENTO 14 - 25', 'id_cpelegido' => '900'],
+        ]);
+
+        app(PrepararImportacionDinamica::class)->execute(new PrepararImportacionInput(
+            importacionId: (int) $importacion->id,
+            esquema: $esquema,
+            usuarioId: (int) $admin->id,
+            tienePermisoCampos: true,
+        ));
+
+        $tipo = DB::table('campos_personalizados')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('codigo', 'segmento')
+            ->value('tipo');
+
+        self::assertSame('texto_corto', $tipo);
+
+        $resultado = app(EjecutarImportacionDinamica::class)->execute(new EjecutarImportacionInput(
+            importacionId: (int) $importacion->id,
+            chunkSize: 100,
+        ));
+
+        self::assertSame(0, $resultado['invalidas'], 'La fila no debe fallar por el campo repetitivo.');
+    }
+
     /**
      * @param  list<array<string, string>>  $filas
      */
