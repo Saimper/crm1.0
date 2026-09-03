@@ -6,12 +6,16 @@ namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
 use App\Modules\Casos\Application\Services\PreferenciasColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
+use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use stdClass;
 
 /**
  * Listado paginado de casos del proyecto activo (todos los tipos CTI).
@@ -140,9 +144,9 @@ final class ListadoCasos extends Component
     /**
      * Columnas siempre presentes en el SELECT: alimentan enlaces y formato de fila.
      *
-     * @param  array<string, \App\Modules\Casos\Domain\Columnas\ColumnaCaso>  $columnas
+     * @param  array<string, ColumnaCaso>  $columnas
      * @param  list<string>  $visibles
-     * @return list<string|\Illuminate\Contracts\Database\Query\Expression>
+     * @return list<string|\Illuminate\Database\Query\Expression>
      */
     private function seleccion(array $columnas, array $visibles): array
     {
@@ -162,7 +166,7 @@ final class ListadoCasos extends Component
         return $seleccion;
     }
 
-    private function consultaBase(int $proyectoId, string $tipoOperacion): \Illuminate\Database\Query\Builder
+    private function consultaBase(int $proyectoId, string $tipoOperacion): Builder
     {
         $q = DB::table('casos as c')
             ->join('personas as p', 'p.id', '=', 'c.persona_id')
@@ -179,7 +183,7 @@ final class ListadoCasos extends Component
         return $this->aplicarFiltros($q);
     }
 
-    private function aplicarFiltros(\Illuminate\Database\Query\Builder $q): \Illuminate\Database\Query\Builder
+    private function aplicarFiltros(Builder $q): Builder
     {
         $busqueda = trim($this->busqueda);
 
@@ -205,9 +209,9 @@ final class ListadoCasos extends Component
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, \stdClass>
+     * @return Collection<int, stdClass>
      */
-    private function carteras(int $proyectoId): \Illuminate\Support\Collection
+    private function carteras(int $proyectoId): Collection
     {
         return DB::table('carteras')
             ->where('proyecto_id', $proyectoId)
@@ -219,9 +223,9 @@ final class ListadoCasos extends Component
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, \stdClass>
+     * @return Collection<int, stdClass>
      */
-    private function estados(int $proyectoId): \Illuminate\Support\Collection
+    private function estados(int $proyectoId): Collection
     {
         return DB::table('estados_caso')
             ->where('proyecto_id', $proyectoId)

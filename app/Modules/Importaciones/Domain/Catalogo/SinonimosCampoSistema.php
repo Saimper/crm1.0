@@ -127,7 +127,7 @@ final class SinonimosCampoSistema
         'fecha_programada' => [
             'fechaprogramada', 'fechaagendada', 'fechavisita', 'fechaatencion',
         ],
-    ];;
+    ];
 
     /**
      * Campo del sistema al que corresponde un encabezado, o null si no hay match.
