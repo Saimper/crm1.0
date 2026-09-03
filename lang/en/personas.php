@@ -28,7 +28,7 @@ return [
     // Table columns
     'col_type' => 'Type',
     'col_id_doc' => 'Identification',
-    'col_name' => 'Name / Company',
+    'col_name' => 'Name',
     'col_cases' => 'Cases',
     'col_created' => 'Created',
 

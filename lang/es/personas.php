@@ -28,7 +28,7 @@ return [
     // Columnas de tabla
     'col_type' => 'Tipo',
     'col_id_doc' => 'Identificación',
-    'col_name' => 'Nombre / Razón social',
+    'col_name' => 'Nombre',
     'col_cases' => 'Casos',
     'col_created' => 'Creada',
 

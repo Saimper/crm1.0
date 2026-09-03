@@ -63,9 +63,11 @@
                 <tbody>
                     @foreach($personas as $p)
                         @php
-                            $nombre = $p->tipo_persona === 'juridica'
-                                ? ($p->razon_social ?? '—')
-                                : trim(($p->nombres ?? '').' '.($p->apellidos ?? ''));
+                            // El nombre se toma de la columna que lo tenga: una persona
+                            // marcada como física puede traer razón social (y al revés)
+                            // según cómo venga la fuente importada.
+                            $nombre = trim(($p->nombres ?? '').' '.($p->apellidos ?? ''));
+                            $nombre = $nombre !== '' ? $nombre : trim((string) ($p->razon_social ?? ''));
                             $url = route('proyectos.trabajo', [
                                 'proyecto_id' => app('tenancy.proyecto_activo')->id,
                                 'persona' => $p->public_id,
