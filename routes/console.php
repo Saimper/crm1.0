@@ -24,3 +24,9 @@ Schedule::command('integracion:purgar-sso-consumidos')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->name('integracion-purgar-sso-consumidos');
+
+// Importaciones subidas y nunca lanzadas (pendiente/preparada) más viejas de 7 días.
+Schedule::command('importaciones:purgar-obsoletas --dias=7')
+    ->dailyAt('03:30')
+    ->withoutOverlapping()
+    ->name('importaciones-purgar-obsoletas');
