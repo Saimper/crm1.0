@@ -769,18 +769,6 @@ parameters:
 			path: app/Modules/Importaciones/Infrastructure/Persistence/Models/ImportacionModel.php
 
 		-
-			message: '#^Offset ''tipo'' on array\{campo_id\: int, entidad_id\: int, valor\: mixed, tipo\: string\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Modules/Importaciones/Infrastructure/Persistence/Repositories/EloquentCampoPersonalizadoImportacionRepository.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between non\-empty\-list\<non\-empty\-array\<string, mixed\>\> and array\{\} will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: app/Modules/Importaciones/Infrastructure/Persistence/Repositories/EloquentCampoPersonalizadoImportacionRepository.php
-
-		-
 			message: '#^Method App\\Modules\\Integracion\\Application\\UseCases\\ConsumirJwtHandshake\:\:resolverCasoPorNumeroPrestamo\(\) return type has no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1

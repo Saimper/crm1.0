@@ -79,6 +79,20 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
      */
     private const CHUNK_UPSERT = 2000;
 
+    /**
+     * Columnas tipadas de `valores_campo_personalizado`. Cada fila del lote se
+     * normaliza a este set completo (null donde no aplica): el upsert masivo toma
+     * la lista de columnas de la primera fila, y un lote que mezcla tipos (p. ej.
+     * texto + moneda) rompería con "Column count doesn't match value count".
+     */
+    private const COLUMNAS_VALOR = [
+        'valor_texto_corto', 'valor_texto_largo',
+        'valor_numero_entero', 'valor_numero_decimal',
+        'valor_fecha', 'valor_fecha_hora', 'valor_booleano',
+        'valor_opcion_id', 'valor_opciones_ids',
+        'valor_moneda_monto', 'valor_moneda_codigo',
+    ];
+
     public function guardarValoresEnLote(array $lote): void
     {
         if ($lote === []) {
@@ -86,37 +100,29 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
         }
 
         $ahora = CarbonImmutable::now();
-
-        $rows = [];
-
-        foreach ($lote as $item) {
-            $campoId = (int) $item['campo_id'];
-            $entidadId = (int) $item['entidad_id'];
-            $valor = $item['valor'];
-            $tipo = $item['tipo'] ?? 'texto_corto';
-
-            $row = [
-                'campo_personalizado_id' => $campoId,
-                'entidad_id' => $entidadId,
-                'creada_en' => $ahora,
-                'actualizada_en' => $ahora,
-            ];
-
-            $row = array_merge($row, $this->mapearValorAColumna($tipo, $valor));
-
-            $rows[] = $row;
-        }
-
-        if ($rows === []) {
-            return;
-        }
-
-        $columnas = array_keys($rows[0]);
+        $rows = array_map(fn (array $item): array => $this->filaNormalizada($item, $ahora), $lote);
+        $actualizables = [...self::COLUMNAS_VALOR, 'actualizada_en'];
 
         foreach (array_chunk($rows, self::CHUNK_UPSERT) as $chunk) {
             $this->db->table('valores_campo_personalizado')
-                ->upsert($chunk, ['campo_personalizado_id', 'entidad_id'], array_slice($columnas, 2));
+                ->upsert($chunk, ['campo_personalizado_id', 'entidad_id'], $actualizables);
         }
+    }
+
+    /**
+     * @param  array{campo_id: int, entidad_id: int, valor: mixed, tipo?: string}  $item
+     * @return array<string, mixed>
+     */
+    private function filaNormalizada(array $item, CarbonImmutable $ahora): array
+    {
+        return [
+            'campo_personalizado_id' => (int) $item['campo_id'],
+            'entidad_id' => (int) $item['entidad_id'],
+            'creada_en' => $ahora,
+            'actualizada_en' => $ahora,
+            ...array_fill_keys(self::COLUMNAS_VALOR, null),
+            ...$this->mapearValorAColumna($item['tipo'] ?? 'texto_corto', $item['valor']),
+        ];
     }
 
     /**

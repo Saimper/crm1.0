@@ -9,6 +9,7 @@ use App\Modules\Importaciones\Application\Services\LectorCsv;
 use App\Modules\Importaciones\Application\Services\LectorXlsx;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ConsultarProgresoImportacion;
+use App\Modules\Importaciones\Application\UseCases\EncolarImportacion;
 use App\Modules\Importaciones\Application\UseCases\InferirEsquemaDesdeHeaders;
 use App\Modules\Importaciones\Application\UseCases\InferirEsquemaInput;
 use App\Modules\Importaciones\Application\UseCases\PrepararImportacionDinamica;
@@ -18,10 +19,11 @@ use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionEnCursoNoEditable;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoEncontrada;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
-use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
 use Illuminate\Contracts\View\View;
@@ -373,7 +375,13 @@ final class Importar extends Component
         $this->paso = 3;
     }
 
-    public function ejecutar(): void
+    /**
+     * Encola la importación en la cola `imports` (worker dedicado) y pasa al paso
+     * de progreso, que hace polling cada 2s mientras el estado sea `procesando`.
+     * Nunca se ejecuta dentro del request HTTP: un archivo grande superaría los
+     * timeouts de PHP-FPM y nginx.
+     */
+    public function ejecutar(EncolarImportacion $encolar): void
     {
         abort_unless(auth()->user()?->tienePermiso('importaciones.procesar') === true, 403);
 
@@ -381,11 +389,21 @@ final class Importar extends Component
             return;
         }
 
-        ImportacionModel::query()->sinScopeProyecto()
-            ->where('id', $this->importacionId)
-            ->update(['modo' => $this->modo]);
+        $modo = ModoImportacion::tryFrom($this->modo);
+        if ($modo === null) {
+            $this->addError('columnas', 'Modo de importación inválido.');
 
-        EjecutarImportacionJob::dispatchSync($this->importacionId);
+            return;
+        }
+
+        try {
+            $encolar->execute($this->importacionId, $modo);
+        } catch (ImportacionEnCursoNoEditable|ImportacionNoEncontrada $e) {
+            $this->addError('columnas', $e->getMessage());
+
+            return;
+        }
+
         $this->paso = 4;
     }
 
