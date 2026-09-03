@@ -125,4 +125,9 @@ return [
     'yes' => 'Yes',
     'no' => 'No',
     'born_abbrev' => 'b.',
+
+    // F41: selector de columnas del listado
+    'columns' => 'Columns',
+    'columns_title' => 'Visible columns',
+    'columns_reset' => 'Reset',
 ];
