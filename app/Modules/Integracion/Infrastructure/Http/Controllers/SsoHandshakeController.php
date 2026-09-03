@@ -8,6 +8,7 @@ use App\Modules\Integracion\Application\DTOs\ConsumirJwtHandshakeInput;
 use App\Modules\Integracion\Application\DTOs\ConsumirJwtHandshakeOutput;
 use App\Modules\Integracion\Application\UseCases\ConsumirJwtHandshake;
 use App\Modules\Integracion\Domain\Exceptions\JwtClaimsIncompletos;
+use App\Modules\Integracion\Domain\Exceptions\JwtExpirado;
 use App\Modules\Integracion\Domain\Exceptions\JwtFirmaInvalida;
 use App\Modules\Integracion\Domain\Exceptions\JwtMalFormado;
 use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
@@ -43,6 +44,8 @@ final class SsoHandshakeController
         } catch (JwtFirmaInvalida $e) {
             Log::warning('handshake jwt: firma inválida', ['error' => $e->getMessage()]);
             throw new HttpException(401, 'Token inválido.');
+        } catch (JwtExpirado) {
+            throw new HttpException(401, 'Token expirado.');
         } catch (JwtTtlExcedido $e) {
             throw new HttpException(400, $e->getMessage());
         } catch (JwtTokenYaConsumido) {

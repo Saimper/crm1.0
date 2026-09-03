@@ -6,6 +6,7 @@ namespace App\Modules\Integracion\Application\Services;
 
 use App\Models\User;
 use App\Modules\Integracion\Domain\Contracts\RepositorioTokensConsumidos;
+use App\Modules\Integracion\Domain\Exceptions\JwtExpirado;
 use App\Modules\Integracion\Domain\Exceptions\JwtFirmaInvalida;
 use App\Modules\Integracion\Domain\Exceptions\JwtMalFormado;
 use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
@@ -134,9 +135,8 @@ final class AutenticadorPorJwt
             return JWT::decode($jwt, new Key((string) $mandante->sso_secret, self::ALGORITMO));
         } catch (SignatureInvalidException) {
             // Reintento con secret viejo si está vigente.
-        } catch (ExpiredException $e) {
-            \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
-            throw JwtFirmaInvalida::crear();
+        } catch (ExpiredException) {
+            throw JwtExpirado::crear();
         } catch (\UnexpectedValueException|\DomainException $e) {
             \Log::warning('jwt decode failed', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
             throw JwtFirmaInvalida::crear();
@@ -156,7 +156,9 @@ final class AutenticadorPorJwt
 
         try {
             return JWT::decode($jwt, new Key($secretOld, self::ALGORITMO));
-        } catch (ExpiredException|SignatureInvalidException $e) {
+        } catch (ExpiredException) {
+            throw JwtExpirado::crear();
+        } catch (SignatureInvalidException $e) {
             \Log::warning('jwt decode failed con secret old', ['ex' => get_class($e), 'msg' => $e->getMessage()]);
             throw JwtFirmaInvalida::crear();
         } catch (\UnexpectedValueException|\DomainException $e) {
