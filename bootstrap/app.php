@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\PayloadLivewireInvalido;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,5 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Payloads de Livewire que no corresponden a ningún componente/acción real
+        // (escáneres, snapshots manipulados, clientes v2): 4xx silencioso, no 500 + stack.
+        $exceptions->report(fn (Throwable $e): ?bool => PayloadLivewireInvalido::aplica($e) ? false : null);
+        $exceptions->render(fn (Throwable $e) => PayloadLivewireInvalido::aplica($e) ? PayloadLivewireInvalido::responder($e) : null);
     })->create();
