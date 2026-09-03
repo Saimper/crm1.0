@@ -100,6 +100,7 @@ final class EmitirWebhookLeadWriteback implements ShouldQueue
             'mandante_id' => $this->mandanteId,
             'event_id' => $this->eventId,
             'status' => $status,
+            'respuesta' => mb_substr($response->body(), 0, 500),
         ]);
     }
 
