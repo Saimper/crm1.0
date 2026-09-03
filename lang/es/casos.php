@@ -125,4 +125,9 @@ return [
     'yes' => 'Sí',
     'no' => 'No',
     'born_abbrev' => 'nac.',
+
+    // F41: selector de columnas del listado
+    'columns' => 'Columnas',
+    'columns_title' => 'Columnas visibles',
+    'columns_reset' => 'Restaurar',
 ];

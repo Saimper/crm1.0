@@ -7,6 +7,7 @@ namespace App\Modules\Importaciones\Application\UseCases;
 use App\Modules\Importaciones\Application\Services\InferidorTiposColumnas;
 use App\Modules\Importaciones\Domain\Catalogo\CampoSistema;
 use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
+use App\Modules\Importaciones\Domain\Catalogo\SinonimosCampoSistema;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 
@@ -34,27 +35,8 @@ final readonly class InferirEsquemaDesdeHeaders
         'idcaso', 'id_caso', 'casoid', 'caso_id',
         'codigo', 'código', 'code', 'id_unico', 'idunico',
         'referencia', 'reference',
-    ];
-
-    /**
-     * Sinónimos para auto-mapeo de headers a campos del sistema.
-     * Cada entrada: campo_sistema => [lista de sinónimos normalizados].
-     */
-    private const SINONIMOS_SISTEMA = [
-        'identificacion' => [
-            'cedula', 'cédula', 'ced', 'documento', 'doc',
-            'dni', 'id', 'identificacion', 'identificación',
-            'nit', 'ruc', 'pasaporte', 'curp',
-            'num_documento', 'nro_documento', 'nrodocumento',
-            'numerodocumento', 'numerodedocumento',
-            'identificaciondelcliente', 'documentodeidentidad',
-        ],
-        'tipo_identificacion_codigo' => [
-            'tipoidentificacion', 'tipoidentificación', 'tipodocumento',
-            'tipodedocumento', 'tipodoc', 'tipo_documento',
-            'tipo_identificacion', 'tipo_de_identificacion',
-            'tipo_de_documento', 'tipo_doc',
-        ],
+        'cuenta', 'nrocuenta', 'nro_cuenta', 'numerocuenta', 'numero_cuenta',
+        'numerodecuenta', 'cuentacliente', 'contrato', 'obligacion', 'obligación',
     ];
 
     public function __construct(
@@ -69,14 +51,28 @@ final readonly class InferirEsquemaDesdeHeaders
         $advertencias = [];
         $columnas = [];
 
+        $camposTomados = [];
+
         foreach ($input->headers as $header) {
             $valoresColumna = $this->extraerValoresColumna($header, $input->filasMuestra);
             $tipoInferido = $this->inferidor->inferir($valoresColumna);
 
             $campoMapeado = $this->buscarMatchSistema($header, $mapaSistema);
 
+            // Dos columnas no pueden alimentar el mismo campo del sistema: la segunda
+            // sobrescribiría a la primera en columnasParaSistema(). La degradamos a
+            // campo personalizado para no perder el dato, y avisamos.
+            if ($campoMapeado !== null && isset($camposTomados[$campoMapeado])) {
+                $advertencias[] = sprintf(
+                    'Las columnas "%s" y "%s" apuntan al mismo campo del sistema. Se usará "%s"; "%s" se guardará como campo personalizado.',
+                    $camposTomados[$campoMapeado], $header, $camposTomados[$campoMapeado], $header,
+                );
+                $campoMapeado = null;
+            }
+
             if ($campoMapeado !== null) {
                 $accion = AccionColumna::MAPEAR_SISTEMA;
+                $camposTomados[$campoMapeado] = $header;
             } else {
                 $accion = AccionColumna::CREAR_CP;
             }
@@ -132,13 +128,7 @@ final readonly class InferirEsquemaDesdeHeaders
             return $campo->codigo;
         }
 
-        foreach (self::SINONIMOS_SISTEMA as $codigo => $sinonimos) {
-            if (in_array($normalizado, $sinonimos, true)) {
-                return $codigo;
-            }
-        }
-
-        return null;
+        return SinonimosCampoSistema::buscar($header);
     }
 
     /**

@@ -32,6 +32,48 @@
             @endif
             <span style="flex:1;"></span>
             <span style="font-size:12px;color:var(--text-tertiary);">{{ __('casos.results', ['count' => $casos->total()]) }}</span>
+
+            <div style="position:relative;">
+                <button type="button" wire:click="alternarSelectorColumnas"
+                        class="btn btn-ghost btn-sm" title="{{ __('casos.columns_title') }}">
+                    <x-ui.icon name="settings" :size="13" /> {{ __('casos.columns') }}
+                </button>
+
+                @if($selectorColumnasAbierto)
+                    <div style="position:absolute;right:0;top:34px;z-index:40;width:290px;background:var(--surface);
+                                border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:12px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                            <strong style="font-size:12px;">{{ __('casos.columns_title') }}</strong>
+                            <button type="button" wire:click="restaurarColumnas"
+                                    class="btn btn-ghost btn-sm" style="font-size:11px;">{{ __('casos.columns_reset') }}</button>
+                        </div>
+
+                        <div style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
+                            @foreach($catalogoColumnas as $columna)
+                                @php
+                                    $activa = in_array($columna->clave, $columnasVisibles, true);
+                                    $posicion = array_search($columna->clave, $columnasVisibles, true);
+                                @endphp
+                                <div style="display:flex;align-items:center;gap:6px;padding:3px 2px;">
+                                    <label style="display:flex;align-items:center;gap:7px;flex:1;cursor:pointer;font-size:12px;">
+                                        <input type="checkbox" @checked($activa)
+                                               wire:click="alternarColumna('{{ $columna->clave }}')"/>
+                                        <span>{{ $columna->etiqueta }}</span>
+                                    </label>
+                                    @if($activa)
+                                        <button type="button" wire:click="moverColumna('{{ $columna->clave }}', -1)"
+                                                class="btn btn-ghost btn-sm" style="padding:1px 5px;"
+                                                @disabled($posicion === 0)>&uarr;</button>
+                                        <button type="button" wire:click="moverColumna('{{ $columna->clave }}', 1)"
+                                                class="btn btn-ghost btn-sm" style="padding:1px 5px;"
+                                                @disabled($posicion === count($columnasVisibles) - 1)>&darr;</button>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
         </div>
 
         @if($casos->isEmpty())
@@ -50,29 +92,20 @@
             <table class="table table-compact table-clickable">
                 <thead>
                     <tr>
-                        <th style="width:100px;">{{ __('casos.col_type') }}</th>
-                        <th>{{ __('casos.col_person') }}</th>
-                        <th>{{ __('casos.col_id_doc') }}</th>
-                        <th>{{ __('casos.col_wallet') }}</th>
-                        <th>{{ __('casos.col_state') }}</th>
-                        <th class="num" style="width:60px;">{{ __('casos.col_priority') }}</th>
-                        <th style="width:100px;">{{ __('casos.col_commitment') }}</th>
+                        @foreach($columnasVisibles as $clave)
+                            @php $col = collect($catalogoColumnas)->firstWhere('clave', $clave); @endphp
+                            @if($col)
+                                <th @class(['num' => $col->numerica])>{{ $col->etiqueta }}</th>
+                            @endif
+                        @endforeach
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($casos as $caso)
                         @php
-                            $nombre = $caso->tipo_persona === 'juridica'
-                                ? ($caso->razon_social ?? '—')
-                                : trim(($caso->nombres ?? '').' '.($caso->apellidos ?? ''));
-                            $tipoTone = match ($caso->tipo_caso) {
-                                'cobranza'   => 'warning',
-                                'ticket_cx'  => 'info',
-                                'lead_venta' => 'success',
-                                'servicio'   => 'primary',
-                                default      => 'neutral',
-                            };
+                            $nombre = trim(($caso->nombres ?? '').' '.($caso->apellidos ?? ''));
+                            $nombre = $nombre !== '' ? $nombre : trim((string) ($caso->razon_social ?? ''));
                             $url = route('proyectos.trabajo', [
                                 'proyecto_id' => app('tenancy.proyecto_activo')->id,
                                 'persona' => $caso->persona_public_id,
@@ -80,23 +113,12 @@
                             ]);
                         @endphp
                         <tr wire:key="caso-{{ $caso->id }}" onclick="window.Livewire.navigate('{{ $url }}')" style="cursor:pointer;">
-                            <td>
-                                <x-ui.badge :tone="$tipoTone" size="sm">
-                                    {{ ucfirst(str_replace('_', ' ', $caso->tipo_caso)) }}
-                                </x-ui.badge>
-                            </td>
-                            <td><span style="font-weight:500;">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
-                            <td><span class="font-mono" style="font-size:12px;">{{ $caso->identificacion }}</span></td>
-                            <td style="font-size:12px;color:var(--text-secondary);">{{ $caso->cartera_nombre ?? '—' }}</td>
-                            <td style="font-size:12px;color:var(--text-secondary);">{{ $caso->estado_caso_nombre ?? '—' }}</td>
-                            <td class="num">{{ $caso->prioridad }}</td>
-                            <td>
-                                @if($caso->tiene_compromiso_vigente)
-                                    <x-ui.badge tone="success" size="sm">{{ __('casos.commitment_active') }}</x-ui.badge>
-                                @else
-                                    <span style="font-size:11px;color:var(--text-tertiary);">—</span>
+                            @foreach($columnasVisibles as $clave)
+                                @php $col = collect($catalogoColumnas)->firstWhere('clave', $clave); @endphp
+                                @if($col)
+                                    <x-casos.celda-caso :caso="$caso" :columna="$col" :nombre="$nombre" />
                                 @endif
-                            </td>
+                            @endforeach
                             <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
                         </tr>
                     @endforeach

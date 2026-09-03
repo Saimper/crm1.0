@@ -661,7 +661,11 @@ final readonly class ProcesarFilaDinamica
         }
 
         $nombres = $this->extraerValorCampoSistema('nombres', $fila, $esquema)
-            ?? $this->buscarEnCp($fila, $esquema, ['nombres', 'nombre', 'nombre_del_cliente'])
+            ?? $this->buscarEnCp($fila, $esquema, [
+                'nombres', 'nombre', 'nombre_del_cliente', 'nombre_del_titular',
+                'nombre_titular', 'titular', 'nombre_completo', 'nombre_cliente',
+                'cliente', 'deudor', 'nombre_deudor',
+            ])
             ?? '';
 
         $apellidos = $this->extraerValorCampoSistema('apellidos', $fila, $esquema)
@@ -734,7 +738,6 @@ final readonly class ProcesarFilaDinamica
         EsquemaImportacion $esquema,
     ): int {
         $idUnico = $fila['id_cpelegido'] ?? (string) Str::ulid();
-        $columnasSistema = $esquema->columnasParaSistema();
 
         return match ($target) {
             TargetImportacion::CASO_COBRANZA => $this->registrarCobranza->execute(
@@ -746,6 +749,16 @@ final readonly class ProcesarFilaDinamica
                     fechaIngreso: $fechaIngreso,
                     prioridad: 1,
                     numeroPrestamo: $idUnico,
+                    montoOriginal: $this->decimal('monto_original', $fila, $esquema),
+                    saldoCapital: $this->decimal('saldo_capital', $fila, $esquema),
+                    saldoInteres: $this->decimal('saldo_interes', $fila, $esquema),
+                    saldoTotal: $this->decimal('saldo_total', $fila, $esquema),
+                    cuotaMensual: $this->decimal('cuota_mensual', $fila, $esquema),
+                    cuotasTotales: $this->entero('cuotas_totales', $fila, $esquema),
+                    cuotasPagadas: $this->entero('cuotas_pagadas', $fila, $esquema),
+                    diasMora: $this->entero('dias_mora', $fila, $esquema),
+                    fechaDesembolso: $this->fecha('fecha_desembolso', $fila, $esquema),
+                    fechaVencimiento: $this->fecha('fecha_vencimiento', $fila, $esquema),
                 ),
             )->casoId,
             TargetImportacion::CASO_TICKET_CX => $this->registrarCx->execute(
@@ -757,6 +770,10 @@ final readonly class ProcesarFilaDinamica
                     fechaIngreso: $fechaIngreso,
                     prioridad: 1,
                     codigoTicket: $idUnico,
+                    asunto: $this->texto('asunto', $fila, $esquema),
+                    descripcion: $this->texto('descripcion', $fila, $esquema),
+                    fechaReporte: $this->fecha('fecha_reporte', $fila, $esquema),
+                    fechaLimiteSla: $this->fecha('fecha_limite_sla', $fila, $esquema),
                 ),
             )->casoId,
             TargetImportacion::CASO_LEAD_VENTA => $this->registrarVenta->execute(
@@ -768,6 +785,10 @@ final readonly class ProcesarFilaDinamica
                     fechaIngreso: $fechaIngreso,
                     prioridad: 1,
                     codigoLead: $idUnico,
+                    valorEstimadoMonto: $this->decimal('valor_estimado_monto', $fila, $esquema),
+                    origenLead: $this->texto('origen_lead', $fila, $esquema),
+                    fechaPrimerContacto: $this->fecha('fecha_primer_contacto', $fila, $esquema),
+                    fechaEstimadaCierre: $this->fecha('fecha_estimada_cierre', $fila, $esquema),
                 ),
             )->casoId,
             TargetImportacion::CASO_SERVICIO => $this->registrarServicio->execute(
@@ -779,10 +800,101 @@ final readonly class ProcesarFilaDinamica
                     fechaIngreso: $fechaIngreso,
                     prioridad: 1,
                     codigoServicio: $idUnico,
+                    direccionServicio: $this->texto('direccion_servicio', $fila, $esquema),
+                    tecnicoAsignado: $this->texto('tecnico_asignado', $fila, $esquema),
+                    fechaSolicitud: $this->fecha('fecha_solicitud', $fila, $esquema),
+                    fechaProgramada: $this->fecha('fecha_programada', $fila, $esquema),
                 ),
             )->casoId,
             default => throw new \RuntimeException("Target no soportado: {$target->value}"),
         };
+    }
+
+    /**
+     * Valor de texto de un campo del sistema, o null si la columna no vino o vino vacía.
+     *
+     * @param  array<string, string>  $fila
+     */
+    private function texto(string $campo, array $fila, EsquemaImportacion $esquema): ?string
+    {
+        $valor = trim((string) $this->extraerValorCampoSistema($campo, $fila, $esquema));
+
+        return $valor !== '' ? $valor : null;
+    }
+
+    /**
+     * Decimal normalizado como string (el DTO del CTI espera string para no perder precisión).
+     * Acepta "1,250.40", "$1.250,40", "1250.40" y "(120.00)" como negativo contable.
+     *
+     * @param  array<string, string>  $fila
+     */
+    private function decimal(string $campo, array $fila, EsquemaImportacion $esquema): ?string
+    {
+        $bruto = $this->texto($campo, $fila, $esquema);
+        if ($bruto === null) {
+            return null;
+        }
+
+        $negativo = str_starts_with($bruto, '(') && str_ends_with($bruto, ')');
+        $limpio = (string) preg_replace('/[^0-9,.\-]/', '', $bruto);
+        $limpio = $this->unificarSeparadorDecimal($limpio);
+
+        if ($limpio === '' || ! is_numeric($limpio)) {
+            return null;
+        }
+
+        return $negativo ? '-'.ltrim($limpio, '-') : $limpio;
+    }
+
+    /**
+     * Deja un único punto como separador decimal, eliminando separadores de miles.
+     * "1.250,40" → "1250.40"; "1,250.40" → "1250.40"; "1250,40" → "1250.40".
+     */
+    private function unificarSeparadorDecimal(string $numero): string
+    {
+        $ultimaComa = strrpos($numero, ',');
+        $ultimoPunto = strrpos($numero, '.');
+
+        if ($ultimaComa !== false && $ultimoPunto !== false) {
+            return $ultimaComa > $ultimoPunto
+                ? str_replace(',', '.', str_replace('.', '', $numero))
+                : str_replace(',', '', $numero);
+        }
+
+        if ($ultimaComa !== false) {
+            return substr_count($numero, ',') === 1 && strlen($numero) - $ultimaComa <= 3
+                ? str_replace(',', '.', $numero)
+                : str_replace(',', '', $numero);
+        }
+
+        return $numero;
+    }
+
+    /**
+     * @param  array<string, string>  $fila
+     */
+    private function entero(string $campo, array $fila, EsquemaImportacion $esquema): ?int
+    {
+        $decimal = $this->decimal($campo, $fila, $esquema);
+
+        return $decimal !== null ? (int) round((float) $decimal) : null;
+    }
+
+    /**
+     * @param  array<string, string>  $fila
+     */
+    private function fecha(string $campo, array $fila, EsquemaImportacion $esquema): ?DateTimeImmutable
+    {
+        $bruto = $this->texto($campo, $fila, $esquema);
+        if ($bruto === null) {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($bruto);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
