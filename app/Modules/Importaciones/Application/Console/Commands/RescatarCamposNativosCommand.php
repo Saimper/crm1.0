@@ -172,7 +172,7 @@ final class RescatarCamposNativosCommand extends Command
      */
     private function expresionValor(): string
     {
-        return 'COALESCE(v.valor_texto_corto, v.valor_texto_largo, v.valor_moneda, '
+        return 'COALESCE(v.valor_texto_corto, v.valor_texto_largo, v.valor_moneda_monto, '
             .'v.valor_numero_decimal, v.valor_numero_entero) as valor';
     }
 
