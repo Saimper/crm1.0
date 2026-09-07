@@ -18,6 +18,7 @@ use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionEnCursoNoEditable;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoEncontrada;
@@ -60,7 +61,13 @@ final class Importar extends Component
 
     public bool $archivoListo = false;
 
-    /** @var list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}> */
+    /**
+     * Las tres últimas claves son opcionales a propósito: llegaron después, y
+     * una sesión de Livewire abierta durante un despliegue puede traer todavía
+     * el array sin ellas.
+     *
+     * @var list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string, es_identificador_caso?: bool, etiqueta_personalizada?: ?string, rol_contacto?: string}>
+     */
     public array $columnas = [];
 
     public ?string $columnaIdentificadorNombre = null;
@@ -218,6 +225,31 @@ final class Importar extends Component
                 $this->columnaCasoIdentificadorNombre = $nombreOriginal;
             } else {
                 $this->columnas[$i]['es_identificador_caso'] = false;
+            }
+        }
+    }
+
+    /**
+     * Marca que una columna, además de lo que se haga con ella, genere contactos
+     * de la persona.
+     *
+     * Es ortogonal a la acción: una columna de teléfonos suele guardarse también
+     * como campo personalizado para que siga viéndose en la ficha. Lo que cambia
+     * es que ahora, además, sus valores se parten y se dan de alta en
+     * `contactos`, que es de donde sale el selector «Contacto usado».
+     */
+    public function marcarRolContacto(string $nombreOriginal, string $rol): void
+    {
+        $rolEnum = RolContacto::tryFrom($rol);
+
+        if ($rolEnum === null) {
+            return;
+        }
+
+        foreach ($this->columnas as $i => $col) {
+            if ($col['nombre_original'] === $nombreOriginal) {
+                $this->columnas[$i]['rol_contacto'] = $rolEnum->value;
+                break;
             }
         }
     }
@@ -562,7 +594,7 @@ final class Importar extends Component
 
     /**
      * @param  list<ColumnaExcel>  $columnas
-     * @return list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}>
+     * @return list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, es_identificador_caso: bool, accion: string, etiqueta_personalizada: ?string, rol_contacto: string}>
      */
     private function serializarColumnas(array $columnas): array
     {
@@ -577,6 +609,7 @@ final class Importar extends Component
                 'es_identificador_caso' => $col->esIdentificadorCaso,
                 'accion' => $col->accion->value,
                 'etiqueta_personalizada' => $col->etiquetaPersonalizada,
+                'rol_contacto' => $col->rolContacto->value,
             ];
         }
 
@@ -595,10 +628,11 @@ final class Importar extends Component
                 nombreOriginal: $col['nombre_original'],
                 tipoInferido: TipoCampo::from($col['tipo_inferido']),
                 campoSistemaMapeado: $col['campo_sistema_mapeado'] ?: null,
-                esIdentificadorPersona: (bool) ($col['es_identificador_persona'] ?? false),
+                esIdentificadorPersona: (bool) $col['es_identificador_persona'],
                 esIdentificadorCaso: (bool) ($col['es_identificador_caso'] ?? false),
                 accion: AccionColumna::from($col['accion']),
                 etiquetaPersonalizada: $col['etiqueta_personalizada'] ?? null,
+                rolContacto: RolContacto::from($col['rol_contacto'] ?? RolContacto::NINGUNO->value),
             );
         }
 

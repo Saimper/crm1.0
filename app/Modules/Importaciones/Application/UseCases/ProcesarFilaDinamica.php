@@ -7,11 +7,14 @@ namespace App\Modules\Importaciones\Application\UseCases;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
+use App\Modules\Contactos\Domain\Contracts\AltaContactosEnLote;
+use App\Modules\Contactos\Domain\ValueObjects\ExtractorDeContactos;
 use App\Modules\Cx\Application\DTOs\RegistrarCasoTicketCxInput;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
 use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
@@ -27,6 +30,7 @@ use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -62,6 +66,7 @@ final readonly class ProcesarFilaDinamica
         private RegistrarCasoLeadVenta $registrarVenta,
         private RegistrarCasoServicio $registrarServicio,
         private ConnectionInterface $db,
+        private AltaContactosEnLote $altaContactos,
     ) {}
 
     public function execute(ProcesarFilaInput $input): ResultadoFilaConValoresCp
@@ -112,7 +117,7 @@ final readonly class ProcesarFilaDinamica
             }
         }
 
-        return match ($esquema->modo) {
+        $resultado = match ($esquema->modo) {
             ModoImportacion::INSERT => $this->procesarInsert(
                 $input, $fila, $esquema, $proyectoId, $carteraId,
                 $personaId, $personaExistente, $casoId, $casoExistente,
@@ -142,6 +147,85 @@ final readonly class ProcesarFilaDinamica
                 $tipoIdentId, $tiposIdentificacion,
             ),
         };
+
+        // Los contactos van después del modo, no dentro: la persona puede
+        // haberla creado el propio modo, y los contactos cuelgan de ella y no
+        // del caso. Es best-effort a propósito — que un teléfono mal escrito no
+        // tumbe la fila entera de una importación de 8.000.
+        $this->generarContactos($input, $proyectoId, $personaId, $tipoIdentId, $valorIdentidad);
+
+        return $resultado;
+    }
+
+    /**
+     * Da de alta como contactos de la persona lo que traigan las columnas
+     * marcadas con un rol.
+     *
+     * Partir `"61750650   65976897"`, descartar `000000`, quitar el prefijo 507
+     * y decidir qué es un móvil panameño es regla de negocio, así que vive en un
+     * value object del dominio de Contactos (§13.4) y aquí sólo se orquesta. El
+     * alta va por un contrato y no por el modelo Eloquent de aquel módulo (§3).
+     */
+    private function generarContactos(
+        ProcesarFilaInput $input,
+        int $proyectoId,
+        ?int $personaId,
+        ?int $tipoIdentId,
+        string $valorIdentidad,
+    ): void {
+        $columnas = array_values(array_filter(
+            $input->esquema->columnas,
+            static fn (ColumnaExcel $c): bool => $c->generaContactos(),
+        ));
+
+        if ($columnas === []) {
+            return;
+        }
+
+        // La persona puede haberla creado el modo que acaba de correr.
+        if ($personaId === null && $tipoIdentId !== null && $valorIdentidad !== '') {
+            $personaId = $this->personaResolver->lookup($proyectoId, $tipoIdentId, $valorIdentidad);
+        }
+
+        if ($personaId === null) {
+            return;
+        }
+
+        $extractor = new ExtractorDeContactos;
+        $contactos = [];
+
+        foreach ($columnas as $columna) {
+            $clave = $columna->accion === AccionColumna::MAPEAR_SISTEMA
+                ? (string) $columna->campoSistemaMapeado
+                : $columna->codigoSugerido();
+
+            $bruto = trim((string) ($input->fila[$clave] ?? ''));
+
+            if ($bruto === '') {
+                continue;
+            }
+
+            $contactos = array_merge($contactos, match ($columna->rolContacto) {
+                RolContacto::TELEFONO => $extractor->telefonos($bruto, $columna->etiquetaSugerida()),
+                RolContacto::CORREO => $extractor->correos($bruto),
+                RolContacto::REFERENCIA => $extractor->referencias($bruto),
+                RolContacto::NINGUNO => [],
+            });
+        }
+
+        if ($contactos === []) {
+            return;
+        }
+
+        try {
+            $this->altaContactos->alta($proyectoId, $personaId, $contactos, 'importacion');
+        } catch (Throwable $e) {
+            Log::warning('importacion: no se pudieron dar de alta los contactos de una fila', [
+                'proyecto_id' => $proyectoId,
+                'persona_id' => $personaId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'col_rol_contacto' => 'Genera contactos',
+    'rol_contacto' => [
+        'ninguno' => '—',
+        'telefono' => 'Teléfonos',
+        'correo' => 'Correos',
+        'referencia' => 'Referencias (nombre y número)',
+    ],
     // Página
     'title' => 'Importaciones',
     'back_to_project' => '← Volver al proyecto',

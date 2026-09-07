@@ -6,6 +6,7 @@ namespace App\Modules\Importaciones\Domain\ValueObjects;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Services\NormalizadorEtiqueta;
 use Normalizer;
 
@@ -23,7 +24,19 @@ final readonly class ColumnaExcel
         public bool $esIdentificadorCaso = false,
         public AccionColumna $accion = AccionColumna::IGNORAR,
         public ?string $etiquetaPersonalizada = null,
+        /**
+         * Si además de lo que se haga con la columna, sus valores generan
+         * contactos de la persona. Es ortogonal a `accion`: una columna de
+         * teléfonos suele guardarse también como campo personalizado para que
+         * siga viéndose en la ficha.
+         */
+        public RolContacto $rolContacto = RolContacto::NINGUNO,
     ) {}
+
+    public function generaContactos(): bool
+    {
+        return $this->rolContacto !== RolContacto::NINGUNO;
+    }
 
     /**
      * Convierte el nombre original a snake_case lowercase sin caracteres especiales,

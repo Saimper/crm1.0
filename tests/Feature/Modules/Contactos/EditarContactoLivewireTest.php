@@ -35,6 +35,7 @@ final class EditarContactoLivewireTest extends TestCase
 
         $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
         $contactoId = (int) DB::table('contactos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId,
             'persona_id' => $persona->id,
             'tipo' => 'telefono',
@@ -65,10 +66,12 @@ final class EditarContactoLivewireTest extends TestCase
 
         $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
         $c1 = (int) DB::table('contactos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
             'tipo' => 'correo', 'valor' => 'a@x.com', 'es_principal' => true,
         ]);
         $c2 = (int) DB::table('contactos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
             'tipo' => 'correo', 'valor' => 'b@x.com', 'es_principal' => false,
         ]);
@@ -92,6 +95,7 @@ final class EditarContactoLivewireTest extends TestCase
 
         $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
         $cid = (int) DB::table('contactos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
             'tipo' => 'telefono', 'valor' => '+593 99999999', 'es_principal' => false,
         ]);
@@ -111,6 +115,7 @@ final class EditarContactoLivewireTest extends TestCase
 
         $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
         $cid = (int) DB::table('contactos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
             'tipo' => 'telefono', 'valor' => '+593 88888888', 'es_principal' => false,
         ]);

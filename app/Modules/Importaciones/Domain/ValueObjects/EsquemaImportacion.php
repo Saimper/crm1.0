@@ -7,6 +7,7 @@ namespace App\Modules\Importaciones\Domain\ValueObjects;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ColisionCodigosCampoException;
 use App\Modules\Importaciones\Domain\Exceptions\ColumnaIdentificadorAmbiguaException;
@@ -197,6 +198,7 @@ final readonly class EsquemaImportacion
                 esIdentificadorCaso: (bool) ($col['es_identificador_caso'] ?? false),
                 accion: AccionColumna::from($col['accion']),
                 etiquetaPersonalizada: $col['etiqueta_personalizada'] ?? null,
+                rolContacto: RolContacto::from($col['rol_contacto'] ?? RolContacto::NINGUNO->value),
             );
         }
 

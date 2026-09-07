@@ -643,24 +643,6 @@ parameters:
 			path: app/Modules/Importaciones/Application/UseCases/ProcesarImportacionPersonas.php
 
 		-
-			message: '#^Offset ''es_identificador…'' on array\{nombre_original\: string, tipo_inferido\: string, campo_sistema_mapeado\: string\|null, es_identificador_persona\: bool, accion\: string\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
-
-		-
-			message: '#^Offset ''es_identificador…'' on array\{nombre_original\: string, tipo_inferido\: string, campo_sistema_mapeado\: string\|null, es_identificador_persona\: bool, accion\: string\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
-
-		-
-			message: '#^Offset ''etiqueta…'' on array\{nombre_original\: string, tipo_inferido\: string, campo_sistema_mapeado\: string\|null, es_identificador_persona\: bool, accion\: string\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
-
-		-
 			message: '#^Parameter \$filasMuestra of class App\\Modules\\Importaciones\\Application\\UseCases\\InferirEsquemaInput constructor expects list\<array\<string, string\>\>, non\-empty\-list\<list\<string\>\> given\.$#'
 			identifier: argument.type
 			count: 1

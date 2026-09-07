@@ -181,6 +181,7 @@
                             <th class="px-3 py-2 text-left">{{ __('importaciones.col_file_column') }}</th>
                             <th class="px-3 py-2 text-left">{{ __('importaciones.col_inferred_type') }}</th>
                             <th class="px-3 py-2 text-left">{{ __('importaciones.col_action') }}</th>
+                            <th class="px-3 py-2 text-left">{{ __('importaciones.col_rol_contacto') }}</th>
                             <th class="px-3 py-2 text-center" colspan="2">{{ __('importaciones.col_identifier') }}</th>
                         </tr>
                     </thead>
@@ -237,6 +238,20 @@
                                         @endif
                                         <option value="crear_cp" @selected($col['accion'] === 'crear_cp')>{{ __('importaciones.action_create_cp') }}</option>
                                         <option value="ignorar" @selected($col['accion'] === 'ignorar')>{{ __('importaciones.action_ignore') }}</option>
+                                    </select>
+                                </td>
+                                {{-- Una columna de teléfonos suele guardarse además como campo
+                                     personalizado, para que siga viéndose en la ficha. Esto es
+                                     otra cosa: que sus valores se partan y se den de alta en
+                                     `contactos`, que es de donde sale «Contacto usado». --}}
+                                <td class="px-3 py-2">
+                                    <select wire:change="marcarRolContacto('{{ $col['nombre_original'] }}', $event.target.value)"
+                                            class="text-xs border-ink-300 rounded">
+                                        @foreach(\App\Modules\Importaciones\Domain\Enums\RolContacto::cases() as $rol)
+                                            <option value="{{ $rol->value }}" @selected(($col['rol_contacto'] ?? 'ninguno') === $rol->value)>
+                                                {{ __($rol->etiquetaClave()) }}
+                                            </option>
+                                        @endforeach
                                     </select>
                                 </td>
                                 <td class="px-3 py-2 text-center">

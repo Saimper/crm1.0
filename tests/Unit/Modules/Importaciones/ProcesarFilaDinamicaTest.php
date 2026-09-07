@@ -7,6 +7,7 @@ namespace Tests\Unit\Modules\Importaciones;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaOutput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
+use App\Modules\Contactos\Domain\Contracts\AltaContactosEnLote;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
 use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Application\UseCases\ProcesarFilaDinamica;
@@ -109,6 +110,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $this->createMock(ConnectionInterface::class),
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -143,6 +145,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -183,6 +186,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -226,6 +230,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -267,6 +272,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -301,6 +307,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -332,6 +339,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -364,6 +372,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -405,6 +414,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -454,6 +464,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
             $db,
+            $this->createMock(AltaContactosEnLote::class),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
