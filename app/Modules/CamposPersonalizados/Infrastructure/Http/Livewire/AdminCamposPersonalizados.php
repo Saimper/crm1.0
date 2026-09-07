@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire;
 
 use App\Models\User;
+use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
+use App\Modules\CamposPersonalizados\Domain\Exceptions\CambioDeTipoNoPermitido;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AutoFill;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Tenancy\Application\Services\ResolutorMandanteActivo;
@@ -345,6 +347,17 @@ final class AdminCamposPersonalizados extends Component
             'orden' => (int) ($this->form['orden'] ?? 100),
             'reglas' => $reglas === [] ? null : json_encode($reglas),
         ];
+
+        if ($this->campoEditandoId !== null) {
+            try {
+                app(ServicioCamposPersonalizados::class)
+                    ->garantizarTipoMutable((int) $this->campoEditandoId, (string) $this->form['tipo']);
+            } catch (CambioDeTipoNoPermitido $e) {
+                $this->addError('form.tipo', $e->getMessage());
+
+                return;
+            }
+        }
 
         if ($this->campoEditandoId === null) {
             DB::table('campos_personalizados')->insert($payload + ['proyecto_id' => $proyectoId]);

@@ -154,11 +154,31 @@ final class ConvertirTipoCampoTest extends TestCase
             ->where('campo_personalizado_id', $campoId)->value('valor_texto_corto'));
     }
 
-    public function test_no_convierte_un_campo_que_ya_esta_tipado(): void
+    /**
+     * Antes el comando exigía que el tipo declarado fuese texto. Ahora exige que
+     * los VALORES sigan en una columna de texto, que no es lo mismo: un campo al
+     * que le cambiaron el tipo desde la UI queda declarado con el tipo nuevo y
+     * con los valores atrás, y es justo el que hay que poder arreglar.
+     */
+    public function test_convierte_un_campo_mal_declarado_cuyos_valores_siguen_en_texto(): void
     {
         $proyecto = $this->crearProyectoCobranza();
         $campoId = $this->crearCampoTexto($proyecto, 'ya_num', ['10']);
         DB::table('campos_personalizados')->where('id', $campoId)->update(['tipo' => 'numero_entero']);
+
+        $this->artisan("campos:convertir-tipo {$campoId} numero_decimal")->assertSuccessful();
+
+        $this->assertSame('numero_decimal', DB::table('campos_personalizados')->where('id', $campoId)->value('tipo'));
+        $this->assertSame('10.0000', DB::table('valores_campo_personalizado')
+            ->where('campo_personalizado_id', $campoId)->value('valor_numero_decimal'));
+    }
+
+    /** Sin valores en texto no hay nada que convertir desde texto. */
+    public function test_no_convierte_cuando_los_valores_ya_estan_en_su_columna(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $campoId = $this->crearCampoTexto($proyecto, 'ya_num', ['10']);
+        $this->artisan("campos:convertir-tipo {$campoId} numero_entero")->assertSuccessful();
 
         $this->artisan("campos:convertir-tipo {$campoId} numero_decimal")->assertFailed();
     }

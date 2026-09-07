@@ -33,7 +33,8 @@ final class ConvertirTipoCampoCommand extends Command
 {
     protected $signature = 'campos:convertir-tipo
                             {campo : ID del campo personalizado}
-                            {tipo : Tipo destino (numero_entero, numero_decimal, fecha, fecha_hora)}
+                            {tipo : Tipo destino (numero_entero, numero_decimal, fecha, fecha_hora, moneda)}
+                            {--moneda=USD : Código de divisa a escribir cuando el destino es moneda}
                             {--dry-run : Solo informa qué pasaría}
                             {--forzar : Convierte aunque haya ceros a la izquierda (destruye identificadores)}';
 
@@ -42,16 +43,17 @@ final class ConvertirTipoCampoCommand extends Command
     /**
      * Tipo destino => columna donde vive el valor.
      *
-     * `moneda` queda fuera a propósito: su valor son DOS columnas
-     * (`valor_moneda_monto` + `valor_moneda_codigo`) y el texto de origen no
-     * trae divisa, así que convertir dejaría importes sin moneda. Para ordenar
-     * y filtrar, `numero_decimal` cumple lo mismo sin inventar dato.
+     * `moneda` entró después: su valor son DOS columnas (`valor_moneda_monto` +
+     * `valor_moneda_codigo`) y el texto de origen no trae divisa, así que la
+     * divisa la dice quien ejecuta con `--moneda` y por defecto es USD. Sin esa
+     * opción explícita seguiría estando fuera.
      */
     private const COLUMNA = [
         'numero_entero' => 'valor_numero_entero',
         'numero_decimal' => 'valor_numero_decimal',
         'fecha' => 'valor_fecha',
         'fecha_hora' => 'valor_fecha_hora',
+        'moneda' => 'valor_moneda_monto',
     ];
 
     public function handle(): int
@@ -74,13 +76,20 @@ final class ConvertirTipoCampoCommand extends Command
             return self::FAILURE;
         }
 
-        if ($campo->tipo !== TipoCampo::TEXTO_CORTO->value && $campo->tipo !== TipoCampo::TEXTO_LARGO->value) {
-            $this->error("El campo {$campo->codigo} ya es de tipo {$campo->tipo}; este comando solo convierte desde texto.");
+        // La condición no es que el campo esté declarado como texto, sino que sus
+        // valores sigan viviendo en una columna de texto. Son cosas distintas
+        // desde que se descubrió que cambiar el tipo desde la UI mueve la
+        // definición y deja los valores atrás: hay campos declarados `moneda`
+        // cuyo contenido está en `valor_texto_corto`, y son justo los que hay
+        // que poder arreglar.
+        $origen = $this->columnaDeTextoConValores($campoId);
+
+        if ($origen === null) {
+            $this->error("El campo {$campo->codigo} no tiene valores en ninguna columna de texto; no hay nada que convertir desde texto.");
+            $this->line('Si el tipo ya es el bueno y los valores están descolocados, usa `campos:recolocar-valores`.');
 
             return self::FAILURE;
         }
-
-        $origen = $campo->tipo === TipoCampo::TEXTO_CORTO->value ? 'valor_texto_corto' : 'valor_texto_largo';
         $valores = DB::table('valores_campo_personalizado')
             ->where('campo_personalizado_id', $campoId)
             ->whereNotNull($origen)
@@ -121,12 +130,18 @@ final class ConvertirTipoCampoCommand extends Command
 
         $columna = self::COLUMNA[$tipoDestino];
 
-        DB::transaction(function () use ($convertidos, $columna, $origen, $campoId, $tipoDestino): void {
+        $moneda = (string) $this->option('moneda');
+
+        DB::transaction(function () use ($convertidos, $columna, $origen, $campoId, $tipoDestino, $moneda): void {
             foreach (array_chunk($convertidos, 500, true) as $lote) {
                 foreach ($lote as $id => $valor) {
-                    DB::table('valores_campo_personalizado')
-                        ->where('id', $id)
-                        ->update([$columna => $valor, $origen => null]);
+                    $update = [$columna => $valor, $origen => null];
+
+                    if ($tipoDestino === TipoCampo::MONEDA->value) {
+                        $update['valor_moneda_codigo'] = $moneda;
+                    }
+
+                    DB::table('valores_campo_personalizado')->where('id', $id)->update($update);
                 }
             }
 
@@ -136,6 +151,24 @@ final class ConvertirTipoCampoCommand extends Command
         $this->info('Listo: '.count($convertidos)." valores movidos a {$columna} y el campo es ahora {$tipoDestino}.");
 
         return self::SUCCESS;
+    }
+
+    /** La columna de texto donde este campo aún guarda valores, si es que hay alguna. */
+    private function columnaDeTextoConValores(int $campoId): ?string
+    {
+        foreach (['valor_texto_corto', 'valor_texto_largo'] as $columna) {
+            $hay = DB::table('valores_campo_personalizado')
+                ->where('campo_personalizado_id', $campoId)
+                ->whereNotNull($columna)
+                ->where($columna, '!=', '')
+                ->exists();
+
+            if ($hay) {
+                return $columna;
+            }
+        }
+
+        return null;
     }
 
     /** @param Collection<int, \stdClass> $valores */

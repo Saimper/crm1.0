@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\CamposPersonalizados\Application\Services;
 
+use App\Modules\CamposPersonalizados\Domain\Exceptions\CambioDeTipoNoPermitido;
 use App\Modules\CamposPersonalizados\Domain\Services\EvaluadorReglas;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto;
@@ -108,6 +109,38 @@ final readonly class ServicioCamposPersonalizados
                 );
             }
         });
+    }
+
+    /**
+     * Corta un cambio de tipo que dejaría ilegibles los valores ya guardados.
+     *
+     * Lo llaman las dos pantallas que editan definiciones. Vive aquí y no en el
+     * componente porque es una invariante del dominio (§13.4): el tipo declara
+     * en qué columna se lee el valor, así que cambiarlo sin mover los valores es
+     * perder el dato de vista.
+     */
+    public function garantizarTipoMutable(int $campoId, string $tipoNuevo): void
+    {
+        $campo = $this->db->table('campos_personalizados')
+            ->where('id', $campoId)
+            ->first(['tipo', 'etiqueta']);
+
+        if ($campo === null || (string) $campo->tipo === $tipoNuevo) {
+            return;
+        }
+
+        $valores = $this->db->table('valores_campo_personalizado')
+            ->where('campo_personalizado_id', $campoId)
+            ->count();
+
+        if ($valores > 0) {
+            throw CambioDeTipoNoPermitido::porqueYaTieneValores(
+                (string) $campo->etiqueta,
+                (string) $campo->tipo,
+                $tipoNuevo,
+                $valores,
+            );
+        }
     }
 
     /**

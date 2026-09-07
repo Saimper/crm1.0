@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos;
 
+use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
+use App\Modules\CamposPersonalizados\Domain\Exceptions\CambioDeTipoNoPermitido;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Contracts\View\View;
@@ -177,6 +179,17 @@ final class PasoCamposPersonalizados extends Component
             'reglas' => $reglas === [] ? null : json_encode($reglas),
             'actualizada_en' => Carbon::now(),
         ];
+
+        if ($this->editandoId !== null) {
+            try {
+                app(ServicioCamposPersonalizados::class)
+                    ->garantizarTipoMutable((int) $this->editandoId, (string) $this->form['tipo']);
+            } catch (CambioDeTipoNoPermitido $e) {
+                $this->addError('form.tipo', $e->getMessage());
+
+                return;
+            }
+        }
 
         if ($this->editandoId === null) {
             $payload['proyecto_id'] = $proyectoId;
