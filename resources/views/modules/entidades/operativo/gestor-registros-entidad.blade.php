@@ -42,37 +42,7 @@
                                 {{ $campo->etiqueta }}
                                 @if($campo->obligatorio)<span class="text-danger-500">*</span>@endif
                             </label>
-                            @switch($campo->tipo)
-                                @case('texto_largo')
-                                    <textarea wire:model="valores.{{ $codigo }}" rows="3"
-                                              class="mt-1 block w-full border-ink-300 rounded-md text-sm"></textarea>
-                                    @break
-                                @case('numero_entero')
-                                @case('numero_decimal')
-                                @case('moneda')
-                                    <input type="number" step="{{ $campo->tipo === 'numero_entero' ? '1' : '0.01' }}"
-                                           wire:model="valores.{{ $codigo }}"
-                                           class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
-                                    @break
-                                @case('fecha')
-                                    <input type="date" wire:model="valores.{{ $codigo }}"
-                                           class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
-                                    @break
-                                @case('fecha_hora')
-                                    <input type="datetime-local" wire:model="valores.{{ $codigo }}"
-                                           class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
-                                    @break
-                                @case('booleano')
-                                    <label class="mt-1 flex items-center gap-2 text-sm">
-                                        <input type="checkbox" wire:model="valores.{{ $codigo }}"
-                                               class="rounded border-ink-300"/>
-                                        <span>{{ __('entidades.si') }}</span>
-                                    </label>
-                                    @break
-                                @default
-                                    <input type="text" wire:model="valores.{{ $codigo }}"
-                                           class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
-                            @endswitch
+                            <x-cp.control :campo="$campo" model="valores.{{ $codigo }}" />
                         </div>
                     @endforeach
 

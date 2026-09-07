@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'copy' => 'copy',
+    'copied' => 'copied',
     'add' => 'Add',
     'move_up' => 'Move up',
     'move_down' => 'Move down',

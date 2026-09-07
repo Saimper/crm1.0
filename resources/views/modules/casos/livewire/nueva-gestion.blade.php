@@ -120,44 +120,7 @@
                             @if($campo->obligatorio)<span class="text-danger-600">*</span>@endif
                         </label>
 
-                        @switch($campo->tipo)
-                            @case('texto_corto')
-                                <input type="text" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('texto_largo')
-                                <textarea wire:model="valoresCamposGestion.{{ $campo->codigo }}" rows="2"
-                                          class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"></textarea>
-                                @break
-                            @case('numero_entero')
-                                <input type="number" step="1" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('numero_decimal')
-                            @case('moneda')
-                                <input type="text" wire:model="valoresCamposGestion.{{ $campo->codigo }}" placeholder="0.00"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('fecha')
-                                <input type="date" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('fecha_hora')
-                                <input type="datetime-local" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('booleano')
-                                <select wire:model="valoresCamposGestion.{{ $campo->codigo }}"
-                                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
-                                    <option value="">—</option>
-                                    <option value="1">{{ __('casos.yes') }}</option>
-                                    <option value="0">{{ __('casos.no') }}</option>
-                                </select>
-                                @break
-                            @default
-                                <input type="text" wire:model="valoresCamposGestion.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                        @endswitch
+                        <x-cp.control :campo="$campo" model="valoresCamposGestion.{{ $campo->codigo }}" />
                     </div>
                 @endforeach
             </div>

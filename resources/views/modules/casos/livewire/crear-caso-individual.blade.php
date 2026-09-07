@@ -73,35 +73,7 @@
                                     {{ $etiqueta }}
                                     @if($req)<span style="color:var(--danger);">*</span>@endif
                                 </label>
-                                @switch($tipo)
-                                    @case('texto_corto')
-                                        <input type="text" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                        @break
-                                    @case('texto_largo')
-                                        <textarea rows="3" wire:model="valoresCp.{{ $key }}" class="input"></textarea>
-                                        @break
-                                    @case('numero_entero')
-                                        <input type="number" step="1" wire:model="valoresCp.{{ $key }}" class="input mono"/>
-                                        @break
-                                    @case('numero_decimal')
-                                    @case('moneda')
-                                        <input type="number" step="0.01" wire:model="valoresCp.{{ $key }}" class="input mono"/>
-                                        @break
-                                    @case('fecha')
-                                        <input type="date" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                        @break
-                                    @case('fecha_hora')
-                                        <input type="datetime-local" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                        @break
-                                    @case('booleano')
-                                        <label style="display:flex;align-items:center;gap:6px;">
-                                            <input type="checkbox" wire:model="valoresCp.{{ $key }}"/>
-                                            <span style="font-size:12px;">{{ __('casos.yes') }}</span>
-                                        </label>
-                                        @break
-                                    @default
-                                        <input type="text" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                @endswitch
+                                <x-cp.control :campo="$campo" model="valoresCp.{{ $key }}" clase="input" />
                                 @if($campo->descripcion)
                                     <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">{{ $campo->descripcion }}</div>
                                 @endif

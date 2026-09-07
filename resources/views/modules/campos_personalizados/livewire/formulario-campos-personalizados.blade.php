@@ -30,52 +30,7 @@
                             @if($campo->obligatorio)<span class="text-danger-600">*</span>@endif
                         </label>
 
-                        @switch($campo->tipo)
-                            @case('texto_corto')
-                                <input type="text" wire:model="valores.{{ $campo->codigo }}"
-                                       @disabled($soloLectura)
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('texto_largo')
-                                <textarea wire:model="valores.{{ $campo->codigo }}" rows="2"
-                                          @disabled($soloLectura)
-                                          class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"></textarea>
-                                @break
-                            @case('numero_entero')
-                                <input type="number" step="1" wire:model="valores.{{ $campo->codigo }}"
-                                       @disabled($soloLectura)
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('numero_decimal')
-                            @case('moneda')
-                                <input type="text" wire:model="valores.{{ $campo->codigo }}" placeholder="0.00"
-                                       @disabled($soloLectura)
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('fecha')
-                                <input type="date" wire:model="valores.{{ $campo->codigo }}"
-                                       @disabled($soloLectura)
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('fecha_hora')
-                                <input type="datetime-local" wire:model="valores.{{ $campo->codigo }}"
-                                       @disabled($soloLectura)
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('booleano')
-                                <select wire:model="valores.{{ $campo->codigo }}"
-                                        @disabled($soloLectura)
-                                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
-                                    <option value="">—</option>
-                                    <option value="1">{{ __('entidades.si') }}</option>
-                                    <option value="0">{{ __('entidades.no') }}</option>
-                                </select>
-                                @break
-                            @default
-                                <input type="text" wire:model="valores.{{ $campo->codigo }}"
-                                       @disabled($soloLectura)
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                        @endswitch
+                        <x-cp.control :campo="$campo" model="valores.{{ $campo->codigo }}" :disabled="$soloLectura" />
                     </div>
                 @endforeach
             </div>

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'currency_symbol' => 'USD',
     'entidad_singular' => [
         'cobranza' => 'cuenta',
         'cx' => 'ticket',
