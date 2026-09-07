@@ -207,6 +207,18 @@
                                class="input @error('form.fecha_fin') input-error @enderror"/>
                         @error('form.fecha_fin')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
+                    {{-- Quién se queda la cuenta cuando un asesor la gestiona. Va
+                         apagado por defecto: hay operaciones donde repartir es
+                         decisión del supervisor y sólo suya. --}}
+                    <div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:12px;">
+                        <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;">
+                            <input type="checkbox" wire:model="form.permite_autoasignacion" style="margin-top:2px;"/>
+                            <span>
+                                <span style="font-size:13px;color:var(--text);">{{ __('tenancy.autoasignacion') }}</span>
+                                <span style="display:block;font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ __('tenancy.autoasignacion_ayuda') }}</span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="drawer-footer">

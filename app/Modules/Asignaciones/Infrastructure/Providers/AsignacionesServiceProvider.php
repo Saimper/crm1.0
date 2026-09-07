@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Asignaciones\Infrastructure\Providers;
 
+use App\Modules\Asignaciones\Application\Listeners\AutoasignarCasoDesdeGestion;
 use App\Modules\Asignaciones\Application\Listeners\IniciarTrabajoDesdeGestion;
 use App\Modules\Asignaciones\Domain\Contracts\AsignacionRepository;
 use App\Modules\Asignaciones\Infrastructure\Http\Livewire\AsignarMasivamente;
@@ -33,5 +34,8 @@ final class AsignacionesServiceProvider extends ServiceProvider
         Livewire::component('asignaciones.reasignar-entre-equipos', ReasignarEntreEquipos::class);
 
         Event::listen(GestionRegistrada::class, IniciarTrabajoDesdeGestion::class);
+        // Después del anterior: si la cuenta ya tenía dueño, aquél marca el
+        // trabajo iniciado; este solo actúa cuando NO tiene dueño.
+        Event::listen(GestionRegistrada::class, AutoasignarCasoDesdeGestion::class);
     }
 }
