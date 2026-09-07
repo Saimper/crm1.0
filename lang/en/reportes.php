@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'panel_efectividad' => 'Contact effectiveness',
+    'panel_efectividad_pie' => ':efectivas of :total',
+    'panel_dinero' => 'Committed amount',
+    'panel_dinero_nota' => 'kept / promised',
+    'panel_sin_promesas' => 'No payment promises in this period.',
+    'panel_tendencia' => 'Interactions per day',
     'panel_titulo' => 'How the operation is doing',
     'panel_rango_hoy' => 'Today',
     'panel_rango_semana' => 'Last 7 days',

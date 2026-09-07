@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'panel_efectividad' => 'Efectividad de contacto',
+    'panel_efectividad_pie' => ':efectivas de :total',
+    'panel_dinero' => 'Dinero comprometido',
+    'panel_dinero_nota' => 'cumplido / prometido',
+    'panel_sin_promesas' => 'No hay promesas de pago en este periodo.',
+    'panel_tendencia' => 'Gestiones por día',
     'panel_titulo' => 'Cómo va la operación',
     'panel_rango_hoy' => 'Hoy',
     'panel_rango_semana' => 'Últimos 7 días',
