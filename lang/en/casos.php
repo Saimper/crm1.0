@@ -120,7 +120,7 @@ return [
     'field_cause' => 'Cause',
     'field_duration' => 'Duration (sec)',
     'field_notes' => 'Notes (optional)',
-    'notes_placeholder' => 'Free-form supplement. Do not extract data from here; use the structured fields.',
+    'notes_placeholder' => 'What happened, in one sentence. Data the business filters or counts goes in the fields above, not here.',
     'ctrl_enter_hint' => 'Ctrl+Enter or ⌘+Enter to save.',
     'submit_gestion' => 'Log Interaction',
 

@@ -241,6 +241,64 @@ final class PasoResultados extends Component
     }
 
     // -----------------------------------------------------------------
+    // Plantillas de nota
+    // -----------------------------------------------------------------
+
+    /** @var array<string, mixed> */
+    public array $plantilla = ['etiqueta' => '', 'texto' => '', 'resultado_id' => null];
+
+    /**
+     * Crea una frase hecha para el campo de notas.
+     *
+     * Con resultado, sale sólo bajo ese resultado, que es cuando ahorra
+     * escribir de verdad. Sin él, sale siempre.
+     */
+    public function crearPlantilla(): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $proyectoId = (int) $this->proyecto->id;
+
+        $this->validate([
+            'plantilla.etiqueta' => ['required', 'string', 'max:60'],
+            'plantilla.texto' => ['required', 'string', 'max:500'],
+            'plantilla.resultado_id' => ['nullable', 'integer', Rule::exists('resultados', 'id')
+                ->where('proyecto_id', $proyectoId)],
+        ], [], [
+            'plantilla.etiqueta' => 'etiqueta',
+            'plantilla.texto' => 'texto',
+            'plantilla.resultado_id' => 'resultado',
+        ]);
+
+        $siguiente = (int) DB::table('plantillas_nota')->where('proyecto_id', $proyectoId)->max('orden');
+
+        DB::table('plantillas_nota')->insert([
+            'proyecto_id' => $proyectoId,
+            'resultado_id' => $this->plantilla['resultado_id'] === null || $this->plantilla['resultado_id'] === ''
+                ? null
+                : (int) $this->plantilla['resultado_id'],
+            'etiqueta' => trim((string) $this->plantilla['etiqueta']),
+            'texto' => trim((string) $this->plantilla['texto']),
+            'activo' => true,
+            'orden' => $siguiente + 10,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        $this->plantilla = ['etiqueta' => '', 'texto' => '', 'resultado_id' => null];
+    }
+
+    public function eliminarPlantilla(int $id): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        DB::table('plantillas_nota')
+            ->where('id', $id)
+            ->where('proyecto_id', (int) $this->proyecto->id)
+            ->delete();
+    }
+
+    // -----------------------------------------------------------------
     // Matriz tipo de gestión × resultado
     // -----------------------------------------------------------------
 
@@ -325,6 +383,11 @@ final class PasoResultados extends Component
             ->get(['id', 'codigo', 'nombre']);
 
         return view('livewire.tenancy.configurador-pasos.paso-resultados', [
+            'plantillas' => DB::table('plantillas_nota as p')
+                ->leftJoin('resultados as r', 'r.id', '=', 'p.resultado_id')
+                ->where('p.proyecto_id', $proyectoId)
+                ->orderBy('p.orden')->orderBy('p.id')
+                ->get(['p.id', 'p.etiqueta', 'p.texto', 'r.nombre as resultado_nombre']),
             'tiposGestion' => DB::table('tipos_gestion')
                 ->where('proyecto_id', $proyectoId)->where('activo', true)
                 ->orderBy('orden')->orderBy('id')->get(['id', 'codigo', 'nombre']),

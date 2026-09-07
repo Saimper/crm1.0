@@ -103,10 +103,36 @@
         </div>
     </div>
 
-    <div class="mt-3">
-        <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_notes') }}</label>
-        <textarea wire:model="notas" rows="2"
-                  class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"
+    {{-- Notas: ancho completo, crece con lo que se escribe hasta ocho líneas, y
+         cuenta lo que queda. Antes eran dos filas fijas para 2.000 caracteres. --}}
+    <div class="mt-3" x-data="{
+            notas: $wire.entangle('notas'),
+            get restantes() { return 2000 - (this.notas ?? '').length },
+            crecer(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 176) + 'px' },
+            pegar(texto) {
+                this.notas = (this.notas ?? '').trim() === '' ? texto : (this.notas.trim() + ' ' + texto);
+                $nextTick(() => this.crecer($refs.notas));
+            },
+         }">
+        <div class="flex items-baseline justify-between">
+            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_notes') }}</label>
+            <span class="text-[10px]" :class="restantes < 0 ? 'text-danger-600' : 'text-ink-400'" x-text="restantes"></span>
+        </div>
+
+        @if($plantillasNota->isNotEmpty())
+            <div class="mt-1 flex flex-wrap gap-1">
+                @foreach($plantillasNota as $plantilla)
+                    <button type="button" x-on:click="pegar(@js($plantilla->texto))"
+                            class="rounded-full border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600 hover:border-brand-400 hover:text-brand-700">
+                        {{ $plantilla->etiqueta }}
+                    </button>
+                @endforeach
+            </div>
+        @endif
+
+        <textarea wire:model="notas" x-ref="notas" rows="3" maxlength="2000"
+                  x-init="crecer($el)" x-on:input="crecer($el)"
+                  class="mt-1 block w-full resize-none text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"
                   placeholder="{{ __('casos.notes_placeholder') }}"></textarea>
     </div>
 

@@ -173,7 +173,8 @@ No hay campos personalizados en Persona, Contacto, Campaña, Cartera, Usuario, P
 `texto_corto`, `texto_largo`, `numero_entero`, `numero_decimal`, `fecha`, `fecha_hora`, `booleano`, `seleccion_unica`, `seleccion_multiple`, `moneda`.
 
 ### Almacenamiento
-- `campos_personalizados`: definición (proyecto_id, ambito, ambito_id, codigo único, tipo, obligatorio, reglas JSON).
+- `campos_personalizados`: definición (proyecto_id, ambito, ambito_id, codigo único, tipo, obligatorio, reglas JSON) y presentación (etiqueta, descripcion, activo, orden, `grupo_campo_id`, `visible_en_gestion`).
+- `grupos_campo` (F42): catálogo por proyecto con el que se agrupan los campos en pantalla. Sólo nombre y orden. **No es un editor de layouts** (§1): el acordeón lo dibuja el desarrollador y el administrador únicamente dice a qué grupo pertenece cada campo. Si alguna vez aparece un editor de secciones con títulos, iconos o anchos, se cruzó la línea.
 - `valores_campo_personalizado`: una fila por `(campo_id, entidad_id)`. Solo la columna del tipo correspondiente llena.
 
 ### Validaciones
@@ -205,9 +206,19 @@ Tablas lógicas de datos estructurados que ADMIN_GLOBAL define por proyecto/cart
 
 **Globales:** `tipos_identificacion`, `canales`, `paises`, `monedas`, `roles_base`, `permisos_base`.
 
-**Por proyecto (todo lo que varía por mandante/operación):** `resultados`, `subresultados`, `tipos_gestion`, `causas_gestion`, `motivos_no_contacto`, `estados_caso`, `carteras`, `scripts`, más los específicos por tipo: `tramos_mora`/`tipos_pago` (cobranza), `categorias_ticket`/`prioridades_ticket`/`niveles_sla`/`niveles_escalamiento` (cx), `productos_venta`/`etapas_embudo` (venta), `tipos_accion_servicio`/`estados_tecnicos` (servicio).
+**Por proyecto (todo lo que varía por mandante/operación):** `resultados`, `subresultados`, `tipos_gestion`, `causas_gestion`, `motivos_no_contacto`, `estados_caso`, `carteras`, `scripts`, `grupos_campo`, `plantillas_nota`, y los pivots `canal_proyecto` y `resultado_tipo_gestion`, más los específicos por tipo: `tramos_mora`/`tipos_pago` (cobranza), `categorias_ticket`/`prioridades_ticket`/`niveles_sla`/`niveles_escalamiento` (cx), `productos_venta`/`etapas_embudo` (venta), `tipos_accion_servicio`/`estados_tecnicos` (servicio).
 
 > Si un catálogo necesita override por proyecto, no era global. Bajarlo a por-proyecto.
+
+**Excepción acordada (F42) — `canales`.** Sigue siendo global, y `canal_proyecto`
+declara qué hace cada proyecto con él: cuáles usa, en qué orden, con qué nombre y
+si el canal pide duración o admite adjunto. Es un override, y por eso se anota
+aquí. Se resolvió con un pivot y no bajando la tabla porque `gestiones.canal_id`
+apunta al catálogo global: duplicar las filas por proyecto habría reescrito la FK
+de las gestiones ya registradas, y un `proyecto_id` nullable choca con el global
+scope, que aplica igualdad estricta y excluye los NULL. Los catálogos nuevos que
+necesiten override siguen naciendo por-proyecto: esto no es un patrón a copiar,
+es una deuda con nombre.
 
 ---
 
@@ -369,6 +380,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Drop columna legacy `proyectos.sso_secret` (cleanup F37) — eliminada migración F37 dejó la columna por compat transitoria; F37c la dropea ahora que wrapper migró completo a `mandantes.sso_secret`. Borra excepción huérfana `ProyectoSsoNoConfigurado` y catches en `SsoHandshakeController` + `EmitirSanctumTokenController`. Limpia hook `ProyectoModel::booted()` que generaba secret automático. Limpia `EscenarioOperativo::crearProyecto` helper de tests. 1 migración drop. 0 tests nuevos (suite igual). | ✅ F37c |
 | UI admin reusada para ADMIN_MANDANTE (cierre F38) — sin pantallas nuevas: las admin globales ya existentes filtran por rol en server-side. Middleware nuevo `admin.dual` (alias de `RequiereAdminMandanteOGlobal`) acepta ADMIN_GLOBAL **o** ADMIN_MANDANTE. `routes/web.php` admin split: dashboard / proyectos / usuarios / auditoria → `admin.dual`; mandantes / campos-personalizados / entidades-configurables / integracion.secrets siguen `admin.global` exclusivo. Sidebar (`layouts/app.blade.php`) detecta `$esAdminMandante` (rol-mandante sin ser global) y `$esAdminAlguno`; oculta items vetados al admin_mandante (Mandantes, Campos, Entidades, SSO secrets); cambia título a "Administración (Mandante)" + "Auditoría". `AdminProyectos` Livewire scope: query `WHERE mandante_id IN mandantesPermitidos()`; pre-selecciona mandante propio al crear; `guardContraMandanteAjeno()` defensivo en abrirFormEditar/guardar/desactivar/activar (abort 403). `AdminUsuarios` Livewire scope: usuarios filtrados por `EXISTS pivot upr WHERE proyecto_id IN proyectosDelMandante OR EXISTS pivot umr WHERE mandante_id IN mandantes`; asignaciones limitadas a esos proyectos; dropdown proyectos limitado al mandante; `promoverAdminGlobal`/`revocarAdminGlobal` exigen ADMIN_GLOBAL via `soloAdminGlobal()`; `quitarAsignacion`/`guardarAsignacion` con `guardContraProyectoAjeno()`. `ListadoAuditoria` (modo global): admin_mandante ve solo eventos de proyectos de su mandante. Dashboard tiles: array filtrado por flag `solo_admin_global`; títulos cambian según rol. 0 migraciones, 0 tablas nuevas, 0 pantallas nuevas. 25 tests nuevos (`AdminMandanteAccesoTest` 12 + `AdminProyectosScopeMandanteTest` 7 + `AdminUsuariosScopeMandanteTest` 6). | ✅ F39 |
 | CI/CD GitHub Actions — pipeline roadmap (`setup` → `pint`/`larastan`/`tests` en paralelo → `ci-ok` → `deploy`) con despliegue automático por SSH al VPS en `main` tras CI verde. Larastan montado (nivel 6 + baseline 197 errores), `php artisan test` (PHPUnit) con MySQL efímero + artifact `vite-build`, Pint `--test`. Deps nuevas dev: `larastan/larastan ^3.0`, `laravel/boost ^2.4`. | ✅ F40 |
+| Rediseño de la Vista de Trabajo — captura de gestión separada de los datos del caso, que pasan a LECTURA agrupada y plegable (`grupos_campo` + `campos_personalizados.grupo_campo_id`/`visible_en_gestion`); se editan sólo en «Editar caso», que elimina la segunda superficie de escritura (§13.3) y con ella el borrado silencioso de valores. Cascada canal → tipo → resultado con pivots `canal_proyecto` y `resultado_tipo_gestion`, ambos fail-open. Un único `<x-cp.control>` con los 10 tipos de §7, en vez de seis `@switch` divergentes. Contactos generados desde la importación con rol de columna y VO `ExtractorDeContactos`; `contactos` gana `public_id` y `origen`. Pantalla para `causas_gestion`, que no tenía ninguna. Plantillas de nota por proyecto (`plantillas_nota`). Barra de guardar pegada, atajo Ctrl/⌘+Enter acotado, y `min-width:0` en `.app-header` que quita el scroll horizontal de las 39 pantallas. | ✅ F42 |
 
 ### Módulo Integracion (F28 + F37)
 
@@ -543,6 +555,59 @@ Preparar deps ──────┼─→ Análisis (Larastan)─┼──→ CI
 - `migrate --force` corre en cada deploy: una migración destructiva se aplicaría sin revisión manual. Una compuerta manual de migraciones queda como posible mejora.
 - Warning de deprecación de Node 20 en las actions: informativo (afecta el runtime de las actions, no la app). Forzable a Node 24 con `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
 - **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F40, con acuerdo previo.
+
+### Rediseño de la Vista de Trabajo (F42)
+
+**Los datos del caso se leen aquí y se editan en «Editar caso».** El formulario de
+gestión captura la gestión: canal, tipo, resultado, contacto, duración, notas y
+lo que cuelgue del resultado. Los campos personalizados del caso salen agrupados
+y plegados, en modo lectura. No es sólo jerarquía: tenerlos editables en las dos
+pantallas era una segunda superficie de escritura sobre el mismo dato (§13.3) y
+era por donde se borraban valores —el componente enviaba los 34 campos en cada
+gestión, incluidos los que no sabía leer—.
+
+**`ServicioCamposPersonalizados::guardarValores` no vacía por defecto.** Un `null`
+entrante significa «no lo sé», no «bórralo». Quien es dueño del formulario
+completo pasa `permitirVaciar: true`. Nació de un incidente: tres filas de
+producción quedaron en blanco así, con 22.623 valores a una gestión de distancia.
+
+**El tipo de un campo con valores no se cambia desde la UI.** La pantalla
+actualiza la definición y no mueve los valores, así que el lector pasa a mirar una
+columna vacía. Se corta en el dominio y se remite a los comandos:
+`campos:convertir-tipo` cuando hay que cambiar el tipo declarado,
+`campos:recolocar-valores` cuando el tipo ya es el bueno y los valores están
+atrás.
+
+**Los dos pivots arrancan EN ABIERTO, y por fila, no por proyecto.** Un tipo de
+gestión sin combinaciones declaradas en `resultado_tipo_gestion` admite todos los
+resultados; un proyecto sin filas en `canal_proyecto` los recibe todos al crearse.
+Con la regla al revés, los proyectos que no lo tengan configurado se quedan sin
+poder gestionar el día del despliegue.
+
+**La matriz tipo × resultado es una lista blanca, no un motor de reglas.** Es de
+la misma clase que `requiere_compromiso` y `requiere_causa`, que ya son banderas
+por proyecto. La línea a no cruzar: «si el resultado es X entonces el campo Y es
+obligatorio» sería §13.14 y hay que negarlo.
+
+**Máscara en la presentación, valor crudo en el modelo.** `<x-cp.control>` usa
+controles nativos: `type="date"` pinta en el formato del usuario y bindea ISO, y
+el símbolo de la divisa va fuera del input. Un picker que bindease `05/12/2026` lo
+leería `strtotime` como 12 de mayo y lo guardaría mal sin dar error.
+
+**Las reglas de contacto viven en el dominio de Contactos.** Partir una celda,
+descartar `000000`, quitar el prefijo 507 y decidir qué es un móvil panameño es
+regla de negocio (§13.4): está en `ExtractorDeContactos`, no en el job de
+importación, que sólo orquesta y da de alta por un contrato (§3, §13.6).
+
+**`.app-header` lleva `min-width: 0`.** Es item de una pista `1fr` del grid, cuyo
+mínimo automático es el min-content de sus items; sin esa declaración pedía 458px
+en un móvil de 390 y arrastraba el documento entero. El scroll horizontal de las
+39 pantallas salía de ahí.
+
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre
+  de F42, con acuerdo previo. Los tres puntos acordados: las columnas nuevas de
+  `campos_personalizados` (§7), el override de canales vía pivot (§8), y el
+  límite de que «grupo + orden» no es un editor de layouts (§1).
 
 ### Decisiones arquitectónicas vigentes
 

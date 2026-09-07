@@ -1,6 +1,16 @@
 <?php
 
 return [
+    'plantillas' => [
+        'titulo' => 'Plantillas de nota',
+        'ayuda' => 'Frases hechas que el gestor pega en las notas con un clic y edita después.',
+        'etiqueta' => 'Etiqueta',
+        'etiqueta_ph' => 'Pide llamada',
+        'texto' => 'Texto',
+        'texto_ph' => 'El titular pide que se le llame después de las 6.',
+        'resultado' => 'Sólo con el resultado',
+        'siempre' => '— Siempre —',
+    ],
     'causas' => [
         'titulo' => 'Causas de gestión',
         'ayuda' => 'Por qué salió así. Los resultados marcados como «requiere causa» piden una de estas.',

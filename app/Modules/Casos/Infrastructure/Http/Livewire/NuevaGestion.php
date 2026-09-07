@@ -314,6 +314,7 @@ final class NuevaGestion extends Component
             'requiereCompromiso' => $resultadoActual ? (bool) $resultadoActual->requiere_compromiso : false,
             'esContactoEfectivo' => $resultadoActual ? (bool) $resultadoActual->es_contacto_efectivo : false,
             'camposGestion' => $camposGestion,
+            'plantillasNota' => $this->plantillasNota($proyectoId),
         ]);
     }
 
@@ -395,6 +396,30 @@ final class NuevaGestion extends Component
         }
 
         return $query->orderBy('r.orden')->get(['r.*']);
+    }
+
+    /**
+     * Frases hechas para las notas: las generales del proyecto más las del
+     * resultado elegido, que son las que de verdad ahorran escribir.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    private function plantillasNota(int $proyectoId): Collection
+    {
+        return DB::table('plantillas_nota')
+            ->where('proyecto_id', $proyectoId)
+            ->where('activo', true)
+            ->where(function ($q): void {
+                $q->whereNull('resultado_id');
+
+                if ($this->resultadoId !== null) {
+                    $q->orWhere('resultado_id', (int) $this->resultadoId);
+                }
+            })
+            ->orderByRaw('resultado_id is null')
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->get(['id', 'etiqueta', 'texto']);
     }
 
     private function motivos(int $proyectoId): Collection

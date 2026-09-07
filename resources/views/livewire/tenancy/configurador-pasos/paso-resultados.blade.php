@@ -227,4 +227,54 @@
             </div>
         </div>
     @endif
+    {{-- Frases hechas para el campo de notas. Con resultado, salen sólo bajo ese
+         resultado; sin él, salen siempre. Es texto que se pega en el textarea y
+         el gestor edita después: no ejecuta nada ni rellena otros campos. --}}
+    <div class="card" style="padding:12px 16px;margin-top:14px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <strong style="font-size:13px;">{{ __('configurador.plantillas.titulo') }}</strong>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.plantillas.ayuda') }}</span>
+        </div>
+
+        @if($plantillas->isNotEmpty())
+            <div style="display:flex;flex-direction:column;gap:4px;margin-top:10px;">
+                @foreach($plantillas as $p)
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+                        <span class="badge">{{ $p->etiqueta }}</span>
+                        <span style="color:var(--text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $p->texto }}</span>
+                        @if($p->resultado_nombre)
+                            <span class="badge badge-neutral">{{ $p->resultado_nombre }}</span>
+                        @endif
+                        <button type="button" wire:click="eliminarPlantilla({{ $p->id }})"
+                                class="btn btn-ghost btn-sm" style="color:var(--danger-text);">×</button>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        <div style="display:grid;grid-template-columns:170px 1fr 200px auto;gap:8px;align-items:end;margin-top:10px;">
+            <div>
+                <label class="field-label">{{ __('configurador.plantillas.etiqueta') }}</label>
+                <input type="text" wire:model="plantilla.etiqueta" class="input" style="height:30px;"
+                       placeholder="{{ __('configurador.plantillas.etiqueta_ph') }}"/>
+            </div>
+            <div>
+                <label class="field-label">{{ __('configurador.plantillas.texto') }}</label>
+                <input type="text" wire:model="plantilla.texto" class="input" style="height:30px;"
+                       placeholder="{{ __('configurador.plantillas.texto_ph') }}"/>
+            </div>
+            <div>
+                <label class="field-label">{{ __('configurador.plantillas.resultado') }}</label>
+                <select wire:model="plantilla.resultado_id" class="input" style="height:30px;">
+                    <option value="">{{ __('configurador.plantillas.siempre') }}</option>
+                    @foreach($resultados as $r)
+                        <option value="{{ $r->id }}">{{ $r->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="button" wire:click="crearPlantilla" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
+        </div>
+        @error('plantilla.etiqueta')<div style="font-size:12px;color:var(--danger-text);margin-top:4px;">{{ $message }}</div>@enderror
+        @error('plantilla.texto')<div style="font-size:12px;color:var(--danger-text);margin-top:4px;">{{ $message }}</div>@enderror
+    </div>
 </div>

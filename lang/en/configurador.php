@@ -1,6 +1,16 @@
 <?php
 
 return [
+    'plantillas' => [
+        'titulo' => 'Note templates',
+        'ayuda' => 'Set phrases the agent drops into the notes with one click and edits afterwards.',
+        'etiqueta' => 'Label',
+        'etiqueta_ph' => 'Asks for a call',
+        'texto' => 'Text',
+        'texto_ph' => 'The holder asks to be called after 6pm.',
+        'resultado' => 'Only with the result',
+        'siempre' => '— Always —',
+    ],
     'causas' => [
         'titulo' => 'Interaction causes',
         'ayuda' => 'Why it turned out that way. Results flagged as «requires cause» ask for one of these.',

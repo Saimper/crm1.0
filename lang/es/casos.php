@@ -120,7 +120,7 @@ return [
     'field_cause' => 'Causa',
     'field_duration' => 'Duración (seg)',
     'field_notes' => 'Notas (opcional)',
-    'notes_placeholder' => 'Complemento libre. No extraigas datos de aquí, usa los campos estructurados.',
+    'notes_placeholder' => 'Qué pasó, en una frase. Los datos que se filtran o cuentan van en los campos de arriba, no aquí.',
     'ctrl_enter_hint' => 'Ctrl+Enter o ⌘+Enter para guardar.',
     'submit_gestion' => 'Registrar gestión',
 
