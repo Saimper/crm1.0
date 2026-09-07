@@ -132,6 +132,23 @@
                         </label>
                     </div>
 
+                    @if($estadosTerminales->isNotEmpty())
+                        <div>
+                            <label class="field-label">{{ __('configurador.resultados.estado_cierre') }}</label>
+                            <select wire:model="form.estado_caso_cierre_id"
+                                    class="input @error('form.estado_caso_cierre_id') input-error @enderror">
+                                <option value="">{{ __('configurador.resultados.estado_cierre_ninguno') }}</option>
+                                @foreach($estadosTerminales as $estado)
+                                    <option value="{{ $estado->id }}">{{ $estado->nombre }}</option>
+                                @endforeach
+                            </select>
+                            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                                {{ __('configurador.resultados.estado_cierre_ayuda') }}
+                            </div>
+                            @error('form.estado_caso_cierre_id')<div class="field-error">{{ $message }}</div>@enderror
+                        </div>
+                    @endif
+
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
