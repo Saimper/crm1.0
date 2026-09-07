@@ -15,6 +15,7 @@ use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
 
@@ -26,6 +27,21 @@ final class AdminProyectos extends Component
 {
     public bool $formVisible = false;
 
+    /*
+     * Sin #[Locked] a propósito, y conviene dejarlo escrito.
+     *
+     * Bloquear la propiedad impediría que el cliente la fije, que es la defensa
+     * más fuerte. Pero entonces los tests de fuga no podrían forjar el id para
+     * demostrar que el guard rechaza una fila ajena: Livewire lanza
+     * CannotUpdateLockedPropertyException en el propio set() y la comprobación
+     * de guardar() se vuelve inalcanzable desde una prueba.
+     *
+     * Quien carga el peso aquí es guardContraProyectoAjeno(), que mira el dueño
+     * ACTUAL de la fila y está cubierto por tests. Añadir #[Locked] encima es
+     * defensa en profundidad y vale la pena, pero exige reescribir esos tests
+     * para que afirmen el bloqueo en vez del rechazo — un cambio deliberado, no
+     * algo que colar en este commit.
+     */
     public ?int $editandoId = null;
 
     public string $busqueda = '';
@@ -114,6 +130,12 @@ final class AdminProyectos extends Component
         $mandanteId = (int) $this->form['mandante_id'];
         $this->guardContraMandanteAjeno($mandanteId);
 
+        // Y el de ORIGEN. Validar solo el destino dejaba pasar el caso que
+        // importa: apuntar al proyecto de otro cliente y traérselo al propio.
+        if ($this->editandoId !== null) {
+            $this->guardContraProyectoAjeno($this->editandoId);
+        }
+
         $codigoInput = trim((string) ($this->form['codigo'] ?? ''));
         $codigoBase = $codigoInput === ''
             ? GeneradorCodigo::derivar((string) ($this->form['nombre'] ?? ''), 80)
@@ -164,7 +186,11 @@ final class AdminProyectos extends Component
             // Edición: se permite cambiar nombre, descripción y vigencias. tipo_operacion queda
             // BLOQUEADO (invariante §1.2). El conflicto de código se resolvió arriba (sufijado).
             ProyectoModel::query()->where('id', $this->editandoId)->update([
-                'mandante_id' => $mandanteId,
+                // mandante_id NO se actualiza: el dueño de un proyecto no es un
+                // campo editable. Estaba aquí pese a que el comentario de arriba
+                // decía lo contrario, y con él un admin podía mover el proyecto
+                // de otro cliente al suyo — arrastrando sus casos, personas y
+                // carteras, que cuelgan de proyecto_id y no de mandante_id.
                 'codigo' => $codigoFinal,
                 'nombre' => (string) $this->form['nombre'],
                 'descripcion' => $this->textoOpcional('descripcion'),
@@ -283,6 +309,25 @@ final class AdminProyectos extends Component
         }
 
         return $usuario->mandantesAdministrados();
+    }
+
+    /**
+     * El proyecto que se está editando pertenece a un mandante que este usuario
+     * administra. Se mira el dueño ACTUAL de la fila, no el del formulario.
+     */
+    private function guardContraProyectoAjeno(int $proyectoId): void
+    {
+        $mandantes = $this->mandantesPermitidos();
+
+        if ($mandantes === null) {
+            return; // ADMIN_GLOBAL.
+        }
+
+        $duenoActual = ProyectoModel::query()->where('id', $proyectoId)->value('mandante_id');
+
+        if ($duenoActual === null || ! in_array((int) $duenoActual, $mandantes, true)) {
+            abort(403, 'Ese proyecto no pertenece a tu alcance.');
+        }
     }
 
     private function guardContraMandanteAjeno(int $mandanteId): void

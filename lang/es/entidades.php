@@ -7,6 +7,7 @@ return [
     'new_entity' => 'Nueva entidad',
 
     'label_project' => 'Proyecto',
+    'empty_projects' => 'No hay proyectos del cliente activo sobre los que definir entidades.',
 
     'sidebar_header' => 'Entidades',
     'empty_entities' => 'Sin entidades en este proyecto.',

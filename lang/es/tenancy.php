@@ -17,11 +17,26 @@ return [
     'dashboard_subtitle_mandante' => 'Proyectos y usuarios del mandante · ADMIN_MANDANTE',
     'back_to_selector' => '← Selector de proyectos',
 
+    // Fase 3 · el panel /admin transcurre DENTRO de un cliente: el rótulo lo dice.
+    // Los tres de arriba quedan como respaldo para cuando no hay cliente resuelto.
+    'dashboard_title_cliente' => 'Administración · :cliente',
+    'dashboard_subtitle_cliente_global' => 'Trabajas dentro de :cliente. Sólo ves sus proyectos, usuarios y eventos · ADMIN_GLOBAL',
+    'dashboard_subtitle_cliente_mandante' => 'Trabajas dentro de :cliente. Sólo ves sus proyectos, usuarios y eventos · ADMIN_MANDANTE',
+    'alcance_este_cliente' => 'Sólo :cliente',
+    'alcance_todos_los_clientes' => 'Todos los clientes',
+    'alcance_todos_los_clientes_ayuda' => 'Esta pantalla no está acotada al cliente activo: alcanza a todos.',
+
     // Tiles del dashboard admin
     'tile_mandantes_title' => 'Mandantes',
     'tile_mandantes_desc' => 'Empresas externas que delegan procesos al BPO.',
     'tile_proyectos_title' => 'Proyectos',
     'tile_proyectos_desc' => 'Contextos operativos por mandante (cobranza, CX, venta, servicio).',
+    // /admin/usuarios y /admin/auditoria van bajo `mandante.activo`, así que no son
+    // pantallas "globales" ni para el ADMIN_GLOBAL: el dashboard usa el título
+    // *_mandante_* para los dos roles. El alcance lo remata el badge del tile, y el
+    // rol sólo cambia la descripción de lo que se puede hacer allí. Los *_global_title
+    // quedan sin uso a propósito (no se borran para no romper traducciones de otras
+    // pantallas en curso).
     'tile_usuarios_global_title' => 'Usuarios globales',
     'tile_usuarios_global_desc' => 'Cuentas, ADMIN_GLOBAL y asignación de roles por proyecto.',
     'tile_usuarios_mandante_title' => 'Usuarios del mandante',

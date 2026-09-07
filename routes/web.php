@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaController;
+use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaMandanteController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\DescargarPlantillaImportacionController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCasosController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromisosController;
@@ -169,9 +170,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:auditoria.ver')
                 ->name('proyectos.auditoria');
 
+            // `auditoria.exportar`, no `auditoria.ver`: el permiso existía en el
+            // seeder y no lo exigía nadie, así que un SUPERVISOR —a quien el
+            // seeder se lo niega— se descargaba el historial entero del cliente.
             Route::get('/auditoria/exportar',
                 ExportarAuditoriaController::class)
-                ->middleware('can:auditoria.ver')
+                ->middleware('can:auditoria.exportar')
                 ->name('proyectos.auditoria.exportar');
 
             Route::view('/notificaciones', 'notificaciones::page')
@@ -233,6 +237,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                     ->name('admin.usuarios');
                 Route::view('/auditoria', 'auditoria::page')
                     ->name('admin.auditoria');
+
+                // Lo que /admin/auditoria enseña, descargable con el MISMO
+                // recorte. Sin `can:auditoria.exportar` en la ruta a propósito:
+                // ese gate se evalúa contra el proyecto activo, que aquí no
+                // existe. El permiso lo cruza el controlador proyecto a
+                // proyecto, dentro del mandante activo.
+                Route::get('/auditoria/exportar',
+                    ExportarAuditoriaMandanteController::class)
+                    ->name('admin.auditoria.exportar');
             });
 
             // Rutas exclusivas ADMIN_GLOBAL (cross-mandante o vetadas a admin_mandante).

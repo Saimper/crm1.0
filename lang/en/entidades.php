@@ -7,6 +7,7 @@ return [
     'new_entity' => 'New entity',
 
     'label_project' => 'Project',
+    'empty_projects' => 'There are no projects in the active client to define entities for.',
 
     'sidebar_header' => 'Entities',
     'empty_entities' => 'No entities in this project.',

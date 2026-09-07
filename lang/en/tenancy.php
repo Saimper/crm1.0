@@ -17,11 +17,26 @@ return [
     'dashboard_subtitle_mandante' => 'Tenant projects and users · ADMIN_MANDANTE',
     'back_to_selector' => '← Project selector',
 
+    // Phase 3 · the /admin panel runs INSIDE one client: the heading says which.
+    // The three above stay as a fallback for when no client could be resolved.
+    'dashboard_title_cliente' => 'Administration · :cliente',
+    'dashboard_subtitle_cliente_global' => 'You are working inside :cliente. You only see its projects, users and events · ADMIN_GLOBAL',
+    'dashboard_subtitle_cliente_mandante' => 'You are working inside :cliente. You only see its projects, users and events · ADMIN_MANDANTE',
+    'alcance_este_cliente' => ':cliente only',
+    'alcance_todos_los_clientes' => 'All clients',
+    'alcance_todos_los_clientes_ayuda' => 'This screen is not scoped to the active client: it reaches all of them.',
+
     // Admin dashboard tiles
     'tile_mandantes_title' => 'Tenants',
     'tile_mandantes_desc' => 'External companies that delegate processes to the BPO.',
     'tile_proyectos_title' => 'Projects',
     'tile_proyectos_desc' => 'Operational contexts per tenant (collections, CX, sales, service).',
+    // /admin/usuarios and /admin/auditoria sit under `mandante.activo`, so they are
+    // not "global" screens, not even for ADMIN_GLOBAL: the dashboard uses the
+    // *_mandante_* title for both roles. Scope is finished off by the tile badge, and
+    // the role only changes the description of what can be done there. The
+    // *_global_title keys are deliberately left unused (not removed, so in-flight
+    // work on other screens keeps its translations).
     'tile_usuarios_global_title' => 'Global users',
     'tile_usuarios_global_desc' => 'Accounts, ADMIN_GLOBAL and role assignment per project.',
     'tile_usuarios_mandante_title' => 'Tenant users',

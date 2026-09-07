@@ -104,13 +104,30 @@
             <div class="drawer-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div style="grid-column:1 / -1;">
-                        <label class="field-label">{{ __('tenancy.label_mandante') }}</label>
-                        <select wire:model="form.mandante_id" class="select @error('form.mandante_id') input-error @enderror">
-                            <option value="">—</option>
-                            @foreach($mandantes as $m)
-                                <option value="{{ $m->id }}">{{ $m->codigo }} — {{ $m->nombre }}</option>
-                            @endforeach
-                        </select>
+                        <label class="field-label">
+                            {{ __('tenancy.label_mandante') }}
+                            @if($editandoId !== null)
+                                <span style="color:var(--text-tertiary);font-weight:400;">{{ __('tenancy.type_locked') }}</span>
+                            @endif
+                        </label>
+                        {{-- Al editar, el cliente se muestra pero no se cambia: mover un
+                             proyecto de empresa arrastra sus casos, personas y carteras,
+                             que cuelgan de proyecto_id. Mismo trato que tipo_operacion. --}}
+                        @if($editandoId !== null)
+                            @php($mandanteActual = $mandantes->firstWhere('id', (int) ($form['mandante_id'] ?? 0)))
+                            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
+                                <span class="badge badge-neutral">{{ $mandanteActual?->codigo ?? '—' }}</span>
+                                <span style="font-size:12px;">{{ $mandanteActual?->nombre }}</span>
+                                <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;">{{ __('tenancy.not_editable') }}</span>
+                            </div>
+                        @else
+                            <select wire:model="form.mandante_id" class="select @error('form.mandante_id') input-error @enderror">
+                                <option value="">—</option>
+                                @foreach($mandantes as $m)
+                                    <option value="{{ $m->id }}">{{ $m->codigo }} — {{ $m->nombre }}</option>
+                                @endforeach
+                            </select>
+                        @endif
                         @error('form.mandante_id')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>

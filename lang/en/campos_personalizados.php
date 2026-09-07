@@ -22,9 +22,9 @@ return [
     'title_deactivate' => 'Deactivate',
 
     'empty_no_projects' => 'No projects',
-    'empty_no_projects_desc' => 'No projects available to define fields.',
+    'empty_no_projects_desc' => 'No projects for the active client. Pick a client under Administration → Client.',
     'empty_no_fields' => 'No custom fields',
-    'empty_no_fields_desc' => 'No fields have been defined in any project yet.',
+    'empty_no_fields_desc' => 'No fields have been defined in the selected project yet.',
     'count_fields' => ':count fields',
 
     'drawer_new' => 'New field',
@@ -32,6 +32,9 @@ return [
     'close' => 'Close',
 
     'label_project' => 'Project',
+    'label_project_on_screen' => 'Project on screen',
+    'project_locked' => '(locked after creation)',
+    'not_editable' => 'Not editable',
     'label_scope' => 'Scope',
     'label_type' => 'Type',
     'scope_case' => 'Case × Portfolio',

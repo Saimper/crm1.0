@@ -2,6 +2,9 @@
 
 return [
     'cambiar_cliente' => 'Cambiar de cliente',
+    // Aviso para las entradas del grupo `admin.global`: no pasan por el middleware
+    // `mandante.activo`, así que salen del cliente en el que se está trabajando.
+    'alcance_todos_los_clientes' => 'Todos los clientes — esta pantalla no está acotada al cliente activo.',
     'menu' => 'Menú',
     'breadcrumb_projects' => 'Proyectos',
     'active_project' => 'Proyecto activo',
