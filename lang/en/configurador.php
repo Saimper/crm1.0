@@ -68,6 +68,9 @@ return [
         'es_contacto_efectivo' => 'Effective contact',
         'requiere_compromiso' => 'Requires commitment',
         'requiere_causa' => 'Requires cause',
+        'estado_cierre' => 'Closes the case as',
+        'estado_cierre_ninguno' => 'Does not close the case',
+        'estado_cierre_ayuda' => 'Logging an interaction with this outcome moves the case to that state and closes it.',
         'confirm_eliminar' => 'Delete this result? Only allowed if no management actions use it.',
     ],
 

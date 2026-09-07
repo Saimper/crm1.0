@@ -8,6 +8,7 @@ use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 /**
@@ -35,6 +36,7 @@ final class PasoResultados extends Component
         'descripcion' => '',
         'es_contacto_efectivo' => false,
         'requiere_compromiso' => false,
+        'estado_caso_cierre_id' => null,
         'requiere_causa' => false,
         'orden' => 0,
         'activo' => true,
@@ -56,6 +58,7 @@ final class PasoResultados extends Component
             'descripcion' => '',
             'es_contacto_efectivo' => false,
             'requiere_compromiso' => false,
+            'estado_caso_cierre_id' => null,
             'requiere_causa' => false,
             'orden' => 0,
             'activo' => true,
@@ -84,6 +87,7 @@ final class PasoResultados extends Component
             'descripcion' => (string) ($row->descripcion ?? ''),
             'es_contacto_efectivo' => (bool) $row->es_contacto_efectivo,
             'requiere_compromiso' => (bool) $row->requiere_compromiso,
+            'estado_caso_cierre_id' => $row->estado_caso_cierre_id === null ? null : (int) $row->estado_caso_cierre_id,
             'requiere_causa' => (bool) $row->requiere_causa,
             'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
@@ -109,6 +113,13 @@ final class PasoResultados extends Component
             'form.descripcion' => ['nullable', 'string', 'max:500'],
             'form.es_contacto_efectivo' => ['required', 'boolean'],
             'form.requiere_compromiso' => ['required', 'boolean'],
+            // Debe ser un estado TERMINAL del propio proyecto: cerrar hacia un
+            // estado intermedio dejaria el caso marcado como cerrado pero en un
+            // estado que la operacion sigue considerando vivo.
+            'form.estado_caso_cierre_id' => ['nullable', 'integer', Rule::exists('estados_caso', 'id')
+                ->where('proyecto_id', (int) $this->proyecto->id)
+                ->where('es_terminal', true)
+                ->where('activo', true)],
             'form.requiere_causa' => ['required', 'boolean'],
             'form.orden' => ['required', 'integer', 'min:0'],
             'form.activo' => ['required', 'boolean'],
@@ -118,6 +129,7 @@ final class PasoResultados extends Component
             'form.descripcion' => 'descripción',
             'form.es_contacto_efectivo' => 'contacto efectivo',
             'form.requiere_compromiso' => 'requiere compromiso',
+            'form.estado_caso_cierre_id' => 'estado de cierre',
             'form.requiere_causa' => 'requiere causa',
             'form.orden' => 'orden',
             'form.activo' => 'estado',
@@ -144,6 +156,9 @@ final class PasoResultados extends Component
             'descripcion' => $this->descripcionOpcional(),
             'es_contacto_efectivo' => (bool) $this->form['es_contacto_efectivo'],
             'requiere_compromiso' => (bool) $this->form['requiere_compromiso'],
+            'estado_caso_cierre_id' => $this->form['estado_caso_cierre_id'] === null || $this->form['estado_caso_cierre_id'] === ''
+                ? null
+                : (int) $this->form['estado_caso_cierre_id'],
             'requiere_causa' => (bool) $this->form['requiere_causa'],
             'orden' => (int) $this->form['orden'],
             'activo' => (bool) $this->form['activo'],
@@ -245,12 +260,22 @@ final class PasoResultados extends Component
             ->orderBy('codigo')
             ->get([
                 'id', 'codigo', 'nombre', 'descripcion',
-                'es_contacto_efectivo', 'requiere_compromiso', 'requiere_causa',
+                'es_contacto_efectivo', 'requiere_compromiso', 'requiere_causa', 'estado_caso_cierre_id',
                 'orden', 'activo',
             ]);
 
+        // Estados en los que un resultado puede dar el caso por cerrado. Si el
+        // proyecto no tiene ninguno terminal, el selector no se ofrece.
+        $estadosTerminales = DB::table('estados_caso')
+            ->where('proyecto_id', $proyectoId)
+            ->where('es_terminal', true)
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->get(['id', 'codigo', 'nombre']);
+
         return view('livewire.tenancy.configurador-pasos.paso-resultados', [
             'resultados' => $resultados,
+            'estadosTerminales' => $estadosTerminales,
         ]);
     }
 

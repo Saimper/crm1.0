@@ -68,6 +68,9 @@ return [
         'es_contacto_efectivo' => 'Contacto efectivo',
         'requiere_compromiso' => 'Requiere compromiso',
         'requiere_causa' => 'Requiere causa',
+        'estado_cierre' => 'Cierra el caso en',
+        'estado_cierre_ninguno' => 'No cierra el caso',
+        'estado_cierre_ayuda' => 'Al registrar una gestión con este resultado, el caso pasa a ese estado y queda cerrado.',
         'confirm_eliminar' => '¿Eliminar este resultado? Solo se permite si no hay gestiones que lo usen.',
     ],
 

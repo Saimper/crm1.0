@@ -6,6 +6,7 @@ namespace App\Modules\Casos\Infrastructure\Providers;
 
 use App\Modules\Casos\Application\Listeners\ActivarBanderaCompromisoVigente;
 use App\Modules\Casos\Application\Listeners\ActualizarDesnormalizadosDesdeGestion;
+use App\Modules\Casos\Application\Listeners\CerrarCasoDesdeGestion;
 use App\Modules\Casos\Application\Listeners\RecalcularBanderaCompromisoVigente;
 use App\Modules\Casos\Domain\Contracts\CasoRepository;
 use App\Modules\Casos\Infrastructure\Http\Livewire\CrearCasoIndividual;
@@ -41,6 +42,7 @@ final class CasosServiceProvider extends ServiceProvider
         Livewire::component('casos.editar-caso', EditarCaso::class);
 
         Event::listen(GestionRegistrada::class, ActualizarDesnormalizadosDesdeGestion::class);
+        Event::listen(GestionRegistrada::class, CerrarCasoDesdeGestion::class);
         Event::listen(CompromisoCreado::class, ActivarBanderaCompromisoVigente::class);
         Event::listen(CompromisoCumplido::class, RecalcularBanderaCompromisoVigente::class);
         Event::listen(CompromisoRoto::class, RecalcularBanderaCompromisoVigente::class);
