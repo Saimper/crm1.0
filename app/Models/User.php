@@ -22,6 +22,7 @@ class User extends Authenticatable
         'password',
         'activo',
         'locale',
+        'mandante_origen_id',
     ];
 
     protected $hidden = [
