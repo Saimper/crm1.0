@@ -2,6 +2,9 @@
 
 return [
     'cambiar_cliente' => 'Switch client',
+    // Warning for the `admin.global` group entries: they do not go through the
+    // `mandante.activo` middleware, so they step outside the active client.
+    'alcance_todos_los_clientes' => 'All clients — this screen is not scoped to the active client.',
     'menu' => 'Menu',
     'breadcrumb_projects' => 'Projects',
     'active_project' => 'Active project',

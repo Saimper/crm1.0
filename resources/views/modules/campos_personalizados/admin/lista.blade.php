@@ -4,7 +4,25 @@
             <h1 class="page-title">{{ __('campos_personalizados.title') }}</h1>
             <div class="page-subtitle">{{ __('campos_personalizados.subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+            {{-- Selector del proyecto EN PANTALLA. Antes no existía porque el
+                 listado volcaba todos los proyectos a la vez — que era la fuga.
+                 Ahora que la tabla está acotada a uno, sin este selector un
+                 admin cuyo cliente tiene varios proyectos solo vería el primero.
+                 Lista únicamente los proyectos en alcance, los mismos que el
+                 selector del drawer: nunca es un catálogo de clientes. --}}
+            @if($proyectos->isNotEmpty())
+                <select wire:change="cambiarProyecto($event.target.value)"
+                        class="select"
+                        style="max-width:300px;"
+                        aria-label="{{ __('campos_personalizados.label_project_on_screen') }}"
+                        title="{{ __('campos_personalizados.label_project_on_screen') }}">
+                    <option value="">—</option>
+                    @foreach($proyectos as $p)
+                        <option value="{{ $p->id }}" @selected((int) $p->id === (int) $proyectoSeleccionadoId)>{{ $p->codigo }} — {{ $p->nombre }}</option>
+                    @endforeach
+                </select>
+            @endif
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('campos_personalizados.back_to_panel') }}</a>
             <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
@@ -136,15 +154,34 @@
             <div class="drawer-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div style="grid-column:1 / -1;">
-                        <label class="field-label">{{ __('campos_personalizados.label_project') }}</label>
-                        <select wire:model.live="form.proyecto_id"
-                                class="select @error('form.proyecto_id') input-error @enderror">
-                            <option value="">—</option>
-                            @foreach($proyectos as $p)
-                                <option value="{{ $p->id }}">{{ $p->codigo }} — {{ $p->nombre }}</option>
-                            @endforeach
-                        </select>
-                        @error('form.proyecto_id')<div class="field-error">{{ $message }}</div>@enderror
+                        <label class="field-label">
+                            {{ __('campos_personalizados.label_project') }}
+                            @if($campoEditandoId !== null)
+                                <span style="color:var(--text-tertiary);font-weight:400;">{{ __('campos_personalizados.project_locked') }}</span>
+                            @endif
+                        </label>
+                        {{-- Al editar, el proyecto se muestra pero no se cambia: es lo que
+                             identifica al dueño de la definición. Moverla de proyecto dejaba
+                             huérfanos sus valores en valores_campo_personalizado y era la vía
+                             para reasignar el campo de un cliente a otro. Mismo trato que el
+                             mandante de un proyecto. --}}
+                        @if($campoEditandoId !== null)
+                            @php($proyectoActual = $proyectos->firstWhere('id', (int) ($form['proyecto_id'] ?? 0)))
+                            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
+                                <span class="badge badge-neutral">{{ $proyectoActual->codigo ?? '—' }}</span>
+                                <span style="font-size:12px;">{{ $proyectoActual->nombre ?? '' }}</span>
+                                <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;">{{ __('campos_personalizados.not_editable') }}</span>
+                            </div>
+                        @else
+                            <select wire:model.live="form.proyecto_id"
+                                    class="select @error('form.proyecto_id') input-error @enderror">
+                                <option value="">—</option>
+                                @foreach($proyectos as $p)
+                                    <option value="{{ $p->id }}">{{ $p->codigo }} — {{ $p->nombre }}</option>
+                                @endforeach
+                            </select>
+                            @error('form.proyecto_id')<div class="field-error">{{ $message }}</div>@enderror
+                        @endif
                     </div>
                     <div>
                         <label class="field-label">{{ __('campos_personalizados.label_scope') }}</label>

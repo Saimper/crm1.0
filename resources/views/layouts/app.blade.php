@@ -16,6 +16,59 @@
         $proyectoActivo = app()->bound('tenancy.proyecto_activo')
             ? app('tenancy.proyecto_activo')
             : null;
+        // D1 / Fase 3 — el cliente dentro del que transcurre la petición.
+        //
+        // Fuente preferente: el binding que publica el middleware `mandante.activo`.
+        // Ése ya pasó por el resolutor, así que es el valor bueno.
+        //
+        // Pero ese middleware sólo cuelga del grupo dual de /admin (dashboard,
+        // proyectos, usuarios, auditoría). Las rutas `admin.global` —mandantes,
+        // campos personalizados, entidades configurables, secrets— no lo llevan, y
+        // ahí el rótulo del cliente DESAPARECÍA del sidebar: el admin navegaba a
+        // "Campos personalizados" y perdía de vista dentro de qué empresa estaba,
+        // que es justo el estado mental en el que se opera sobre la fila ajena.
+        //
+        // Para esas rutas se reconstruye el rótulo con LA MISMA precedencia que usa
+        // ResolverMandanteActivo, y nunca con una propia: primero el proyecto de la
+        // ruta, luego lo elegido en sesión, y por último el único alcanzable. Un
+        // criterio distinto por pantalla es justo como se cuelan las incoherencias.
+        //
+        // El orden importa: /admin/proyectos/{proyecto}/configurar lleva un proyecto
+        // en la URL y NO pasa por `proyecto.activo`, así que si se mirara la sesión
+        // primero el sidebar rotularía "Cliente A" mientras se edita un proyecto del
+        // Cliente B — exactamente el despiste que lleva a tocar la fila ajena.
+        //
+        // Y nada de esto se pinta tal cual: todo pasa por ResolutorMandanteActivo,
+        // que devuelve null si el usuario ya no alcanza ese cliente. La sesión (o la
+        // URL) propone, el permiso dispone. Se limita a rutas admin.* para no inventar
+        // un contexto de cliente en las pantallas operativas, donde el contexto es el
+        // proyecto.
+        $mandanteActivo = app()->bound('tenancy.mandante_activo')
+            ? app('tenancy.mandante_activo')
+            : null;
+
+        if ($mandanteActivo === null && $authUser !== null && request()->routeIs('admin.*')) {
+            $resolutorMandante = app(\App\Modules\Tenancy\Application\Services\ResolutorMandanteActivo::class);
+
+            // 1 · Derivado del proyecto de la URL (configurador de proyecto).
+            $proyectoDeRuta = request()->route('proyecto');
+            $idMandanteRotulo = is_object($proyectoDeRuta) && isset($proyectoDeRuta->mandante_id)
+                ? (int) $proyectoDeRuta->mandante_id
+                : null;
+
+            // 2 · El elegido en sesión.
+            if ($idMandanteRotulo === null) {
+                $idMandanteSesion = session(\App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverMandanteActivo::CLAVE_SESION);
+                $idMandanteRotulo = $idMandanteSesion === null ? null : (int) $idMandanteSesion;
+            }
+
+            // 3 · El único que alcanza: a un admin de un solo cliente no se le pide
+            //     que elija, así que tampoco se le esconde en qué cliente está.
+            $idMandanteRotulo ??= $resolutorMandante->unicoPermitido($authUser);
+
+            $mandanteActivo = $resolutorMandante->resolver($authUser, $idMandanteRotulo);
+        }
+
         $esAdmin           = $authUser?->esAdminGlobal() ?? false;
         $esAdminMandante   = ! $esAdmin && $authUser !== null && $authUser->mandantesAdministrados() !== [];
         $esAdminAlguno     = $esAdmin || $esAdminMandante;
@@ -326,17 +379,23 @@
                     </a>
                     {{-- D1: dentro de qué cliente se está trabajando, y la salida
                          para cambiar. Sin esto, quien elige uno queda encerrado. --}}
-                    @if(app()->bound('tenancy.mandante_activo'))
+                    @if($mandanteActivo !== null)
                         <a href="{{ route('admin.mandante-activo') }}" wire:navigate
                            class="sb-item @if($rid('admin.mandante-activo')) active @endif"
                            title="{{ __('nav.cambiar_cliente') }}">
                             <x-ui.icon name="building" :size="15" />
-                            <span>{{ app('tenancy.mandante_activo')->nombre }}</span>
+                            <span>{{ $mandanteActivo->nombre }}</span>
                         </a>
                     @endif
+                    {{-- Las entradas marcadas con `alcance_todos_los_clientes` son las
+                         del grupo `admin.global` de routes/web.php: NO pasan por el
+                         middleware `mandante.activo`, así que salen del cliente en el
+                         que se está trabajando. El rol ya las restringe a ADMIN_GLOBAL;
+                         el tooltip avisa de que además cruzan tenants. --}}
                     @if($esAdmin)
                         <a href="{{ route('admin.mandantes') }}" wire:navigate
-                           class="sb-item @if($rid('admin.mandantes')) active @endif">
+                           class="sb-item @if($rid('admin.mandantes')) active @endif"
+                           title="{{ __('nav.alcance_todos_los_clientes') }}">
                             <x-ui.icon name="building" :size="15" />
                             <span>{{ __('nav.mandantes') }}</span>
                         </a>
@@ -348,24 +407,32 @@
                     </a>
                     @if($esAdmin)
                         <a href="{{ route('admin.campos-personalizados') }}" wire:navigate
-                           class="sb-item @if($rid('admin.campos-personalizados')) active @endif">
+                           class="sb-item @if($rid('admin.campos-personalizados')) active @endif"
+                           title="{{ __('nav.alcance_todos_los_clientes') }}">
                             <x-ui.icon name="hash" :size="15" />
                             <span>{{ __('nav.custom_fields') }}</span>
                         </a>
                         <a href="{{ route('admin.entidades-configurables') }}" wire:navigate
-                           class="sb-item @if($rid('admin.entidades-configurables')) active @endif">
+                           class="sb-item @if($rid('admin.entidades-configurables')) active @endif"
+                           title="{{ __('nav.alcance_todos_los_clientes') }}">
                             <x-ui.icon name="layers" :size="15" />
                             <span>{{ __('nav.configurable_entities') }}</span>
                         </a>
                     @endif
+                    {{-- El rótulo ya no dice "Auditoría global" al ADMIN_GLOBAL:
+                         /admin/auditoria cuelga de `mandante.activo`, así que enseña
+                         los eventos del cliente activo y de ninguno más. Prometer
+                         "global" en una pantalla acotada es lo que hace que alguien
+                         dé por auditado lo que no ha mirado. --}}
                     <a href="{{ route('admin.auditoria') }}" wire:navigate
                        class="sb-item @if($rid('admin.auditoria')) active @endif">
                         <x-ui.icon name="shield" :size="15" />
-                        <span>{{ $esAdmin ? __('nav.audit_global') : __('nav.audit') }}</span>
+                        <span>{{ __('nav.audit') }}</span>
                     </a>
                     @if($esAdmin)
                         <a href="{{ route('admin.integracion.secrets') }}" wire:navigate
-                           class="sb-item @if($rid('admin.integracion.secrets')) active @endif">
+                           class="sb-item @if($rid('admin.integracion.secrets')) active @endif"
+                           title="{{ __('nav.alcance_todos_los_clientes') }}">
                             <x-ui.icon name="key" :size="15" />
                             <span>{{ __('nav.sso_secrets') }}</span>
                         </a>

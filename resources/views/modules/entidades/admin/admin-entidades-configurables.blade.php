@@ -21,11 +21,17 @@
         <div style="display:flex;align-items:flex-end;gap:14px;">
             <div class="field" style="flex:1;max-width:360px;margin-bottom:0;">
                 <label class="field-label">{{ __('entidades.label_project') }}</label>
-                <select wire:model.live="proyectoSeleccionadoId" class="select">
-                    @foreach($proyectos as $p)
-                        <option value="{{ $p->id }}">{{ $p->codigo }} — {{ $p->nombre }}</option>
-                    @endforeach
-                </select>
+                {{-- El selector solo ofrece los proyectos del cliente activo. Si no hay
+                     ninguno, se dice por qué en vez de pintar un desplegable vacío. --}}
+                @if($proyectos->isEmpty())
+                    <div style="font-size:12px;color:var(--text-tertiary);padding:8px 0;">{{ __('entidades.empty_projects') }}</div>
+                @else
+                    <select wire:model.live="proyectoSeleccionadoId" class="select">
+                        @foreach($proyectos as $p)
+                            <option value="{{ $p->id }}">{{ $p->codigo }} — {{ $p->nombre }}</option>
+                        @endforeach
+                    </select>
+                @endif
             </div>
         </div>
     </div>

@@ -21,9 +21,13 @@ final class ConsultaSinContextoDeTenant extends RuntimeException
 {
     public static function paraModelo(string $modelo, string $tipo): self
     {
+        // El mensaje nombra el método concreto: quien se encuentre esto en un
+        // log tiene que saber qué escribir, no deducirlo.
+        $escape = $tipo === 'mandante' ? 'sinScopeMandante()' : 'sinScopeProyecto()';
+
         return new self(
             "Consulta sobre {$modelo} sin {$tipo} activo. "
-            ."Declara el contexto, o pide explícitamente saltarte el scope si la consulta es cross-tenant."
+            ."Declara el contexto, o llama a {$escape} si la consulta es cross-tenant a propósito."
         );
     }
 }

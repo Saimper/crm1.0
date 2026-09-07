@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenancy;
 
+use App\Models\User;
 use App\Modules\Tenancy\Application\Services\ResolutorMandanteActivo;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorMandante;
 use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverMandanteActivo;
@@ -139,7 +140,7 @@ final class ContextoMandanteActivoTest extends TestCase
 
     public function test_sin_ningun_cliente_alcanzable_no_se_inventa_uno(): void
     {
-        $huerfano = \App\Models\User::query()->create([
+        $huerfano = User::query()->create([
             'name' => 'Sin cliente',
             'email' => 'sincliente@crm.local',
             'password' => bcrypt('x'),

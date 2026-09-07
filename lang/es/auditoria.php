@@ -4,11 +4,14 @@ return [
     // Página
     'title' => 'Auditoría',
     'title_global' => 'Auditoría global',
-    'subtitle_global' => 'Eventos de todos los proyectos + eventos globales (admin).',
+    'subtitle_client' => 'Cliente: :cliente — proyectos y acciones administrativas.',
+    'subtitle_global' => 'Eventos de los proyectos del cliente activo, más las acciones administrativas sin proyecto.',
     'back_to_project' => '← Volver al proyecto',
     'back_to_admin' => '← Panel admin',
 
     // Filtros
+    'filter_client' => 'Cliente',
+    'filter_all_clients' => 'Todos los clientes',
     'filter_entity' => 'Entidad',
     'filter_all_entities' => 'Todas',
     'filter_user' => 'Usuario',

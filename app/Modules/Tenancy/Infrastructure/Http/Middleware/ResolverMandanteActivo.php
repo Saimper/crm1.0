@@ -67,7 +67,6 @@ final class ResolverMandanteActivo
                 abort(403, 'No tienes acceso a este cliente.');
             }
 
-
             return $this->continuar($request, $next, $mandante);
         }
 

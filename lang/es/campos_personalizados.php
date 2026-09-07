@@ -22,9 +22,9 @@ return [
     'title_deactivate' => 'Desactivar',
 
     'empty_no_projects' => 'Sin proyectos',
-    'empty_no_projects_desc' => 'No hay proyectos disponibles para definir campos.',
+    'empty_no_projects_desc' => 'No hay proyectos del cliente activo. Elige un cliente en Administración → Cliente.',
     'empty_no_fields' => 'Sin campos personalizados',
-    'empty_no_fields_desc' => 'Aún no hay campos definidos en ningún proyecto.',
+    'empty_no_fields_desc' => 'Aún no hay campos definidos en el proyecto seleccionado.',
     'count_fields' => ':count campos',
 
     'drawer_new' => 'Nuevo campo',
@@ -32,6 +32,9 @@ return [
     'close' => 'Cerrar',
 
     'label_project' => 'Proyecto',
+    'label_project_on_screen' => 'Proyecto en pantalla',
+    'project_locked' => '(bloqueado tras creación)',
+    'not_editable' => 'No editable',
     'label_scope' => 'Ámbito',
     'label_type' => 'Tipo',
     'scope_case' => 'Caso × Cartera',

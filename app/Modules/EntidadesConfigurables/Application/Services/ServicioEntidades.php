@@ -69,7 +69,15 @@ final readonly class ServicioEntidades
         return (int) $model->id;
     }
 
+    /**
+     * `sinScopeProyecto()` apaga el global scope porque estas escrituras llegan
+     * desde /admin, donde no hay proyecto activo. Apagarlo obliga a poner el
+     * proyecto A MANO: sin el `where('proyecto_id', …)` el UPDATE alcanzaba la
+     * entidad de cualquier cliente con solo cambiar el id del payload. Por eso el
+     * proyecto es un parámetro obligatorio y no algo que se deduzca de la fila.
+     */
     public function actualizarEntidad(
+        int $proyectoId,
         int $entidadId,
         string $nombre,
         ?string $descripcion,
@@ -78,8 +86,11 @@ final readonly class ServicioEntidades
     ): void {
         EntidadConfigurableModel::query()
             ->sinScopeProyecto()
+            ->where('proyecto_id', $proyectoId)
             ->where('id', $entidadId)
             ->update([
+                // El proyecto de la entidad no aparece aquí: identifica a su dueño
+                // y no se reescribe desde una edición.
                 'nombre' => $nombre,
                 'descripcion' => $descripcion,
                 'icono' => $icono,
@@ -87,10 +98,12 @@ final readonly class ServicioEntidades
             ]);
     }
 
-    public function eliminarEntidad(int $entidadId): void
+    /** Borrado lógico acotado al proyecto dueño de la entidad (ver actualizarEntidad). */
+    public function eliminarEntidad(int $proyectoId, int $entidadId): void
     {
         EntidadConfigurableModel::query()
             ->sinScopeProyecto()
+            ->where('proyecto_id', $proyectoId)
             ->where('id', $entidadId)
             ->update(['activo' => false, 'eliminada_en' => now()]);
     }

@@ -90,5 +90,4 @@ final class ResolverProyectoActivo
     {
         abort($codigo, $mensaje);
     }
-
 }

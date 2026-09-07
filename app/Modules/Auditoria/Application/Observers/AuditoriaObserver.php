@@ -6,6 +6,7 @@ namespace App\Modules\Auditoria\Application\Observers;
 
 use App\Modules\Auditoria\Infrastructure\Persistence\Models\AuditoriaModel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -58,6 +59,11 @@ final class AuditoriaObserver
         AuditoriaModel::query()->create([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId,
+            // Atribuir el evento a su cliente EN EL MOMENTO de escribirlo. Si se
+            // deja para la lectura (saltando a `proyectos`), un proyecto que
+            // cambie de mandante reescribe su propio historial, y un evento sin
+            // proyecto no es de nadie.
+            'mandante_id' => $this->mandanteIdDesdeModelo($model, $proyectoId),
             'usuario_id' => auth()->id(),
             'entidad_tipo' => $this->entidadTipo($model),
             'entidad_id' => (int) $model->getKey(),
@@ -75,6 +81,50 @@ final class AuditoriaObserver
         $atrs = $model->getAttributes();
         if (array_key_exists('proyecto_id', $atrs) && $atrs['proyecto_id'] !== null) {
             return (int) $atrs['proyecto_id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * De dónde sale el cliente, en este orden y sin más fuentes:
+     *  1 · una columna `mandante_id` propia del modelo (los pocos que la tienen);
+     *  2 · el proyecto de la fila — la vía normal;
+     *  3 · el mandante activo de la petición, para las acciones administrativas
+     *      que no cuelgan de ningún proyecto (y que hasta ahora quedaban
+     *      huérfanas). Se lee el binding que publica el middleware
+     *      `mandante.activo`; si no hay contexto, se deja NULL en vez de
+     *      adivinar: un dueño inventado es peor que ninguno.
+     */
+    /** @var array<int, int|null> proyecto_id => mandante_id, por petición. */
+    private static array $mandantePorProyecto = [];
+
+    private function mandanteIdDesdeModelo(Model $model, ?int $proyectoId): ?int
+    {
+        $atrs = $model->getAttributes();
+        if (array_key_exists('mandante_id', $atrs) && $atrs['mandante_id'] !== null) {
+            return (int) $atrs['mandante_id'];
+        }
+
+        if ($proyectoId !== null) {
+            // Memo por petición: la auditoría corre en CADA escritura de los
+            // modelos observados, y sin esto añadiría un SELECT a cada una. Es
+            // seguro cachear porque el mandante de un proyecto dejó de ser
+            // editable (ver AdminProyectos::guardar).
+            if (! array_key_exists($proyectoId, self::$mandantePorProyecto)) {
+                $id = DB::table('proyectos')->where('id', $proyectoId)->value('mandante_id');
+                self::$mandantePorProyecto[$proyectoId] = $id === null ? null : (int) $id;
+            }
+
+            if (self::$mandantePorProyecto[$proyectoId] !== null) {
+                return self::$mandantePorProyecto[$proyectoId];
+            }
+        }
+
+        if (app()->bound('tenancy.mandante_activo')) {
+            $mandante = app('tenancy.mandante_activo');
+
+            return is_object($mandante) ? (int) $mandante->id : (int) $mandante;
         }
 
         return null;

@@ -4,11 +4,14 @@ return [
     // Page
     'title' => 'Audit log',
     'title_global' => 'Global audit log',
-    'subtitle_global' => 'Events from all projects + global admin events.',
+    'subtitle_client' => 'Client: :cliente — projects and admin actions.',
+    'subtitle_global' => 'Events from the active client\'s projects, plus admin actions without a project.',
     'back_to_project' => '← Back to project',
     'back_to_admin' => '← Admin panel',
 
     // Filters
+    'filter_client' => 'Client',
+    'filter_all_clients' => 'All clients',
     'filter_entity' => 'Entity',
     'filter_all_entities' => 'All',
     'filter_user' => 'User',

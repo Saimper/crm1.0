@@ -1,6 +1,20 @@
 <div class="space-y-4">
     <section class="rounded-lg border border-ink-200 bg-white p-4">
         <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
+            {{-- Sólo se pinta cuando el usuario alcanza más de un cliente: a un
+                 admin de un solo mandante no se le pide una decisión que no
+                 existe, y no se le enseña el nombre de un cliente que no es suyo. --}}
+            @if($modoGlobal && count($mandantesElegibles) > 1)
+                <div>
+                    <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_client') }}</label>
+                    <select wire:model.live="mandanteId" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
+                        <option value="">{{ __('auditoria.filter_all_clients') }}</option>
+                        @foreach($mandantesElegibles as $m)
+                            <option value="{{ $m->id }}">{{ $m->codigo }} — {{ $m->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
             <div>
                 <label class="block text-xs font-medium text-ink-700">{{ __('auditoria.filter_entity') }}</label>
                 <select wire:model.live="entidadTipo" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
@@ -49,7 +63,19 @@
             @endphp
             @if(! $modoGlobal)
                 @php $pid = (int) app('tenancy.proyecto_activo')->id; @endphp
-                <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
+                @can('auditoria.exportar')
+                    <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
+                       class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
+                        {{ __('auditoria.btn_export_csv') }}
+                    </a>
+                @endcan
+            @elseif($puedeExportar)
+                {{-- El export global lleva el MISMO recorte que la pantalla,
+                     mandante incluido. Antes aquí no había botón: lo que el
+                     admin del cliente veía no lo podía descargar. Y sólo se
+                     pinta a quien tiene `auditoria.exportar`: verlo en pantalla
+                     no es poder sacarlo del sistema. --}}
+                <a href="{{ route('admin.auditoria.exportar', array_merge($mandanteId ? ['mandante_id' => $mandanteId] : [], $qs)) }}"
                    class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
                     {{ __('auditoria.btn_export_csv') }}
                 </a>
