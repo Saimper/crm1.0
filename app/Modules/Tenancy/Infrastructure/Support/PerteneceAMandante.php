@@ -50,6 +50,11 @@ final class ScopeMandanteActivo implements Scope
     public function apply(Builder $builder, Model $model): void
     {
         if (! app()->bound('tenancy.mandante_activo')) {
+            // Antes esto era un `return` mudo: sin contexto, sin filtro, y la
+            // consulta devolvía los datos de todos los clientes. Ahora el
+            // guardia decide — y en modo estricto no devuelve, lanza.
+            GuardiaDeContexto::sinContexto($model::class, 'mandante');
+
             return;
         }
 

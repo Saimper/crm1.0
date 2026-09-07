@@ -28,10 +28,7 @@ final class ResolverProyectoActivo
         $proyectoId = $this->resolverProyectoId($request);
 
         if ($proyectoId === null) {
-            if ($this->esRequestLivewire($request)) {
-                return $next($request);
-            }
-            abort(404, 'Ruta sin proyecto activo.');
+            $this->cortar($request, 404, 'Ruta sin proyecto activo.');
         }
 
         /** @var ProyectoModel|null $proyecto */
@@ -42,25 +39,16 @@ final class ResolverProyectoActivo
             ->first();
 
         if ($proyecto === null) {
-            if ($this->esRequestLivewire($request)) {
-                return $next($request);
-            }
-            abort(404, 'Proyecto no encontrado o inactivo.');
+            $this->cortar($request, 404, 'Proyecto no encontrado o inactivo.');
         }
 
         $usuario = $request->user();
         if ($usuario === null) {
-            if ($this->esRequestLivewire($request)) {
-                return $next($request);
-            }
-            abort(401);
+            $this->cortar($request, 401, 'No autenticado.');
         }
 
         if (! $usuario->tieneAccesoAProyecto((int) $proyecto->id)) {
-            if ($this->esRequestLivewire($request)) {
-                return $next($request);
-            }
-            abort(403, 'No tienes acceso a este proyecto.');
+            $this->cortar($request, 403, 'No tienes acceso a este proyecto.');
         }
 
         app()->instance('tenancy.proyecto_activo', $proyecto);
@@ -68,27 +56,39 @@ final class ResolverProyectoActivo
         return $next($request);
     }
 
+    /**
+     * El proyecto sale SIEMPRE del parámetro de ruta, y de ningún otro sitio.
+     *
+     * Antes había un respaldo que lo sacaba del header `Referer` cuando la
+     * petición venía de /livewire/update. Era innecesario y peligroso a la vez:
+     *
+     * - Innecesario, porque Livewire re-aplica los middleware persistentes sobre
+     *   una petición reconstruida cuyo REQUEST_URI es el path ORIGINAL guardado
+     *   en el snapshot (Mechanisms/PersistentMiddleware::makeFakeRequest), con la
+     *   ruta ya matcheada y sus parámetros bindeados. `route('proyecto_id')`
+     *   resuelve ahí perfectamente, y ese path va firmado en el checksum.
+     * - Peligroso, porque el `Referer` lo pone quien hace la petición. El proyecto
+     *   activo gobierna el global scope de 36 modelos: dejar que el cliente lo
+     *   elija es dejarle elegir qué datos ve.
+     */
     private function resolverProyectoId(Request $request): ?int
     {
         $fromRoute = $request->route('proyecto_id');
-        if ($fromRoute !== null) {
-            return (int) $fromRoute;
-        }
 
-        // Livewire POST /livewire/update no tiene el parámetro en la ruta; lo extraemos del Referer.
-        $referer = (string) $request->headers->get('referer', '');
-        if ($referer !== '') {
-            $path = (string) parse_url($referer, PHP_URL_PATH);
-            if (preg_match('#/proyectos/(\d+)#', $path, $m)) {
-                return (int) $m[1];
-            }
-        }
-
-        return null;
+        return $fromRoute === null ? null : (int) $fromRoute;
     }
 
-    private function esRequestLivewire(Request $request): bool
+    /**
+     * Antes, cuando algo fallaba en una petición de Livewire, se dejaba pasar sin
+     * proyecto activo. Sin binding el global scope no filtra nada (fallo
+     * abierto), así que el camino de error era también el camino sin aislamiento:
+     * bastaba con que la resolución fallara para consultar sobre todos los
+     * proyectos. Ahora se corta siempre; lo único que cambia en Livewire es que
+     * no se puede redirigir, así que el código de estado viaja como tal.
+     */
+    private function cortar(Request $request, int $codigo, string $mensaje): never
     {
-        return $request->is('livewire/*') || $request->hasHeader('X-Livewire');
+        abort($codigo, $mensaje);
     }
+
 }
