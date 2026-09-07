@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\CamposPersonalizados\Infrastructure\Providers;
 
+use App\Modules\CamposPersonalizados\Application\Console\Commands\ConvertirTipoCampoCommand;
 use App\Modules\CamposPersonalizados\Domain\Services\EvaluadorReglas;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\AdminCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\FormularioCamposPersonalizados;
@@ -23,5 +24,11 @@ final class CamposPersonalizadosServiceProvider extends ServiceProvider
 
         Livewire::component('campos-personalizados.formulario', FormularioCamposPersonalizados::class);
         Livewire::component('campos-personalizados.admin', AdminCamposPersonalizados::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                ConvertirTipoCampoCommand::class,
+            ]);
+        }
     }
 }
