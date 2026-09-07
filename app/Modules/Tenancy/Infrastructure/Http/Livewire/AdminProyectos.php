@@ -282,9 +282,18 @@ final class AdminProyectos extends Component
 
         $mandantes = $mandantesQuery->get(['id', 'codigo', 'nombre', 'activo']);
 
+        // El cliente del proyecto en edición se resuelve aquí y no en la vista:
+        // hacerlo en Blade obliga a un @php en línea que, con una expresión
+        // anidada, rompe la compilación del resto de la plantilla — y además
+        // §13.4 dice que la lógica no vive en la vista.
+        $mandanteEnEdicion = $this->editandoId === null
+            ? null
+            : $mandantes->firstWhere('id', (int) ($this->form['mandante_id'] ?? 0));
+
         return view('tenancy::admin.proyectos', [
             'proyectos' => $proyectos,
             'mandantes' => $mandantes,
+            'mandanteEnEdicion' => $mandanteEnEdicion,
         ]);
     }
 

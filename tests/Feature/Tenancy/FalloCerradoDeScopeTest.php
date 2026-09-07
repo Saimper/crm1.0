@@ -6,10 +6,10 @@ namespace Tests\Feature\Tenancy;
 
 use App\Modules\CamposPersonalizados\Infrastructure\Persistence\Models\CampoPersonalizadoModel;
 use App\Modules\Tenancy\Domain\Exceptions\ConsultaSinContextoDeTenant;
+use App\Modules\Tenancy\Infrastructure\Support\GuardiaDeContexto;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
@@ -133,7 +133,7 @@ final class FalloCerradoDeScopeTest extends TestCase
 
         $this->expectException(ConsultaSinContextoDeTenant::class);
 
-        \App\Modules\Tenancy\Infrastructure\Support\GuardiaDeContexto::sinContexto('ModeloDePrueba', 'mandante');
+        GuardiaDeContexto::sinContexto('ModeloDePrueba', 'mandante');
     }
 
     /**

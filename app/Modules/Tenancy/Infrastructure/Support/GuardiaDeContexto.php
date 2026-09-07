@@ -17,7 +17,7 @@ final class GuardiaDeContexto
 {
     /**
      * @param  string  $modelo  clase del modelo consultado
-     * @param  string  $tipo    'proyecto' o 'mandante'
+     * @param  string  $tipo  'proyecto' o 'mandante'
      *
      * @throws ConsultaSinContextoDeTenant en modo estricto
      */

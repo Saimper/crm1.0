@@ -114,10 +114,9 @@
                              proyecto de empresa arrastra sus casos, personas y carteras,
                              que cuelgan de proyecto_id. Mismo trato que tipo_operacion. --}}
                         @if($editandoId !== null)
-                            @php($mandanteActual = $mandantes->firstWhere('id', (int) ($form['mandante_id'] ?? 0)))
                             <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
-                                <span class="badge badge-neutral">{{ $mandanteActual?->codigo ?? '—' }}</span>
-                                <span style="font-size:12px;">{{ $mandanteActual?->nombre }}</span>
+                                <span class="badge badge-neutral">{{ $mandanteEnEdicion?->codigo ?? '—' }}</span>
+                                <span style="font-size:12px;">{{ $mandanteEnEdicion?->nombre }}</span>
                                 <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;">{{ __('tenancy.not_editable') }}</span>
                             </div>
                         @else
