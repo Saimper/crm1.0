@@ -89,6 +89,19 @@ final class GestionUsuariosProyecto extends Component
             return;
         }
 
+        if ($this->perteneceAOtroMandante((int) $user->id)) {
+            // Traer por correo a un usuario de otro mandante creaba aquí el
+            // pivot que el SSO usa como prueba de identidad: bastaba con
+            // conocer el correo para que el token del propio tenant pasara a
+            // resolver a esa persona. Vincular a alguien entre mandantes es
+            // una decisión de administración global, no de un supervisor.
+            $this->addError('buscarEmail', 'Ese usuario pertenece a otro mandante. Pídelo a un administrador global.');
+            $this->usuarioBuscadoId = null;
+            $this->usuarioBuscadoNombre = '';
+
+            return;
+        }
+
         $this->usuarioBuscadoId = (int) $user->id;
         $this->usuarioBuscadoNombre = (string) $user->name;
     }
@@ -312,6 +325,49 @@ final class GestionUsuariosProyecto extends Component
             'restricciones' => $restricciones,
             'usuarioActualId' => (int) auth()->id(),
         ]);
+    }
+
+    /**
+     * El usuario esta ligado a un mandante DISTINTO del proyecto activo.
+     *
+     * Se bloquea solo ese caso, no "que no sea mio": una cuenta recien creada
+     * desde el panel todavia no pertenece a nadie, y asignarla es justamente el
+     * alta normal. Lo que no puede pasar es traerse por correo a alguien de
+     * otro mandante, porque el pivot que se crearia aqui es la prueba de
+     * identidad que consulta el SSO.
+     */
+    private function perteneceAOtroMandante(int $usuarioId): bool
+    {
+        $mandanteId = (int) DB::table('proyectos')
+            ->where('id', $this->proyectoActivoId())
+            ->value('mandante_id');
+
+        if ($mandanteId <= 0) {
+            return true;
+        }
+
+        $origen = DB::table('users')->where('id', $usuarioId)->value('mandante_origen_id');
+
+        if ($origen !== null && (int) $origen !== $mandanteId) {
+            return true;
+        }
+
+        $enOtroMandante = DB::table('usuario_mandante_rol')
+            ->where('usuario_id', $usuarioId)
+            ->where('mandante_id', '!=', $mandanteId)
+            ->where('activo', true)
+            ->exists();
+
+        if ($enOtroMandante) {
+            return true;
+        }
+
+        return DB::table('usuario_proyecto_rol as upr')
+            ->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
+            ->where('upr.usuario_id', $usuarioId)
+            ->where('p.mandante_id', '!=', $mandanteId)
+            ->where('upr.activo', true)
+            ->exists();
     }
 
     private function proyectoActivoId(): int

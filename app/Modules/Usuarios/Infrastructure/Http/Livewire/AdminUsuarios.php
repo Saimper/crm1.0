@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -21,6 +22,7 @@ final class AdminUsuarios extends Component
 {
     public bool $formUsuarioVisible = false;
 
+    #[Locked]
     public ?int $editandoUsuarioId = null;
 
     public string $busqueda = '';
@@ -35,6 +37,7 @@ final class AdminUsuarios extends Component
 
     public bool $formAsignacionVisible = false;
 
+    #[Locked]
     public ?int $usuarioAsignandoId = null;
 
     public ?int $asignarProyectoId = null;
@@ -51,6 +54,8 @@ final class AdminUsuarios extends Component
 
     public function abrirFormEditarUsuario(int $id): void
     {
+        $this->guardContraUsuarioAjeno($id);
+
         $u = User::query()->find($id);
         if ($u === null) {
             return;
@@ -93,6 +98,10 @@ final class AdminUsuarios extends Component
             'formUsuario.email' => 'correo',
             'formUsuario.password' => 'contraseña',
         ]);
+
+        if ($this->editandoUsuarioId !== null) {
+            $this->guardContraUsuarioAjeno($this->editandoUsuarioId);
+        }
 
         if ($this->editandoUsuarioId === null) {
             User::query()->create([
@@ -357,6 +366,47 @@ final class AdminUsuarios extends Component
             ->pluck('id')
             ->map(fn (mixed $v): int => (int) $v)
             ->all();
+    }
+
+    /**
+     * Un ADMIN_MANDANTE solo puede tocar usuarios de su propio alcance, y nunca
+     * a alguien con rol global.
+     *
+     * Hasta ahora el scoping vivia solo en render() — es decir, en la lectura —
+     * mientras guardarUsuario() reescribia correo y contrasenia de cualquier id.
+     * Con editandoUsuarioId como propiedad publica de Livewire, ese id lo elige
+     * el cliente, asi que la comprobacion tiene que estar en la accion.
+     */
+    private function guardContraUsuarioAjeno(int $usuarioId): void
+    {
+        $mandantes = $this->mandantesPermitidos();
+
+        if ($mandantes === null) {
+            return; // ADMIN_GLOBAL.
+        }
+
+        $objetivoEsGlobal = DB::table('usuario_global_rol')
+            ->where('usuario_id', $usuarioId)
+            ->exists();
+
+        if ($objetivoEsGlobal) {
+            abort(403, 'No puedes gestionar a un usuario con rol global.');
+        }
+
+        $proyectos = $this->proyectosDeMandantes($mandantes);
+
+        $enAlcance = DB::table('usuario_proyecto_rol')
+            ->where('usuario_id', $usuarioId)
+            ->whereIn('proyecto_id', $proyectos)
+            ->exists()
+            || DB::table('usuario_mandante_rol')
+                ->where('usuario_id', $usuarioId)
+                ->whereIn('mandante_id', $mandantes)
+                ->exists();
+
+        if (! $enAlcance) {
+            abort(403, 'Ese usuario no pertenece a tu alcance.');
+        }
     }
 
     private function soloAdminGlobal(): void
