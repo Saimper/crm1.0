@@ -180,7 +180,7 @@
                         <a href="{{ route('proyectos.casos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.casos.lista')) active @endif">
                             <x-ui.icon name="folder" :size="15" />
-                            <span>{{ __('nav.cases') }}</span>
+                            <span>{{ \Illuminate\Support\Str::ucfirst($rotuloCasos) }}</span>
                         </a>
                     @endcan
                     @can('compromisos.ver', $proyectoActivo->id)

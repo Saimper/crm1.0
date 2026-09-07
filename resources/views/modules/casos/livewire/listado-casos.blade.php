@@ -1,8 +1,8 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">{{ __('casos.title_list') }}</h1>
-            <div class="page-subtitle">{{ __('casos.subtitle_open', ['count' => $totalProyecto]) }}</div>
+            <h1 class="page-title">{{ __('casos.title_list', ['entidades' => $rotuloCasos]) }}</h1>
+            <div class="page-subtitle">{{ __('casos.subtitle_open', ['count' => $totalProyecto, 'entidades' => $rotuloCasos]) }}</div>
         </div>
     </div>
 
@@ -82,12 +82,12 @@
         @if($casos->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="folder" :size="32" /></div>
-                <div class="empty-title">{{ __('casos.empty_title') }}</div>
+                <div class="empty-title">{{ __('casos.empty_title', ['entidades' => $rotuloCasos]) }}</div>
                 <div class="empty-desc">
                     @if($busqueda !== '' || $carteraId !== '' || $estadoCasoId !== '')
-                        {{ __('casos.empty_with_filters') }}
+                        {{ __('casos.empty_with_filters', ['entidades' => $rotuloCasos]) }}
                     @else
-                        {{ __('casos.empty_no_filters') }}
+                        {{ __('casos.empty_no_filters', ['entidades' => $rotuloCasos]) }}
                     @endif
                 </div>
             </div>

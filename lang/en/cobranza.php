@@ -2,7 +2,7 @@
 
 return [
     // Panel caso cobranza
-    'panel_label' => 'Collection case · Loan',
+    'panel_label' => 'Collection account · Loan',
     'saldo_total' => 'Total balance',
     'saldo_capital' => 'Principal balance',
     'saldo_interes' => 'Interest balance',

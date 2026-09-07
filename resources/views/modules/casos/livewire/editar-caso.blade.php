@@ -1,7 +1,7 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">{{ __('casos.title_edit') }}</h1>
+            <h1 class="page-title">{{ __('casos.title_edit', ['entidad' => $rotuloCaso]) }}</h1>
             <div class="page-subtitle">
                 {{ __('casos.subtitle_type_edit', ['tipo' => ucfirst(str_replace('_', ' ', $tipoCaso))]) }}
                 · {{ __('casos.subtitle_state_via') }}

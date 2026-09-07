@@ -102,16 +102,16 @@
                 @endif
             </x-ui.card>
 
-            <x-ui.card :title="__('casos.cases_count', ['count' => $casos->count()])" style="margin-top:12px;">
+            <x-ui.card :title="__('casos.cases_count', ['count' => $casos->count(), 'entidades' => $rotuloCasos])" style="margin-top:12px;">
                 @can('casos.crear', $proyectoActivo->id)
                     <a href="{{ route('proyectos.casos.crear', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
                        wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;text-decoration:none;">
                         <x-ui.icon name="plus" :size="13" />
-                        <span>{{ __('casos.new_case') }}</span>
+                        <span>{{ __('casos.new_case', ['entidad' => $rotuloCaso]) }}</span>
                     </a>
                 @endcan
                 @if($casos->isEmpty())
-                    <x-ui.empty-state :title="__('casos.no_open_cases')" :message="__('casos.no_open_cases_desc')" />
+                    <x-ui.empty-state :title="__('casos.no_open_cases', ['entidades' => $rotuloCasos])" :message="__('casos.no_open_cases_desc', ['entidades' => $rotuloCasos])" />
                 @else
                     <div style="display:flex;flex-direction:column;gap:6px;margin:-4px -4px 0;">
                         @foreach($casos as $c)
@@ -163,7 +163,7 @@
                             <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
                                wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
                                 <x-ui.icon name="edit" :size="13" />
-                                <span>{{ __('casos.edit_case') }}</span>
+                                <span>{{ __('casos.edit_case', ['entidad' => $rotuloCaso]) }}</span>
                             </a>
                         </div>
                     @endcan
@@ -237,7 +237,7 @@
                 </x-ui.card>
             @else
                 <x-ui.card>
-                    <x-ui.empty-state :title="__('casos.select_case_title')" :message="__('casos.select_case_desc')" />
+                    <x-ui.empty-state :title="__('casos.select_case_title', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo])" :message="__('casos.select_case_desc', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo])" />
                 </x-ui.card>
             @endif
         </div>
@@ -300,7 +300,7 @@
                 </x-ui.card>
             @else
                 <x-ui.card :title="__('casos.custom_fields_panel')">
-                    <x-ui.empty-state :title="__('casos.no_active_case')" :message="__('casos.no_active_case_desc')" />
+                    <x-ui.empty-state :title="__('casos.no_active_case')" :message="__('casos.no_active_case_desc', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo])" />
                 </x-ui.card>
             @endif
         </div>

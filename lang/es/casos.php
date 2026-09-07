@@ -1,25 +1,46 @@
 <?php
 
 return [
+    'entidad_singular' => [
+        'cobranza' => 'cuenta',
+        'cx' => 'ticket',
+        'venta' => 'oportunidad',
+        'servicio' => 'servicio',
+        'generico' => 'caso',
+    ],
+    'entidad_plural' => [
+        'cobranza' => 'cuentas',
+        'cx' => 'tickets',
+        'venta' => 'oportunidades',
+        'servicio' => 'servicios',
+        'generico' => 'casos',
+    ],
+    'entidad_articulo' => [
+        'cobranza' => 'una',
+        'cx' => 'un',
+        'venta' => 'una',
+        'servicio' => 'un',
+        'generico' => 'un',
+    ],
     // Títulos de página
-    'title_list' => 'Casos del proyecto',
-    'title_create' => 'Nuevo caso',
-    'title_edit' => 'Editar caso',
+    'title_list' => ':Entidades del proyecto',
+    'title_create' => 'Crear :entidad',
+    'title_edit' => 'Editar :entidad',
     'title_work' => 'Vista de trabajo',
 
     // Subtítulos / meta
-    'subtitle_open' => ':count casos abiertos',
+    'subtitle_open' => ':count :entidades',
     'subtitle_type' => 'Tipo de proyecto: :tipo',
     'subtitle_person' => 'Persona: :nombre',
     'subtitle_type_edit' => 'Tipo: :tipo',
     'subtitle_state_via' => 'Estado: se modifica vía gestiones',
 
     // Acciones / botones
-    'create_case' => 'Crear caso',
+    'create_case' => 'Crear :entidad',
     'save_changes' => 'Guardar cambios',
     'back_to_tray' => '← Volver a bandeja',
-    'new_case' => 'Nuevo caso',
-    'edit_case' => 'Editar caso',
+    'new_case' => 'Crear :entidad',
+    'edit_case' => 'Editar :entidad',
 
     // Campos de formulario
     'field_wallet' => 'Cartera',
@@ -28,13 +49,13 @@ return [
     'select_wallet' => '— Selecciona —',
 
     // Información adicional
-    'additional_info' => 'Información adicional del caso',
+    'additional_info' => 'Información adicional',
     'no_custom_fields' => '(sin campos definidos por el administrador para esta cartera)',
     'custom_fields_title' => 'Campos personalizados',
-    'case_fields_title' => 'Campos del caso',
+    'case_fields_title' => 'Campos de :entidad',
 
     // Aviso sin persona
-    'no_person_alert' => 'Selecciona una persona desde el listado para crear un caso. La pantalla espera <code>?persona={ulid}</code>.',
+    'no_person_alert' => 'Selecciona una persona desde el listado para crear :un :entidad. La pantalla espera <code>?persona={ulid}</code>.',
 
     // Filtros / barra de búsqueda
     'search_placeholder' => 'Buscar por persona…',
@@ -53,20 +74,20 @@ return [
     'col_commitment' => 'Compromiso',
 
     // Estado vacío
-    'empty_title' => 'Sin casos',
-    'empty_no_filters' => 'Aún no hay casos en este proyecto.',
-    'empty_with_filters' => 'No hay casos que coincidan con los filtros.',
+    'empty_title' => 'Sin :entidades',
+    'empty_no_filters' => 'Aún no hay :entidades en este proyecto.',
+    'empty_with_filters' => 'No hay :entidades que coincidan con los filtros.',
 
     // Badge compromiso
     'commitment_active' => 'Vigente',
 
     // Vista de trabajo — panel izquierdo
-    'cases_count' => 'Casos (:count)',
+    'cases_count' => ':Entidades (:count)',
     'active_commitment' => 'Compromiso vigente',
     'expires' => 'Vence :date',
     'active_commitment_edit' => 'Editar',
-    'no_open_cases' => 'Sin casos abiertos',
-    'no_open_cases_desc' => 'Esta persona aún no tiene casos en este proyecto.',
+    'no_open_cases' => 'Sin :entidades',
+    'no_open_cases_desc' => 'Esta persona aún no tiene :entidades en este proyecto.',
     'resolved_commitments' => 'Compromisos resueltos (:count)',
     'expiry_label' => 'Vencimiento: :date',
     'resolved_label' => 'Resuelto',
@@ -75,14 +96,14 @@ return [
     'active_commitment_label' => 'compromiso vigente',
     'contacts_button' => 'Contactos',
     'register_gestion_title' => 'Registrar gestión',
-    'select_case_title' => 'Selecciona un caso',
-    'select_case_desc' => 'Elige un caso del listado para registrar gestiones.',
+    'select_case_title' => 'Selecciona :un :entidad',
+    'select_case_desc' => 'Elige :un :entidad del listado para registrar gestiones.',
     'history_title' => 'Historial (:count)',
     'no_gestions' => 'Sin gestiones',
     'no_gestions_desc' => 'Aún no hay gestiones registradas.',
     'custom_fields_panel' => 'Campos personalizados',
-    'no_active_case' => 'Sin caso activo',
-    'no_active_case_desc' => 'Selecciona un caso para ver sus campos personalizados e historial.',
+    'no_active_case' => 'Sin selección',
+    'no_active_case_desc' => 'Selecciona :un :entidad para ver sus campos personalizados e historial.',
     'no_contact_badge' => 'No contacto: :motivo',
     'cause_badge' => 'Causa: :causa',
 

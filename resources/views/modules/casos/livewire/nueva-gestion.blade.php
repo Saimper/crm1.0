@@ -168,7 +168,7 @@
     @if($camposCaso->isNotEmpty())
         <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
             <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-secondary);letter-spacing:0.06em;">
-                {{ __('casos.case_fields_title') }}
+                {{ __('casos.case_fields_title', ['entidad' => $rotuloCaso]) }}
             </h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($camposCaso as $campo)

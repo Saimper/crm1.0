@@ -1,7 +1,7 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">{{ __('casos.title_create') }}</h1>
+            <h1 class="page-title">{{ __('casos.title_create', ['entidad' => $rotuloCaso]) }}</h1>
             <div class="page-subtitle">
                 {{ __('casos.subtitle_type', ['tipo' => ucfirst(str_replace('_', ' ', $tipoOperacion))]) }}
                 @if($persona)
@@ -19,7 +19,7 @@
     @if($persona === null)
         <div class="card card-pad">
             <div class="alert alert-warning">
-                {!! __('casos.no_person_alert') !!}
+                {!! __('casos.no_person_alert', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo]) !!}
             </div>
         </div>
     @else
@@ -115,7 +115,7 @@
                 <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId]) }}"
                    wire:navigate class="btn btn-ghost">{{ __('common.cancel') }}</a>
                 <button type="button" wire:click="guardar" class="btn btn-primary">
-                    {{ __('casos.create_case') }}
+                    {{ __('casos.create_case', ['entidad' => $rotuloCaso]) }}
                 </button>
             </div>
         </div>
