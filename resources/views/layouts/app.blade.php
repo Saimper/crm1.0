@@ -217,6 +217,15 @@
                             <span>{{ __('nav.team_inbox') }}</span>
                         </a>
                     @endcan
+                    {{-- Va ANTES de la asignación masiva porque es su requisito:
+                         sin campaña no hay nada que repartir. --}}
+                    @can('campanas.ver', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.campanas', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.campanas')) active @endif">
+                            <x-ui.icon name="send" :size="15" />
+                            <span>{{ __('nav.campanas') }}</span>
+                        </a>
+                    @endcan
                     @can('asignaciones.reasignar', $proyectoActivo->id)
                         <a href="{{ route('proyectos.asignaciones.masiva', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.asignaciones.masiva')) active @endif">

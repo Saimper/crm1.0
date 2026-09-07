@@ -71,6 +71,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:asignaciones.ver_equipo')
                 ->name('proyectos.bandeja.equipo');
 
+            // Sin campañas no se puede asignar nada (asignaciones.campana_id es
+            // NOT NULL), y sin asignación ningún gestor ve su bandeja.
+            Route::view('/campanas', 'campanas::page')
+                ->middleware('can:campanas.ver')
+                ->name('proyectos.campanas');
+
             Route::view('/asignaciones/masiva', 'asignaciones::asignar-masivamente-page')
                 ->middleware('can:asignaciones.reasignar')
                 ->name('proyectos.asignaciones.masiva');
