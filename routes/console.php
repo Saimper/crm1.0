@@ -30,3 +30,10 @@ Schedule::command('importaciones:purgar-obsoletas --dias=7')
     ->dailyAt('03:30')
     ->withoutOverlapping()
     ->name('importaciones-purgar-obsoletas');
+
+// Reclasifica la cartera de cobranza en sus tramos de mora. Idempotente: si
+// nada cambió no escribe nada. Va después de la purga para no competir con ella.
+Schedule::command('cobranza:asignar-tramos-mora')
+    ->dailyAt('04:00')
+    ->withoutOverlapping()
+    ->name('cobranza-asignar-tramos-mora');

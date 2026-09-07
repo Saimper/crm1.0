@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Cobranza\Infrastructure\Providers;
 
+use App\Modules\Cobranza\Application\Console\Commands\AsignarTramosMoraCommand;
 use App\Modules\Cobranza\Application\Listeners\CrearPromesaDesdeGestion;
 use App\Modules\Cobranza\Domain\Contracts\CasoCobranzaRepository;
 use App\Modules\Cobranza\Domain\Contracts\CompromisoPromesaPagoRepository;
@@ -36,5 +37,11 @@ final class CobranzaServiceProvider extends ServiceProvider
         Livewire::component('cobranza.resolver-promesa', ResolverPromesa::class);
 
         Event::listen(GestionRegistrada::class, CrearPromesaDesdeGestion::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                AsignarTramosMoraCommand::class,
+            ]);
+        }
     }
 }
