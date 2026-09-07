@@ -6,7 +6,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # En main NO se cancela: abortar el job a mitad del script de deploy dejaba
+  # el CRM en mantenimiento (503). En ramas sí, para no gastar runners.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # ── Nodo raíz: instala dependencias y compila assets una sola vez ──
@@ -194,6 +196,12 @@ jobs:
             PHP=/opt/php82/bin/php
             cd /var/www/crm
 
+            # Red de seguridad: si cualquier paso falla, el sitio se levanta igual.
+            # Sin esto, un fallo posterior a `artisan down` (composer, npm, una
+            # migracion) dejaba el CRM en 503 indefinidamente, tambien para el
+            # wrapper que lo embebe, hasta que alguien entrara por SSH.
+            trap '$PHP artisan up || true' EXIT
+
             $PHP artisan down --render="errors::503" || true
 
             git fetch origin main
@@ -213,3 +221,17 @@ jobs:
             systemctl reload php82-fpm
 
             $PHP artisan up
+            trap - EXIT
+
+            # El deploy no se da por bueno hasta que el sitio responde de verdad.
+            ok=0
+            for intento in 1 2 3 4 5; do
+              codigo=$(curl -s -o /dev/null -w '%{http_code}' https://crm.viciconnect.net/login || true)
+              if [ "$codigo" = "200" ] || [ "$codigo" = "302" ]; then ok=1; break; fi
+              sleep 3
+            done
+            if [ "$ok" != "1" ]; then
+              echo "Healthcheck FALLO tras 5 intentos (ultimo codigo HTTP: $codigo)" >&2
+              exit 1
+            fi
+            echo "Healthcheck OK (HTTP $codigo)"

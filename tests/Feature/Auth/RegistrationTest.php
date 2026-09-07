@@ -3,34 +3,37 @@
 namespace Tests\Feature\Auth;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
+/**
+ * El alta pública está deliberadamente cerrada: las cuentas se crean por SSO
+ * o por administración. Estos tests son la guardia que impide reabrirla sin
+ * darse cuenta (por ejemplo al re-publicar el scaffolding de Laravel Breeze).
+ */
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_screen_can_be_rendered(): void
+    public function test_la_ruta_de_registro_no_existe(): void
     {
-        $response = $this->get('/register');
-
-        $response
-            ->assertOk()
-            ->assertSeeVolt('pages.auth.register');
+        $this->assertFalse(
+            Route::has('register'),
+            'La ruta "register" volvió a registrarse: el alta pública debe permanecer cerrada.'
+        );
     }
 
-    public function test_new_users_can_register(): void
+    public function test_la_pantalla_de_registro_no_es_alcanzable(): void
     {
-        $component = Volt::test('pages.auth.register')
-            ->set('name', 'Test User')
-            ->set('email', 'test@example.com')
-            ->set('password', 'password')
-            ->set('password_confirmation', 'password');
+        $this->get('/register')->assertNotFound();
+    }
 
-        $component->call('register');
-
-        $component->assertRedirect(route('dashboard', absolute: false));
-
-        $this->assertAuthenticated();
+    public function test_el_componente_volt_de_registro_no_existe(): void
+    {
+        $this->assertFileDoesNotExist(
+            resource_path('views/livewire/pages/auth/register.blade.php'),
+            'El componente de registro sigue en el repositorio: aunque no haya ruta, '
+            .'un snapshot de Livewire previamente emitido podría seguir invocándolo.'
+        );
     }
 }
