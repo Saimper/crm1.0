@@ -15,6 +15,9 @@ use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
 use App\Modules\Integracion\Domain\Exceptions\JwtTtlExcedido;
 use App\Modules\Integracion\Domain\Exceptions\MandanteProyectoMismatch;
 use App\Modules\Integracion\Domain\Exceptions\MandanteSsoNoConfigurado;
+use App\Modules\Integracion\Domain\Exceptions\UsuarioDesactivadoNoPuedeEntrarPorSso;
+use App\Modules\Integracion\Domain\Exceptions\UsuarioGlobalNoPermitidoPorSso;
+use App\Modules\Integracion\Domain\Exceptions\UsuarioNoPerteneceAlMandante;
 use App\Modules\Integracion\Domain\Exceptions\WrapperRoleNoPermitido;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,6 +59,12 @@ final class SsoHandshakeController
         } catch (MandanteProyectoMismatch $e) {
             Log::warning('handshake jwt: proyecto no pertenece al mandante', ['error' => $e->getMessage()]);
             throw new HttpException(403, 'Proyecto no pertenece al mandante.');
+        } catch (UsuarioGlobalNoPermitidoPorSso|UsuarioNoPerteneceAlMandante|UsuarioDesactivadoNoPuedeEntrarPorSso $e) {
+            Log::warning('handshake jwt: identidad rechazada', ['error' => $e->getMessage()]);
+            // Mensaje deliberadamente generico: distinguir "no existe" de "no es
+            // tuyo" de "esta desactivado" seria un oraculo de enumeracion para
+            // quien tenga un sso_secret.
+            throw new HttpException(403, 'Acceso no permitido para esta identidad.');
         }
 
         Auth::loginUsingId($output->usuarioId);

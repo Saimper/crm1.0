@@ -12,6 +12,9 @@ use App\Modules\Integracion\Domain\Exceptions\JwtMalFormado;
 use App\Modules\Integracion\Domain\Exceptions\JwtTokenYaConsumido;
 use App\Modules\Integracion\Domain\Exceptions\MandanteProyectoMismatch;
 use App\Modules\Integracion\Domain\Exceptions\MandanteSsoNoConfigurado;
+use App\Modules\Integracion\Domain\Exceptions\UsuarioDesactivadoNoPuedeEntrarPorSso;
+use App\Modules\Integracion\Domain\Exceptions\UsuarioGlobalNoPermitidoPorSso;
+use App\Modules\Integracion\Domain\Exceptions\UsuarioNoPerteneceAlMandante;
 use App\Modules\Integracion\Domain\ValueObjects\MapeoRolWrapper;
 use App\Modules\Integracion\Domain\ValueObjects\PayloadJwt;
 use DateTimeImmutable;
@@ -101,7 +104,7 @@ final class AutenticadorPorJwt
                 $payload->expiraEn,
             );
 
-            $usuario = $this->provisionarUsuario($payload->email, $payload->name);
+            $usuario = $this->provisionarUsuario($payload->email, $payload->name, (int) $mandante->id);
 
             $codigoRol = MapeoRolWrapper::aCodigoRolBase($payload->wrapperRole);
 
@@ -192,19 +195,53 @@ final class AutenticadorPorJwt
         return $mandanteId;
     }
 
-    private function provisionarUsuario(string $email, string $name): User
+    /**
+     * Resuelve (o crea) el usuario del handshake ligandolo SIEMPRE al mandante
+     * que firmo el token.
+     *
+     * El email por si solo no identifica a nadie de forma segura: es un dato que
+     * el emisor del JWT elige. Como cada mandante firma con su propio secret,
+     * resolver solo por email permitia que un tenant reclamara la identidad de
+     * un usuario de otro tenant — o la del administrador global — con un token
+     * perfectamente valido. La pertenencia al mandante es la ligadura que
+     * convierte el email en una identidad de verdad.
+     */
+    private function provisionarUsuario(string $email, string $name, int $mandanteId): User
     {
         $emailNormalizado = strtolower(trim($email));
 
         $existente = User::query()->where('email', $emailNormalizado)->first();
 
         if ($existente !== null) {
+            $usuarioId = (int) $existente->id;
+
+            // Un rol global no esta acotado a ningun mandante: concederlo por
+            // SSO significaria que cualquier tenant puede alcanzarlo. La cuenta
+            // global entra por /login, nunca por handshake.
+            if ($this->tieneRolGlobal($usuarioId)) {
+                throw UsuarioGlobalNoPermitidoPorSso::crear($usuarioId);
+            }
+
+            // Desactivar a alguien es como se le retira el acceso. Antes el SSO
+            // lo reactivaba en silencio, asi que el wrapper podia resucitar una
+            // cuenta dada de baja en el CRM.
+            if ((bool) $existente->activo !== true) {
+                throw UsuarioDesactivadoNoPuedeEntrarPorSso::crear($usuarioId);
+            }
+
+            if (! $this->perteneceAlMandante($usuarioId, $mandanteId)) {
+                throw UsuarioNoPerteneceAlMandante::crear($usuarioId, $mandanteId);
+            }
+
             $cambios = [];
             if ($existente->name !== $name) {
                 $cambios['name'] = $name;
             }
-            if ((bool) $existente->activo !== true) {
-                $cambios['activo'] = true;
+            // Adopcion suave: el usuario ya quedo verificado como perteneciente
+            // a este mandante, asi que se le fija el origen si venia vacio
+            // (cuentas anteriores a esta columna).
+            if ($existente->mandante_origen_id === null) {
+                $cambios['mandante_origen_id'] = $mandanteId;
             }
 
             if ($cambios !== []) {
@@ -221,9 +258,62 @@ final class AutenticadorPorJwt
             'password' => bcrypt(Str::random(40)),
             'activo' => true,
             'sso_provisioned' => true,
+            'mandante_origen_id' => $mandanteId,
         ])->save();
 
         return $usuario;
+    }
+
+    /** Rol sin scope de proyecto (ADMIN_GLOBAL y cualquier otro global). */
+    private function tieneRolGlobal(int $usuarioId): bool
+    {
+        return $this->db->table('usuario_global_rol')
+            ->where('usuario_id', $usuarioId)
+            ->exists();
+    }
+
+    /**
+     * El usuario esta ligado al mandante si lo provisiono ese mandante, o si
+     * tiene un pivot activo con el — sea a nivel de mandante o de cualquiera de
+     * sus proyectos (rol base o rol custom).
+     */
+    private function perteneceAlMandante(int $usuarioId, int $mandanteId): bool
+    {
+        $origen = $this->db->table('users')
+            ->where('id', $usuarioId)
+            ->value('mandante_origen_id');
+
+        if ($origen !== null && (int) $origen === $mandanteId) {
+            return true;
+        }
+
+        $porMandante = $this->db->table('usuario_mandante_rol')
+            ->where('usuario_id', $usuarioId)
+            ->where('mandante_id', $mandanteId)
+            ->where('activo', true)
+            ->exists();
+
+        if ($porMandante) {
+            return true;
+        }
+
+        $porProyecto = $this->db->table('usuario_proyecto_rol as upr')
+            ->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
+            ->where('upr.usuario_id', $usuarioId)
+            ->where('p.mandante_id', $mandanteId)
+            ->where('upr.activo', true)
+            ->exists();
+
+        if ($porProyecto) {
+            return true;
+        }
+
+        return $this->db->table('usuario_proyecto_rol_custom as uprc')
+            ->join('proyectos as p', 'p.id', '=', 'uprc.proyecto_id')
+            ->where('uprc.usuario_id', $usuarioId)
+            ->where('p.mandante_id', $mandanteId)
+            ->where('uprc.activo', true)
+            ->exists();
     }
 
     private function garantizarPivotProyecto(int $usuarioId, int $proyectoId, string $codigoRol): void
