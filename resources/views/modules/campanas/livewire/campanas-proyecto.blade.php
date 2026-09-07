@@ -10,7 +10,7 @@
     @if($campanas->isEmpty())
         <div class="card" style="padding:16px;border-color:var(--warning);background:var(--warning-soft);">
             <div style="font-size:13px;font-weight:600;color:var(--warning-text);">{{ __('campanas.vacio_titulo') }}</div>
-            <div style="font-size:13px;color:var(--warning-text);margin-top:4px;">{{ __('campanas.vacio_ayuda') }}</div>
+            <div style="font-size:13px;color:var(--warning-text);margin-top:4px;">{{ __('campanas.vacio_ayuda', ['entidades' => $rotuloCasos]) }}</div>
         </div>
     @endif
 
@@ -19,7 +19,7 @@
             <div>
                 <div style="font-size:14px;font-weight:600;color:var(--text);">{{ __('campanas.titulo') }}</div>
                 <div style="font-size:12px;color:var(--text-tertiary);">
-                    {{ trans_choice('campanas.sin_asignar', $casosSinAsignar, ['n' => number_format($casosSinAsignar)]) }}
+                    {{ trans_choice('campanas.sin_asignar', $casosSinAsignar, ['n' => number_format($casosSinAsignar), 'entidad' => $rotuloCaso, 'entidades' => $rotuloCasos]) }}
                 </div>
             </div>
             <button type="button" class="btn btn-primary" wire:click="abrirFormCrear">

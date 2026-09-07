@@ -4,7 +4,7 @@
 
         <label class="field-label">{{ __('reportes.root_entity') }}</label>
         <select wire:model.live="entidadRaiz" class="select input-sm" style="margin-bottom:12px;">
-            <option value="casos">{{ __('reportes.entity_casos') }}</option>
+            <option value="casos">{{ __('reportes.entity_casos', ['entidades' => $rotuloCasos]) }}</option>
             <option value="gestiones">{{ __('reportes.entity_gestiones') }}</option>
             <option value="compromisos">{{ __('reportes.entity_compromisos') }}</option>
             <option value="personas">{{ __('reportes.entity_personas') }}</option>

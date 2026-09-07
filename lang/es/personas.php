@@ -29,7 +29,7 @@ return [
     'col_type' => 'Tipo',
     'col_id_doc' => 'Identificación',
     'col_name' => 'Nombre',
-    'col_cases' => 'Casos',
+    'col_cases' => ':Entidades',
     'col_created' => 'Creada',
 
     // Estado vacío
@@ -56,13 +56,13 @@ return [
     'field_company_readonly' => 'Razón social (no editable)',
 
     // Buscador global
-    'search_global_button' => 'Buscar persona, caso, gestión…',
+    'search_global_button' => 'Buscar persona, :entidad, gestión…',
     'search_global_ph' => 'Buscar identificación o nombre de persona en el proyecto activo...',
     'search_select_project' => 'Selecciona un proyecto activo para buscar.',
     'search_min_chars' => 'Escribe al menos 3 caracteres para buscar en el proyecto :proyecto.',
     'search_no_results' => 'Sin resultados en el proyecto activo.',
     'search_section_persons' => 'Personas',
-    'search_section_cases' => 'Casos',
+    'search_section_cases' => ':Entidades',
     'search_project_label' => 'proyecto:',
     'search_close_hint' => 'cerrar',
 ];

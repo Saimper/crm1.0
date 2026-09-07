@@ -55,7 +55,7 @@
                         <th style="width:80px;">{{ __('personas.col_type') }}</th>
                         <th style="width:170px;">{{ __('personas.col_id_doc') }}</th>
                         <th>{{ __('personas.col_name') }}</th>
-                        <th class="num" style="width:80px;">{{ __('personas.col_cases') }}</th>
+                        <th class="num" style="width:80px;">{{ __('personas.col_cases', ['entidades' => $rotuloCasos]) }}</th>
                         <th style="width:130px;">{{ __('personas.col_created') }}</th>
                         <th style="width:60px;"></th>
                     </tr>

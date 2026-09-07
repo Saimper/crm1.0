@@ -1,16 +1,4 @@
 @php
-    $labelIntentadas = match ($proyecto->tipo_operacion ?? '') {
-        'cx' => __('reportes.label_intentadas_cx'),
-        'venta' => __('reportes.label_intentadas_venta'),
-        'servicio' => __('reportes.label_intentadas_servicio'),
-        default => __('reportes.label_intentadas_cobranza'),
-    };
-    $labelGestionadas = match ($proyecto->tipo_operacion ?? '') {
-        'cx' => __('reportes.label_gestionadas_cx'),
-        'venta' => __('reportes.label_gestionadas_venta'),
-        'servicio' => __('reportes.label_gestionadas_servicio'),
-        default => __('reportes.label_gestionadas_cobranza'),
-    };
     $rangos = [
         'hoy'    => __('reportes.range_today'),
         'ayer'   => __('reportes.range_yesterday'),
@@ -38,11 +26,11 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="rounded-lg border border-ink-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ $labelIntentadas }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.label_intentadas', ['entidades' => $rotuloCasos]) }}</div>
             <div class="text-2xl font-semibold text-ink-900 mt-1">{{ number_format($cuentasIntentadas) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ $labelGestionadas }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.label_gestionadas', ['entidades' => $rotuloCasos]) }}</div>
             <div class="text-2xl font-semibold text-success-700 mt-1">{{ number_format($cuentasGestionadas) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
@@ -75,8 +63,8 @@
                     <tr>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_agent') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_gestiones') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted', ['entidades' => $rotuloCasos]) }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed', ['entidades' => $rotuloCasos]) }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_effectiveness') }}</th>
                     </tr>
                 </thead>
@@ -110,7 +98,7 @@
                     <tr>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_date') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_person') }}</th>
-                        <th class="px-3 py-2 text-left">{{ __('reportes.col_case_type') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('reportes.col_case_type', ['entidad' => $rotuloCaso]) }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_result_col') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_channel') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_user') }}</th>

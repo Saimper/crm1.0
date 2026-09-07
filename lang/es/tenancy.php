@@ -150,9 +150,9 @@ return [
     'tile_bandeja_equipo_title' => 'Bandeja del equipo',
     'tile_bandeja_equipo_desc' => 'Asignaciones de los miembros con KPIs por gestor.',
     'tile_asig_masiva_title' => 'Asignación masiva',
-    'tile_asig_masiva_desc' => 'Distribuir casos pendientes round-robin al equipo.',
+    'tile_asig_masiva_desc' => 'Distribuir :entidades pendientes round-robin al equipo.',
     'tile_reasignar_title' => 'Re-asignar entre equipos',
-    'tile_reasignar_desc' => 'Mover pendientes respetando casos en trabajo.',
+    'tile_reasignar_desc' => 'Mover pendientes respetando :entidades en trabajo.',
     'tile_usuarios_proy_title' => 'Usuarios del proyecto',
     'tile_usuarios_proy_desc' => 'Asignar y quitar roles SUPERVISOR/GESTOR/AUDITOR.',
     'tile_equipos_proy_title' => 'Equipos del proyecto',
@@ -160,5 +160,5 @@ return [
     'tile_auditoria_title' => 'Auditoría',
     'tile_auditoria_desc' => 'Quién cambió qué, cuándo y desde qué IP.',
     'tile_importar_title' => 'Importar / Exportar',
-    'tile_importar_desc' => 'CSVs de personas, casos, gestiones, compromisos.',
+    'tile_importar_desc' => 'CSVs de personas, :entidades, gestiones, compromisos.',
 ];

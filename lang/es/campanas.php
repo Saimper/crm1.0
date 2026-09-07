@@ -20,6 +20,6 @@ return [
     'estado_pausada' => 'Pausada',
     'estado_finalizada' => 'Finalizada',
     'vacio_titulo' => 'Este proyecto no tiene campañas todavía.',
-    'vacio_ayuda' => 'Toda asignación pertenece a una campaña. Sin al menos una no se pueden repartir cuentas, y los gestores verán su bandeja vacía.',
-    'sin_asignar' => '{0} Todas las cuentas están repartidas.|{1} :n cuenta sin repartir.|[2,*] :n cuentas sin repartir.',
+    'vacio_ayuda' => 'Toda asignación pertenece a una campaña. Sin al menos una no se pueden repartir :entidades, y los gestores verán su bandeja vacía.',
+    'sin_asignar' => '{0} No quedan :entidades sin repartir.|{1} :n :entidad sin repartir.|[2,*] :n :entidades sin repartir.',
 ];

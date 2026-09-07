@@ -150,9 +150,9 @@ return [
     'tile_bandeja_equipo_title' => 'Team inbox',
     'tile_bandeja_equipo_desc' => 'Member assignments with KPIs per agent.',
     'tile_asig_masiva_title' => 'Bulk assignment',
-    'tile_asig_masiva_desc' => 'Distribute pending cases round-robin to the team.',
+    'tile_asig_masiva_desc' => 'Distribute pending :entidades round-robin to the team.',
     'tile_reasignar_title' => 'Re-assign between teams',
-    'tile_reasignar_desc' => 'Move pending cases while respecting in-progress ones.',
+    'tile_reasignar_desc' => 'Move pending :entidades while respecting in-progress ones.',
     'tile_usuarios_proy_title' => 'Project users',
     'tile_usuarios_proy_desc' => 'Assign and remove SUPERVISOR/AGENT/AUDITOR roles.',
     'tile_equipos_proy_title' => 'Project teams',
@@ -160,5 +160,5 @@ return [
     'tile_auditoria_title' => 'Audit',
     'tile_auditoria_desc' => 'Who changed what, when and from which IP.',
     'tile_importar_title' => 'Import / Export',
-    'tile_importar_desc' => 'CSVs of persons, cases, interactions, commitments.',
+    'tile_importar_desc' => 'CSVs of persons, :entidades, interactions, commitments.',
 ];

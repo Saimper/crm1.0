@@ -60,7 +60,7 @@
                 <x-ui.th>{{ __('asignaciones.col_person') }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_portfolio') }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_type') }}</x-ui.th>
-                <x-ui.th>{{ __('asignaciones.col_case_status') }}</x-ui.th>
+                <x-ui.th>{{ __('asignaciones.col_case_status', ['entidad' => $rotuloCaso]) }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_last_management') }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_assignment') }}</x-ui.th>
                 <x-ui.th align="right">&nbsp;</x-ui.th>

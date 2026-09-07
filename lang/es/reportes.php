@@ -31,7 +31,7 @@ return [
     // Constructor — panel izquierdo
     'available_fields' => 'Campos disponibles',
     'root_entity' => 'Entidad raíz',
-    'entity_casos' => 'Casos',
+    'entity_casos' => ':Entidades',
     'entity_gestiones' => 'Gestiones',
     'entity_compromisos' => 'Compromisos',
     'entity_personas' => 'Personas',
@@ -41,6 +41,8 @@ return [
 
     // Constructor — secciones
     'section_definition' => 'Definición',
+    'label_intentadas' => ':Entidades con gestión',
+    'label_gestionadas' => ':Entidades con contacto efectivo',
     'label_code' => 'Código *',
     'label_name' => 'Nombre *',
     'label_description' => 'Descripción',
@@ -76,7 +78,7 @@ return [
 
     // Dashboard analítico
     'dashboard_analitico_title' => 'Dashboard analítico',
-    'chart_cases_by_type' => 'Distribución por tipo de caso',
+    'chart_cases_by_type' => 'Distribución por tipo de :entidad',
     'chart_commitments_by_state' => 'Compromisos por tipo y estado',
     'col_type' => 'Tipo',
     'col_state' => 'Estado',
@@ -89,20 +91,12 @@ return [
     'yes' => 'sí',
     'no' => 'no',
     'chart_top_days' => 'Top 5 días con más gestiones',
-    'empty_cases' => 'Sin casos.',
+    'empty_cases' => 'Sin :entidades.',
     'empty_commitments' => 'Sin compromisos.',
     'empty_activity' => 'Sin actividad.',
     'empty_data' => 'Sin datos.',
 
     // Dashboard operativo — etiquetas tipo-operación
-    'label_intentadas_cobranza' => 'Casos intentados',
-    'label_intentadas_cx' => 'Tickets atendidos',
-    'label_intentadas_venta' => 'Leads contactados',
-    'label_intentadas_servicio' => 'Servicios atendidos',
-    'label_gestionadas_cobranza' => 'Casos gestionados',
-    'label_gestionadas_cx' => 'Tickets resueltos',
-    'label_gestionadas_venta' => 'Leads calificados',
-    'label_gestionadas_servicio' => 'Servicios ejecutados',
 
     'dashboard_operativo_title' => 'Dashboard operativo · :rango',
     'range_today' => 'Hoy',
@@ -117,15 +111,15 @@ return [
     'section_ranking' => 'Ranking de gestores (:count)',
     'col_agent' => 'Gestor',
     'col_gestiones' => 'Gestiones',
-    'col_attempted' => 'Intentadas',
-    'col_managed' => 'Gestionadas',
+    'col_attempted' => ':Entidades con gestión',
+    'col_managed' => ':Entidades con contacto efectivo',
     'col_effectiveness' => 'Efectividad',
     'empty_ranking' => 'Sin actividad en el rango seleccionado.',
 
     'section_recent' => 'Gestiones recientes (:count)',
     'col_date' => 'Fecha',
     'col_person' => 'Persona',
-    'col_case_type' => 'Tipo caso',
+    'col_case_type' => 'Tipo :entidad',
     'col_result_col' => 'Resultado',
     'col_channel' => 'Canal',
     'col_user' => 'Gestor',
@@ -140,8 +134,8 @@ return [
     'range_current_month' => 'Mes en curso',
     'col_team' => 'Equipo',
     'col_members' => 'Miembros',
-    'col_attempted_cases' => 'Casos intentados',
-    'col_managed_cases' => 'Gestionados',
+    'col_attempted_cases' => ':Entidades con gestión',
+    'col_managed_cases' => ':Entidades con contacto efectivo',
     'col_active_commitments' => 'Comp. vigentes',
     'col_overdue_commitments' => 'Comp. vencidos',
     'col_detail' => 'Detalle',
@@ -151,6 +145,6 @@ return [
     'empty_team_members' => 'El equipo no tiene miembros activos.',
     'col_member' => 'Miembro',
     'col_email' => 'Email',
-    'col_attempted_m' => 'Intentadas',
-    'col_managed_m' => 'Gestionadas',
+    'col_attempted_m' => ':Entidades con gestión',
+    'col_managed_m' => ':Entidades con contacto efectivo',
 ];

@@ -30,14 +30,14 @@ return [
     'col_action' => 'Acción',
     'col_identifier' => 'Identificador',
     'identifier_persona' => 'Persona',
-    'identifier_caso' => 'Caso',
+    'identifier_caso' => ':Entidad',
     'action_create_cp' => 'Crear campo personalizado',
     'action_ignore' => 'Ignorar',
     'mapped_to_system' => ':count mapeadas al sistema',
     'new_as_cp' => ':count nuevas como CP',
     'ignored' => ':count ignoradas',
     'warn_no_persona_id' => '⚠ Sin identificador de persona',
-    'warn_no_case_id' => '⚠ Sin identificador de caso',
+    'warn_no_case_id' => '⚠ Sin identificador de :entidad',
     'btn_discard' => 'Descartar',
     'btn_validate_continue' => 'Validar y continuar',
 
@@ -90,7 +90,7 @@ return [
     // Exportaciones
     'exports_title' => 'Exportaciones CSV del proyecto',
     'export_personas' => 'Personas',
-    'export_casos' => 'Casos',
+    'export_casos' => ':Entidades',
     'export_gestiones' => 'Gestiones',
     'export_compromisos' => 'Compromisos',
 

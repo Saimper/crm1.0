@@ -95,7 +95,7 @@
                         <x-ui.th>{{ __('asignaciones.col_person_eq') }}</x-ui.th>
                         <x-ui.th>{{ __('asignaciones.col_portfolio_eq') }}</x-ui.th>
                         <x-ui.th>{{ __('asignaciones.col_type_eq') }}</x-ui.th>
-                        <x-ui.th>{{ __('asignaciones.col_case_status_eq') }}</x-ui.th>
+                        <x-ui.th>{{ __('asignaciones.col_case_status_eq', ['entidad' => $rotuloCaso]) }}</x-ui.th>
                         <x-ui.th>{{ __('asignaciones.col_last_result') }}</x-ui.th>
                         <x-ui.th>{{ __('asignaciones.col_assign_status') }}</x-ui.th>
                         <x-ui.th align="right">{{ __('asignaciones.col_priority_eq') }}</x-ui.th>

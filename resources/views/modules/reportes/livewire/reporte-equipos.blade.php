@@ -25,8 +25,8 @@
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_team') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_members') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_gestiones') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted_cases') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed_cases') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted_cases', ['entidades' => $rotuloCasos]) }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed_cases', ['entidades' => $rotuloCasos]) }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_effectiveness') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_active_commitments') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_overdue_commitments') }}</th>
@@ -67,8 +67,8 @@
                                                     <th class="px-2 py-1 text-left">{{ __('reportes.col_member') }}</th>
                                                     <th class="px-2 py-1 text-left">{{ __('reportes.col_email') }}</th>
                                                     <th class="px-2 py-1 text-right">{{ __('reportes.col_gestiones') }}</th>
-                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_attempted_m') }}</th>
-                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_managed_m') }}</th>
+                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_attempted_m', ['entidades' => $rotuloCasos]) }}</th>
+                                                    <th class="px-2 py-1 text-right">{{ __('reportes.col_managed_m', ['entidades' => $rotuloCasos]) }}</th>
                                                     <th class="px-2 py-1 text-right">{{ __('reportes.col_effectiveness') }}</th>
                                                 </tr>
                                             </thead>

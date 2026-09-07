@@ -76,10 +76,10 @@
                                 @if(!empty($meta['caso_id']))
                                     @if($linkUrl)
                                         <a href="{{ $linkUrl }}" wire:navigate class="text-[11px] text-brand-700 hover:underline">
-                                            {{ __('notificaciones.link_view_case', ['id' => $meta['caso_id']]) }}
+                                            {{ __('notificaciones.link_view_case', ['id' => $meta['caso_id'], 'entidad' => $rotuloCaso]) }}
                                         </a>
                                     @else
-                                        <span class="text-[11px] text-ink-500">caso #{{ $meta['caso_id'] }}</span>
+                                        <span class="text-[11px] text-ink-500">{{ __('notificaciones.label_case_plain', ['id' => $meta['caso_id'], 'entidad' => $rotuloCaso]) }}</span>
                                     @endif
                                 @endif
                             </div>

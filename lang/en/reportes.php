@@ -31,7 +31,7 @@ return [
     // Constructor — left panel
     'available_fields' => 'Available fields',
     'root_entity' => 'Root entity',
-    'entity_casos' => 'Cases',
+    'entity_casos' => ':Entidades',
     'entity_gestiones' => 'Interactions',
     'entity_compromisos' => 'Commitments',
     'entity_personas' => 'People',
@@ -41,6 +41,8 @@ return [
 
     // Constructor — sections
     'section_definition' => 'Definition',
+    'label_intentadas' => ':Entidades with interactions',
+    'label_gestionadas' => ':Entidades with effective contact',
     'label_code' => 'Code *',
     'label_name' => 'Name *',
     'label_description' => 'Description',
@@ -76,7 +78,7 @@ return [
 
     // Analytical dashboard
     'dashboard_analitico_title' => 'Analytical dashboard',
-    'chart_cases_by_type' => 'Distribution by case type',
+    'chart_cases_by_type' => 'Distribution by :entidad type',
     'chart_commitments_by_state' => 'Commitments by type and status',
     'col_type' => 'Type',
     'col_state' => 'Status',
@@ -89,20 +91,12 @@ return [
     'yes' => 'yes',
     'no' => 'no',
     'chart_top_days' => 'Top 5 days with most interactions',
-    'empty_cases' => 'No cases.',
+    'empty_cases' => 'No :entidades.',
     'empty_commitments' => 'No commitments.',
     'empty_activity' => 'No activity.',
     'empty_data' => 'No data.',
 
     // Operational dashboard — operation-type labels
-    'label_intentadas_cobranza' => 'Attempted cases',
-    'label_intentadas_cx' => 'Tickets attended',
-    'label_intentadas_venta' => 'Leads contacted',
-    'label_intentadas_servicio' => 'Services attended',
-    'label_gestionadas_cobranza' => 'Managed cases',
-    'label_gestionadas_cx' => 'Resolved tickets',
-    'label_gestionadas_venta' => 'Qualified leads',
-    'label_gestionadas_servicio' => 'Executed services',
 
     'dashboard_operativo_title' => 'Operational dashboard · :rango',
     'range_today' => 'Today',
@@ -117,15 +111,15 @@ return [
     'section_ranking' => 'Agent ranking (:count)',
     'col_agent' => 'Agent',
     'col_gestiones' => 'Interactions',
-    'col_attempted' => 'Attempted',
-    'col_managed' => 'Managed',
+    'col_attempted' => ':Entidades with interactions',
+    'col_managed' => ':Entidades with effective contact',
     'col_effectiveness' => 'Effectiveness',
     'empty_ranking' => 'No activity in the selected range.',
 
     'section_recent' => 'Recent interactions (:count)',
     'col_date' => 'Date',
     'col_person' => 'Person',
-    'col_case_type' => 'Case type',
+    'col_case_type' => ':Entidad type',
     'col_result_col' => 'Result',
     'col_channel' => 'Channel',
     'col_user' => 'Agent',
@@ -140,8 +134,8 @@ return [
     'range_current_month' => 'Current month',
     'col_team' => 'Team',
     'col_members' => 'Members',
-    'col_attempted_cases' => 'Attempted cases',
-    'col_managed_cases' => 'Managed',
+    'col_attempted_cases' => ':Entidades with interactions',
+    'col_managed_cases' => ':Entidades with effective contact',
     'col_active_commitments' => 'Active comm.',
     'col_overdue_commitments' => 'Overdue comm.',
     'col_detail' => 'Detail',
@@ -151,6 +145,6 @@ return [
     'empty_team_members' => 'The team has no active members.',
     'col_member' => 'Member',
     'col_email' => 'Email',
-    'col_attempted_m' => 'Attempted',
-    'col_managed_m' => 'Managed',
+    'col_attempted_m' => ':Entidades with interactions',
+    'col_managed_m' => ':Entidades with effective contact',
 ];

@@ -30,14 +30,14 @@ return [
     'col_action' => 'Action',
     'col_identifier' => 'Identifier',
     'identifier_persona' => 'Person',
-    'identifier_caso' => 'Case',
+    'identifier_caso' => ':Entidad',
     'action_create_cp' => 'Create custom field',
     'action_ignore' => 'Ignore',
     'mapped_to_system' => ':count mapped to system',
     'new_as_cp' => ':count new as custom field',
     'ignored' => ':count ignored',
     'warn_no_persona_id' => '⚠ No person identifier',
-    'warn_no_case_id' => '⚠ No case identifier',
+    'warn_no_case_id' => '⚠ No :entidad identifier',
     'btn_discard' => 'Discard',
     'btn_validate_continue' => 'Validate and continue',
 
@@ -90,7 +90,7 @@ return [
     // Exports
     'exports_title' => 'Project CSV exports',
     'export_personas' => 'People',
-    'export_casos' => 'Cases',
+    'export_casos' => ':Entidades',
     'export_gestiones' => 'Interactions',
     'export_compromisos' => 'Commitments',
 

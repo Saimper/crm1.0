@@ -7,9 +7,9 @@
 
     <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
         <div>
-            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('asignaciones.bulk_section_title') }}</h3>
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('asignaciones.bulk_section_title', ['entidades' => $rotuloCasos]) }}</h3>
             <p class="text-xs text-ink-500 mt-1">
-                {!! __('asignaciones.bulk_section_desc') !!}
+                {!! __('asignaciones.bulk_section_desc', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo]) !!}
             </p>
         </div>
 
@@ -25,7 +25,7 @@
                 @error('campanaId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 @if($casosSinAsignar !== null)
                     <div class="mt-1 text-[11px] text-ink-500">
-                        {{ __('asignaciones.cases_unassigned', ['count' => number_format($casosSinAsignar)]) }}
+                        {{ __('asignaciones.cases_unassigned', ['count' => number_format($casosSinAsignar), 'entidades' => $rotuloCasos]) }}
                     </div>
                 @endif
             </div>
@@ -71,7 +71,7 @@
                     <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                         <tr>
                             <th class="px-3 py-2 text-left">{{ __('asignaciones.col_user') }}</th>
-                            <th class="px-3 py-2 text-right">{{ __('asignaciones.col_cases_received') }}</th>
+                            <th class="px-3 py-2 text-right">{{ __('asignaciones.col_cases_received', ['entidades' => $rotuloCasos]) }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-ink-100">

@@ -249,7 +249,7 @@
                                 </td>
                                 @if($target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
                                 <td class="px-3 py-2 text-center">
-                                    <div class="text-[10px] text-ink-500 mb-1">{{ __('importaciones.identifier_caso') }}</div>
+                                    <div class="text-[10px] text-ink-500 mb-1">{{ __('importaciones.identifier_caso', ['entidad' => $rotuloCaso]) }}</div>
                                     <input type="radio"
                                            name="columna_identificador_caso"
                                            wire:click="marcarComoIdentificadorCaso('{{ $col['nombre_original'] }}')"
@@ -288,7 +288,7 @@
                     <span class="text-warning-700 font-medium">{{ __('importaciones.warn_no_persona_id') }}</span>
                 @endif
                 @if(! $tieneIdCaso && $target !== null && $target !== \App\Modules\Importaciones\Domain\Enums\TargetImportacion::PERSONA)
-                    <span class="text-warning-700 font-medium">{{ __('importaciones.warn_no_case_id') }}</span>
+                    <span class="text-warning-700 font-medium">{{ __('importaciones.warn_no_case_id', ['entidad' => $rotuloCaso]) }}</span>
                 @endif
             </div>
 
@@ -511,7 +511,7 @@
             <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
                class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_personas') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_casos') }}</a>
+               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_casos', ['entidades' => $rotuloCasos]) }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
                class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_gestiones') }}</a>
             <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"

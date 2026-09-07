@@ -8,7 +8,7 @@
             x-on:click="open = true; $nextTick(() => $refs.searchInput?.focus())"
             class="search-global">
         <x-ui.icon name="search" :size="14" />
-        <span style="flex:1;text-align:left;">{{ __('personas.search_global_button') }}</span>
+        <span style="flex:1;text-align:left;">{{ __('personas.search_global_button', ['entidad' => $rotuloCaso]) }}</span>
         <span class="kbd">Ctrl</span>
         <span class="kbd">K</span>
     </button>
@@ -64,7 +64,7 @@
                     @endif
 
                     @if($casos->isNotEmpty())
-                        <div class="label-xs" style="padding:12px 16px 4px;">{{ __('personas.search_section_cases') }}</div>
+                        <div class="label-xs" style="padding:12px 16px 4px;">{{ __('personas.search_section_cases', ['entidades' => $rotuloCasos]) }}</div>
                         @foreach($casos as $c)
                             @php
                                 $nombre = $c->tipo_persona === 'juridica'

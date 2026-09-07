@@ -25,8 +25,8 @@
                 ['can' => 'reportes.operativos',    'route' => 'proyectos.reportes.equipos',        'title' => __('tenancy.tile_reportes_eq_title'),     'desc' => __('tenancy.tile_reportes_eq_desc'),      'icon' => 'users'],
                 ['can' => 'reportes.analiticos',    'route' => 'proyectos.reportes.analiticos',     'title' => __('tenancy.tile_reportes_an_title'),     'desc' => __('tenancy.tile_reportes_an_desc'),      'icon' => 'pie-chart'],
                 ['can' => 'asignaciones.ver_equipo','route' => 'proyectos.bandeja.equipo',          'title' => __('tenancy.tile_bandeja_equipo_title'),  'desc' => __('tenancy.tile_bandeja_equipo_desc'),   'icon' => 'briefcase'],
-                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.masiva',     'title' => __('tenancy.tile_asig_masiva_title'),     'desc' => __('tenancy.tile_asig_masiva_desc'),      'icon' => 'arrow-right'],
-                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar',  'title' => __('tenancy.tile_reasignar_title'),       'desc' => __('tenancy.tile_reasignar_desc'),        'icon' => 'refresh'],
+                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.masiva',     'title' => __('tenancy.tile_asig_masiva_title'),     'desc' => __('tenancy.tile_asig_masiva_desc', ['entidades' => $rotuloCasos]),      'icon' => 'arrow-right'],
+                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar',  'title' => __('tenancy.tile_reasignar_title'),       'desc' => __('tenancy.tile_reasignar_desc', ['entidades' => $rotuloCasos]),        'icon' => 'refresh'],
             ],
             __('tenancy.section_administration') => [
                 // Tile "Catálogos del proyecto" absorbido por el wizard "Configurar proyecto" (F36 P9).
@@ -37,7 +37,7 @@
                 ['can' => 'auditoria.ver', 'route' => 'proyectos.auditoria', 'title' => __('tenancy.tile_auditoria_title'), 'desc' => __('tenancy.tile_auditoria_desc'), 'icon' => 'shield'],
             ],
             __('tenancy.section_data') => [
-                ['can' => 'importaciones.crear', 'route' => 'proyectos.importaciones', 'title' => __('tenancy.tile_importar_title'), 'desc' => __('tenancy.tile_importar_desc'), 'icon' => 'upload'],
+                ['can' => 'importaciones.crear', 'route' => 'proyectos.importaciones', 'title' => __('tenancy.tile_importar_title'), 'desc' => __('tenancy.tile_importar_desc', ['entidades' => $rotuloCasos]), 'icon' => 'upload'],
             ],
         ];
     @endphp
