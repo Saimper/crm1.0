@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'selector_mandante' => [
+        'titulo' => 'Choose a client',
+        'ayuda' => 'You will work inside this client until you switch. You will only see its users, projects and portfolios.',
+        'sin_acceso' => 'You do not have access to any client. Ask an administrator to assign you one.',
+        'activo' => 'Active',
+    ],
+
     'project_count' => ':count project|:count projects',
 
     // Admin dashboard

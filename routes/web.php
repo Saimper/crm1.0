@@ -213,10 +213,19 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::prefix('admin')
         ->group(function (): void {
+            // Elegir dentro de qué cliente se trabaja (D1). Va FUERA de
+            // 'mandante.activo' a propósito: es la salida cuando no hay contexto,
+            // y meterla dentro sería un bucle de redirecciones.
+            Route::middleware('admin.dual')->group(function (): void {
+                Route::view('/cliente', 'tenancy::selector-mandante-page')
+                    ->name('admin.mandante-activo');
+            });
+
             // F39: rutas compartidas ADMIN_GLOBAL + ADMIN_MANDANTE.
             // El scoping (qué proyectos/usuarios/eventos ve cada uno) lo aplica
-            // cada Livewire detectando el rol al renderizar.
-            Route::middleware('admin.dual')->group(function (): void {
+            // cada Livewire detectando el rol al renderizar; la Fase 3 lo moverá
+            // al mandante activo que publica este middleware.
+            Route::middleware(['admin.dual', 'mandante.activo'])->group(function (): void {
                 Route::view('/', 'tenancy::admin-dashboard')->name('admin.dashboard');
                 Route::view('/proyectos', 'tenancy::admin.proyectos-page')
                     ->name('admin.proyectos');
