@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos;
 
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 /**
- * Paso 6 del wizard F36 — CRUD de motivos_no_contacto del proyecto.
+ * Paso 6 del wizard — motivos de no contacto y causas de gestión.
  *
- * Schema sin `descripcion` ni `eliminada_en`. Borrado físico tras chequeo de
- * dependencia en gestiones.motivo_no_contacto_id.
+ * Las causas van aquí porque son la otra mitad de la misma pregunta: por qué
+ * salió así. Y porque hasta ahora no tenían pantalla en ninguna parte, ni
+ * siquiera para el ADMIN_GLOBAL: `causas_gestion` sólo se leía. En el proyecto
+ * de cobranza cuatro de los nueve resultados tienen `requiere_causa`, la tabla
+ * estaba vacía, y esas cuatro gestiones eran imposibles de guardar.
+ *
+ * Schema sin `descripcion` ni `eliminada_en` en las dos tablas. Borrado físico
+ * tras comprobar que ninguna gestión las referencia.
  */
 final class PasoMotivosNoContacto extends Component
 {
@@ -34,10 +41,89 @@ final class PasoMotivosNoContacto extends Component
         'activo' => true,
     ];
 
+    /** Nombre de la causa que se está creando desde la barra. */
+    public string $causaNueva = '';
+
     public function mount(ProyectoModel $proyecto): void
     {
         $this->authorize('proyectos.configurar', (int) $proyecto->id);
         $this->proyecto = $proyecto;
+    }
+
+    // -----------------------------------------------------------------
+    // Causas de gestión
+    // -----------------------------------------------------------------
+
+    public function crearCausa(): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $nombre = trim($this->causaNueva);
+
+        if ($nombre === '') {
+            return;
+        }
+
+        $proyectoId = (int) $this->proyecto->id;
+        $codigo = GeneradorCodigo::derivar($nombre, 50);
+
+        if (DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', $codigo)->exists()) {
+            $this->addError('causaNueva', 'Ya hay una causa con ese nombre.');
+
+            return;
+        }
+
+        $siguiente = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->max('orden');
+
+        DB::table('causas_gestion')->insert([
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => $nombre,
+            'activo' => true,
+            'orden' => $siguiente + 10,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        $this->causaNueva = '';
+        $this->resetErrorBag('causaNueva');
+        $this->dispatch('configuracion-paso-completado');
+    }
+
+    public function alternarCausa(int $id): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $actual = DB::table('causas_gestion')
+            ->where('id', $id)->where('proyecto_id', (int) $this->proyecto->id)
+            ->value('activo');
+
+        if ($actual === null) {
+            return;
+        }
+
+        DB::table('causas_gestion')
+            ->where('id', $id)->where('proyecto_id', (int) $this->proyecto->id)
+            ->update(['activo' => ! (bool) $actual, 'actualizada_en' => Carbon::now()]);
+    }
+
+    /** Una causa ya usada en una gestión no se borra: la gestión perdería el porqué. */
+    public function eliminarCausa(int $id): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $proyectoId = (int) $this->proyecto->id;
+
+        if (DB::table('gestiones')->where('causa_id', $id)->exists()) {
+            session()->flash(
+                'paso-motivos-no-contacto-error',
+                'No se puede eliminar: hay gestiones registradas con esa causa.',
+            );
+
+            return;
+        }
+
+        DB::table('causas_gestion')->where('id', $id)->where('proyecto_id', $proyectoId)->delete();
     }
 
     public function abrirFormCrear(): void
@@ -215,6 +301,10 @@ final class PasoMotivosNoContacto extends Component
             ->get(['id', 'codigo', 'nombre', 'orden', 'activo']);
 
         return view('livewire.tenancy.configurador-pasos.paso-motivos-no-contacto', [
+            'causas' => DB::table('causas_gestion')
+                ->where('proyecto_id', $proyectoId)
+                ->orderBy('orden')->orderBy('id')
+                ->get(['id', 'codigo', 'nombre', 'activo']),
             'motivos' => $motivos,
         ]);
     }

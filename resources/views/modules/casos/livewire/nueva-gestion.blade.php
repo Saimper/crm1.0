@@ -45,9 +45,10 @@
 
         <div>
             <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_result') }}</label>
-            <select wire:model.live="resultadoId"
-                    class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
-                <option value="">—</option>
+            {{-- Deshabilitado hasta que haya tipo: la lista depende de él. --}}
+            <select wire:model.live="resultadoId" @disabled($tipoGestionId === null)
+                    class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-50 disabled:text-ink-400">
+                <option value="">{{ $tipoGestionId === null ? __('casos.pick_type_first') : '—' }}</option>
                 @foreach($resultados as $r)
                     <option value="{{ $r->id }}">{{ $r->nombre }}</option>
                 @endforeach

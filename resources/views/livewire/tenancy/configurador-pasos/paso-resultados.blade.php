@@ -181,4 +181,50 @@
             </div>
         </div>
     @endif
+    {{-- Qué resultados admite cada tipo de gestión. Sin esto el selector de la
+         Vista de Trabajo ofrecía los nueve resultados del proyecto sin importar
+         el tipo, y «Promesa de pago fraccionado» aparecía bajo «No contactado».
+         Un tipo sin ninguna casilla marcada admite todos: es el arranque, y es
+         por tipo y no por proyecto para que nadie se quede sin poder gestionar
+         el día que esto se despliegue. --}}
+    @if($tiposGestion->isNotEmpty() && $resultados->isNotEmpty())
+        <div class="card" style="padding:0;margin-top:14px;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+                <strong style="font-size:13px;">{{ __('configurador.matriz.titulo') }}</strong>
+                <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ __('configurador.matriz.ayuda') }}</div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="table table-compact">
+                    <thead>
+                        <tr>
+                            <th>{{ __('configurador.matriz.col_resultado') }}</th>
+                            @foreach($tiposGestion as $tipo)
+                                <th style="text-align:center;white-space:nowrap;">{{ $tipo->nombre }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($resultados as $resultado)
+                            <tr wire:key="matriz-{{ $resultado->id }}">
+                                <td>
+                                    <span style="font-weight:500;">{{ $resultado->nombre }}</span>
+                                    @unless($resultado->activo)
+                                        <span class="badge badge-neutral">{{ __('configurador.inactivo') }}</span>
+                                    @endunless
+                                </td>
+                                @foreach($tiposGestion as $tipo)
+                                    <td style="text-align:center;">
+                                        <input type="checkbox"
+                                               @checked($combinaciones->has($tipo->id.'-'.$resultado->id))
+                                               wire:click="alternarCombinacion({{ $tipo->id }}, {{ $resultado->id }})"
+                                               aria-label="{{ $tipo->nombre }} · {{ $resultado->nombre }}"/>
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 </div>

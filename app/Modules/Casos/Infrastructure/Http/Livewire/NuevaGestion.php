@@ -105,9 +105,17 @@ final class NuevaGestion extends Component
         $this->tipoCaso = $tipoCaso;
     }
 
+    /**
+     * Al cambiar el tipo cambia la lista de resultados admitidos, así que el
+     * resultado elegido puede dejar de ser válido. Se limpia en vez de
+     * arrastrarlo, y con él todo lo que cuelga: motivo, causa y los campos
+     * personalizados del ámbito gestión, que también cambian con el tipo.
+     */
     public function updatedTipoGestionId(mixed $value): void
     {
-        // Reset de valores capturados — los campos cambian con el tipo seleccionado.
+        $this->resultadoId = null;
+        $this->motivoNoContactoId = null;
+        $this->causaId = null;
         $this->valoresCamposGestion = [];
     }
 
@@ -127,7 +135,9 @@ final class NuevaGestion extends Component
                 ->where('proyecto_id', $proyectoId)
                 ->where('activo', true)],
             'tipoGestionId' => ['required', 'integer'],
-            'resultadoId' => ['required', 'integer'],
+            'resultadoId' => ['required', 'integer', Rule::exists('resultados', 'id')
+                ->where('proyecto_id', $proyectoId)
+                ->where('activo', true)],
             'notas' => ['nullable', 'string', 'max:2000'],
         ];
 
@@ -351,11 +361,40 @@ final class NuevaGestion extends Component
             ->orderBy('orden')->get();
     }
 
+    /**
+     * Los resultados que admite el tipo de gestión elegido.
+     *
+     * Sin tipo elegido no hay lista: el selector sale deshabilitado en vez de
+     * ofrecer los nueve resultados del proyecto, que era lo que hacía que
+     * «Promesa de pago fraccionado» apareciera bajo «No contactado».
+     *
+     * Arranque en abierto POR TIPO: un tipo sin ninguna combinación declarada
+     * admite todos. Con la regla al revés, los proyectos que no lo tienen
+     * configurado —hoy, todos— se quedarían sin poder registrar una gestión.
+     */
     private function resultados(int $proyectoId): Collection
     {
-        return DB::table('resultados')
-            ->where('proyecto_id', $proyectoId)->where('activo', true)
-            ->orderBy('orden')->get();
+        if ($this->tipoGestionId === null) {
+            return collect();
+        }
+
+        $declarados = DB::table('resultado_tipo_gestion')
+            ->where('proyecto_id', $proyectoId)
+            ->where('tipo_gestion_id', (int) $this->tipoGestionId)
+            ->count();
+
+        $query = DB::table('resultados as r')
+            ->where('r.proyecto_id', $proyectoId)
+            ->where('r.activo', true);
+
+        if ($declarados > 0) {
+            $query->join('resultado_tipo_gestion as rtg', function ($join): void {
+                $join->on('rtg.resultado_id', '=', 'r.id')
+                    ->where('rtg.tipo_gestion_id', (int) $this->tipoGestionId);
+            })->orderBy('rtg.orden');
+        }
+
+        return $query->orderBy('r.orden')->get(['r.*']);
     }
 
     private function motivos(int $proyectoId): Collection

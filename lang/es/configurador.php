@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'causas' => [
+        'titulo' => 'Causas de gestión',
+        'ayuda' => 'Por qué salió así. Los resultados marcados como «requiere causa» piden una de estas.',
+        'nueva' => 'Nombre de la causa…',
+        'confirm_eliminar' => '¿Eliminar esta causa? Sólo si ninguna gestión la usa.',
+    ],
+    'matriz' => [
+        'titulo' => 'Qué resultados admite cada tipo de gestión',
+        'ayuda' => 'Un tipo sin ninguna casilla marcada admite todos los resultados. Marca casillas para acotarlo.',
+        'col_resultado' => 'Resultado',
+    ],
     'canales' => [
         'titulo' => 'Canales',
         'ayuda' => 'Por dónde se hace la gestión. El catálogo es común a todos los clientes; aquí eliges cuáles usa este proyecto, en qué orden y con qué nombre.',

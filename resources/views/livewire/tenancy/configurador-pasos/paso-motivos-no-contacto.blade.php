@@ -117,4 +117,35 @@
             </div>
         </div>
     @endif
+    {{-- Causas de gestión. No tenían pantalla en ninguna parte: la tabla sólo se
+         leía. En el proyecto de cobranza, cuatro de los nueve resultados exigen
+         causa y la tabla estaba vacía, así que esas cuatro gestiones no se
+         podían guardar. --}}
+    <div class="card" style="padding:12px 16px;margin-top:14px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <strong style="font-size:13px;">{{ __('configurador.causas.titulo') }}</strong>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.causas.ayuda') }}</span>
+        </div>
+
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+            @foreach($causas as $c)
+                <span class="badge" style="display:inline-flex;align-items:center;gap:6px;{{ $c->activo ? '' : 'opacity:.5;' }}">
+                    <button type="button" wire:click="alternarCausa({{ $c->id }})" class="btn btn-ghost btn-sm" style="padding:0 2px;">
+                        <span class="dot dot-{{ $c->activo ? 'success' : 'neutral' }}"></span>
+                    </button>
+                    {{ $c->nombre }}
+                    <button type="button" wire:click="eliminarCausa({{ $c->id }})"
+                            wire:confirm="{{ __('configurador.causas.confirm_eliminar') }}"
+                            class="btn btn-ghost btn-sm" style="padding:0 2px;color:var(--danger-text);">×</button>
+                </span>
+            @endforeach
+
+            <div style="display:flex;gap:6px;align-items:center;">
+                <input type="text" wire:model="causaNueva" wire:keydown.enter="crearCausa" class="input"
+                       style="width:220px;height:28px;" placeholder="{{ __('configurador.causas.nueva') }}"/>
+                <button type="button" wire:click="crearCausa" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
+            </div>
+        </div>
+        @error('causaNueva')<div style="font-size:12px;color:var(--danger-text);margin-top:6px;">{{ $message }}</div>@enderror
+    </div>
 </div>

@@ -6,11 +6,13 @@ namespace App\Modules\Gestiones\Application\UseCases;
 
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionOutput;
+use App\Modules\Gestiones\Domain\Contracts\ConsultaCompatibilidadResultado;
 use App\Modules\Gestiones\Domain\Contracts\ConsultaResultado;
 use App\Modules\Gestiones\Domain\Contracts\GestionRepository;
 use App\Modules\Gestiones\Domain\Entities\Gestion;
 use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Gestiones\Domain\Exceptions\PromesaRequerida;
+use App\Modules\Gestiones\Domain\Exceptions\ResultadoNoAdmitidoPorTipo;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 
@@ -19,12 +21,20 @@ final readonly class RegistrarGestion
     public function __construct(
         private GestionRepository $repositorio,
         private ConsultaResultado $consulta,
+        private ConsultaCompatibilidadResultado $compatibilidad,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
     ) {}
 
     public function execute(RegistrarGestionInput $input): RegistrarGestionOutput
     {
+        // La compatibilidad tipo → resultado se comprueba aquí y no sólo al
+        // pintar el `<select>`: el id viaja en una propiedad pública de Livewire
+        // y un payload manipulado lo elige (§11, segunda capa).
+        if (! $this->compatibilidad->admite($input->proyectoId, $input->tipoGestionId, $input->resultadoId)) {
+            throw ResultadoNoAdmitidoPorTipo::para($input->tipoGestionId, $input->resultadoId);
+        }
+
         $banderas = $this->consulta->banderas($input->resultadoId);
 
         if ($banderas->requiereCompromiso && $input->datosCompromiso === null) {

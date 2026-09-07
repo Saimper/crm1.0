@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'pick_type_first' => 'Elige primero el tipo',
     'fields_ungrouped' => 'Sin grupo',
     'currency_symbol' => 'USD',
     'entidad_singular' => [

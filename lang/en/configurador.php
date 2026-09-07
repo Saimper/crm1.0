@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'causas' => [
+        'titulo' => 'Interaction causes',
+        'ayuda' => 'Why it turned out that way. Results flagged as «requires cause» ask for one of these.',
+        'nueva' => 'Cause name…',
+        'confirm_eliminar' => 'Delete this cause? Only if no interaction uses it.',
+    ],
+    'matriz' => [
+        'titulo' => 'Which results each interaction type allows',
+        'ayuda' => 'A type with no box ticked allows every result. Tick boxes to narrow it down.',
+        'col_resultado' => 'Result',
+    ],
     'canales' => [
         'titulo' => 'Channels',
         'ayuda' => 'How the interaction happens. The catalogue is shared across clients; here you pick which ones this project uses, in what order and under what name.',
