@@ -6,6 +6,37 @@
         {{ __('configurador.campos.info_opcional') }}
     </div>
 
+    {{-- Grupos: sólo un nombre y un orden. El acordeón de la Vista de Trabajo
+         los pinta en este orden y mete dentro los campos de cada uno. --}}
+    <div class="card" style="padding:12px 16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <strong style="font-size:12px;">{{ __('configurador.campos.grupos_titulo') }}</strong>
+            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.campos.grupos_ayuda') }}</span>
+        </div>
+
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+            @foreach($grupos as $i => $g)
+                <span class="badge" style="display:inline-flex;align-items:center;gap:6px;">
+                    <button type="button" wire:click="moverGrupo({{ $g->id }}, -1)" class="btn btn-ghost btn-sm"
+                            style="padding:0 2px;{{ $i === 0 ? 'visibility:hidden;' : '' }}" aria-label="{{ __('common.move_up') }}">↑</button>
+                    {{ $g->nombre }}
+                    <button type="button" wire:click="moverGrupo({{ $g->id }}, 1)" class="btn btn-ghost btn-sm"
+                            style="padding:0 2px;{{ $i === $grupos->count() - 1 ? 'visibility:hidden;' : '' }}" aria-label="{{ __('common.move_down') }}">↓</button>
+                    <button type="button" wire:click="eliminarGrupo({{ $g->id }})"
+                            wire:confirm="{{ __('configurador.campos.grupos_confirm_eliminar') }}"
+                            class="btn btn-ghost btn-sm" style="padding:0 2px;color:var(--danger-text);">×</button>
+                </span>
+            @endforeach
+
+            <div style="display:flex;gap:6px;align-items:center;">
+                <input type="text" wire:model="grupoNuevo" wire:keydown.enter="crearGrupo" class="input"
+                       style="width:200px;height:28px;" placeholder="{{ __('configurador.campos.grupos_nuevo') }}"/>
+                <button type="button" wire:click="crearGrupo" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
+            </div>
+        </div>
+        @error('grupoNuevo')<div style="font-size:12px;color:var(--danger-text);margin-top:6px;">{{ $message }}</div>@enderror
+    </div>
+
     <div class="card" style="padding:0;">
         <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
             <div style="position:relative;width:280px;">
@@ -32,6 +63,7 @@
                         <th style="width:160px;">{{ __('configurador.campo_codigo') }}</th>
                         <th>{{ __('configurador.campos.col_etiqueta') }}</th>
                         <th style="width:120px;">{{ __('configurador.campos.col_tipo') }}</th>
+                        <th style="width:130px;">{{ __('configurador.campos.col_grupo') }}</th>
                         <th style="width:80px;">{{ __('configurador.campos.col_obligatorio') }}</th>
                         <th class="num" style="width:70px;">{{ __('configurador.campo_orden') }}</th>
                         <th style="width:110px;">{{ __('configurador.campo_estado') }}</th>
@@ -46,6 +78,16 @@
                             <td><span class="font-mono" style="font-size:12px;">{{ $c->codigo }}</span></td>
                             <td><span style="font-weight:500;">{{ $c->etiqueta }}</span></td>
                             <td><span style="font-size:11px;color:var(--text-secondary);">{{ str_replace('_', ' ', $c->tipo) }}</span></td>
+                            <td>
+                                @if($c->grupo_nombre)
+                                    <span class="badge">{{ $c->grupo_nombre }}</span>
+                                @else
+                                    <span style="font-size:12px;color:var(--text-muted);">—</span>
+                                @endif
+                                @unless($c->visible_en_gestion)
+                                    <span class="badge badge-neutral" title="{{ __('configurador.campos.visible_en_gestion_ayuda') }}">{{ __('configurador.campos.oculto') }}</span>
+                                @endunless
+                            </td>
                             <td>
                                 @if($c->obligatorio)
                                     <span class="badge badge-warning">{{ __('configurador.resultados.si') }}</span>
@@ -130,6 +172,16 @@
                         <label class="field-label">{{ __('configurador.campos.longitud_max') }}</label>
                         <input type="number" min="1" wire:model="form.longitud_max" class="input"/>
                     </div>
+                    <div>
+                        <label class="field-label">{{ __('configurador.campos.grupo') }}</label>
+                        <select wire:model="form.grupo_campo_id" class="input">
+                            <option value="">{{ __('configurador.campos.grupo_ninguno') }}</option>
+                            @foreach($grupos as $g)
+                                <option value="{{ $g->id }}">{{ $g->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('form.grupo_campo_id')<div style="font-size:12px;color:var(--danger-text);margin-top:4px;">{{ $message }}</div>@enderror
+                    </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
@@ -148,6 +200,15 @@
                             <input type="checkbox" wire:model="form.activo"/>
                             <span style="font-size:13px;">{{ __('configurador.campos.campo_activo') }}</span>
                         </label>
+                    </div>
+                    <div>
+                        <label style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" wire:model="form.visible_en_gestion"/>
+                            <span style="font-size:13px;">{{ __('configurador.campos.visible_en_gestion') }}</span>
+                        </label>
+                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">
+                            {{ __('configurador.campos.visible_en_gestion_ayuda') }}
+                        </div>
                     </div>
                 </div>
             </div>

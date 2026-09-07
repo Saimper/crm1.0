@@ -28,17 +28,30 @@ final readonly class ServicioCamposPersonalizados
     /**
      * Devuelve los campos personalizados aplicables al ámbito dado (activos, ordenados).
      *
+     * El orden es grupo, luego posición dentro del grupo, luego id. El `id`
+     * final no es adorno: el importador escribe `orden = 0` para todos, así que
+     * los 98 campos de un proyecto empataban y el orden que veía el gestor no lo
+     * garantizaba nadie. Los campos sin grupo van al final, que es donde se
+     * espera lo que nadie ha clasificado todavía.
+     *
      * @return Collection<int, CampoPersonalizadoModel>
      */
     public function campos(int $proyectoId, AmbitoCampo $ambito, int $ambitoId): Collection
     {
         return CampoPersonalizadoModel::query()
             ->sinScopeProyecto()
-            ->where('proyecto_id', $proyectoId)
-            ->where('ambito', $ambito->value)
-            ->where('ambito_id', $ambitoId)
-            ->where('activo', true)
-            ->orderBy('orden')
+            ->from('campos_personalizados as cp')
+            ->leftJoin('grupos_campo as gc', 'gc.id', '=', 'cp.grupo_campo_id')
+            ->where('cp.proyecto_id', $proyectoId)
+            ->where('cp.ambito', $ambito->value)
+            ->where('cp.ambito_id', $ambitoId)
+            ->where('cp.activo', true)
+            ->orderByRaw('cp.grupo_campo_id is null')
+            ->orderBy('gc.orden')
+            ->orderBy('gc.id')
+            ->orderBy('cp.orden')
+            ->orderBy('cp.id')
+            ->select(['cp.*', 'gc.nombre as grupo_nombre', 'gc.codigo as grupo_codigo'])
             ->get();
     }
 

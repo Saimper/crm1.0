@@ -8,10 +8,14 @@ use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonal
 use App\Modules\CamposPersonalizados\Domain\Exceptions\CambioDeTipoNoPermitido;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
+use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
+use stdClass;
 
 /**
  * Paso 8 (opcional) del wizard F36 — CRUD de campos personalizados scoped al proyecto activo.
@@ -42,6 +46,9 @@ final class PasoCamposPersonalizados extends Component
 
     /** @var array<string, mixed> */
     public array $form = [];
+
+    /** Nombre del grupo nuevo que se está creando desde la barra de grupos. */
+    public string $grupoNuevo = '';
 
     public function mount(ProyectoModel $proyecto): void
     {
@@ -84,6 +91,8 @@ final class PasoCamposPersonalizados extends Component
             'tipo' => (string) $row->tipo,
             'obligatorio' => (bool) $row->obligatorio,
             'activo' => (bool) $row->activo,
+            'visible_en_gestion' => (bool) $row->visible_en_gestion,
+            'grupo_campo_id' => $row->grupo_campo_id === null ? null : (int) $row->grupo_campo_id,
             'orden' => (int) $row->orden,
             'longitud_max' => isset($reglas['longitud_max']) ? (int) $reglas['longitud_max'] : null,
         ];
@@ -122,6 +131,9 @@ final class PasoCamposPersonalizados extends Component
             'form.tipo' => ['required', 'in:'.implode(',', $tiposPermitidos)],
             'form.obligatorio' => ['required', 'boolean'],
             'form.activo' => ['required', 'boolean'],
+            'form.visible_en_gestion' => ['required', 'boolean'],
+            'form.grupo_campo_id' => ['nullable', 'integer', Rule::exists('grupos_campo', 'id')
+                ->where('proyecto_id', (int) $this->proyecto->id)],
             'form.orden' => ['required', 'integer', 'min:0'],
             'form.longitud_max' => ['nullable', 'integer', 'min:1', 'max:65535'],
         ], [], [
@@ -133,6 +145,8 @@ final class PasoCamposPersonalizados extends Component
             'form.tipo' => 'tipo',
             'form.obligatorio' => 'obligatorio',
             'form.activo' => 'estado',
+            'form.visible_en_gestion' => 'visible en la vista de trabajo',
+            'form.grupo_campo_id' => 'grupo',
             'form.orden' => 'orden',
             'form.longitud_max' => 'longitud máxima',
         ]);
@@ -175,6 +189,10 @@ final class PasoCamposPersonalizados extends Component
             'tipo' => (string) $this->form['tipo'],
             'obligatorio' => (bool) $this->form['obligatorio'],
             'activo' => (bool) $this->form['activo'],
+            'visible_en_gestion' => (bool) $this->form['visible_en_gestion'],
+            'grupo_campo_id' => $this->form['grupo_campo_id'] === null || $this->form['grupo_campo_id'] === ''
+                ? null
+                : (int) $this->form['grupo_campo_id'],
             'orden' => (int) $this->form['orden'],
             'reglas' => $reglas === [] ? null : json_encode($reglas),
             'actualizada_en' => Carbon::now(),
@@ -275,6 +293,7 @@ final class PasoCamposPersonalizados extends Component
         $busqueda = trim($this->busqueda);
 
         $query = DB::table('campos_personalizados as c')
+            ->leftJoin('grupos_campo as gc', 'gc.id', '=', 'c.grupo_campo_id')
             ->leftJoin('carteras as ca', function ($join): void {
                 $join->on('ca.id', '=', 'c.ambito_id')->where('c.ambito', 'caso');
             })
@@ -298,6 +317,8 @@ final class PasoCamposPersonalizados extends Component
             ->get([
                 'c.id', 'c.ambito', 'c.ambito_id', 'c.codigo', 'c.etiqueta',
                 'c.tipo', 'c.obligatorio', 'c.activo', 'c.orden',
+                'c.visible_en_gestion', 'c.grupo_campo_id',
+                'gc.nombre as grupo_nombre',
                 'ca.nombre as cartera_nombre',
                 'tg.nombre as tipo_gestion_nombre',
             ]);
@@ -321,7 +342,117 @@ final class PasoCamposPersonalizados extends Component
             'carteras' => $carteras,
             'tiposGestion' => $tiposGestion,
             'tiposCampo' => $this->tiposCampoDisponibles(),
+            'grupos' => $this->gruposDelProyecto(),
         ]);
+    }
+
+    /**
+     * Crea un grupo desde la barra, sin salir de la pantalla.
+     *
+     * El código sale del nombre porque nadie quiere escribir dos veces lo mismo
+     * para clasificar 98 campos, y es la única forma de que la operación se
+     * haga de verdad en vez de quedarse a medias.
+     */
+    public function crearGrupo(): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $nombre = trim($this->grupoNuevo);
+
+        if ($nombre === '') {
+            return;
+        }
+
+        $proyectoId = (int) $this->proyecto->id;
+        $codigo = GeneradorCodigo::derivar($nombre, 50);
+
+        $yaEsta = DB::table('grupos_campo')
+            ->where('proyecto_id', $proyectoId)
+            ->where('codigo', $codigo)
+            ->exists();
+
+        if ($yaEsta) {
+            $this->addError('grupoNuevo', 'Ya hay un grupo con ese nombre.');
+
+            return;
+        }
+
+        $siguiente = (int) DB::table('grupos_campo')->where('proyecto_id', $proyectoId)->max('orden');
+
+        DB::table('grupos_campo')->insert([
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => $nombre,
+            'activo' => true,
+            'orden' => $siguiente + 10,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        $this->grupoNuevo = '';
+        $this->resetErrorBag('grupoNuevo');
+    }
+
+    /** Un grupo con campos dentro no se borra: los dejaría sueltos sin avisar. */
+    public function eliminarGrupo(int $id): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $proyectoId = (int) $this->proyecto->id;
+
+        $enUso = DB::table('campos_personalizados')
+            ->where('proyecto_id', $proyectoId)
+            ->where('grupo_campo_id', $id)
+            ->count();
+
+        if ($enUso > 0) {
+            session()->flash(
+                'paso-campos-personalizados-error',
+                "No se puede eliminar: hay {$enUso} campos en ese grupo.",
+            );
+
+            return;
+        }
+
+        DB::table('grupos_campo')->where('id', $id)->where('proyecto_id', $proyectoId)->delete();
+    }
+
+    public function moverGrupo(int $id, int $direccion): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $proyectoId = (int) $this->proyecto->id;
+        $grupos = $this->gruposDelProyecto();
+        $posicion = $grupos->search(fn (stdClass $g): bool => (int) $g->id === $id);
+
+        if ($posicion === false) {
+            return;
+        }
+
+        $destino = $posicion + ($direccion < 0 ? -1 : 1);
+
+        if ($destino < 0 || $destino >= $grupos->count()) {
+            return;
+        }
+
+        $a = $grupos[$posicion];
+        $b = $grupos[$destino];
+
+        DB::table('grupos_campo')->where('id', $a->id)->where('proyecto_id', $proyectoId)
+            ->update(['orden' => (int) $b->orden, 'actualizada_en' => Carbon::now()]);
+        DB::table('grupos_campo')->where('id', $b->id)->where('proyecto_id', $proyectoId)
+            ->update(['orden' => (int) $a->orden, 'actualizada_en' => Carbon::now()]);
+    }
+
+    /** @return Collection<int, stdClass> */
+    private function gruposDelProyecto(): Collection
+    {
+        return DB::table('grupos_campo')
+            ->where('proyecto_id', (int) $this->proyecto->id)
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->get(['id', 'codigo', 'nombre', 'orden', 'activo'])
+            ->values();
     }
 
     /**
@@ -383,6 +514,8 @@ final class PasoCamposPersonalizados extends Component
             'tipo' => 'texto_corto',
             'obligatorio' => false,
             'activo' => true,
+            'visible_en_gestion' => true,
+            'grupo_campo_id' => null,
             'orden' => 100,
             'longitud_max' => null,
         ];

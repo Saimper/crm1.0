@@ -117,6 +117,16 @@ return [
 
     // Step: custom fields
     'campos' => [
+        'grupos_titulo' => 'Groups',
+        'grupos_ayuda' => 'They order the fields in the work view. Just a name and a position.',
+        'grupos_nuevo' => 'Group name…',
+        'grupos_confirm_eliminar' => 'Delete this group? Only if it has no fields in it.',
+        'grupo' => 'Group',
+        'grupo_ninguno' => '— No group —',
+        'col_grupo' => 'Group',
+        'oculto' => 'Hidden',
+        'visible_en_gestion' => 'Shown in the work view',
+        'visible_en_gestion_ayuda' => 'When off, the field still exists and is edited from the record, but does not appear when logging an interaction.',
         'info_opcional' => 'Optional step. Custom fields extend the project data model without schema migrations. You can complete this later from the administration panel.',
         'n_campos' => ':n fields',
         'nuevo' => 'New field',

@@ -15,6 +15,7 @@ use App\Support\Codigo\GeneradorCodigo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use stdClass;
 use Throwable;
@@ -177,6 +178,8 @@ final class AdminCamposPersonalizados extends Component
             'obligatorio' => (bool) $row->obligatorio,
             'activo' => (bool) $row->activo,
             'orden' => (int) $row->orden,
+            'visible_en_gestion' => (bool) $row->visible_en_gestion,
+            'grupo_campo_id' => $row->grupo_campo_id === null ? null : (int) $row->grupo_campo_id,
             'longitud_max' => isset($reglas['longitud_max']) ? (int) $reglas['longitud_max'] : null,
             'fecha_minima_preset' => $fechaMinPreset,
             'fecha_minima_custom' => $fechaMinCustom,
@@ -256,6 +259,9 @@ final class AdminCamposPersonalizados extends Component
             'form.obligatorio' => ['boolean'],
             'form.activo' => ['boolean'],
             'form.orden' => ['integer', 'min:0'],
+            'form.visible_en_gestion' => ['boolean'],
+            'form.grupo_campo_id' => ['nullable', 'integer', Rule::exists('grupos_campo', 'id')
+                ->where('proyecto_id', (int) ($this->form['proyecto_id'] ?? 0))],
             'form.longitud_max' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'form.fecha_minima_preset' => ['nullable', 'in:,hoy,ahora,+1d,+7d,custom'],
             'form.fecha_maxima_preset' => ['nullable', 'in:,hoy,ahora,+1d,+7d,custom'],
@@ -345,6 +351,10 @@ final class AdminCamposPersonalizados extends Component
             'obligatorio' => (bool) $this->form['obligatorio'],
             'activo' => (bool) ($this->form['activo'] ?? true),
             'orden' => (int) ($this->form['orden'] ?? 100),
+            'visible_en_gestion' => (bool) ($this->form['visible_en_gestion'] ?? true),
+            'grupo_campo_id' => ($this->form['grupo_campo_id'] ?? null) === null || $this->form['grupo_campo_id'] === ''
+                ? null
+                : (int) $this->form['grupo_campo_id'],
             'reglas' => $reglas === [] ? null : json_encode($reglas),
         ];
 
@@ -479,7 +489,33 @@ final class AdminCamposPersonalizados extends Component
             'carteras' => $carteras,
             'tiposGestion' => $tiposGestion,
             'tiposCampo' => $this->tiposCampoDisponibles(),
+            'grupos' => $this->gruposDelProyectoDelForm(),
         ]);
+
+    }
+
+    /**
+     * Los grupos del proyecto que el formulario tiene seleccionado.
+     *
+     * Aquí no hay proyecto activo —el admin global elige uno en el propio
+     * formulario—, así que la lista se resuelve desde `form.proyecto_id` y no
+     * desde el binding de tenancy.
+     *
+     * @return Collection<int, stdClass>
+     */
+    private function gruposDelProyectoDelForm(): Collection
+    {
+        $proyectoId = (int) ($this->form['proyecto_id'] ?? 0);
+
+        if ($proyectoId <= 0 || ! in_array($proyectoId, $this->proyectosEnAlcance(), true)) {
+            return collect();
+        }
+
+        return DB::table('grupos_campo')
+            ->where('proyecto_id', $proyectoId)
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->get(['id', 'nombre']);
     }
 
     // =================================================================
@@ -681,6 +717,8 @@ final class AdminCamposPersonalizados extends Component
             'obligatorio' => false,
             'activo' => true,
             'orden' => 100,
+            'visible_en_gestion' => true,
+            'grupo_campo_id' => null,
             'longitud_max' => null,
             'fecha_minima_preset' => '',
             'fecha_minima_custom' => '',

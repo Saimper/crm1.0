@@ -243,7 +243,18 @@
                                class="input @error('form.longitud_max') input-error @enderror"/>
                         @error('form.longitud_max')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="display:flex;align-items:flex-end;gap:14px;">
+                    <div>
+                        <label class="field-label">{{ __('campos_personalizados.label_group') }}</label>
+                        <select wire:model="form.grupo_campo_id" class="input @error('form.grupo_campo_id') input-error @enderror">
+                            <option value="">{{ __('campos_personalizados.group_none') }}</option>
+                            @foreach($grupos as $g)
+                                <option value="{{ $g->id }}">{{ $g->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('form.grupo_campo_id')<div class="field-error">{{ $message }}</div>@enderror
+                        <div class="field-hint">{{ __('campos_personalizados.group_hint') }}</div>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;">
                         <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
                             <input type="checkbox" wire:model="form.obligatorio" class="checkbox"/>
                             <span>{{ __('campos_personalizados.label_required') }}</span>
@@ -251,6 +262,10 @@
                         <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
                             <input type="checkbox" wire:model="form.activo" class="checkbox"/>
                             <span>{{ __('campos_personalizados.label_active') }}</span>
+                        </label>
+                        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+                            <input type="checkbox" wire:model="form.visible_en_gestion" class="checkbox"/>
+                            <span>{{ __('campos_personalizados.label_visible_gestion') }}</span>
                         </label>
                     </div>
 

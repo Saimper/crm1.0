@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'add' => 'Añadir',
+    'move_up' => 'Subir',
+    'move_down' => 'Bajar',
     'save' => 'Guardar',
     'saved' => 'Guardado.',
     'cancel' => 'Cancelar',

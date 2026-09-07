@@ -23,6 +23,7 @@ final class CampoPersonalizadoModel extends Model
         'actualizada_en' => 'immutable_datetime',
         'obligatorio' => 'boolean',
         'activo' => 'boolean',
+        'visible_en_gestion' => 'boolean',
         'orden' => 'integer',
         'reglas' => 'array',
     ];

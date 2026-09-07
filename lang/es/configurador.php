@@ -117,6 +117,16 @@ return [
 
     // Paso: campos personalizados
     'campos' => [
+        'grupos_titulo' => 'Grupos',
+        'grupos_ayuda' => 'Ordenan los campos en la vista de trabajo. Sólo un nombre y un orden.',
+        'grupos_nuevo' => 'Nombre del grupo…',
+        'grupos_confirm_eliminar' => '¿Eliminar este grupo? Sólo si no tiene campos dentro.',
+        'grupo' => 'Grupo',
+        'grupo_ninguno' => '— Sin grupo —',
+        'col_grupo' => 'Grupo',
+        'oculto' => 'Oculto',
+        'visible_en_gestion' => 'Se ve en la vista de trabajo',
+        'visible_en_gestion_ayuda' => 'Apagado, el campo sigue existiendo y se edita desde la ficha, pero no aparece al registrar una gestión.',
         'info_opcional' => 'Paso opcional. Los campos personalizados extienden el modelo de datos del proyecto sin migrar schema. Puedes completarlo después desde el panel de administración.',
         'n_campos' => ':n campos',
         'nuevo' => 'Nuevo campo',
