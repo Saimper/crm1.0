@@ -38,6 +38,27 @@ final class SelectorMandante extends Component
         $this->redirect(route('admin.dashboard'), navigate: true);
     }
 
+    /**
+     * Con un solo cliente no hay nada que elegir: pedirlo es ruido. El
+     * middleware ya lo asigna solo, así que quien llegue aquí escribiendo la URL
+     * a mano se va derecho al panel en vez de encontrarse una lista de uno.
+     */
+    public function mount(ResolutorMandanteActivo $resolutor): void
+    {
+        $usuario = auth()->user();
+
+        if ($usuario === null) {
+            return;
+        }
+
+        $unico = $resolutor->unicoPermitido($usuario);
+
+        if ($unico !== null) {
+            session()->put(ResolverMandanteActivo::CLAVE_SESION, $unico);
+            $this->redirect(route('admin.dashboard'), navigate: true);
+        }
+    }
+
     public function render(ResolutorMandanteActivo $resolutor): View
     {
         $usuario = auth()->user();

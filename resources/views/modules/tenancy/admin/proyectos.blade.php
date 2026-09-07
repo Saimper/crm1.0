@@ -49,7 +49,9 @@
                     <tr>
                         <th style="width:120px;">{{ __('tenancy.col_code') }}</th>
                         <th>{{ __('tenancy.col_name') }}</th>
-                        <th style="width:200px;">{{ __('tenancy.col_mandante') }}</th>
+                        @unless($dentroDeUnCliente)
+                            <th style="width:200px;">{{ __('tenancy.col_mandante') }}</th>
+                        @endunless
                         <th style="width:110px;">{{ __('tenancy.col_type') }}</th>
                         <th class="num" style="width:100px;">{{ __('tenancy.col_portfolios') }}</th>
                         <th style="width:110px;">{{ __('tenancy.col_status') }}</th>
@@ -67,13 +69,20 @@
                                 default    => 'badge-neutral',
                             };
                         @endphp
-                        <tr wire:key="proyecto-{{ $p->id }}" wire:click="abrirFormEditar({{ $p->id }})">
+                        {{-- El clic en la fila ENTRA al proyecto: es lo que promete el
+                             chevron de la derecha y lo que espera cualquiera. Editar y
+                             configurar son acciones aparte, cada una con su icono. --}}
+                        <tr wire:key="proyecto-{{ $p->id }}"
+                            onclick="window.location='{{ route('proyectos.dashboard', $p->id) }}'"
+                            style="cursor:pointer;">
                             <td><span class="font-mono" style="font-size:12px;">{{ $p->codigo }}</span></td>
                             <td><span style="font-weight:500;">{{ $p->nombre }}</span></td>
-                            <td>
-                                <div style="font-size:13px;color:var(--text);">{{ $p->mandante_codigo }}</div>
-                                <div style="font-size:11px;color:var(--text-tertiary);">{{ $p->mandante_nombre }}</div>
-                            </td>
+                            @unless($dentroDeUnCliente)
+                                <td>
+                                    <div style="font-size:13px;color:var(--text);">{{ $p->mandante_codigo }}</div>
+                                    <div style="font-size:11px;color:var(--text-tertiary);">{{ $p->mandante_nombre }}</div>
+                                </td>
+                            @endunless
                             <td><span class="badge {{ $tipoBadge }}">{{ $p->tipo_operacion }}</span></td>
                             <td class="num">{{ $p->total_carteras }}</td>
                             <td>
@@ -82,7 +91,23 @@
                                     {{ $p->activo ? __('tenancy.status_active') : __('tenancy.status_inactive') }}
                                 </span>
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td onclick="event.stopPropagation()" style="white-space:nowrap;">
+                                <span style="display:inline-flex;align-items:center;gap:2px;">
+                                    <button type="button" class="icon-btn"
+                                            wire:click.stop="abrirFormEditar({{ $p->id }})"
+                                            title="{{ __('tenancy.accion_editar') }}"
+                                            aria-label="{{ __('tenancy.accion_editar') }}">
+                                        <x-ui.icon name="pencil" :size="14" />
+                                    </button>
+                                    <a class="icon-btn" href="{{ route('admin.proyectos.configurar', $p->public_id) }}"
+                                       wire:navigate
+                                       title="{{ __('tenancy.accion_configurar') }}"
+                                       aria-label="{{ __('tenancy.accion_configurar') }}">
+                                        <x-ui.icon name="settings" :size="14" />
+                                    </a>
+                                    <x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);margin-left:4px;" />
+                                </span>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

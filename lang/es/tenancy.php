@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'accion_editar' => 'Editar datos',
+    'accion_configurar' => 'Configurar proyecto',
+    'accion_entrar' => 'Entrar al proyecto',
     'selector_mandante' => [
         'titulo' => 'Elige el cliente',
         'ayuda' => 'Trabajarás dentro de este cliente hasta que cambies. Solo verás sus usuarios, proyectos y carteras.',

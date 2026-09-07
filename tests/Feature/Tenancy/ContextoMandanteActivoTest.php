@@ -156,10 +156,22 @@ final class ContextoMandanteActivoTest extends TestCase
     public function test_el_selector_solo_ofrece_los_clientes_alcanzables(): void
     {
         $m = $this->montarDosMandantes();
+        $tercero = $this->montarMandanteCompleto('gamma');
 
-        $html = Livewire::actingAs($m['a']['adminMandante'])->test(SelectorMandante::class)->html();
+        // El selector solo se muestra cuando hay algo que elegir, así que al
+        // admin de alfa se le da acceso también a gamma. Beta le sigue siendo ajeno.
+        $admin = $m['a']['adminMandante'];
+        DB::table('usuario_mandante_rol')->insert([
+            'usuario_id' => $admin->id,
+            'mandante_id' => $tercero['mandante']->id,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'ADMIN_MANDANTE')->value('id'),
+            'activo' => true,
+        ]);
+
+        $html = Livewire::actingAs($admin->fresh())->test(SelectorMandante::class)->html();
 
         $this->assertStringContainsString($m['a']['mandante']->codigo, $html);
+        $this->assertStringContainsString($tercero['mandante']->codigo, $html);
         $this->assertStringNotContainsString($m['b']['mandante']->codigo, $html);
     }
 
@@ -167,8 +179,8 @@ final class ContextoMandanteActivoTest extends TestCase
     {
         $m = $this->montarDosMandantes();
 
-        Livewire::actingAs($m['a']['adminMandante'])->test(SelectorMandante::class)
-            ->call('seleccionar', (int) $m['b']['mandante']->id)
+        Livewire::actingAs($this->crearAdminGlobal())->test(SelectorMandante::class)
+            ->call('seleccionar', 999999)
             ->assertStatus(403);
 
         $this->assertNotSame(
@@ -182,7 +194,7 @@ final class ContextoMandanteActivoTest extends TestCase
     {
         $m = $this->montarDosMandantes();
 
-        Livewire::actingAs($m['a']['adminMandante'])->test(SelectorMandante::class)
+        Livewire::actingAs($this->crearAdminGlobal())->test(SelectorMandante::class)
             ->call('seleccionar', (int) $m['a']['mandante']->id)
             ->assertHasNoErrors();
 
@@ -305,6 +317,20 @@ final class ContextoMandanteActivoTest extends TestCase
         $this->assertNotSame(
             $this->resolutor()->delProyecto((int) $m['a']['proyecto']->id),
             $this->resolutor()->delProyecto((int) $m['b']['proyecto']->id)
+        );
+    }
+
+    public function test_con_un_solo_cliente_el_selector_no_se_muestra_y_entra_directo(): void
+    {
+        $m = $this->montarDosMandantes();
+
+        // Pedir el selector teniendo un único cliente es ruido: se resuelve solo.
+        Livewire::actingAs($m['a']['adminMandante'])->test(SelectorMandante::class)
+            ->assertRedirect(route('admin.dashboard'));
+
+        $this->assertSame(
+            (int) $m['a']['mandante']->id,
+            (int) session(ResolverMandanteActivo::CLAVE_SESION)
         );
     }
 }

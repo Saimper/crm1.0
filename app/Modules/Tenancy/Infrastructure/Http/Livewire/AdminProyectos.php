@@ -290,7 +290,12 @@ final class AdminProyectos extends Component
             ? null
             : $mandantes->firstWhere('id', (int) ($this->form['mandante_id'] ?? 0));
 
+        // Dentro de un cliente, repetir su nombre en cada fila es ruido: ya lo
+        // dice el contexto. La columna solo aparece cuando de verdad hay mezcla.
+        $dentroDeUnCliente = app()->bound('tenancy.mandante_activo');
+
         return view('tenancy::admin.proyectos', [
+            'dentroDeUnCliente' => $dentroDeUnCliente,
             'proyectos' => $proyectos,
             'mandantes' => $mandantes,
             'mandanteEnEdicion' => $mandanteEnEdicion,

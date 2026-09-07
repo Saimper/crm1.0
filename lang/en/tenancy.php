@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'accion_editar' => 'Edit details',
+    'accion_configurar' => 'Configure project',
+    'accion_entrar' => 'Open project',
     'selector_mandante' => [
         'titulo' => 'Choose a client',
         'ayuda' => 'You will work inside this client until you switch. You will only see its users, projects and portfolios.',
