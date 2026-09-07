@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Cobranza\Application\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -136,7 +137,7 @@ final class AsignarTramosMoraCommand extends Command
     /**
      * `dias_hasta` nulo significa "sin tope", que es el último tramo de la escalera.
      *
-     * @param  \Illuminate\Support\Collection<int, \stdClass>  $tramos
+     * @param  Collection<int, \stdClass>  $tramos
      */
     private function tramoPara($tramos, int $diasMora): ?int
     {

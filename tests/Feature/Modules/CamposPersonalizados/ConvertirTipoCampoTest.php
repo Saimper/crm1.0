@@ -39,7 +39,7 @@ final class ConvertirTipoCampoTest extends TestCase
             'ambito' => 'caso',
             'ambito_id' => 1,
             'codigo' => $codigo,
-            'nombre' => $codigo,
+            'etiqueta' => $codigo,
             'tipo' => 'texto_corto',
             'obligatorio' => false,
             'activo' => true,

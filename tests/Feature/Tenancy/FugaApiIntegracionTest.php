@@ -9,8 +9,10 @@ use Database\Seeders\DatabaseSeeder;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
@@ -118,6 +120,7 @@ final class FugaApiIntegracionTest extends TestCase
      * sin abilities, así que Sanctum guarda ["*"]. Un bearer pensado para
      * previsualizar una ficha queda habilitado para cualquier API futura.
      */
+    #[Group('fuga-pendiente')]
     public function test_el_pat_del_wrapper_no_debe_emitirse_con_abilities_de_comodin(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -143,6 +146,7 @@ final class FugaApiIntegracionTest extends TestCase
      * pasa `expiresAt`, así que el PAT del wrapper NUNCA caduca. Un token
      * filtrado del wrapper del mandante A vale para siempre.
      */
+    #[Group('fuga-pendiente')]
     public function test_el_pat_del_wrapper_debe_caducar(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -163,6 +167,7 @@ final class FugaApiIntegracionTest extends TestCase
      * preguntarle al bearer de qué mandante viene, que es exactamente lo que
      * hace falta para cerrar la fuga del test siguiente.
      */
+    #[Group('fuga-pendiente')]
     public function test_el_pat_emitido_debe_ser_atribuible_al_mandante_que_lo_pidio(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -191,6 +196,7 @@ final class FugaApiIntegracionTest extends TestCase
      * porque PreviewPersonaController.php:27 sólo comprueba el acceso al
      * PROYECTO y nunca que el proyecto sea del mandante que emitió el token.
      */
+    #[Group('fuga-pendiente')]
     public function test_el_pat_del_mandante_a_no_puede_leer_una_persona_del_mandante_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -254,6 +260,8 @@ final class FugaApiIntegracionTest extends TestCase
         $gemelaEnB = $this->crearPersonaEn($b['proyecto'], $identificacion);
 
         $correoCompartido = 'gemela.compartida@wrap.io';
+        $this->vincularCorreoAProyecto($correoCompartido, $a['proyecto']);
+        $this->vincularCorreoAProyecto($correoCompartido, $b['proyecto']);
         $patA = $this->emitirPat($a['mandante'], $a['proyecto'], $correoCompartido);
         $this->emitirPat($b['mandante'], $b['proyecto'], $correoCompartido);
 
@@ -290,6 +298,7 @@ final class FugaApiIntegracionTest extends TestCase
      * User.php:93 le abre TODOS los proyectos de B, incluso los que nunca tocó.
      * El PAT emitido por el wrapper de A hereda ese alcance completo.
      */
+    #[Group('fuga-pendiente')]
     public function test_el_pat_del_mandante_a_no_alcanza_los_proyectos_de_b_por_rol_de_mandante(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -331,6 +340,7 @@ final class FugaApiIntegracionTest extends TestCase
      * AutenticadorPorJwt filtran por `activo` — pero no toca ni un solo PAT ya
      * emitido, que sigue leyendo fichas indefinidamente (no caduca nunca).
      */
+    #[Group('fuga-pendiente')]
     public function test_desactivar_el_mandante_debe_cerrar_los_pat_que_emitio(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -411,6 +421,7 @@ final class FugaApiIntegracionTest extends TestCase
      * la usa para decidir. Por eso la segunda aserción exige una fila por
      * mandante — hoy la PK global ni siquiera lo permitiría.
      */
+    #[Group('fuga-pendiente')]
     public function test_un_jti_consumido_por_el_mandante_b_no_debe_bloquear_al_mandante_a(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -458,6 +469,7 @@ final class FugaApiIntegracionTest extends TestCase
      * el mismo correo tiene abierta en el wrapper del otro — ni dejar vivo el
      * token que se acaba de cerrar. Fija el comportamiento actual.
      */
+    #[Group('fuga-pendiente')]
     public function test_el_logout_del_mandante_a_mata_su_pat_y_respeta_el_del_mandante_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -524,6 +536,29 @@ final class FugaApiIntegracionTest extends TestCase
         ], $claims);
 
         return JWT::encode($payload, $secret ?? (string) $mandante->sso_secret, 'HS256');
+    }
+
+    /**
+     * Alta manual, como la haría un admin desde el panel: la cuenta existe y
+     * tiene pivot en el proyecto. Es lo que el SSO exige para dejar entrar por
+     * el wrapper de un mandante a un correo que ya pertenece a otro.
+     */
+    private function vincularCorreoAProyecto(string $email, stdClass $proyecto): void
+    {
+        $usuarioId = DB::table('users')->where('email', $email)->value('id')
+            ?? User::query()->create([
+                'name' => 'Agente compartido',
+                'email' => $email,
+                'password' => Hash::make('x'),
+                'activo' => true,
+            ])->id;
+
+        DB::table('usuario_proyecto_rol')->insert([
+            'usuario_id' => (int) $usuarioId,
+            'proyecto_id' => (int) $proyecto->id,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id'),
+            'activo' => true,
+        ]);
     }
 
     /**

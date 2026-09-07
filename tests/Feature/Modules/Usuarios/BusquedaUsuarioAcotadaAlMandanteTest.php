@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Usuarios;
 
+use App\Models\User;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\GestionUsuariosProyecto;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -78,7 +79,7 @@ final class BusquedaUsuarioAcotadaAlMandanteTest extends TestCase
         $proyecto = $this->crearProyectoCobranza($mandante);
         $supervisor = $this->crearSupervisor($proyecto);
 
-        $reciente = \App\Models\User::query()->create([
+        $reciente = User::query()->create([
             'name' => 'Alta Manual',
             'email' => 'suelto@crm.local',
             'password' => bcrypt('x'),

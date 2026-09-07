@@ -6,6 +6,7 @@ namespace App\Modules\CamposPersonalizados\Application\Console\Commands;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -59,7 +60,7 @@ final class ConvertirTipoCampoCommand extends Command
         $tipoDestino = (string) $this->argument('tipo');
         $seco = (bool) $this->option('dry-run');
 
-        if (! isset(self::COLUMNA[$tipoDestino]) || TipoCampo::tryFrom($tipoDestino) === null) {
+        if (! isset(self::COLUMNA[$tipoDestino])) {
             $this->error("Tipo destino no soportado: {$tipoDestino}. Admitidos: ".implode(', ', array_keys(self::COLUMNA)));
 
             return self::FAILURE;
@@ -137,7 +138,7 @@ final class ConvertirTipoCampoCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @param \Illuminate\Support\Collection<int, \stdClass> $valores */
+    /** @param Collection<int, \stdClass> $valores */
     private function tieneCerosALaIzquierda($valores, string $origen): bool
     {
         foreach ($valores as $v) {
@@ -152,7 +153,7 @@ final class ConvertirTipoCampoCommand extends Command
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, \stdClass>  $valores
+     * @param  Collection<int, \stdClass>  $valores
      * @return array{0: array<int, string>, 1: list<string>}
      */
     private function traducir($valores, string $origen, string $tipoDestino): array

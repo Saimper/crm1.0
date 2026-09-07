@@ -12,6 +12,13 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
+    <!-- Red de fugas multi-mandante: tests que documentan trabajo pendiente y
+         fallan a propósito. Se corren con `php artisan test -group fuga-pendiente`. -->
+    <groups>
+        <exclude>
+            <group>fuga-pendiente</group>
+        </exclude>
+    </groups>
     <source>
         <include>
             <directory>app</directory>

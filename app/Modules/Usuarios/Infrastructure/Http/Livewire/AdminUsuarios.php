@@ -185,6 +185,8 @@ final class AdminUsuarios extends Component
 
     public function abrirFormAsignacion(int $usuarioId): void
     {
+        $this->guardContraUsuarioDeOtroMandante($usuarioId);
+
         $this->usuarioAsignandoId = $usuarioId;
         $this->asignarProyectoId = null;
         $this->asignarRolId = null;
@@ -212,6 +214,7 @@ final class AdminUsuarios extends Component
             'asignarRolId' => 'rol',
         ]);
 
+        $this->guardContraUsuarioDeOtroMandante((int) $this->usuarioAsignandoId);
         $this->guardContraProyectoAjeno((int) $this->asignarProyectoId);
 
         // Un usuario puede tener múltiples roles en el mismo proyecto (PK compuesta usuario+proyecto+rol).
@@ -234,6 +237,7 @@ final class AdminUsuarios extends Component
 
     public function quitarAsignacion(int $usuarioId, int $proyectoId, int $rolId): void
     {
+        $this->guardContraUsuarioDeOtroMandante($usuarioId);
         $this->guardContraProyectoAjeno($proyectoId);
 
         DB::table('usuario_proyecto_rol')
@@ -406,6 +410,33 @@ final class AdminUsuarios extends Component
 
         if (! $enAlcance) {
             abort(403, 'Ese usuario no pertenece a tu alcance.');
+        }
+    }
+
+    /**
+     * Variante para asignaciones: una cuenta recién creada desde el panel aún no
+     * pertenece a nadie y debe poder asignarse; lo que se corta es traerse a un
+     * usuario que ya vive en otro mandante.
+     */
+    private function guardContraUsuarioDeOtroMandante(int $usuarioId): void
+    {
+        if ($this->mandantesPermitidos() === null) {
+            return;
+        }
+
+        $tienePivots = DB::table('usuario_proyecto_rol')->where('usuario_id', $usuarioId)->exists()
+            || DB::table('usuario_mandante_rol')->where('usuario_id', $usuarioId)->exists();
+
+        if ($tienePivots) {
+            $this->guardContraUsuarioAjeno($usuarioId);
+
+            return;
+        }
+
+        $objetivoEsGlobal = DB::table('usuario_global_rol')->where('usuario_id', $usuarioId)->exists();
+
+        if ($objetivoEsGlobal) {
+            abort(403, 'No puedes gestionar a un usuario con rol global.');
         }
     }
 

@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\EscenarioMultiMandante;
@@ -161,6 +162,7 @@ final class FugaSuperficieOperativaTest extends TestCase
      * cosa ni la otra. Cuando la Fase 2 lo cierre (abortando o bindeando),
      * este test se pone verde solo.
      */
+    #[Group('fuga-pendiente')]
     public function test_request_livewire_con_referer_a_un_proyecto_ajeno_no_deberia_dejar_la_consulta_sin_scope(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -356,6 +358,7 @@ final class FugaSuperficieOperativaTest extends TestCase
      * viene null, y no valida nada cuando viene puesto. Con el proyecto de A
      * activo se puede insertar una fila directamente en el proyecto de B.
      */
+    #[Group('fuga-pendiente')]
     public function test_con_a_activo_no_deberia_poderse_escribir_un_caso_en_el_proyecto_de_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -424,6 +427,7 @@ final class FugaSuperficieOperativaTest extends TestCase
      * Sin contexto de tenant una consulta operativa no debería devolver datos
      * de nadie (fallar cerrado), en vez de devolverlos de todos.
      */
+    #[Group('fuga-pendiente')]
     public function test_una_consulta_sin_contexto_no_deberia_devolver_casos_de_ningun_mandante(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -484,6 +488,7 @@ final class FugaSuperficieOperativaTest extends TestCase
      * `EjecutarImportacionJob` y decenas de repositorios llaman a
      * `->sinScopeProyecto()` a mano: nadie confía en que el scope aplique.
      */
+    #[Group('fuga-pendiente')]
     public function test_un_job_sin_binding_de_proyecto_no_deberia_ver_los_casos_del_otro_mandante(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();

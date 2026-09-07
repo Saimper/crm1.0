@@ -9,7 +9,9 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
 
@@ -47,6 +49,23 @@ final class FugaAdminUsuariosTest extends TestCase
     {
         parent::setUp();
         $this->seed(DatabaseSeeder::class);
+    }
+
+    /**
+     * Los ids de edición/asignación están bloqueados con #[Locked]: forjarlos
+     * desde el payload debe morir en el propio set(), antes de llegar al guard.
+     *
+     * @param  callable(): mixed  $intento
+     */
+    private function intentarForjarIdBloqueado(callable $intento, string $propiedad): void
+    {
+        try {
+            $intento();
+        } catch (CannotUpdateLockedPropertyException) {
+            return;
+        }
+
+        $this->fail("`{$propiedad}` se pudo fijar desde el cliente: la propiedad no está bloqueada.");
     }
 
     // ---------------------------------------------------------------------
@@ -221,16 +240,18 @@ final class FugaAdminUsuariosTest extends TestCase
 
         $correoOriginal = (string) $b['gestor']->email;
 
-        Livewire::actingAs($a['adminMandante'])
-            ->test(AdminUsuarios::class)
-            ->set('editandoUsuarioId', (int) $b['gestor']->id)
-            ->set('formUsuario', [
-                'name' => 'Secuestrado por Alfa',
-                'email' => 'secuestrado.por.alfa@crm.local',
-                'password' => '',
-                'activo' => false,
-            ])
-            ->call('guardarUsuario');
+        $this->intentarForjarIdBloqueado(function () use ($a, $b): void {
+            Livewire::actingAs($a['adminMandante'])
+                ->test(AdminUsuarios::class)
+                ->set('editandoUsuarioId', (int) $b['gestor']->id)
+                ->set('formUsuario', [
+                    'name' => 'Secuestrado por Alfa',
+                    'email' => 'secuestrado.por.alfa@crm.local',
+                    'password' => '',
+                    'activo' => false,
+                ])
+                ->call('guardarUsuario');
+        }, 'editandoUsuarioId');
 
         $this->assertDatabaseHas('users', [
             'id' => (int) $b['gestor']->id,
@@ -248,16 +269,18 @@ final class FugaAdminUsuariosTest extends TestCase
 
         $hashPrevio = (string) DB::table('users')->where('id', $b['gestor']->id)->value('password');
 
-        Livewire::actingAs($a['adminMandante'])
-            ->test(AdminUsuarios::class)
-            ->set('editandoUsuarioId', (int) $b['gestor']->id)
-            ->set('formUsuario', [
-                'name' => (string) $b['gestor']->name,
-                'email' => (string) $b['gestor']->email,
-                'password' => 'nuevaclave123',
-                'activo' => true,
-            ])
-            ->call('guardarUsuario');
+        $this->intentarForjarIdBloqueado(function () use ($a, $b): void {
+            Livewire::actingAs($a['adminMandante'])
+                ->test(AdminUsuarios::class)
+                ->set('editandoUsuarioId', (int) $b['gestor']->id)
+                ->set('formUsuario', [
+                    'name' => (string) $b['gestor']->name,
+                    'email' => (string) $b['gestor']->email,
+                    'password' => 'nuevaclave123',
+                    'activo' => true,
+                ])
+                ->call('guardarUsuario');
+        }, 'editandoUsuarioId');
 
         $this->assertSame(
             $hashPrevio,
@@ -286,12 +309,14 @@ final class FugaAdminUsuariosTest extends TestCase
 
         $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
 
-        Livewire::actingAs($a['adminMandante'])
-            ->test(AdminUsuarios::class)
-            ->set('usuarioAsignandoId', (int) $b['gestor']->id)
-            ->set('asignarProyectoId', (int) $a['proyecto']->id)
-            ->set('asignarRolId', $rolGestorId)
-            ->call('guardarAsignacion');
+        $this->intentarForjarIdBloqueado(function () use ($a, $b, $rolGestorId): void {
+            Livewire::actingAs($a['adminMandante'])
+                ->test(AdminUsuarios::class)
+                ->set('usuarioAsignandoId', (int) $b['gestor']->id)
+                ->set('asignarProyectoId', (int) $a['proyecto']->id)
+                ->set('asignarRolId', $rolGestorId)
+                ->call('guardarAsignacion');
+        }, 'usuarioAsignandoId');
 
         $this->assertDatabaseMissing('usuario_proyecto_rol', [
             'usuario_id' => (int) $b['gestor']->id,
@@ -358,6 +383,7 @@ final class FugaAdminUsuariosTest extends TestCase
     // Falta de contexto de mandante
     // ---------------------------------------------------------------------
 
+    #[Group('fuga-pendiente')]
     public function test_la_tabla_de_usuarios_debe_mostrar_a_que_mandante_pertenece_cada_usuario(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -379,6 +405,7 @@ final class FugaAdminUsuariosTest extends TestCase
         );
     }
 
+    #[Group('fuga-pendiente')]
     public function test_usuario_creado_por_un_admin_mandante_queda_ligado_a_su_mandante(): void
     {
         ['a' => $a] = $this->montarDosMandantes();

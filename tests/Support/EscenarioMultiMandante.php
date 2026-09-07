@@ -158,7 +158,7 @@ trait EscenarioMultiMandante
     protected function idsDe(iterable $filas): array
     {
         return (new Collection($filas))
-            ->map(fn ($f): int => (int) (is_object($f) ? $f->id : $f['id']))
+            ->map(fn ($f): int => is_scalar($f) ? (int) $f : (int) (is_object($f) ? $f->id : $f['id']))
             ->values()
             ->all();
     }

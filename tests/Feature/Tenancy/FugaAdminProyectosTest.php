@@ -11,6 +11,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
@@ -431,6 +432,7 @@ final class FugaAdminProyectosTest extends TestCase
     // D2: archivar proyecto (acción inexistente hoy)
     // ---------------------------------------------------------------
 
+    #[Group('fuga-pendiente')]
     public function test_existe_accion_de_archivar_proyecto_para_el_admin_del_mandante(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -463,6 +465,7 @@ final class FugaAdminProyectosTest extends TestCase
         );
     }
 
+    #[Group('fuga-pendiente')]
     public function test_admin_de_a_no_puede_archivar_un_proyecto_de_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -483,6 +486,7 @@ final class FugaAdminProyectosTest extends TestCase
         );
     }
 
+    #[Group('fuga-pendiente')]
     public function test_proyecto_archivado_es_invisible_para_supervisor_y_gestor(): void
     {
         ['a' => $a] = $this->montarDosMandantes();

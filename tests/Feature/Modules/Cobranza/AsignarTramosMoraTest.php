@@ -59,6 +59,7 @@ final class AsignarTramosMoraTest extends TestCase
         DB::table('casos_cobranza')->insert([
             'caso_id' => $casoId,
             'proyecto_id' => $proyecto->id,
+            'numero_prestamo' => "P-{$casoId}",
             'dias_mora' => $diasMora,
         ]);
 

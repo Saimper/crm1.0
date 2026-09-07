@@ -11,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
@@ -80,7 +81,7 @@ final class EscrituraUsuariosFueraDeAlcanceTest extends TestCase
         $admin = $this->crearAdminMandante($mandante);
         $global = $this->crearAdminGlobal();
 
-        $this->expectException(\Livewire\Exceptions\CannotUpdateLockedPropertyException::class);
+        $this->expectException(CannotUpdateLockedPropertyException::class);
 
         Livewire::actingAs($admin)->test(AdminUsuarios::class)
             ->set('editandoUsuarioId', $global->id);

@@ -25,7 +25,7 @@ use Illuminate\Database\Eloquent\Scope;
  * ahora rompería el propio ResolverProyectoActivo, que consulta proyectos antes
  * de que exista mandante activo. Lo aplica la Fase 3, pantalla por pantalla.
  */
-trait PerteneceAMandante
+trait PerteneceAMandante // @phpstan-ignore trait.unused
 {
     protected static function bootPerteneceAMandante(): void
     {
