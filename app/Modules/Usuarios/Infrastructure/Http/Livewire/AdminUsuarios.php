@@ -104,12 +104,17 @@ final class AdminUsuarios extends Component
         }
 
         if ($this->editandoUsuarioId === null) {
-            User::query()->create([
+            $nuevo = User::query()->create([
                 'name' => (string) $this->formUsuario['name'],
                 'email' => strtolower((string) $this->formUsuario['email']),
                 'password' => Hash::make((string) $this->formUsuario['password']),
                 'activo' => (bool) ($this->formUsuario['activo'] ?? true),
             ]);
+
+            // Nace ligado al cliente en el que se está trabajando. Sin esto el
+            // usuario quedaba huérfano y el propio filtro de la pantalla lo
+            // escondía de quien acababa de crearlo.
+            $this->ligarAlClienteActivo((int) $nuevo->id);
         } else {
             $u = User::query()->findOrFail($this->editandoUsuarioId);
             $u->name = (string) $this->formUsuario['name'];
@@ -214,6 +219,9 @@ final class AdminUsuarios extends Component
             'asignarRolId' => 'rol',
         ]);
 
+        // El guard de proyecto no basta: con un proyecto propio deja pasar a
+        // cualquier usuario. Así es como un empleado del cliente B acababa
+        // dentro del proyecto del cliente A.
         $this->guardContraUsuarioDeOtroMandante((int) $this->usuarioAsignandoId);
         $this->guardContraProyectoAjeno((int) $this->asignarProyectoId);
 
@@ -293,6 +301,18 @@ final class AdminUsuarios extends Component
             ->select([
                 'u.id', 'u.name', 'u.email', 'u.activo',
                 DB::raw('max(case when rg.codigo = "ADMIN_GLOBAL" then 1 else 0 end) as es_admin_global'),
+                // De qué cliente es cada fila. Sin esta columna la tabla mezclaba
+                // empresas sin decirlo, que es justo cómo se borra a quien no toca.
+                DB::raw('(select group_concat(distinct m.codigo order by m.codigo separator ", ")
+                            from mandantes m
+                           where m.id in (
+                                 select p.mandante_id from usuario_proyecto_rol upr2
+                                   join proyectos p on p.id = upr2.proyecto_id
+                                  where upr2.usuario_id = u.id and upr2.activo = 1
+                                 union
+                                 select umr2.mandante_id from usuario_mandante_rol umr2
+                                  where umr2.usuario_id = u.id and umr2.activo = 1
+                           )) as mandante_codigo'),
             ])
             ->groupBy('u.id', 'u.name', 'u.email', 'u.activo')
             ->orderBy('u.name')
@@ -343,9 +363,26 @@ final class AdminUsuarios extends Component
         ]);
     }
 
-    /** @return list<int>|null */
+    /**
+     * Los mandantes cuyos usuarios se pueden ver y tocar desde esta pantalla.
+     * `null` significa «sin restricción», y a partir de aquí eso casi nunca pasa.
+     *
+     * Antes el ADMIN_GLOBAL devolvía siempre null y por eso veía los usuarios de
+     * las cuatro empresas en una sola tabla, sin ninguna señal de a quién
+     * pertenecía cada uno. Era el riesgo que el dueño describió: borrar por error
+     * a alguien de otro cliente. Ahora manda el CLIENTE ACTIVO (decisión D1): el
+     * admin global sigue alcanzándolos todos, pero trabaja dentro de uno y ve uno.
+     *
+     * @return list<int>|null
+     */
     private function mandantesPermitidos(): ?array
     {
+        if (app()->bound('tenancy.mandante_activo')) {
+            $mandante = app('tenancy.mandante_activo');
+
+            return [(int) (is_object($mandante) ? $mandante->id : $mandante)];
+        }
+
         $usuario = auth()->user();
         if ($usuario === null || $usuario->esAdminGlobal()) {
             return null;
@@ -370,6 +407,55 @@ final class AdminUsuarios extends Component
             ->pluck('id')
             ->map(fn (mixed $v): int => (int) $v)
             ->all();
+    }
+
+    /**
+     * El cliente en el que transcurre esta acción.
+     *
+     * El binding lo publica el middleware, así que en una petición HTTP normal
+     * está. Pero no puede ser la única fuente: en una acción de Livewire probada
+     * en aislamiento no hay middleware, y un admin que administra un solo cliente
+     * no tiene ninguna ambigüedad que resolver. Se cae a él antes que a nada.
+     */
+    private function clienteDondeSeEstaTrabajando(): ?int
+    {
+        if (app()->bound('tenancy.mandante_activo')) {
+            $mandante = app('tenancy.mandante_activo');
+
+            return (int) (is_object($mandante) ? $mandante->id : $mandante);
+        }
+
+        $propios = $this->mandantesPermitidos();
+
+        return is_array($propios) && count($propios) === 1 ? $propios[0] : null;
+    }
+
+    /**
+     * Deja constancia de a qué cliente pertenece un usuario recién creado.
+     *
+     * Se usa el pivot de mandante y no una columna en `users` a propósito: es el
+     * mecanismo que ya existe (F38) y el que consultan el resto de pantallas.
+     */
+    private function ligarAlClienteActivo(int $usuarioId): void
+    {
+        $mandanteId = $this->clienteDondeSeEstaTrabajando();
+
+        if ($mandanteId === null) {
+            return;
+        }
+
+        $rolId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
+
+        if ($rolId <= 0) {
+            return;
+        }
+
+        DB::table('usuario_mandante_rol')->insertOrIgnore([
+            'usuario_id' => $usuarioId,
+            'mandante_id' => $mandanteId,
+            'rol_id' => $rolId,
+            'activo' => true,
+        ]);
     }
 
     /**

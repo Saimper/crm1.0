@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenancy;
 
+use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverMandanteActivo;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminUsuarios;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -173,27 +174,30 @@ final class FugaAdminUsuariosTest extends TestCase
      * admin global opera dentro de un cliente a la vez) este test debe
      * reescribirse: es la foto del "antes", no un contrato deseado.
      */
-    public function test_d1_a_cambiar_admin_global_hoy_ve_usuarios_de_todos_los_mandantes(): void
+    /**
+     * D1, ya aplicado: el administrador global deja de ver la base entera.
+     *
+     * Se prueba por HTTP a propósito. En un test de componente no corre el
+     * middleware, no hay cliente activo, y la pantalla cae al comportamiento
+     * antiguo — con lo que el test pasaría sin demostrar nada.
+     */
+    public function test_el_admin_global_solo_ve_los_usuarios_del_cliente_en_el_que_esta(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
+        $global = $this->crearAdminGlobal();
 
-        $componente = Livewire::actingAs($this->crearAdminGlobal())->test(AdminUsuarios::class);
+        $html = $this->actingAs($global)
+            ->withSession([ResolverMandanteActivo::CLAVE_SESION => (int) $a['mandante']->id])
+            ->get('/admin/usuarios')
+            ->assertOk()
+            ->getContent();
 
-        $ids = $this->idsDe($componente->viewData('usuarios'));
-
-        $this->assertContains((int) $a['gestor']->id, $ids);
-        $this->assertContains(
-            (int) $b['gestor']->id,
-            $ids,
-            'Si esto falla, D1 ya se implementó: reescribe este test como aislamiento.'
-        );
-
-        $html = $componente->html();
+        $this->assertIsString($html);
         $this->assertStringContainsString((string) $a['gestor']->email, $html);
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             (string) $b['gestor']->email,
             $html,
-            'Foto del antes: una sola pantalla mezcla los correos de dos empresas cliente.'
+            'Dentro de un cliente, el admin global no puede ver usuarios de otro.'
         );
     }
 
@@ -258,7 +262,6 @@ final class FugaAdminUsuariosTest extends TestCase
             'email' => $correoOriginal,
             'activo' => true,
         ]);
-
         $this->assertDatabaseMissing('users', ['email' => 'secuestrado.por.alfa@crm.local']);
         $this->assertDatabaseMissing('users', ['name' => 'Secuestrado por Alfa']);
     }
@@ -285,7 +288,7 @@ final class FugaAdminUsuariosTest extends TestCase
         $this->assertSame(
             $hashPrevio,
             (string) DB::table('users')->where('id', $b['gestor']->id)->value('password'),
-            'Un admin de otra empresa reescribió la contraseña: puede suplantar al usuario.'
+            'La contraseña de un usuario de otra empresa no puede cambiar: sería suplantación.'
         );
     }
 

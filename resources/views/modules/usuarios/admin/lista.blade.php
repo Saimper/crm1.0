@@ -47,6 +47,7 @@
                     <tr>
                         <th>{{ __('usuarios.col_name') }}</th>
                         <th style="width:240px;">{{ __('usuarios.col_email') }}</th>
+                        <th style="width:140px;">{{ __('usuarios.col_cliente') }}</th>
                         <th style="width:160px;">{{ __('usuarios.col_global_role') }}</th>
                         <th class="num" style="width:100px;">{{ __('usuarios.col_assignments') }}</th>
                         <th style="width:110px;">{{ __('usuarios.col_status') }}</th>
@@ -65,6 +66,14 @@
                                 </div>
                             </td>
                             <td><span class="font-mono" style="font-size:12px;">{{ $u->email }}</span></td>
+                            {{-- De qué empresa es. Sin esto la tabla mezcla clientes sin decirlo. --}}
+                            <td>
+                                @if($u->mandante_codigo)
+                                    <span class="badge badge-neutral" style="font-size:11px;">{{ $u->mandante_codigo }}</span>
+                                @else
+                                    <span style="color:var(--text-tertiary);font-size:12px;">{{ __('usuarios.sin_cliente') }}</span>
+                                @endif
+                            </td>
                             <td>
                                 @if($u->es_admin_global)
                                     <span class="badge badge-danger">ADMIN_GLOBAL</span>

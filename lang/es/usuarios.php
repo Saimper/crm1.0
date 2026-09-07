@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'col_cliente' => 'Cliente',
+    'sin_cliente' => 'sin cliente',
     // Páginas (page wrappers)
     'page_equipos_title' => 'Equipos del proyecto',
     'page_usuarios_proyecto_title' => 'Usuarios del proyecto',
