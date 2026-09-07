@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'fields_ungrouped' => 'Sin grupo',
     'currency_symbol' => 'USD',
     'entidad_singular' => [
         'cobranza' => 'cuenta',
@@ -119,7 +120,7 @@ return [
     'field_duration' => 'Duración (seg)',
     'field_notes' => 'Notas (opcional)',
     'notes_placeholder' => 'Complemento libre. No extraigas datos de aquí, usa los campos estructurados.',
-    'ctrl_enter_hint' => 'Ctrl+Enter para guardar.',
+    'ctrl_enter_hint' => 'Ctrl+Enter o ⌘+Enter para guardar.',
     'submit_gestion' => 'Registrar gestión',
 
     // Compromisos inline en nueva gestión

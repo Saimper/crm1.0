@@ -1,6 +1,10 @@
+{{-- El atajo iba en `.window`, así que también disparaba mientras se escribía
+     en el panel de entidades vinculadas, que es otro componente Livewire vivo
+     en la misma pantalla. Acotado al formulario, y con Cmd para macOS. --}}
 <div class="bg-white border border-ink-200 rounded-lg p-4"
      x-data
-     @keydown.ctrl.enter.window="$wire.guardar()">
+     @keydown.ctrl.enter="$wire.guardar()"
+     @keydown.meta.enter="$wire.guardar()">
 
     <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('casos.gestion_title') }}</h3>
@@ -127,62 +131,6 @@
         </div>
     @endif
 
-    {{-- Campos personalizados ámbito caso × cartera. Siempre visibles si el caso tiene definiciones. --}}
-    @if($camposCaso->isNotEmpty())
-        <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
-            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-secondary);letter-spacing:0.06em;">
-                {{ __('casos.case_fields_title', ['entidad' => $rotuloCaso]) }}
-            </h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                @foreach($camposCaso as $campo)
-                    <div>
-                        <label class="block text-xs font-medium text-ink-700">
-                            {{ $campo->etiqueta }}
-                            @if($campo->obligatorio)<span class="text-danger-600">*</span>@endif
-                        </label>
-                        @switch($campo->tipo)
-                            @case('texto_corto')
-                                <input type="text" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('texto_largo')
-                                <textarea wire:model="valoresCamposCaso.{{ $campo->codigo }}" rows="2"
-                                          class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"></textarea>
-                                @break
-                            @case('numero_entero')
-                                <input type="number" step="1" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('numero_decimal')
-                            @case('moneda')
-                                <input type="text" wire:model="valoresCamposCaso.{{ $campo->codigo }}" placeholder="0.00"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('fecha')
-                                <input type="date" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('fecha_hora')
-                                <input type="datetime-local" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                                @break
-                            @case('booleano')
-                                <select wire:model="valoresCamposCaso.{{ $campo->codigo }}"
-                                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
-                                    <option value="">—</option>
-                                    <option value="1">{{ __('casos.yes') }}</option>
-                                    <option value="0">{{ __('casos.no') }}</option>
-                                </select>
-                                @break
-                            @default
-                                <input type="text" wire:model="valoresCamposCaso.{{ $campo->codigo }}"
-                                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                        @endswitch
-                    </div>
-                @endforeach
-            </div>
-        </div>
-    @endif
 
     @if($requiereCompromiso && $tipoCaso === 'cobranza')
         <div class="mt-3 rounded-md border border-warning-200 bg-warning-50 p-3">
@@ -329,11 +277,15 @@
         </div>
     @endif
 
-    <div class="mt-4 flex items-center justify-between">
+    {{-- Pegada abajo: con los campos condicionales desplegados el botón se iba
+         fuera de pantalla y había que rebuscarlo. --}}
+    <div class="sticky bottom-0 -mx-4 -mb-4 mt-4 flex items-center justify-between gap-3
+                border-t border-ink-200 bg-white/95 px-4 py-3 backdrop-blur">
         <div class="text-[10px] text-ink-500">{{ __('casos.ctrl_enter_hint') }}</div>
-        <button type="button" wire:click="guardar"
-                class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
-            {{ __('casos.submit_gestion') }}
+        <button type="button" wire:click="guardar" wire:loading.attr="disabled"
+                class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-60">
+            <span wire:loading.remove wire:target="guardar">{{ __('casos.submit_gestion') }}</span>
+            <span wire:loading wire:target="guardar">{{ __('common.saving') }}</span>
         </button>
     </div>
 </div>

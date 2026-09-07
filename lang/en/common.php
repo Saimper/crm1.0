@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'saving' => 'Saving…',
     'copy' => 'copy',
     'copied' => 'copied',
     'add' => 'Add',

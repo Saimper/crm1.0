@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'fields_ungrouped' => 'Ungrouped',
     'currency_symbol' => 'USD',
     'entidad_singular' => [
         'cobranza' => 'account',
@@ -119,7 +120,7 @@ return [
     'field_duration' => 'Duration (sec)',
     'field_notes' => 'Notes (optional)',
     'notes_placeholder' => 'Free-form supplement. Do not extract data from here; use the structured fields.',
-    'ctrl_enter_hint' => 'Ctrl+Enter to save.',
+    'ctrl_enter_hint' => 'Ctrl+Enter or ⌘+Enter to save.',
     'submit_gestion' => 'Log Interaction',
 
     // Commitments inline in new interaction

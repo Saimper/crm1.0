@@ -169,6 +169,33 @@
                     @endcan
                 </div>
 
+                {{-- Los datos de la cuenta, en lectura y plegados por grupo.
+                     Antes eran 34 inputs sueltos dentro del formulario de
+                     gestión —98 en el proyecto grande—, en una rejilla de tres
+                     columnas y sin agrupar. Aquí se leen, que es lo que el
+                     gestor hace con ellos mientras habla; editarlos es un clic
+                     y ocurre en la pantalla que ya existía para eso. --}}
+                @if($gruposCamposCaso !== [])
+                    <x-ui.card :title="__('casos.case_fields_title', ['entidad' => $rotuloCaso])" style="margin-top:12px;">
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                            @foreach($gruposCamposCaso as $i => $grupo)
+                                <details @if($i === 0) open @endif class="cp-grupo">
+                                    <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;padding:6px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);">
+                                        <x-ui.icon name="chevron-right" :size="12" class="cp-grupo-flecha" />
+                                        <span>{{ $grupo['nombre'] }}</span>
+                                        <span style="color:var(--text-tertiary);font-weight:400;">({{ count($grupo['campos']) }})</span>
+                                    </summary>
+                                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:4px 0 10px;">
+                                        @foreach($grupo['campos'] as $fila)
+                                            <x-cp.valor :campo="$fila['campo']" :valor="$fila['valor']" />
+                                        @endforeach
+                                    </div>
+                                </details>
+                            @endforeach
+                        </div>
+                    </x-ui.card>
+                @endif
+
                 @if(isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
                     <x-ui.card :title="__('casos.resolved_commitments', ['count' => $compromisosResueltos->count()])" style="margin-top:12px;">
                         <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">

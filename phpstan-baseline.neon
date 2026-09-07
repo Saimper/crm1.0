@@ -121,12 +121,6 @@ parameters:
 			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
 
 		-
-			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:cargarValoresCamposCaso\(\) return type has no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Modules/Casos/Infrastructure/Http/Livewire/NuevaGestion.php
-
-		-
 			message: '#^Method App\\Modules\\Casos\\Infrastructure\\Http\\Livewire\\NuevaGestion\:\:causas\(\) return type with generic class Illuminate\\Support\\Collection does not specify its types\: TKey, TValue$#'
 			identifier: missingType.generics
 			count: 1

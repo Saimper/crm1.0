@@ -776,6 +776,12 @@
         .vt-col-right { grid-column: auto; }
     }
 
+    /* Acordeón de los datos del caso en la Vista de Trabajo */
+    .cp-grupo > summary::-webkit-details-marker { display: none; }
+    .cp-grupo > summary .cp-grupo-flecha { transition: transform 150ms var(--ease); flex: none; }
+    .cp-grupo[open] > summary .cp-grupo-flecha { transform: rotate(90deg); }
+    .cp-grupo + .cp-grupo { border-top: 1px solid var(--border); }
+
     /* ---------- Mobile sidebar drawer ---------- */
     @media (max-width: 768px) {
         .app {

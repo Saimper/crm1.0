@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -312,6 +314,54 @@ final class VistaDeTrabajo extends Component
             'compromisoActivo' => $compromisoActivo,
             'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,
+            'gruposCamposCaso' => $casoActivo === null ? [] : $this->camposDelCasoPorGrupo($casoActivo),
         ]);
+    }
+
+    /**
+     * Los campos personalizados del caso, en lectura y repartidos por grupo.
+     *
+     * Se leen aquí y se editan en «Editar caso». Estaban además como 34 inputs
+     * dentro del formulario de gestión, que era una segunda superficie de
+     * escritura sobre el mismo dato (§13.3) y por donde se borraban valores.
+     *
+     * El valor se formatea aquí, en una sola consulta para todo el caso: la
+     * alternativa era que la vista resolviera opciones y monedas campo a campo.
+     *
+     * @return list<array{nombre: string, campos: list<array{campo: object, valor: string|null}>}>
+     */
+    private function camposDelCasoPorGrupo(object $casoActivo): array
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        $campos = app(ServicioCamposPersonalizados::class)
+            ->campos($proyectoId, AmbitoCampo::CASO, (int) $casoActivo->cartera_id)
+            ->filter(fn (object $c): bool => (bool) $c->visible_en_gestion);
+
+        if ($campos->isEmpty()) {
+            return [];
+        }
+
+        $valores = app(ServicioCamposPersonalizados::class)->valoresSerializadosParaWriteback(
+            $proyectoId,
+            AmbitoCampo::CASO,
+            (int) $casoActivo->cartera_id,
+            (int) $casoActivo->id,
+        );
+
+        $grupos = [];
+        foreach ($campos as $campo) {
+            $nombre = (string) ($campo->grupo_nombre ?? __('casos.fields_ungrouped'));
+            $grupos[$nombre][] = [
+                'campo' => $campo,
+                'valor' => $valores[(string) $campo->codigo] ?? null,
+            ];
+        }
+
+        return array_map(
+            fn (string $nombre, array $campos): array => ['nombre' => $nombre, 'campos' => $campos],
+            array_keys($grupos),
+            $grupos,
+        );
     }
 }

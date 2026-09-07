@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'saving' => 'Guardando…',
     'copy' => 'copiar',
     'copied' => 'copiado',
     'add' => 'Añadir',
