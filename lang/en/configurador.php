@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'canales' => [
+        'titulo' => 'Channels',
+        'ayuda' => 'How the interaction happens. The catalogue is shared across clients; here you pick which ones this project uses, in what order and under what name.',
+        'col_nombre' => 'Name in this project',
+        'col_duracion' => 'Asks for duration',
+        'col_adjunto' => 'Allows attachment',
+    ],
 
     // Wizard / configurador principal
     'titulo_editar' => 'Edit configuration',

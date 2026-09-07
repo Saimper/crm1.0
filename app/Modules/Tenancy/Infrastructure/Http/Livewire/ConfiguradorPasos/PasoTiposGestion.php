@@ -7,16 +7,24 @@ namespace App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use stdClass;
 
 /**
- * Paso 4 del wizard F36 — CRUD de tipos_gestion del proyecto.
+ * Paso 4 del wizard — canales y tipos de gestión del proyecto.
  *
- * Schema sin `descripcion` ni `eliminada_en`. No existe FK física entre
- * `resultados` y `tipos_gestion` (CLAUDE.md §7.2 — acoplamiento operacional),
- * por lo que el chequeo de dependencia con resultados se omite por ausencia
- * de columna; basta con bloquear si hay gestiones que referencian el tipo.
+ * Los canales viven aquí y no en un paso propio porque la cascada de la Vista
+ * de Trabajo empieza en el canal y sigue por el tipo: se configuran juntos
+ * porque se usan juntos.
+ *
+ * `canales` es el catálogo global (§8) y `canal_proyecto` dice qué hace este
+ * proyecto con él: cuáles usa, en qué orden, con qué nombre, y si el canal pide
+ * duración o admite adjunto.
+ *
+ * Schema de `tipos_gestion` sin `descripcion` ni `eliminada_en`. Basta con
+ * bloquear el borrado si hay gestiones que referencian el tipo.
  */
 final class PasoTiposGestion extends Component
 {
@@ -40,6 +48,116 @@ final class PasoTiposGestion extends Component
     {
         $this->authorize('proyectos.configurar', (int) $proyecto->id);
         $this->proyecto = $proyecto;
+    }
+
+    // -----------------------------------------------------------------
+    // Canales del proyecto
+    // -----------------------------------------------------------------
+
+    public function alternarCanal(int $canalId): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $fila = $this->filaDeCanal($canalId);
+
+        if ($fila === null) {
+            return;
+        }
+
+        DB::table('canal_proyecto')
+            ->where('id', $fila->id)
+            ->update(['activo' => ! (bool) $fila->activo, 'actualizada_en' => Carbon::now()]);
+    }
+
+    public function alternarBanderaCanal(int $canalId, string $bandera): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        if (! in_array($bandera, ['requiere_duracion', 'permite_adjunto'], true)) {
+            return;
+        }
+
+        $fila = $this->filaDeCanal($canalId);
+
+        if ($fila === null) {
+            return;
+        }
+
+        DB::table('canal_proyecto')
+            ->where('id', $fila->id)
+            ->update([$bandera => ! (bool) $fila->{$bandera}, 'actualizada_en' => Carbon::now()]);
+    }
+
+    public function moverCanal(int $canalId, int $direccion): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $canales = $this->canalesDelProyecto();
+        $posicion = $canales->search(fn (stdClass $c): bool => (int) $c->canal_id === $canalId);
+
+        if ($posicion === false) {
+            return;
+        }
+
+        $destino = $posicion + ($direccion < 0 ? -1 : 1);
+
+        if ($destino < 0 || $destino >= $canales->count()) {
+            return;
+        }
+
+        $a = $canales[$posicion];
+        $b = $canales[$destino];
+
+        DB::table('canal_proyecto')->where('id', $a->id)->update(['orden' => (int) $b->orden, 'actualizada_en' => Carbon::now()]);
+        DB::table('canal_proyecto')->where('id', $b->id)->update(['orden' => (int) $a->orden, 'actualizada_en' => Carbon::now()]);
+    }
+
+    /**
+     * El nombre que este proyecto le da al canal. Vacío devuelve al nombre del
+     * catálogo global en vez de dejar la etiqueta en blanco.
+     */
+    public function renombrarCanal(int $canalId, string $etiqueta): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $fila = $this->filaDeCanal($canalId);
+
+        if ($fila === null) {
+            return;
+        }
+
+        $limpia = trim($etiqueta);
+
+        DB::table('canal_proyecto')
+            ->where('id', $fila->id)
+            ->update([
+                'etiqueta' => $limpia === '' ? null : mb_substr($limpia, 0, 150),
+                'actualizada_en' => Carbon::now(),
+            ]);
+    }
+
+    private function filaDeCanal(int $canalId): ?stdClass
+    {
+        return DB::table('canal_proyecto')
+            ->where('proyecto_id', (int) $this->proyecto->id)
+            ->where('canal_id', $canalId)
+            ->first(['id', 'activo', 'requiere_duracion', 'permite_adjunto']);
+    }
+
+    /** @return Collection<int, stdClass> */
+    private function canalesDelProyecto(): Collection
+    {
+        return DB::table('canal_proyecto as cp')
+            ->join('canales as c', 'c.id', '=', 'cp.canal_id')
+            ->where('cp.proyecto_id', (int) $this->proyecto->id)
+            ->orderBy('cp.orden')
+            ->orderBy('c.id')
+            ->get([
+                'cp.id', 'cp.canal_id', 'cp.etiqueta', 'cp.activo', 'cp.orden',
+                'cp.requiere_duracion', 'cp.permite_adjunto',
+                'c.codigo', 'c.nombre as nombre_global',
+            ])
+            ->values();
     }
 
     public function abrirFormCrear(): void
@@ -217,6 +335,7 @@ final class PasoTiposGestion extends Component
             ->get(['id', 'codigo', 'nombre', 'orden', 'activo']);
 
         return view('livewire.tenancy.configurador-pasos.paso-tipos-gestion', [
+            'canales' => $this->canalesDelProyecto(),
             'tipos' => $tipos,
         ]);
     }

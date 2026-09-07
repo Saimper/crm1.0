@@ -50,6 +50,27 @@ trait EscenarioOperativo
             'actualizada_en' => Carbon::now(),
         ]);
 
+        // Los canales del proyecto: en la app los siembra un listener sobre
+        // ProyectoCreado, y este helper inserta con DB::table sin disparar el
+        // evento. Sin esto un proyecto de test nace sin canales y no se puede
+        // registrar una gestión, que es donde empieza la cascada.
+        $ahora = Carbon::now();
+        $canales = DB::table('canales')->where('activo', true)->orderBy('orden')->get(['id', 'orden']);
+
+        if ($canales->isNotEmpty()) {
+            DB::table('canal_proyecto')->insert($canales->map(fn (stdClass $c): array => [
+                'proyecto_id' => $id,
+                'canal_id' => $c->id,
+                'etiqueta' => null,
+                'activo' => true,
+                'orden' => (int) $c->orden,
+                'requiere_duracion' => false,
+                'permite_adjunto' => false,
+                'creada_en' => $ahora,
+                'actualizada_en' => $ahora,
+            ])->all());
+        }
+
         return DB::table('proyectos')->find($id);
     }
 

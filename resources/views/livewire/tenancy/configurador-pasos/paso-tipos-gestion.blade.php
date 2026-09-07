@@ -6,6 +6,66 @@
         <div class="alert alert-warning" style="margin-bottom:14px;">{{ session('paso-tipos-gestion-error') }}</div>
     @endif
 
+    {{-- Canales. Van aquí porque la cascada de la Vista de Trabajo empieza en el
+         canal y sigue por el tipo: se configuran juntos porque se usan juntos.
+         El catálogo de canales es global; esto dice qué hace este proyecto con
+         él. --}}
+    <div class="card" style="padding:0;margin-bottom:14px;">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+            <strong style="font-size:13px;">{{ __('configurador.canales.titulo') }}</strong>
+            <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ __('configurador.canales.ayuda') }}</div>
+        </div>
+        <table class="table table-compact">
+            <thead>
+                <tr>
+                    <th style="width:60px;">{{ __('configurador.campo_orden') }}</th>
+                    <th style="width:150px;">{{ __('configurador.campo_codigo') }}</th>
+                    <th>{{ __('configurador.canales.col_nombre') }}</th>
+                    <th style="width:120px;">{{ __('configurador.canales.col_duracion') }}</th>
+                    <th style="width:120px;">{{ __('configurador.canales.col_adjunto') }}</th>
+                    <th style="width:110px;">{{ __('configurador.campo_estado') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($canales as $i => $canal)
+                    <tr wire:key="canal-{{ $canal->canal_id }}">
+                        <td>
+                            <button type="button" wire:click="moverCanal({{ $canal->canal_id }}, -1)" class="btn btn-ghost btn-sm"
+                                    style="padding:0 3px;{{ $i === 0 ? 'visibility:hidden;' : '' }}" aria-label="{{ __('common.move_up') }}">↑</button>
+                            <button type="button" wire:click="moverCanal({{ $canal->canal_id }}, 1)" class="btn btn-ghost btn-sm"
+                                    style="padding:0 3px;{{ $i === $canales->count() - 1 ? 'visibility:hidden;' : '' }}" aria-label="{{ __('common.move_down') }}">↓</button>
+                        </td>
+                        <td><span class="font-mono" style="font-size:12px;">{{ $canal->codigo }}</span></td>
+                        <td>
+                            <input type="text" class="input" style="height:28px;"
+                                   value="{{ $canal->etiqueta ?? $canal->nombre_global }}"
+                                   placeholder="{{ $canal->nombre_global }}"
+                                   wire:change="renombrarCanal({{ $canal->canal_id }}, $event.target.value)"/>
+                        </td>
+                        <td>
+                            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;">
+                                <input type="checkbox" @checked($canal->requiere_duracion)
+                                       wire:click="alternarBanderaCanal({{ $canal->canal_id }}, 'requiere_duracion')"/>
+                            </label>
+                        </td>
+                        <td>
+                            <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;">
+                                <input type="checkbox" @checked($canal->permite_adjunto)
+                                       wire:click="alternarBanderaCanal({{ $canal->canal_id }}, 'permite_adjunto')"/>
+                            </label>
+                        </td>
+                        <td>
+                            <button type="button" wire:click="alternarCanal({{ $canal->canal_id }})" class="btn btn-ghost btn-sm">
+                                <span class="dot dot-{{ $canal->activo ? 'success' : 'neutral' }}"></span>
+                                {{ $canal->activo ? __('configurador.activo') : __('configurador.inactivo') }}
+                            </button>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
     <div class="card" style="padding:0;">
         <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
             <div style="position:relative;width:280px;">

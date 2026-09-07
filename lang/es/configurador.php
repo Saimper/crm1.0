@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'canales' => [
+        'titulo' => 'Canales',
+        'ayuda' => 'Por dónde se hace la gestión. El catálogo es común a todos los clientes; aquí eliges cuáles usa este proyecto, en qué orden y con qué nombre.',
+        'col_nombre' => 'Nombre en este proyecto',
+        'col_duracion' => 'Pide duración',
+        'col_adjunto' => 'Admite adjunto',
+    ],
 
     // Wizard / configurador principal
     'titulo_editar' => 'Editar configuración',

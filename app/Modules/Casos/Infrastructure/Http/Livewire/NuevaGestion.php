@@ -28,6 +28,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Throwable;
 
@@ -122,7 +123,9 @@ final class NuevaGestion extends Component
         }
 
         $reglas = [
-            'canalId' => ['required', 'integer'],
+            'canalId' => ['required', 'integer', Rule::exists('canal_proyecto', 'canal_id')
+                ->where('proyecto_id', $proyectoId)
+                ->where('activo', true)],
             'tipoGestionId' => ['required', 'integer'],
             'resultadoId' => ['required', 'integer'],
             'notas' => ['nullable', 'string', 'max:2000'],
@@ -287,7 +290,7 @@ final class NuevaGestion extends Component
             : collect();
 
         return view('casos::livewire.nueva-gestion', [
-            'canales' => $this->canales(),
+            'canales' => $this->canales($proyectoId),
             'tiposGestion' => $this->tiposGestion($proyectoId),
             'resultados' => $this->resultados($proyectoId),
             'motivos' => $this->motivos($proyectoId),
@@ -316,9 +319,29 @@ final class NuevaGestion extends Component
             ->first();
     }
 
-    private function canales(): Collection
+    /**
+     * Los canales que este proyecto usa, con el nombre que les da y en su orden.
+     *
+     * `canales` sigue siendo el catálogo global; `canal_proyecto` dice qué hace
+     * cada proyecto con él. La etiqueta del proyecto gana sobre la global
+     * cuando existe.
+     */
+    private function canales(int $proyectoId): Collection
     {
-        return DB::table('canales')->where('activo', true)->orderBy('orden')->get();
+        return DB::table('canal_proyecto as cp')
+            ->join('canales as c', 'c.id', '=', 'cp.canal_id')
+            ->where('cp.proyecto_id', $proyectoId)
+            ->where('cp.activo', true)
+            ->where('c.activo', true)
+            ->orderBy('cp.orden')
+            ->orderBy('c.id')
+            ->get([
+                'c.id',
+                'c.codigo',
+                DB::raw('COALESCE(cp.etiqueta, c.nombre) as nombre'),
+                'cp.requiere_duracion',
+                'cp.permite_adjunto',
+            ]);
     }
 
     private function tiposGestion(int $proyectoId): Collection
