@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'panel_titulo' => 'How the operation is doing',
+    'panel_rango_hoy' => 'Today',
+    'panel_rango_semana' => 'Last 7 days',
+    'panel_rango_mes' => 'Last 30 days',
+    'panel_gestiones' => 'Interactions',
+    'panel_vigentes' => 'Open promises',
+    'panel_cumplidas' => 'Kept promises',
+    'panel_rotas' => 'Broken promises',
+    'panel_por_usuario' => 'Interactions per user',
+    'panel_ver_informe' => 'See full report',
+    'panel_sin_gestiones' => 'No interactions in this period yet.',
+    'panel_vencidas' => '{1} :n promise is overdue and unresolved.|[2,*] :n promises are overdue and unresolved.',
     // Pages
     'title_constructor' => 'Report builder',
     'title_analitico' => 'Analytical reports',

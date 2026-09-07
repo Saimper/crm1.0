@@ -1,6 +1,18 @@
 <?php
 
 return [
+    'panel_titulo' => 'Cómo va la operación',
+    'panel_rango_hoy' => 'Hoy',
+    'panel_rango_semana' => 'Últimos 7 días',
+    'panel_rango_mes' => 'Últimos 30 días',
+    'panel_gestiones' => 'Gestiones',
+    'panel_vigentes' => 'Promesas vigentes',
+    'panel_cumplidas' => 'Promesas cumplidas',
+    'panel_rotas' => 'Promesas rotas',
+    'panel_por_usuario' => 'Gestiones por usuario',
+    'panel_ver_informe' => 'Ver informe completo',
+    'panel_sin_gestiones' => 'Todavía no hay gestiones en este periodo.',
+    'panel_vencidas' => '{1} Hay :n promesa vencida sin resolver.|[2,*] Hay :n promesas vencidas sin resolver.',
     // Páginas
     'title_constructor' => 'Constructor de reportes',
     'title_analitico' => 'Reportes analíticos',
