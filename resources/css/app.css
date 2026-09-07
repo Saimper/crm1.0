@@ -550,6 +550,14 @@
         display: flex; align-items: center;
         padding: 0 16px;
         gap: 12px;
+        /* La pista de la rejilla es `1fr`, o sea `minmax(auto, 1fr)`, y su
+           mínimo automático es el min-content de sus items. `.app-main` no
+           aporta porque tiene overflow y su mínimo es 0; esta cabecera sí, y
+           entre la miga de pan y el menú de usuario pedía 458px de min-content
+           en un móvil de 390. La pista se ensanchaba y arrastraba el documento
+           entero: el scroll horizontal de todas las pantallas salía de aquí. */
+        min-width: 0;
+        overflow: hidden;
     }
     .app-sidebar {
         grid-area: sidebar;
@@ -595,7 +603,10 @@
     .sb-item.active .sb-count { color: var(--primary-text); }
 
     /* Header items */
-    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); min-width: 0; overflow: hidden; }
+    .breadcrumb > * { min-width: 0; }
+    .breadcrumb a, .breadcrumb .current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .breadcrumb .sep { flex: none; }
     .breadcrumb a { cursor: pointer; }
     .breadcrumb a:hover { color: var(--text); }
     .breadcrumb .sep { color: var(--text-muted); }

@@ -54,7 +54,9 @@ new class extends Component
     <button type="button" @click="open = !open"
             style="display:flex;align-items:center;gap:8px;background:transparent;border:0;cursor:pointer;padding:0;">
         <div class="avatar">{{ $iniciales }}</div>
-        <div style="line-height:1.15;text-align:left;">
+        {{-- En móvil queda el avatar: el nombre completo más el rol pedían 192px
+             de los 390 disponibles, el 38% de la cabecera. --}}
+        <div class="hidden md:block" style="line-height:1.15;text-align:left;">
             <div style="font-size:12px;font-weight:500;color:var(--text);">{{ $user?->name }}</div>
             <div style="font-size:11px;color:var(--text-tertiary);">{{ $rol }}</div>
         </div>
