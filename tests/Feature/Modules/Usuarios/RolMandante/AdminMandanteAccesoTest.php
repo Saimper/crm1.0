@@ -103,6 +103,10 @@ final class AdminMandanteAccesoTest extends TestCase
 
     public function test_admin_global_sigue_accediendo_a_todo(): void
     {
+        // D1: el admin global opera dentro de un cliente. Con exactamente uno
+        // en el sistema, el middleware se lo asigna solo y no hay que elegir.
+        $this->crearMandante();
+
         $admin = $this->crearAdminGlobal();
 
         $this->actingAs($admin)->get('/admin')->assertOk();
@@ -131,6 +135,10 @@ final class AdminMandanteAccesoTest extends TestCase
 
     public function test_dashboard_admin_global_muestra_todos_los_tiles(): void
     {
+        // D1: el admin global opera dentro de un cliente. Con exactamente uno
+        // en el sistema, el middleware se lo asigna solo y no hay que elegir.
+        $this->crearMandante();
+
         $admin = $this->crearAdminGlobal();
 
         $this->actingAs($admin)->get('/admin')

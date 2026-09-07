@@ -39,7 +39,9 @@ use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos\PasoResul
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos\PasoResumen;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos\PasoTiposGestion;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorProyecto;
+use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorMandante;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorProyecto;
+use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverMandanteActivo;
 use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverProyectoActivo;
 use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentCarteraRepository;
 use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentMandanteRepository;
@@ -77,14 +79,20 @@ final class TenancyServiceProvider extends ServiceProvider
         $this->loadViewsFrom(resource_path('views/modules/tenancy'), 'tenancy');
 
         $router->aliasMiddleware('proyecto.activo', ResolverProyectoActivo::class);
+        $router->aliasMiddleware('mandante.activo', ResolverMandanteActivo::class);
 
         // Persistent middleware: se ejecuta también en /livewire/update para que
         // `tenancy.proyecto_activo` siga bindeado al disparar acciones de Livewire
         // desde una página dentro de /proyectos/{id}/... (extrae el id del Referer).
+        // Livewire re-aplica estos sobre /livewire/update usando la ruta
+        // original del snapshot firmado. Sin el de mandante, el contexto
+        // existiría al pintar la pantalla y desaparecería al pulsar un botón.
         Livewire::addPersistentMiddleware([
+            ResolverMandanteActivo::class,
             ResolverProyectoActivo::class,
         ]);
 
+        Livewire::component('tenancy.selector-mandante', SelectorMandante::class);
         Livewire::component('tenancy.selector-proyecto', SelectorProyecto::class);
         Livewire::component('tenancy.admin-mandantes', AdminMandantes::class);
         Livewire::component('tenancy.admin-proyectos', AdminProyectos::class);

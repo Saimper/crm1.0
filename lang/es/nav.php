@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'cambiar_cliente' => 'Cambiar de cliente',
     'menu' => 'Menú',
     'breadcrumb_projects' => 'Proyectos',
     'active_project' => 'Proyecto activo',

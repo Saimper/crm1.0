@@ -195,6 +195,10 @@ final class SidebarConfiguracionTest extends TestCase
 
     public function test_sidebar_admin_global_conserva_mandantes_proyectos_usuarios(): void
     {
+        // D1: el admin global opera dentro de un cliente. Con exactamente uno
+        // en el sistema, el middleware se lo asigna solo y no hay que elegir.
+        $this->crearMandante();
+
         $admin = $this->crearAdminGlobal();
 
         $resp = $this->actingAs($admin)->get(route('admin.dashboard'));

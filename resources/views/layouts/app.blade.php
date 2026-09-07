@@ -324,6 +324,16 @@
                         <x-ui.icon name="briefcase" :size="15" />
                         <span>{{ __('nav.projects') }}</span>
                     </a>
+                    {{-- D1: dentro de qué cliente se está trabajando, y la salida
+                         para cambiar. Sin esto, quien elige uno queda encerrado. --}}
+                    @if(app()->bound('tenancy.mandante_activo'))
+                        <a href="{{ route('admin.mandante-activo') }}" wire:navigate
+                           class="sb-item @if($rid('admin.mandante-activo')) active @endif"
+                           title="{{ __('nav.cambiar_cliente') }}">
+                            <x-ui.icon name="building" :size="15" />
+                            <span>{{ app('tenancy.mandante_activo')->nombre }}</span>
+                        </a>
+                    @endif
                     @if($esAdmin)
                         <a href="{{ route('admin.mandantes') }}" wire:navigate
                            class="sb-item @if($rid('admin.mandantes')) active @endif">
