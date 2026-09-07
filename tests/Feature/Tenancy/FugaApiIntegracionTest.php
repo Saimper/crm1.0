@@ -396,7 +396,6 @@ final class FugaApiIntegracionTest extends TestCase
         );
     }
 
-
     // ------------------------------------------------- Anti-replay y logout --
 
     /**

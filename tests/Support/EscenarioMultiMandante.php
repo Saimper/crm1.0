@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use App\Models\User;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Support\Collection;
 use stdClass;
 
 /**
@@ -61,7 +60,7 @@ trait EscenarioMultiMandante
             'ambito' => 'caso',
             'ambito_id' => $cartera->id,
             'codigo' => 'CAMPO_'.strtoupper($etiqueta),
-            'nombre' => 'Campo de '.$etiqueta,
+            'etiqueta' => 'Campo de '.$etiqueta,
             'tipo' => 'texto_corto',
             'obligatorio' => false,
             'activo' => true,
