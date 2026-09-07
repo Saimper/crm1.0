@@ -129,6 +129,9 @@ final class EditarCaso extends Component
                 ambitoId: (int) $this->carteraId,
                 entidadId: (int) $this->casoId,
                 valoresPorCodigo: $this->valoresCamposCaso,
+                // Pantalla dueña de los campos del caso: un campo en blanco es
+                // una orden de vaciarlo, no un campo que no estaba.
+                permitirVaciar: true,
             );
         });
 

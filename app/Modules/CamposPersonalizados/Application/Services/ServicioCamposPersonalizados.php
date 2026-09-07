@@ -44,6 +44,21 @@ final readonly class ServicioCamposPersonalizados
     /**
      * Valida y persiste los valores para una entidad (caso/gestión/compromiso).
      *
+     * `$permitirVaciar` decide qué significa un `null` entrante, y por defecto
+     * significa «no lo sé», no «bórralo».
+     *
+     * El motivo es un incidente real: la Vista de Trabajo enviaba los 34 campos
+     * del caso en cada gestión, incluidos los que no sabía leer —los de tipo
+     * `moneda`, cuyos valores estaban en `valor_texto_corto` tras un cambio de
+     * tipo hecho desde la UI—. Llegaban como `null`, `mapearValorAColumna`
+     * devolvía las once columnas a null y el `updateOrCreate` las escribía. Tres
+     * filas de producción quedaron en blanco así, y había 22.623 valores a una
+     * gestión de distancia.
+     *
+     * Sólo debe pasar `true` quien es dueño del formulario completo y por tanto
+     * puede distinguir «el usuario vació este campo» de «este campo no estaba en
+     * la pantalla».
+     *
      * @param  array<string, mixed>  $valoresPorCodigo  [codigo_campo => valor]
      */
     public function guardarValores(
@@ -52,6 +67,7 @@ final readonly class ServicioCamposPersonalizados
         int $ambitoId,
         int $entidadId,
         array $valoresPorCodigo,
+        bool $permitirVaciar = false,
     ): void {
         $campos = $this->campos($proyectoId, $ambito, $ambitoId);
 
@@ -67,13 +83,19 @@ final readonly class ServicioCamposPersonalizados
             );
         }
 
+        $conValor = $permitirVaciar ? [] : $this->camposConValor($campos, $entidadId);
+
         // 2) Persistir en transacción.
-        $this->db->transaction(function () use ($campos, $valoresPorCodigo, $entidadId): void {
+        $this->db->transaction(function () use ($campos, $valoresPorCodigo, $entidadId, $permitirVaciar, $conValor): void {
             foreach ($campos as $campo) {
                 if (! array_key_exists($campo->codigo, $valoresPorCodigo)) {
                     continue;
                 }
                 $valor = $valoresPorCodigo[$campo->codigo];
+
+                if ($valor === null && ! $permitirVaciar && isset($conValor[(int) $campo->id])) {
+                    continue;
+                }
 
                 $payload = $this->mapearValorAColumna(TipoCampo::from((string) $campo->tipo), $valor);
 
@@ -86,6 +108,48 @@ final readonly class ServicioCamposPersonalizados
                 );
             }
         });
+    }
+
+    /**
+     * Los campos del ámbito que YA tienen algo guardado para esta entidad.
+     *
+     * Se resuelve en una sola consulta y sólo cuando hace falta: es la lista que
+     * un `null` entrante no puede pisar.
+     *
+     * @param  Collection<int, CampoPersonalizadoModel>  $campos
+     * @return array<int, true>
+     */
+    private function camposConValor(Collection $campos, int $entidadId): array
+    {
+        $ids = $campos->map(fn (CampoPersonalizadoModel $c): int => (int) $c->id)->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $filas = $this->db->table('valores_campo_personalizado')
+            ->whereIn('campo_personalizado_id', $ids)
+            ->where('entidad_id', $entidadId)
+            ->get([
+                'campo_personalizado_id',
+                'valor_texto_corto', 'valor_texto_largo',
+                'valor_numero_entero', 'valor_numero_decimal',
+                'valor_fecha', 'valor_fecha_hora',
+                'valor_booleano', 'valor_opcion_id',
+                'valor_opciones_ids', 'valor_moneda_monto', 'valor_moneda_codigo',
+            ]);
+
+        $conValor = [];
+        foreach ($filas as $fila) {
+            foreach ((array) $fila as $columna => $valor) {
+                if ($columna !== 'campo_personalizado_id' && $valor !== null) {
+                    $conValor[(int) $fila->campo_personalizado_id] = true;
+                    break;
+                }
+            }
+        }
+
+        return $conValor;
     }
 
     /**

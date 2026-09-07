@@ -122,6 +122,13 @@ final class NuevaGestion extends Component
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
+        // La única puerta hasta ahora era `can:casos.ver` en la ruta, que el
+        // AUDITOR tiene: podía registrar gestiones. El permiso de escritura
+        // existe desde F22 y nadie lo comprobaba en el camino de escritura.
+        if (auth()->user()?->tienePermiso('gestiones.crear', $proyectoId) !== true) {
+            abort(403, 'No tienes permiso para registrar gestiones en este proyecto.');
+        }
+
         $reglas = [
             'canalId' => ['required', 'integer'],
             'tipoGestionId' => ['required', 'integer'],
