@@ -18,10 +18,12 @@ use App\Modules\Servicio\Domain\Exceptions\CodigoServicioYaRegistrado;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaInput;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use App\Modules\Venta\Domain\Exceptions\CodigoLeadYaRegistrado;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Throwable;
@@ -41,11 +43,25 @@ use Throwable;
  */
 final class CrearCasoIndividual extends Component
 {
+    use AutorizaEnProyectoActivo;
+
     #[Url(as: 'persona', except: '')]
     public string $personaPublicId = '';
 
+    /**
+     * `#[Locked]`: el id sale de `mount()`, que ya resolvió el public_id contra
+     * el proyecto activo. Sin el candado, un `$wire.set('personaId', N)` desde
+     * la consola saltaba esa resolución y colgaba el caso nuevo de la persona de
+     * otro mandante, que es exactamente lo que §2 prohíbe.
+     */
+    #[Locked]
     public ?int $personaId = null;
 
+    /**
+     * `#[Locked]`: decide a qué UseCase se despacha. Reapuntarlo creaba en un
+     * proyecto de cobranza un caso de tipo `lead_venta` (§13.13).
+     */
+    #[Locked]
     public string $tipoOperacion = '';
 
     public string $carteraId = '';
@@ -87,11 +103,22 @@ final class CrearCasoIndividual extends Component
         RegistrarCasoServicio $ucServicio,
         ServicioCamposPersonalizados $servicioCp,
     ): void {
+        // El `can:casos.crear` de la ruta protege la página, no este commit: la
+        // llamada a `guardar` es un POST aparte a /livewire/update que no vuelve
+        // a pasar por el middleware. El GESTOR, que ve la Vista de Trabajo pero
+        // no crea casos, llegaba hasta aquí con sólo montar el componente.
+        $this->autorizarEn('casos.crear');
+
         if ($this->personaId === null) {
             $this->addError('personaPublicId', 'Persona no encontrada en el proyecto.');
 
             return;
         }
+
+        // Cinturón además del `#[Locked]`: el permiso es por proyecto, así que
+        // un supervisor con `casos.crear` en el suyo lo arrastraría al ajeno si
+        // nadie comprueba de quién es la fila.
+        $this->exigirDelProyecto('personas', $this->personaId);
 
         $this->validate([
             'carteraId' => ['required', 'integer'],
@@ -100,6 +127,11 @@ final class CrearCasoIndividual extends Component
         ], [], [
             'idUnico' => $this->etiquetaIdUnico(),
         ]);
+
+        // La cartera sí la elige el cliente (es un `<select>`), y ni el UseCase
+        // ni la FK comprueban que sea del proyecto: sin esto un caso del
+        // proyecto A quedaba colgado de la cartera del B.
+        $this->exigirDelProyecto('carteras', (int) $this->carteraId);
 
         $proyecto = app('tenancy.proyecto_activo');
         $proyectoId = (int) $proyecto->id;
@@ -215,7 +247,10 @@ final class CrearCasoIndividual extends Component
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
         $persona = $this->personaId !== null
-            ? DB::table('personas')->where('id', $this->personaId)->first()
+            ? DB::table('personas')
+                ->where('id', $this->personaId)
+                ->where('proyecto_id', $proyectoId)
+                ->first()
             : null;
 
         $carteras = DB::table('carteras')

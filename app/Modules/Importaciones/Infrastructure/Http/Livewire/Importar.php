@@ -27,11 +27,13 @@ use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -47,6 +49,7 @@ use Livewire\WithFileUploads;
  */
 final class Importar extends Component
 {
+    use AutorizaEnProyectoActivo;
     use WithFileUploads;
 
     public int $paso = 1;
@@ -74,6 +77,18 @@ final class Importar extends Component
 
     public ?string $columnaCasoIdentificadorNombre = null;
 
+    /**
+     * `#[Locked]` porque lo fija el propio wizard al preparar la importación y
+     * nada de la vista lo bindea: sin esto, un `$wire.set('importacionId', N)`
+     * desde la consola apuntaba `ejecutar()` y `cancelar()` a la importación de
+     * cualquier proyecto, porque los dos casos de uso la buscan con
+     * `sinScopeProyecto()`.
+     *
+     * `carteraId` no puede llevarlo —es un `wire:model.live` de la vista, el
+     * usuario la elige—, así que ahí la guarda es de pertenencia: se comprueba
+     * contra el proyecto activo antes de usarla.
+     */
+    #[Locked]
     public ?int $importacionId = null;
 
     public ?array $resultadoDryRun = null;
@@ -91,7 +106,7 @@ final class Importar extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+        $this->autorizarEn('importaciones.crear');
 
         $disponibles = $this->targetsDisponibles();
         if (count($disponibles) === 1) {
@@ -113,7 +128,7 @@ final class Importar extends Component
 
     public function subirArchivo(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+        $this->autorizarEn('importaciones.crear');
 
         if (! $this->archivoListo || ! ($this->archivo instanceof UploadedFile)) {
             $this->addError('archivo', 'El archivo aún no terminó de cargarse. Espera un momento e intenta de nuevo.');
@@ -133,6 +148,8 @@ final class Importar extends Component
 
             return;
         }
+
+        $this->exigirCarteraDelProyecto();
 
         $this->validate([
             'archivo' => ['required', 'file', 'mimes:csv,txt,xlsx,xlsm', 'max:16384'],
@@ -266,6 +283,13 @@ final class Importar extends Component
 
     public function confirmarMapeo(): void
     {
+        // Fuera del try: el catch de abajo es un `\Throwable` que convierte
+        // cualquier fallo en un mensaje de formulario, y se tragaría el 403 del
+        // permiso y el 404 de la pertenencia dejando pasar el commit como si
+        // sólo hubiera habido un error de mapeo.
+        $this->autorizarEn('importaciones.crear');
+        $this->exigirCarteraDelProyecto();
+
         try {
             $this->confirmarMapeoInterno();
         } catch (\Throwable $e) {
@@ -281,12 +305,16 @@ final class Importar extends Component
 
     private function confirmarMapeoInterno(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+        $this->autorizarEn('importaciones.crear');
 
         $target = $this->target();
         if ($target === null) {
             return;
         }
+
+        // La cartera llega del cliente. Sin esta comprobación se creaban casos
+        // del proyecto activo colgados de la cartera de otro proyecto.
+        $this->exigirCarteraDelProyecto();
 
         $columnas = $this->deserializarColumnas();
 
@@ -415,11 +443,14 @@ final class Importar extends Component
      */
     public function ejecutar(EncolarImportacion $encolar): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.procesar') === true, 403);
+        $this->autorizarEn('importaciones.procesar');
 
         if ($this->importacionId === null) {
             return;
         }
+
+        // `EncolarImportacion` busca la fila sin scope de proyecto.
+        $this->exigirDelProyecto('importaciones', $this->importacionId);
 
         $modo = ModoImportacion::tryFrom($this->modo);
         if ($modo === null) {
@@ -439,11 +470,23 @@ final class Importar extends Component
         $this->paso = 4;
     }
 
+    /**
+     * Cancelar es la otra cara de procesar: detiene un lote en curso, así que
+     * exige `importaciones.procesar` —no hay permiso propio de cancelación— y
+     * que el lote sea del proyecto activo, porque `CancelarImportacion` lo
+     * busca con `sinScopeProyecto()`.
+     */
     public function cancelar(CancelarImportacion $cancelarUC): void
     {
-        if ($this->importacionId !== null) {
-            $cancelarUC->execute($this->importacionId);
+        $this->autorizarEn('importaciones.procesar');
+
+        if ($this->importacionId === null) {
+            return;
         }
+
+        $this->exigirDelProyecto('importaciones', $this->importacionId);
+
+        $cancelarUC->execute($this->importacionId);
     }
 
     public function cerrar(): void
@@ -472,10 +515,19 @@ final class Importar extends Component
         $preview = collect();
 
         if ($this->importacionId !== null) {
-            $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
-            $importacionActual = DB::table('importaciones')->where('id', $this->importacionId)->first();
+            // El progreso y las filas se leen sin scope de proyecto en el caso
+            // de uso, así que la pertenencia se comprueba aquí antes de mirar.
+            $this->exigirDelProyecto('importaciones', $this->importacionId);
 
-            $q = DB::table('importacion_filas')->where('importacion_id', $this->importacionId);
+            $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
+            $importacionActual = DB::table('importaciones')
+                ->where('id', $this->importacionId)
+                ->where('proyecto_id', $proyectoId)
+                ->first();
+
+            $q = DB::table('importacion_filas')
+                ->where('importacion_id', $this->importacionId)
+                ->where('proyecto_id', $proyectoId);
             if ($this->filtroFilas !== 'todas') {
                 $q->where('estado', $this->filtroFilas);
             }
@@ -641,7 +693,18 @@ final class Importar extends Component
 
     private function proyectoId(): int
     {
-        return (int) app('tenancy.proyecto_activo')->id;
+        return $this->proyectoActivoId();
+    }
+
+    /**
+     * La cartera es lo único que el cliente elige y que después viaja al
+     * esquema como id: si no es del proyecto activo, 404.
+     */
+    private function exigirCarteraDelProyecto(): void
+    {
+        if ($this->carteraId !== null) {
+            $this->exigirDelProyecto('carteras', $this->carteraId);
+        }
     }
 
     /** @return list<TargetImportacion> */

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use stdClass;
 use Tests\Support\EscenarioOperativo;
@@ -235,6 +236,158 @@ final class CrearCasoIndividualTest extends TestCase
         $this->actingAs($supervisor)
             ->get(route('proyectos.casos.crear', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
+    }
+
+    /**
+     * El `can:casos.crear` de la ruta no protege el commit: `guardar` es un POST
+     * aparte a /livewire/update. El GESTOR entra a la Vista de Trabajo con
+     * `casos.ver`, y desde ahí podía montar este componente y llamar al método.
+     */
+    public function test_gestor_no_puede_crear_el_caso_aunque_monte_el_componente(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearGestor($proyecto));
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('idUnico', 'CCI-GESTOR-0001')
+            ->call('guardar')
+            ->assertForbidden();
+
+        $this->assertSame(
+            0,
+            (int) DB::table('casos')->where('proyecto_id', $proyecto->id)->count(),
+            'El GESTOR no tiene casos.crear: no debe haber quedado ningún caso.'
+        );
+    }
+
+    public function test_auditor_no_puede_crear_el_caso(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearAuditor($proyecto));
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('idUnico', 'CCI-AUDITOR-0001')
+            ->call('guardar')
+            ->assertForbidden();
+
+        $this->assertSame(0, (int) DB::table('casos')->where('proyecto_id', $proyecto->id)->count());
+    }
+
+    /** El camino legítimo, en el mismo escenario que los dos anteriores. */
+    public function test_supervisor_si_puede_crear_el_caso(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('idUnico', 'CCI-SUPER-0001')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('casos_cobranza', ['numero_prestamo' => 'CCI-SUPER-0001']);
+        $this->assertSame(1, (int) DB::table('casos')->where('proyecto_id', $proyecto->id)->count());
+    }
+
+    /**
+     * La cartera la elige el cliente en un `<select>`, y ni el UseCase ni la FK
+     * comprueban de qué proyecto es: el supervisor arrastraba su permiso al
+     * proyecto ajeno y dejaba el caso colgado de la cartera del otro mandante.
+     */
+    public function test_no_se_puede_crear_el_caso_con_la_cartera_de_otro_mandante(): void
+    {
+        $propio = $this->crearProyectoCobranza();
+        $ajeno = $this->crearProyectoCobranza();
+        $carteraAjena = $this->crearCarteraEn($ajeno);
+
+        $persona = $this->crearPersonaEn($propio);
+        $this->crearEstadoCasoEn($propio, 'ABIERTO');
+
+        $this->activarProyecto($propio);
+        $this->actingAs($this->crearSupervisor($propio));
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('carteraId', (string) $carteraAjena->id)
+            ->set('idUnico', 'CCI-FUGA-0001')
+            ->call('guardar')
+            ->assertNotFound();
+
+        $this->assertSame(
+            0,
+            (int) DB::table('casos')->where('cartera_id', $carteraAjena->id)->count(),
+            'FUGA: se creó un caso apuntando a la cartera de otro mandante.'
+        );
+    }
+
+    /** La persona de otro proyecto no se resuelve: `mount` la busca scoped. */
+    public function test_no_se_puede_crear_el_caso_para_la_persona_de_otro_mandante(): void
+    {
+        $propio = $this->crearProyectoCobranza();
+        $ajeno = $this->crearProyectoCobranza();
+        $personaAjena = $this->crearPersonaEn($ajeno);
+        $cartera = $this->crearCarteraEn($propio);
+        $this->crearEstadoCasoEn($propio, 'ABIERTO');
+
+        $this->activarProyecto($propio);
+        $this->actingAs($this->crearSupervisor($propio));
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $personaAjena->public_id])
+            ->set('carteraId', (string) $cartera->id)
+            ->set('idUnico', 'CCI-FUGA-0002')
+            ->call('guardar')
+            ->assertHasErrors(['personaPublicId']);
+
+        $this->assertSame(0, (int) DB::table('casos')->where('persona_id', $personaAjena->id)->count());
+    }
+
+    /** `#[Locked]`: el id de la persona no se reapunta desde la consola. */
+    public function test_el_id_de_la_persona_no_se_puede_reapuntar_desde_el_cliente(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $otra = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        $this->expectException(CannotUpdateLockedPropertyException::class);
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('personaId', (int) $otra->id);
+    }
+
+    /** `#[Locked]`: el tipo decide a qué UseCase se despacha (§13.13). */
+    public function test_el_tipo_de_operacion_no_se_puede_reapuntar_desde_el_cliente(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        $this->expectException(CannotUpdateLockedPropertyException::class);
+
+        Livewire::test(CrearCasoIndividual::class, ['personaPublicId' => $persona->public_id])
+            ->set('tipoOperacion', 'venta');
     }
 
     private function actuarComoSupervisor(stdClass $proyecto): void

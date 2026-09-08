@@ -10,6 +10,7 @@ use App\Modules\Campanas\Domain\Exceptions\CodigoCampanaDuplicadoEnProyecto;
 use App\Modules\Campanas\Domain\Exceptions\RangoFechasCampanaInvalido;
 use App\Modules\Campanas\Domain\ValueObjects\CodigoCampana;
 use App\Modules\Campanas\Domain\ValueObjects\EstadoCampana;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +27,16 @@ use Throwable;
  * nadie. Y como `asignaciones.campana_id` es NOT NULL, sin campañas no se puede
  * asignar NADA — la bandeja de todo gestor queda vacía para siempre y nadie
  * llega a ver sus compromisos. Esta pantalla es el eslabón que faltaba.
+ *
+ * La ruta pide `campanas.ver`, que el AUDITOR tiene: es el mínimo para entrar a
+ * MIRAR, no para escribir. Cada método que escribe exige el suyo aquí dentro,
+ * porque el commit de Livewire es un POST a /livewire/update que no vuelve a
+ * pasar por el middleware de la ruta.
  */
 final class CampanasProyecto extends Component
 {
+    use AutorizaEnProyectoActivo;
+
     /** El proyecto lo fija el middleware, no el cliente. */
     #[Locked]
     public int $proyectoId;
@@ -49,12 +57,12 @@ final class CampanasProyecto extends Component
 
     public function mount(): void
     {
-        $this->proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $this->proyectoId = $this->proyectoActivoId();
     }
 
     public function abrirFormCrear(): void
     {
-        $this->autorizar('campanas.crear');
+        $this->autorizarEn('campanas.crear');
         $this->editandoId = null;
         $this->form = [
             'codigo' => '',
@@ -76,7 +84,7 @@ final class CampanasProyecto extends Component
 
     public function guardar(RegistrarCampana $useCase): void
     {
-        $this->autorizar('campanas.crear');
+        $this->autorizarEn('campanas.crear');
 
         $this->validate([
             'form.codigo' => ['required', 'string', 'max:80'],
@@ -94,7 +102,10 @@ final class CampanasProyecto extends Component
         try {
             $useCase->execute(new RegistrarCampanaInput(
                 publicId: (string) Str::ulid(),
-                proyectoId: $this->proyectoId,
+                // El mismo proyecto contra el que se acaba de autorizar, no el
+                // que quedó en la propiedad al montar: autorizar en uno y
+                // escribir en otro sería no haber comprobado nada.
+                proyectoId: $this->proyectoActivoId(),
                 codigo: new CodigoCampana((string) $this->form['codigo']),
                 nombre: (string) $this->form['nombre'],
                 descripcion: $this->textoOpcional('descripcion'),
@@ -121,17 +132,22 @@ final class CampanasProyecto extends Component
 
     public function cambiarEstado(int $campanaId, string $estado): void
     {
-        $this->autorizar('campanas.gestionar');
+        // Cambiar el estado de una campaña arranca o para el reparto de trabajo:
+        // es gestión, no lectura. `campanas.gestionar` no lo tiene el AUDITOR.
+        $this->autorizarEn('campanas.gestionar');
+
+        // Y que la campaña sea de este proyecto: el permiso es por proyecto, así
+        // que tenerlo en el propio no autoriza a tocar la campaña del ajeno. El
+        // id llega del cliente, no de la fila que se pintó.
+        $this->exigirDelProyecto('campanas', $campanaId);
 
         if (EstadoCampana::tryFrom($estado) === null) {
             return;
         }
 
-        // El id llega del cliente: se acota SIEMPRE al proyecto activo, no basta
-        // con confiar en que la fila pintada sea de este proyecto.
         DB::table('campanas')
             ->where('id', $campanaId)
-            ->where('proyecto_id', $this->proyectoId)
+            ->where('proyecto_id', $this->proyectoActivoId())
             ->update(['estado' => $estado]);
 
         session()->flash('campanas-ok', __('campanas.estado_actualizado'));
@@ -170,14 +186,6 @@ final class CampanasProyecto extends Component
             'casosSinAsignar' => $casosSinAsignar,
             'estados' => EstadoCampana::cases(),
         ]);
-    }
-
-    private function autorizar(string $permiso): void
-    {
-        abort_unless(
-            auth()->user()?->tienePermiso($permiso, $this->proyectoId) === true,
-            403
-        );
     }
 
     private function textoOpcional(string $clave): ?string

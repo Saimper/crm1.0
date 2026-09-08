@@ -121,14 +121,19 @@ final class GestionUsuariosProyectoTest extends TestCase
         $proyecto = $this->crearProyectoCobranza();
         $this->loginSupervisor($proyecto);
 
+        $email = 'x.'.Str::random(4).'@crm.local';
         $target = User::query()->create([
-            'name' => 'X', 'email' => 'x.'.Str::random(4).'@crm.local',
+            'name' => 'X', 'email' => $email,
             'password' => Hash::make('x'), 'activo' => true,
         ]);
         $rolAdminId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
 
+        // `usuarioBuscadoId` es `#[Locked]`: el id lo fija el servidor al buscar
+        // por correo, que es donde se filtra a los ADMIN_GLOBAL y a los de otro
+        // mandante. El test entra por ese camino, como el navegador.
         Livewire::test(GestionUsuariosProyecto::class)
-            ->set('usuarioBuscadoId', $target->id)
+            ->set('buscarEmail', $email)
+            ->call('buscarUsuario')
             ->set('rolAsignarValor', 'base:'.$rolAdminId)
             ->call('asignar')
             ->assertHasErrors(['rolAsignarValor']);

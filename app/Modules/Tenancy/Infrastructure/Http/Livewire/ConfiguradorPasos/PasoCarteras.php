@@ -6,11 +6,13 @@ namespace App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos;
 
 use App\Modules\Tenancy\Domain\ValueObjects\CodigoCartera;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -23,12 +25,27 @@ use Livewire\Component;
  */
 final class PasoCarteras extends Component
 {
+    use AutorizaEnProyectoActivo;
+
+    /**
+     * `#[Locked]` porque el proyecto lo fija la ruta (`{proyecto:public_id}`) y
+     * es contra él contra quien se comprueban permiso y pertenencia. Sin el
+     * candado, el commit de Livewire —que no vuelve a pasar por el `can:` de la
+     * ruta— llega con el proyecto que mande el cliente.
+     */
+    #[Locked]
     public ProyectoModel $proyecto;
 
     public string $busqueda = '';
 
     public bool $formVisible = false;
 
+    /**
+     * `#[Locked]` porque decide qué fila actualiza `guardarCartera()`: sólo lo
+     * fijan `abrirFormCrear`/`abrirFormEditar`/`cerrarForm`, que ya comprueban
+     * que la cartera sea de este proyecto.
+     */
+    #[Locked]
     public ?int $editandoId = null;
 
     /** @var array<string, mixed> */
@@ -89,6 +106,13 @@ final class PasoCarteras extends Component
     public function guardarCartera(): void
     {
         $this->autorizar();
+
+        // Editar exige además que la cartera sea de este proyecto. El UPDATE ya
+        // filtra por `proyecto_id`, pero sin esto una cartera ajena daba cero
+        // filas afectadas y el mismo "Cartera guardada" que un guardado real.
+        if ($this->editandoId !== null) {
+            $this->exigirDelProyecto('carteras', $this->editandoId);
+        }
 
         $this->validate([
             'form.codigo' => ['required', 'string', 'max:80'],
@@ -158,17 +182,12 @@ final class PasoCarteras extends Component
     {
         $this->autorizar();
 
+        // 404 si no es de este proyecto: el permiso es por proyecto, así que un
+        // admin de mandante con `proyectos.configurar` en el suyo lo arrastraría
+        // al ajeno si nadie mira la fila.
+        $this->exigirDelProyecto('carteras', $id);
+
         $proyectoId = (int) $this->proyecto->id;
-
-        $existe = DB::table('carteras')
-            ->where('id', $id)
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
-            ->exists();
-
-        if (! $existe) {
-            return;
-        }
 
         $tieneCasos = DB::table('casos')
             ->where('cartera_id', $id)
@@ -193,23 +212,15 @@ final class PasoCarteras extends Component
     {
         $this->autorizar();
 
+        $cartera = $this->filaDelProyecto('carteras', $id);
+
         $proyectoId = (int) $this->proyecto->id;
-
-        $estadoActual = DB::table('carteras')
-            ->where('id', $id)
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
-            ->value('activo');
-
-        if ($estadoActual === null) {
-            return;
-        }
 
         DB::table('carteras')
             ->where('id', $id)
             ->where('proyecto_id', $proyectoId)
             ->update([
-                'activo' => ! (bool) $estadoActual,
+                'activo' => ! (bool) $cartera->activo,
                 'actualizada_en' => Carbon::now(),
             ]);
 
@@ -259,19 +270,29 @@ final class PasoCarteras extends Component
     }
 
     /**
+     * Esta pantalla es de administración y NO cuelga del binding
+     * `tenancy.proyecto_activo`: el proyecto lo fija la ruta
+     * `/admin/proyectos/{proyecto:public_id}/configurar`. Se sobrescribe el
+     * método del trait para que `autorizarEn()` y `exigirDelProyecto()`
+     * comprueben contra ese proyecto y no contra un binding que aquí no existe.
+     */
+    protected function proyectoActivoId(): int
+    {
+        return (int) $this->proyecto->id;
+    }
+
+    /**
      * Defensa en profundidad (patrón F23).
+     *
+     * `proyectos.configurar` es el permiso de la ruta y el único que cubre las
+     * carteras: no existe ningún `carteras.*` en el seeder. Lo tienen
+     * ADMIN_MANDANTE (sobre los proyectos de su mandante) y ADMIN_GLOBAL, este
+     * último vía `Gate::before`. SUPERVISOR no lo tiene.
      */
     private function autorizar(): void
     {
-        $user = auth()->user();
-        if ($user === null) {
-            abort(403);
-        }
-        if ($user->esAdminGlobal()) {
-            return;
-        }
-        if (! $user->tienePermiso('proyectos.configurar', (int) $this->proyecto->id)) {
-            abort(403, 'No autorizado para configurar el proyecto.');
-        }
+        abort_if(auth()->user() === null, 403);
+
+        $this->autorizarEn('proyectos.configurar');
     }
 }

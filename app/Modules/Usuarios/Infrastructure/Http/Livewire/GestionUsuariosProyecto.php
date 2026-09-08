@@ -7,8 +7,10 @@ namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 use App\Models\User;
 use App\Modules\Usuarios\Application\RolesCustom\UseCases\AsignarRolCustomAUsuario;
 use App\Modules\Usuarios\Application\RolesCustom\UseCases\RevocarRolCustomDeUsuario;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -17,6 +19,9 @@ use Livewire\Component;
  * desde Fase 33, también roles custom del proyecto.
  *
  * Protecciones:
+ *   - `usuarios.gestionar` exigido en cada método que escribe, no sólo en la
+ *     ruta: cada acción de Livewire es un POST aparte que no vuelve a pasar por
+ *     el middleware, y esta pantalla reparte roles.
  *   - No mostrar ni modificar usuarios con rol ADMIN_GLOBAL.
  *   - No permitir auto-revocarse.
  *   - Validar que el usuario existe antes de asignar.
@@ -24,10 +29,21 @@ use Livewire\Component;
  */
 final class GestionUsuariosProyecto extends Component
 {
+    use AutorizaEnProyectoActivo;
+
     public bool $formAsignarVisible = false;
 
     public string $buscarEmail = '';
 
+    /**
+     * `#[Locked]` porque este id lo fija el servidor en `buscarUsuario()`, que es
+     * donde viven las dos negativas que importan: no se gestiona a un
+     * ADMIN_GLOBAL y no se trae por correo a alguien de otro mandante. Sin el
+     * candado, un `$wire.set('usuarioBuscadoId', N)` desde la consola llegaba a
+     * `asignar()` sin haber pasado por ninguna de las dos, y el pivot que se
+     * creaba es el que el SSO usa como prueba de identidad.
+     */
+    #[Locked]
     public ?int $usuarioBuscadoId = null;
 
     public string $usuarioBuscadoNombre = '';
@@ -65,6 +81,11 @@ final class GestionUsuariosProyecto extends Component
 
     public function buscarUsuario(): void
     {
+        // Resolver un correo a un nombre y un id es el paso previo a repartir un
+        // rol, y contesta si esa cuenta existe en el CRM. Mismo permiso que
+        // asignar: quien no puede asignar no tiene por qué enumerar.
+        $this->autorizarEn('usuarios.gestionar');
+
         $email = strtolower(trim($this->buscarEmail));
         if ($email === '') {
             $this->addError('buscarEmail', 'Ingresa un correo.');
@@ -108,6 +129,12 @@ final class GestionUsuariosProyecto extends Component
 
     public function asignar(AsignarRolCustomAUsuario $asignarCustom): void
     {
+        // `usuarios.gestionar` es el permiso de la ruta y el que nombra esta
+        // función en el reparto: lo tienen SUPERVISOR, ADMIN_MANDANTE y
+        // ADMIN_GLOBAL. El AUDITOR se queda en `usuarios.ver` y el GESTOR no
+        // tiene ninguno del grupo.
+        $this->autorizarEn('usuarios.gestionar');
+
         $this->validate([
             'usuarioBuscadoId' => ['required', 'integer', 'exists:users,id'],
             'rolAsignarValor' => ['required', 'string', 'regex:/^(base|custom):\d+$/'],
@@ -168,6 +195,11 @@ final class GestionUsuariosProyecto extends Component
                 DB::table('usuario_proyecto_rol_cartera')->insert($filas);
             }
         } else {
+            // Un rol custom es del proyecto que lo define. El permiso es por
+            // proyecto, así que sin esta comprobación un supervisor arrastraría
+            // el suyo para colgarle a alguien el rol de otro mandante.
+            $this->exigirDelProyecto('roles_custom', $rolId);
+
             try {
                 $asignarCustom->execute($rolId, $usuarioId, $proyectoId);
             } catch (\Throwable $e) {
@@ -183,6 +215,11 @@ final class GestionUsuariosProyecto extends Component
 
     public function quitar(int $usuarioId, int $rolId): void
     {
+        // Los dos argumentos llegan del cliente. El DELETE ya filtra por el
+        // proyecto activo, así que la fuga posible no es de fila sino de
+        // permiso: revocar roles es gestionar usuarios, no verlos.
+        $this->autorizarEn('usuarios.gestionar');
+
         if (! $this->validarPuedeQuitar($usuarioId)) {
             return;
         }
@@ -198,6 +235,9 @@ final class GestionUsuariosProyecto extends Component
 
     public function quitarCustom(int $usuarioId, int $rolCustomId, RevocarRolCustomDeUsuario $revocar): void
     {
+        $this->autorizarEn('usuarios.gestionar');
+        $this->exigirDelProyecto('roles_custom', $rolCustomId);
+
         if (! $this->validarPuedeQuitar($usuarioId)) {
             return;
         }
@@ -368,10 +408,5 @@ final class GestionUsuariosProyecto extends Component
             ->where('p.mandante_id', '!=', $mandanteId)
             ->where('upr.activo', true)
             ->exists();
-    }
-
-    private function proyectoActivoId(): int
-    {
-        return (int) app('tenancy.proyecto_activo')->id;
     }
 }

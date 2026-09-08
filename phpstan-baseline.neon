@@ -667,12 +667,6 @@ parameters:
 			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
 
 		-
-			message: '#^Using nullsafe method call on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Modules/Importaciones/Infrastructure/Http/Livewire/Importar.php
-
-		-
 			message: '#^Match expression does not handle remaining value\: string$#'
 			identifier: match.unhandled
 			count: 2
