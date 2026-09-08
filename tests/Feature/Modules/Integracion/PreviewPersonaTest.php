@@ -111,6 +111,27 @@ final class PreviewPersonaTest extends TestCase
     }
 
     /**
+     * Un proyecto archivado deja de existir para todo el mundo, también para el
+     * wrapper. Se cerraron sus tres caminos de dentro —listado, selector y
+     * URL— y esta puerta se quedaba abierta.
+     */
+    public function test_un_proyecto_archivado_no_entrega_fichas_por_la_api(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
+        $url = "/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}";
+
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyecto));
+        $this->getJson($url)->assertStatus(200);
+
+        DB::table('proyectos')->where('id', $proyecto->id)->update(['eliminada_en' => now()]);
+
+        $this->getJson($url)->assertStatus(403);
+    }
+
+    /**
      * Las habilidades con las que se emite un token de verdad: las dos de la
      * API más la del mandante dueño del proyecto. Sin la última, la ficha
      * responde 403 aunque el usuario tenga acceso — que es justo lo que este

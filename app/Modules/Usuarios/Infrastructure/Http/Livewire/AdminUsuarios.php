@@ -696,11 +696,21 @@ final class AdminUsuarios extends Component
      * El cliente al que pertenece una cuenta, para que sus eventos —que no
      * cuelgan de ningún proyecto— tengan dueño y su administrador los vea.
      *
-     * Primero el origen de la cuenta (`mandante_origen_id`, lo que dejó escrito
-     * quien la provisionó) y sólo después el cliente en el que se está
-     * trabajando: un ADMIN_GLOBAL puede editar la cuenta de cualquiera desde
-     * fuera de todo contexto, y ahí el dueño del evento es el cliente de la
-     * cuenta, no el de la pantalla.
+     * Tres preguntas, en este orden, y la de la pantalla la última:
+     *
+     *  1. El origen de la cuenta (`mandante_origen_id`), lo que dejó escrito
+     *     quien la provisionó.
+     *  2. Dónde tiene accesos: rol de mandante, o roles sobre proyectos. Las
+     *     cuentas anteriores al SSO no tienen origen escrito, y atribuir sus
+     *     eventos al cliente de la PANTALLA se los enseñaría al administrador
+     *     equivocado —o se los escondería al suyo—. Es la misma definición que
+     *     usa `GestionUsuariosProyecto` para decidir si una cuenta es de otro
+     *     cliente; tenerla escrita de dos maneras distintas en el mismo módulo
+     *     era pedir que un día dejaran de coincidir.
+     *  3. El cliente en el que se está trabajando.
+     *
+     * Si los accesos apuntan a más de un cliente, se queda SIN dueño: el
+     * contrato dice, y con razón, que antes eso que inventarle uno.
      */
     private function clienteDeLaCuenta(int $usuarioId): ?int
     {
@@ -710,7 +720,46 @@ final class AdminUsuarios extends Component
             return (int) $origen;
         }
 
+        $porAccesos = $this->clientesDondeTieneAcceso($usuarioId);
+
+        if (count($porAccesos) === 1) {
+            return $porAccesos[0];
+        }
+
+        if ($porAccesos !== []) {
+            return null;
+        }
+
         return $this->clienteDondeSeEstaTrabajando();
+    }
+
+    /**
+     * Los clientes en los que esta cuenta tiene algo: rol de mandante o rol
+     * sobre alguno de sus proyectos.
+     *
+     * @return list<int>
+     */
+    private function clientesDondeTieneAcceso(int $usuarioId): array
+    {
+        $porMandante = DB::table('usuario_mandante_rol')
+            ->where('usuario_id', $usuarioId)
+            ->where('activo', true)
+            ->pluck('mandante_id');
+
+        $porProyecto = DB::table('usuario_proyecto_rol as upr')
+            ->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
+            ->where('upr.usuario_id', $usuarioId)
+            ->where('upr.activo', true)
+            ->pluck('p.mandante_id');
+
+        /** @var list<int> $clientes */
+        $clientes = $porMandante->merge($porProyecto)
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        return $clientes;
     }
 
     /**

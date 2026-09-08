@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 
 use App\Models\User;
+use App\Modules\Auditoria\Domain\Contracts\RegistroDeAccionesAdministrativas;
 use App\Modules\Usuarios\Application\RolesCustom\UseCases\AsignarRolCustomAUsuario;
 use App\Modules\Usuarios\Application\RolesCustom\UseCases\RevocarRolCustomDeUsuario;
 use App\Support\Livewire\AutorizaEnProyectoActivo;
@@ -194,6 +195,17 @@ final class GestionUsuariosProyecto extends Component
                 );
                 DB::table('usuario_proyecto_rol_cartera')->insert($filas);
             }
+
+            $this->bitacora()->alta(
+                'usuario_proyecto_rol',
+                $usuarioId,
+                [
+                    'usuario_id' => $usuarioId,
+                    'rol_codigo' => (string) $rol->codigo,
+                    'carteras' => $this->codigosDeCartera($carterasValidas),
+                ],
+                $proyectoId,
+            );
         } else {
             // Un rol custom es del proyecto que lo define. El permiso es por
             // proyecto, así que sin esta comprobación un supervisor arrastraría
@@ -207,6 +219,16 @@ final class GestionUsuariosProyecto extends Component
 
                 return;
             }
+
+            $this->bitacora()->alta(
+                'usuario_proyecto_rol_custom',
+                $usuarioId,
+                [
+                    'usuario_id' => $usuarioId,
+                    'rol_custom_codigo' => (string) DB::table('roles_custom')->where('id', $rolId)->value('codigo'),
+                ],
+                $proyectoId,
+            );
         }
 
         $this->cerrarFormAsignar();
@@ -224,11 +246,28 @@ final class GestionUsuariosProyecto extends Component
             return;
         }
 
-        DB::table('usuario_proyecto_rol')
+        $proyectoId = $this->proyectoActivoId();
+
+        $borradas = DB::table('usuario_proyecto_rol')
             ->where('usuario_id', $usuarioId)
-            ->where('proyecto_id', $this->proyectoActivoId())
+            ->where('proyecto_id', $proyectoId)
             ->where('rol_id', $rolId)
             ->delete();
+
+        // Sólo si de verdad quitó algo: un clic sobre un rol que ya no estaba no
+        // es un evento, y un registro lleno de bajas que no ocurrieron es peor
+        // que no tenerlo.
+        if ($borradas > 0) {
+            $this->bitacora()->baja(
+                'usuario_proyecto_rol',
+                $usuarioId,
+                [
+                    'usuario_id' => $usuarioId,
+                    'rol_codigo' => (string) DB::table('roles')->where('id', $rolId)->value('codigo'),
+                ],
+                $proyectoId,
+            );
+        }
 
         session()->flash('gestion-usuarios-ok', 'Rol removido.');
     }
@@ -242,7 +281,19 @@ final class GestionUsuariosProyecto extends Component
             return;
         }
 
-        $revocar->execute($rolCustomId, $usuarioId, $this->proyectoActivoId());
+        $proyectoId = $this->proyectoActivoId();
+        $revocar->execute($rolCustomId, $usuarioId, $proyectoId);
+
+        $this->bitacora()->baja(
+            'usuario_proyecto_rol_custom',
+            $usuarioId,
+            [
+                'usuario_id' => $usuarioId,
+                'rol_custom_codigo' => (string) DB::table('roles_custom')->where('id', $rolCustomId)->value('codigo'),
+            ],
+            $proyectoId,
+        );
+
         session()->flash('gestion-usuarios-ok', 'Rol custom removido.');
     }
 
@@ -408,5 +459,37 @@ final class GestionUsuariosProyecto extends Component
             ->where('p.mandante_id', '!=', $mandanteId)
             ->where('upr.activo', true)
             ->exists();
+    }
+
+    /**
+     * Quién anota lo que pasa por aquí.
+     *
+     * Esta pantalla es la que el supervisor usa a diario para dar y quitar
+     * accesos a la cartera de un cliente, y era la única de las tres que
+     * escriben pivotes de acceso que no dejaba constancia de nada.
+     */
+    private function bitacora(): RegistroDeAccionesAdministrativas
+    {
+        return app(RegistroDeAccionesAdministrativas::class);
+    }
+
+    /**
+     * Los códigos de las carteras a las que queda acotado el rol, que es lo que
+     * una persona reconoce; los ids no dicen nada en un registro que se lee
+     * meses después.
+     *
+     * @param  list<int>  $ids
+     * @return list<string>
+     */
+    private function codigosDeCartera(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        /** @var list<string> $codigos */
+        $codigos = DB::table('carteras')->whereIn('id', $ids)->orderBy('codigo')->pluck('codigo')->all();
+
+        return $codigos;
     }
 }

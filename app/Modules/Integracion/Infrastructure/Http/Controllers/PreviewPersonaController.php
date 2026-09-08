@@ -121,11 +121,21 @@ final class PreviewPersonaController
      */
     private function elTokenAlcanzaEsteProyecto(Request $request, int $proyectoId): bool
     {
-        $mandanteId = DB::table('proyectos')->where('id', $proyectoId)->value('mandante_id');
+        // El proyecto tiene que existir, estar activo y no estar archivado. Sin
+        // esto, un proyecto retirado seguía entregando fichas por la API
+        // mientras el CRM ya no lo enseñaba en ninguna pantalla: se cerraron
+        // los tres caminos de dentro y quedó abierta la puerta de fuera.
+        $proyecto = DB::table('proyectos')
+            ->where('id', $proyectoId)
+            ->where('activo', true)
+            ->whereNull('eliminada_en')
+            ->first(['mandante_id']);
 
-        if ($mandanteId === null) {
+        if ($proyecto === null) {
             return false;
         }
+
+        $mandanteId = $proyecto->mandante_id;
 
         if (! $this->elTokenDeclaraElMandante($request, (int) $mandanteId)) {
             return false;
