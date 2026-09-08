@@ -1,0 +1,19 @@
+# Fugas multi-mandante conocidas y todavía sin cerrar.
+#
+# El grupo `fuga-pendiente` son tests escritos a propósito para fallar: cada uno
+# documenta un agujero real de aislamiento entre mandantes que sigue abierto en
+# producción. `phpunit.xml` los excluye del run por defecto para que la suite del
+# día a día sea utilizable, y hasta ahora eso significaba que nadie los veía.
+#
+# Este número es un trinquete. El job `fugas` del CI ejecuta el grupo y compara:
+#
+#   fallos actuales  >  este número  →  el build se rompe (has abierto una fuga nueva)
+#   fallos actuales  <  este número  →  el build pasa y te pide bajar el número
+#   fallos actuales  == este número  →  el build pasa
+#
+# La única forma de subirlo es a mano y con explicación en el PR. Bajarlo es la
+# tarea; llegar a 0 es el objetivo, y entonces se borra la exclusión de
+# phpunit.xml y el grupo pasa a correr con el resto.
+#
+# Medido el 2026-09-08 sobre feat/vista-de-trabajo-rediseno: 23 fallos, 2 pasan.
+23
