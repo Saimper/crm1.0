@@ -16,4 +16,8 @@
 # phpunit.xml y el grupo pasa a correr con el resto.
 #
 # Medido el 2026-09-08 sobre feat/vista-de-trabajo-rediseno: 23 fallos, 2 pasan.
-23
+#
+# 2026-09-09 · 23 -> 20. Acotar el PAT del wrapper (habilidades explícitas,
+# caducidad y mandante en el nombre del token) cerró las tres fugas de
+# integración: comodín, sin expiración y sin atribución.
+20

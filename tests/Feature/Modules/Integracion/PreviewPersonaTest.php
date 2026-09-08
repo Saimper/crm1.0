@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Integracion;
 
 use App\Models\User;
+use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
@@ -31,8 +33,9 @@ final class PreviewPersonaTest extends TestCase
         $usuario = $this->crearGestor($proyecto);
         $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
-        $response = $this->actingAs($usuario, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
+        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -59,8 +62,9 @@ final class PreviewPersonaTest extends TestCase
         $persona = $this->crearPersonaEn($proyectoA);
         $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
-        $response = $this->actingAs($usuario, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoB->id}");
+        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoB->id}");
 
         // El usuario no tiene acceso al proyecto B, entonces 403
         $response->assertStatus(403);
@@ -81,8 +85,9 @@ final class PreviewPersonaTest extends TestCase
             'activo' => true,
         ]);
 
-        $response = $this->actingAs($sinRol, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
+        Sanctum::actingAs($sinRol, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
 
         $response->assertStatus(403);
     }
@@ -92,8 +97,9 @@ final class PreviewPersonaTest extends TestCase
         $proyecto = $this->crearProyectoCobranza();
         $usuario = $this->crearGestor($proyecto);
 
-        $response = $this->actingAs($usuario, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion=99999999NOEXISTE&tipo_identificacion_codigo=CC&proyecto_id={$proyecto->id}");
+        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $response = $this->getJson("/api/integracion/persona?identificacion=99999999NOEXISTE&tipo_identificacion_codigo=CC&proyecto_id={$proyecto->id}");
 
         $response->assertStatus(404);
     }

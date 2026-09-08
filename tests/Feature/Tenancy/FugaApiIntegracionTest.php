@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Tenancy;
 
 use App\Models\User;
+use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
 use Database\Seeders\DatabaseSeeder;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\EscenarioMultiMandante;
@@ -229,8 +231,9 @@ final class FugaApiIntegracionTest extends TestCase
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
-        $response = $this->actingAs($a['gestor'], 'sanctum')
-            ->getJson($this->urlPersona($b['proyecto'], $b['persona']));
+        Sanctum::actingAs($a['gestor'], EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $response = $this->getJson($this->urlPersona($b['proyecto'], $b['persona']));
 
         $this->assertSame(
             403,
