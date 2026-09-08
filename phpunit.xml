@@ -25,6 +25,10 @@
         </include>
     </source>
     <php>
+        <!-- La suite pasa de 1.400 tests y su pico supera los 128M del CLI por
+             defecto: sin esto muere a mitad con «Allowed memory size exhausted»
+             en máquinas que no fijan memory_limit (el CI ya corre con -1). -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
