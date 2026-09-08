@@ -168,7 +168,7 @@
                         {{ __('casos.promise_amount') }} <span class="text-danger-600">*</span>
                     </label>
                     <input type="text" wire:model="promesaMonto" placeholder="0.00"
-                           class="mt-1 block w-full text-sm rounded border-warning-300 focus:border-warning-500 focus:ring-amber-500"/>
+                           class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500"/>
                     @error('promesaMonto')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
@@ -176,13 +176,13 @@
                         {{ __('casos.promise_date') }} <span class="text-danger-600">*</span>
                     </label>
                     <input type="date" wire:model="promesaFecha"
-                           class="mt-1 block w-full text-sm rounded border-warning-300 focus:border-warning-500 focus:ring-amber-500"/>
+                           class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500"/>
                     @error('promesaFecha')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-warning-700">{{ __('casos.promise_payment_type') }}</label>
                     <select wire:model="promesaTipoPagoId"
-                            class="mt-1 block w-full text-sm rounded border-warning-300 focus:border-warning-500 focus:ring-amber-500">
+                            class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500">
                         <option value="">—</option>
                         @foreach($tiposPago as $tp)
                             <option value="{{ $tp->id }}">{{ $tp->nombre }}</option>
@@ -202,7 +202,7 @@
                         {{ __('casos.close_amount') }} <span class="text-danger-600">*</span>
                     </label>
                     <input type="text" wire:model="cierreMonto" placeholder="0.00"
-                           class="mt-1 block w-full text-sm rounded border-success-300 focus:border-success-500 focus:ring-emerald-500"/>
+                           class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500"/>
                     @error('cierreMonto')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
@@ -210,13 +210,13 @@
                         {{ __('casos.close_estimated_date') }} <span class="text-danger-600">*</span>
                     </label>
                     <input type="date" wire:model="cierreFechaEstimada"
-                           class="mt-1 block w-full text-sm rounded border-success-300 focus:border-success-500 focus:ring-emerald-500"/>
+                           class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500"/>
                     @error('cierreFechaEstimada')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-success-700">{{ __('casos.close_funnel_stage') }}</label>
                     <select wire:model="cierreEtapaEmbudoId"
-                            class="mt-1 block w-full text-sm rounded border-success-300 focus:border-success-500 focus:ring-emerald-500">
+                            class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500">
                         <option value="">—</option>
                         @foreach($etapasEmbudo as $ee)
                             <option value="{{ $ee->id }}">{{ $ee->nombre }} ({{ $ee->probabilidad_cierre }}%)</option>
@@ -269,31 +269,31 @@
     @endif
 
     @if($requiereCompromiso && $tipoCaso === 'ticket_cx')
-        <div class="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-sky-800">{{ __('casos.resolution_title') }}</div>
+        <div class="mt-3 rounded-md border border-brand-100 bg-brand-50 p-3">
+            <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ __('casos.resolution_title') }}</div>
             <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-sky-900">
+                    <label class="block text-xs font-medium text-brand-900">
                         {{ __('casos.resolution_action') }} <span class="text-danger-600">*</span>
                     </label>
                     <input type="text" wire:model="resolucionAccion" maxlength="500"
                            placeholder="{{ __('casos.resolution_action_ph') }}"
-                           class="mt-1 block w-full text-sm rounded border-sky-300 focus:border-sky-500 focus:ring-sky-500"/>
+                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
                     @error('resolucionAccion')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-sky-900">
+                    <label class="block text-xs font-medium text-brand-900">
                         {{ __('casos.resolution_deadline') }} <span class="text-danger-600">*</span>
                     </label>
                     <input type="datetime-local" wire:model="resolucionFechaLimite"
-                           class="mt-1 block w-full text-sm rounded border-sky-300 focus:border-sky-500 focus:ring-sky-500"/>
+                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
                     @error('resolucionFechaLimite')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
-                <div class="sm:col-span-3 pt-2 mt-2 border-t border-sky-200">
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-sky-700 mb-1">{{ __('casos.escalation_section') }}</div>
-                    <label class="block text-xs font-medium text-sky-900">{{ __('casos.escalation_level') }}</label>
+                <div class="sm:col-span-3 pt-2 mt-2 border-t border-brand-100">
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-700 mb-1">{{ __('casos.escalation_section') }}</div>
+                    <label class="block text-xs font-medium text-brand-900">{{ __('casos.escalation_level') }}</label>
                     <select wire:model="resolucionNivelEscalamientoId"
-                            class="mt-1 block w-full text-sm rounded border-sky-300 focus:border-sky-500 focus:ring-sky-500">
+                            class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500">
                         <option value="">—</option>
                         @foreach($nivelesEscalamiento as $ne)
                             <option value="{{ $ne->id }}">{{ $ne->nombre }}</option>

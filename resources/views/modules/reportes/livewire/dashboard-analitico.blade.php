@@ -20,7 +20,7 @@
                             @php
                                 $color = match ($d->tipo_caso) {
                                     'cobranza'   => 'bg-warning-50 text-warning-700',
-                                    'ticket_cx'  => 'bg-sky-100 text-sky-800',
+                                    'ticket_cx'  => 'bg-brand-50 text-brand-700',
                                     'lead_venta' => 'bg-success-50 text-success-800',
                                     'servicio'   => 'bg-brand-100 text-brand-800',
                                     default      => 'bg-ink-100 text-ink-700',

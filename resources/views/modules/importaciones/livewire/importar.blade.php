@@ -191,13 +191,13 @@
                                 $tipoBadge = match($col['tipo_inferido']) {
                                     'texto_corto' => 'bg-ink-100 text-ink-700',
                                     'texto_largo' => 'bg-ink-100 text-ink-700',
-                                    'numero_entero' => 'bg-blue-100 text-blue-700',
-                                    'numero_decimal' => 'bg-blue-100 text-blue-700',
-                                    'fecha' => 'bg-purple-100 text-purple-700',
-                                    'fecha_hora' => 'bg-purple-100 text-purple-700',
-                                    'booleano' => 'bg-green-100 text-green-700',
-                                    'seleccion_unica' => 'bg-yellow-100 text-yellow-700',
-                                    'moneda' => 'bg-emerald-100 text-emerald-700',
+                                    'numero_entero' => 'bg-brand-50 text-brand-700',
+                                    'numero_decimal' => 'bg-brand-50 text-brand-700',
+                                    'fecha' => 'bg-violet-50 text-violet-700',
+                                    'fecha_hora' => 'bg-violet-50 text-violet-700',
+                                    'booleano' => 'bg-success-50 text-success-700',
+                                    'seleccion_unica' => 'bg-warning-50 text-warning-700',
+                                    'moneda' => 'bg-success-50 text-success-700',
                                     default => 'bg-ink-100 text-ink-700',
                                 };
                                 $tipoLabel = match($col['tipo_inferido']) {
@@ -436,9 +436,9 @@
                     <div class="text-[10px] uppercase text-success-700">{{ __('importaciones.label_inserted') }}</div>
                     <div class="mt-1 font-semibold text-success-700">{{ $progreso->insertadas }}</div>
                 </div>
-                <div class="rounded border border-blue-200 bg-blue-50 p-3">
-                    <div class="text-[10px] uppercase text-blue-700">{{ __('importaciones.label_updated') }}</div>
-                    <div class="mt-1 font-semibold text-blue-700">{{ $progreso->actualizadas }}</div>
+                <div class="rounded border border-brand-100 bg-brand-50 p-3">
+                    <div class="text-[10px] uppercase text-brand-700">{{ __('importaciones.label_updated') }}</div>
+                    <div class="mt-1 font-semibold text-brand-700">{{ $progreso->actualizadas }}</div>
                 </div>
                 <div class="rounded border border-warning-200 bg-warning-50 p-3">
                     <div class="text-[10px] uppercase text-warning-700">{{ __('importaciones.label_duplicated') }}</div>
@@ -531,7 +531,7 @@
                             <td class="px-3 py-2 text-xs">{{ $h->usuario_nombre ?? '—' }}</td>
                             <td class="px-3 py-2 text-right font-mono">{{ number_format((int) $h->total_filas) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-success-700">{{ number_format((int) ($h->insertadas ?? 0)) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-blue-700">{{ number_format((int) ($h->actualizadas ?? 0)) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-brand-700">{{ number_format((int) ($h->actualizadas ?? 0)) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-warning-700">{{ number_format((int) $h->duplicadas) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-danger-700">{{ number_format((int) $h->invalidas) }}</td>
                             <td class="px-3 py-2 text-xs">
