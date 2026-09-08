@@ -22,7 +22,13 @@
                     <option value="{{ $e->id }}">{{ $e->nombre }}</option>
                 @endforeach
             </select>
-            @if($busqueda !== '' || $carteraId !== '' || $estadoCasoId !== '')
+            @if($puedeTomar)
+                <label class="flex items-center gap-1.5 whitespace-nowrap text-sm">
+                    <input type="checkbox" wire:model.live="soloSinDuenio" />
+                    {{ __('casos.assign_only_unowned') }}
+                </label>
+            @endif
+            @if($busqueda !== '' || $carteraId !== '' || $estadoCasoId !== '' || $soloSinDuenio)
                 <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('casos.clear_filters') }}</button>
             @endif
             @can('casos.exportar', (int) app('tenancy.proyecto_activo')->id)
@@ -78,6 +84,13 @@
             </x-slot:acciones>
         </x-ui.toolbar>
 
+        @if($mensajeAsignacion)
+            <x-ui.alert tone="success" class="mx-4 mb-3">{{ $mensajeAsignacion }}</x-ui.alert>
+        @endif
+        @error('asignacion')
+            <x-ui.alert tone="danger" class="mx-4 mb-3">{{ $message }}</x-ui.alert>
+        @enderror
+
         {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
              esta barra dice que se está trabajando. --}}
         <x-ui.cargando />
@@ -106,6 +119,9 @@
                                 </x-ui.th>
                             @endif
                         @endforeach
+                        @if($puedeTomar)
+                            <th class="w-[150px]">{{ __('casos.assign_owner') }}</th>
+                        @endif
                         <th style="width:60px;"></th>
                     </tr>
                 </thead>
@@ -127,6 +143,23 @@
                                     <x-casos.celda-caso :caso="$caso" :columna="$col" :nombre="$nombre" />
                                 @endif
                             @endforeach
+                            @if($puedeTomar)
+                                {{-- El clic de la fila navega a la vista de trabajo; el de este
+                                     botón no debe arrastrar con él. --}}
+                                <td onclick="event.stopPropagation()">
+                                    @if($caso->asignado_a)
+                                        <span class="text-sm text-ink-500">{{ $caso->asignado_a }}</span>
+                                    @else
+                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                wire:click="tomarCuenta({{ $caso->id }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="tomarCuenta({{ $caso->id }})"
+                                                title="{{ __('casos.assign_take_title') }}">
+                                            {{ __('casos.assign_take') }}
+                                        </button>
+                                    @endif
+                                </td>
+                            @endif
                             <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach

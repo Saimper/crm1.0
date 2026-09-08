@@ -91,4 +91,11 @@ return [
     'result_moved' => 'Moved: :count',
     'col_new_agent' => 'New agent',
     'col_cases_received_r' => ':Entidades',
+    // The agent takes unassigned accounts; the supervisor moves them between agents
+    'filter_unowned' => 'Unassigned',
+    'btn_take' => 'Take',
+    'taken' => 'Account taken. It is now in your queue.',
+    'reassign_to' => 'Move to…',
+    'reassign_title' => 'Move this account to another agent',
+    'reassign_done' => 'Account reassigned to :usuario.',
 ];

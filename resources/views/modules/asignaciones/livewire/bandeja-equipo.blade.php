@@ -1,4 +1,13 @@
 <div class="space-y-4">
+    @if($mensajeExito)
+        <x-ui.alert tone="success"
+                    x-data="{}" x-init="setTimeout(() => $wire.set('mensajeExito', null), 4000)">
+            {{ $mensajeExito }}
+        </x-ui.alert>
+    @endif
+    @error('reasignacion')
+        <x-ui.alert tone="danger">{{ $message }}</x-ui.alert>
+    @enderror
     <x-ui.card padding="p-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
             <div>
@@ -104,6 +113,9 @@
                         <x-ui.th>{{ __('asignaciones.col_assign_status') }}</x-ui.th>
                         <x-ui.th align="right">{{ __('asignaciones.col_priority_eq') }}</x-ui.th>
                         <x-ui.th>{{ __('asignaciones.col_last_management_eq') }}</x-ui.th>
+                        @if($puedeReasignar)
+                            <x-ui.th align="right">{{ __('asignaciones.reassign_to') }}</x-ui.th>
+                        @endif
                     </x-slot>
 
                     @foreach($asignaciones as $a)
@@ -148,6 +160,27 @@
                             <x-ui.td>
                                 {{ $a->fecha_ultima_gestion ? \Illuminate\Support\Carbon::parse($a->fecha_ultima_gestion)->format('d/m/Y H:i') : '—' }}
                             </x-ui.td>
+                            @if($puedeReasignar)
+                                <x-ui.td align="right">
+                                    @if($a->estado === 'cerrada')
+                                        <span class="text-xs text-ink-400">—</span>
+                                    @else
+                                        {{-- El select vuelve a «Pasar a…» solo: la fila se recarga con
+                                             el nuevo dueño y el desplegable no debe quedar señalando
+                                             a nadie. --}}
+                                        <select wire:change="reasignar({{ $a->id }}, $event.target.value)"
+                                                wire:key="reasignar-{{ $a->id }}-{{ $a->gestor_id }}"
+                                                class="text-xs border-ink-300 rounded"
+                                                title="{{ __('asignaciones.reassign_title') }}">
+                                            <option value="">{{ __('asignaciones.reassign_to') }}</option>
+                                            @foreach($destinatarios as $d)
+                                                @continue((int) $d->id === (int) $a->gestor_id)
+                                                <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
+                                </x-ui.td>
+                            @endif
                         </tr>
                     @endforeach
 

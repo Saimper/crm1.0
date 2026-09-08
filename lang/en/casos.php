@@ -155,4 +155,11 @@ return [
     'columns' => 'Columns',
     'columns_title' => 'Visible columns',
     'columns_reset' => 'Reset',
+    // Self-assignment: the agent takes the account they are about to work
+    'assign_take' => 'Take',
+    'assign_take_title' => 'Take this account into my queue',
+    'assign_taken' => 'Account taken. It is now in your queue.',
+    'assign_owner' => 'Assigned to',
+    'assign_unowned' => 'Unassigned',
+    'assign_only_unowned' => 'Unassigned only',
 ];

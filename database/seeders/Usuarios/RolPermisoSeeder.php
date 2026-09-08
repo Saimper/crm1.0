@@ -54,6 +54,7 @@ final class RolPermisoSeeder extends Seeder
             // Asignaciones
             'asignaciones.ver_propia', 'asignaciones.ver_equipo',
             'asignaciones.crear', 'asignaciones.reasignar', 'asignaciones.cerrar', 'asignaciones.administrar',
+            'asignaciones.autoasignarse',
             // Usuarios — admin_mandante asigna usuarios a sus proyectos
             'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.gestionar', 'usuarios.administrar',
             // Equipos
@@ -90,6 +91,7 @@ final class RolPermisoSeeder extends Seeder
             // Asignaciones
             'asignaciones.ver_propia', 'asignaciones.ver_equipo',
             'asignaciones.crear', 'asignaciones.reasignar', 'asignaciones.cerrar', 'asignaciones.administrar',
+            'asignaciones.autoasignarse',
             // Usuarios del proyecto
             'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.gestionar', 'usuarios.administrar',
             // Equipos
@@ -121,8 +123,8 @@ final class RolPermisoSeeder extends Seeder
             'casos.ver', 'casos.editar',
             // Contactos
             'contactos.ver', 'contactos.crear', 'contactos.editar',
-            // Asignaciones — solo propia
-            'asignaciones.ver_propia',
+            // Asignaciones — solo propia, y tomar las que no son de nadie
+            'asignaciones.ver_propia', 'asignaciones.autoasignarse',
             // Notificaciones propias
             'notificaciones.ver',
             // Campos personalizados — SOLO VALORES (NUNCA definir)

@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Asignaciones\Infrastructure\Http\Livewire;
 
+use App\Models\User;
+use App\Modules\Asignaciones\Application\UseCases\ReasignarAsignacionAUsuario;
+use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -36,6 +40,8 @@ final class BandejaEquipo extends Component
     #[Url(as: 'q', except: '')]
     public string $busqueda = '';
 
+    public ?string $mensajeExito = null;
+
     public function updating(): void
     {
         $this->resetPage();
@@ -66,6 +72,68 @@ final class BandejaEquipo extends Component
             ->where('id', $asignacionId)
             ->where('proyecto_id', $proyectoId)
             ->update(['prioridad' => $nuevaPrioridad]);
+    }
+
+    /**
+     * El supervisor le pasa una cuenta de un asesor a otro.
+     *
+     * Mismo permiso que el reparto por lotes: quien puede mover mil puede mover
+     * una. Las reglas —qué estados se mueven, que el destino opere en el
+     * proyecto— viven en el UseCase, no aquí (§13.4).
+     */
+    public function reasignar(int $asignacionId, ?int $nuevoUsuarioId, ReasignarAsignacionAUsuario $reasignar): void
+    {
+        if ($nuevoUsuarioId === null || $nuevoUsuarioId <= 0) {
+            return;
+        }
+
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        abort_unless(
+            auth()->user()?->tienePermiso('asignaciones.reasignar', $proyectoId) === true,
+            403,
+            'No tienes permiso para reasignar cuentas en este proyecto.',
+        );
+
+        try {
+            $reasignar->execute($proyectoId, $asignacionId, $nuevoUsuarioId);
+            $nombre = (string) DB::table('users')->where('id', $nuevoUsuarioId)->value('name');
+            $this->mensajeExito = __('asignaciones.reassign_done', ['usuario' => $nombre]);
+        } catch (TransicionAsignacionInvalida $e) {
+            $this->addError('reasignacion', $e->getMessage());
+        }
+    }
+
+    private function usuarioAutenticado(): User
+    {
+        $usuario = auth()->user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario;
+    }
+
+    /**
+     * A quién puede pasarse una cuenta: cualquiera que opere en el proyecto, no
+     * sólo el equipo que se está mirando —mover fuera del equipo es justamente
+     * uno de los motivos para reasignar—.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    private function destinatarios(int $proyectoId): Collection
+    {
+        return DB::table('users as u')
+            ->where('u.activo', true)
+            ->where(fn ($w) => $w
+                ->whereExists(fn ($q) => $q->from('usuario_proyecto_rol as upr')
+                    ->whereColumn('upr.usuario_id', 'u.id')
+                    ->where('upr.proyecto_id', $proyectoId)
+                    ->where('upr.activo', true))
+                ->orWhereExists(fn ($q) => $q->from('usuario_proyecto_rol_custom as uprc')
+                    ->whereColumn('uprc.usuario_id', 'u.id')
+                    ->where('uprc.proyecto_id', $proyectoId)
+                    ->where('uprc.activo', true)))
+            ->orderBy('u.name')
+            ->get(['u.id', 'u.name']);
     }
 
     public function render(): View
@@ -177,6 +245,8 @@ final class BandejaEquipo extends Component
             'conteoPorEstado' => $conteoPorEstado,
             'conteoPorMiembro' => $conteoPorMiembro,
             'proyectoActivo' => $proyectoActivo,
+            'destinatarios' => $this->destinatarios($proyectoId),
+            'puedeReasignar' => $this->usuarioAutenticado()->tienePermiso('asignaciones.reasignar', $proyectoId),
         ]);
     }
 }

@@ -91,4 +91,11 @@ return [
     'result_moved' => 'Movidas: :count',
     'col_new_agent' => 'Nuevo gestor',
     'col_cases_received_r' => ':Entidades',
+    // El asesor toma cuentas sin dueño; el supervisor las pasa de un asesor a otro
+    'filter_unowned' => 'Sin dueño',
+    'btn_take' => 'Tomar',
+    'taken' => 'Cuenta tomada. Ya está en tu bandeja.',
+    'reassign_to' => 'Pasar a…',
+    'reassign_title' => 'Pasar esta cuenta a otro asesor',
+    'reassign_done' => 'Cuenta reasignada a :usuario.',
 ];

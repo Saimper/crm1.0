@@ -19,6 +19,11 @@
                     'en_trabajo' => ['label' => __('asignaciones.filter_in_progress'),  'count' => (int) ($conteoPorEstado['en_trabajo'] ?? 0)],
                     'cerrada'    => ['label' => __('asignaciones.filter_closed'),        'count' => (int) ($conteoPorEstado['cerrada']    ?? 0)],
                 ];
+                // Las cuentas de nadie no son un estado de asignación: son el
+                // montón del que el asesor toma la que va a trabajar.
+                if ($puedeTomar) {
+                    $chips['sin_duenio'] = ['label' => __('asignaciones.filter_unowned'), 'count' => $totalSinDuenio];
+                }
             @endphp
             @foreach($chips as $valor => $chip)
                 @php
@@ -66,12 +71,15 @@
                 <x-ui.th>{{ __('asignaciones.col_type') }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_case_status', ['entidad' => $rotuloCaso]) }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_last_management') }}</x-ui.th>
-                <x-ui.th>{{ __('asignaciones.col_assignment') }}</x-ui.th>
+                @unless($viendoPool)
+                    <x-ui.th>{{ __('asignaciones.col_assignment') }}</x-ui.th>
+                @endunless
                 <x-ui.th align="right">&nbsp;</x-ui.th>
             </x-slot>
 
             @foreach($asignaciones as $a)
                 @php
+                    $estadoAsignacion = $viendoPool ? '' : (string) $a->estado;
                     $nombre = $a->tipo_persona === 'juridica'
                         ? (string) $a->razon_social
                         : trim((string) ($a->nombres ?? '').' '.(string) ($a->apellidos ?? ''));
@@ -82,7 +90,7 @@
                         'servicio'   => 'accent',
                         default      => 'neutral',
                     };
-                    $asigTone = match ($a->estado) {
+                    $asigTone = match ($estadoAsignacion) {
                         'pendiente'  => 'warning',
                         'en_trabajo' => 'info',
                         'cerrada'    => 'success',
@@ -124,13 +132,23 @@
                             <span class="text-xs text-ink-400">{{ __('asignaciones.no_managements') }}</span>
                         @endif
                     </x-ui.td>
-                    <x-ui.td>
-                        <x-ui.badge :tone="$asigTone">
-                            {{ ucfirst(str_replace('_', ' ', $a->estado)) }}
-                        </x-ui.badge>
-                    </x-ui.td>
+                    @unless($viendoPool)
+                        <x-ui.td>
+                            <x-ui.badge :tone="$asigTone">
+                                {{ ucfirst(str_replace('_', ' ', $estadoAsignacion)) }}
+                            </x-ui.badge>
+                        </x-ui.td>
+                    @endunless
                     <x-ui.td align="right">
                         <div class="flex items-center justify-end gap-2">
+                            @if($viendoPool)
+                                <x-ui.button size="sm"
+                                             wire:click="tomarCuenta({{ (int) $a->caso_id }})"
+                                             wire:loading.attr="disabled"
+                                             wire:target="tomarCuenta({{ (int) $a->caso_id }})">
+                                    {{ __('asignaciones.btn_take') }}
+                                </x-ui.button>
+                            @endif
                             <x-ui.button
                                 as="a"
                                 size="sm"
@@ -138,7 +156,7 @@
                                 wire:navigate>
                                 {{ __('asignaciones.btn_work') }}
                             </x-ui.button>
-                            @if($a->estado !== 'cerrada')
+                            @if(! $viendoPool && $estadoAsignacion !== 'cerrada')
                                 <x-ui.button
                                     variant="secondary"
                                     size="sm"

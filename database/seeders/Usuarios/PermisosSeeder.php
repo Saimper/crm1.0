@@ -82,6 +82,8 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'asignaciones.ver_equipo', 'nombre' => 'Ver bandejas del equipo',                 'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.crear',      'nombre' => 'Crear asignaciones',                      'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.reasignar',  'nombre' => 'Reasignar casos',                         'grupo' => 'asignaciones',  'activo' => true],
+            // El asesor toma para sí una cuenta sin dueño; el proyecto tiene que permitirlo (`proyectos.permite_autoasignacion`).
+            ['codigo' => 'asignaciones.autoasignarse', 'nombre' => 'Tomar cuentas sin dueño',                'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.cerrar',     'nombre' => 'Cerrar asignaciones',                     'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.eliminar',   'nombre' => 'Eliminar asignaciones',                   'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.administrar', 'nombre' => 'Administrar asignaciones',                'grupo' => 'asignaciones',  'activo' => true],

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
+use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -31,9 +34,38 @@ final class VistaDeTrabajo extends Component
         $this->casoPublicIdSeleccionado = $caso;
     }
 
+    public string $mensajeAsignacion = '';
+
     public function seleccionarCaso(string $publicId): void
     {
         $this->casoPublicIdSeleccionado = $publicId;
+        $this->mensajeAsignacion = '';
+    }
+
+    /**
+     * El asesor toma la cuenta que tiene delante.
+     *
+     * Es la otra mitad de `AutoasignarCasoDesdeGestion`: aquel la asigna al
+     * registrar la gestión, este deja decirlo antes —el asesor que va a llamar
+     * quiere que la cuenta esté en su bandeja mientras la trabaja, no después—.
+     */
+    public function tomarCuenta(int $casoId, AutoasignarCaso $autoasignar): void
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $usuario = auth()->user();
+
+        abort_unless(
+            $usuario?->tienePermiso('asignaciones.autoasignarse', $proyectoId) === true,
+            403,
+            'No tienes permiso para tomar cuentas en este proyecto.',
+        );
+
+        try {
+            $autoasignar->execute($proyectoId, $casoId, (int) $usuario->id, new DateTimeImmutable);
+            $this->mensajeAsignacion = __('casos.assign_taken');
+        } catch (AutoasignacionNoPermitida $e) {
+            $this->addError('asignacion', $e->getMessage());
+        }
     }
 
     #[On('gestion-registrada')]
@@ -315,7 +347,28 @@ final class VistaDeTrabajo extends Component
             'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,
             'gruposCamposCaso' => $casoActivo === null ? [] : $this->camposDelCasoPorGrupo($casoActivo),
+            'duenioCaso' => $casoActivo === null ? null : $this->duenioDelCaso((int) $casoActivo->id),
+            'puedeTomar' => $casoActivo !== null
+                && auth()->user()?->tienePermiso('asignaciones.autoasignarse', $proyectoId) === true
+                && app(AutoasignarCaso::class)->proyectoLoPermite($proyectoId),
         ]);
+    }
+
+    /**
+     * Nombre de quien tiene la cuenta, o null si no la ha tenido nadie.
+     *
+     * También cuenta la asignación cerrada: mientras exista, la cuenta no se
+     * puede volver a tomar (único `(campana_id, caso_id)`).
+     */
+    private function duenioDelCaso(int $casoId): ?string
+    {
+        $nombre = DB::table('asignaciones as a')
+            ->join('users as u', 'u.id', '=', 'a.usuario_id')
+            ->where('a.caso_id', $casoId)
+            ->orderByDesc('a.id')
+            ->value('u.name');
+
+        return $nombre === null ? null : (string) $nombre;
     }
 
     /**

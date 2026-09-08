@@ -155,4 +155,11 @@ return [
     'columns' => 'Columnas',
     'columns_title' => 'Columnas visibles',
     'columns_reset' => 'Restaurar',
+    // Autoasignación: el asesor toma la cuenta que va a trabajar
+    'assign_take' => 'Tomar',
+    'assign_take_title' => 'Tomar esta cuenta y verla en mi bandeja',
+    'assign_taken' => 'Cuenta tomada. Ya está en tu bandeja.',
+    'assign_owner' => 'Asignada a',
+    'assign_unowned' => 'Sin dueño',
+    'assign_only_unowned' => 'Sólo sin dueño',
 ];

@@ -148,6 +148,33 @@
             </x-ui.card>
 
             @if($casoActivo)
+                {{-- Quién responde por esta cuenta. Si no es de nadie y el proyecto
+                     lo permite, el asesor la toma antes de empezar a trabajarla:
+                     así aparece en su bandeja mientras la gestiona, y no al
+                     terminar. --}}
+                @if($puedeTomar || $duenioCaso)
+                    <div class="flex items-center justify-between gap-2 mt-3">
+                        <div class="text-sm text-ink-500">
+                            {{ __('casos.assign_owner') }}:
+                            <strong class="text-ink">{{ $duenioCaso ?? __('casos.assign_unowned') }}</strong>
+                        </div>
+                        @if($puedeTomar && ! $duenioCaso)
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                    wire:click="tomarCuenta({{ (int) $casoActivo->id }})"
+                                    wire:loading.attr="disabled" wire:target="tomarCuenta">
+                                {{ __('casos.assign_take') }}
+                            </button>
+                        @endif
+                    </div>
+                @endif
+
+                @if($mensajeAsignacion !== '')
+                    <x-ui.alert tone="success" class="mt-2">{{ $mensajeAsignacion }}</x-ui.alert>
+                @endif
+                @error('asignacion')
+                    <x-ui.alert tone="danger" class="mt-2">{{ $message }}</x-ui.alert>
+                @enderror
+
                 {{-- Detalle del caso (panel tipo-específico) — ahora arriba del historial --}}
                 <div style="margin-top:12px;">
                     @if($casoActivo->tipo_caso === 'cobranza')

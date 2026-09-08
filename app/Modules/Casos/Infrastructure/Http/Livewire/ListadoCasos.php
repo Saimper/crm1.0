@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
 use App\Models\User;
+use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
+use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\Casos\Application\DTOs\FiltrosListadoCasos;
 use App\Modules\Casos\Application\Services\ConsultaListadoCasos;
 use App\Modules\Casos\Application\Services\PreferenciasColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
+use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Expression;
@@ -49,6 +52,15 @@ final class ListadoCasos extends Component
 
     #[Url(as: 'estado', except: '')]
     public string $estadoCasoId = '';
+
+    /**
+     * Sólo las cuentas que no son de nadie. Es el filtro que hace usable
+     * «Tomar» cuando el proyecto tiene 5.000 cuentas y 40 sin dueño.
+     */
+    #[Url(as: 'sin_duenio', except: false)]
+    public bool $soloSinDuenio = false;
+
+    public ?string $mensajeAsignacion = null;
 
     /** @var list<string> */
     public array $columnasVisibles = [];
@@ -105,11 +117,41 @@ final class ListadoCasos extends Component
         $this->resetPage();
     }
 
+    public function updatingSoloSinDuenio(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * El asesor toma la cuenta que va a trabajar.
+     *
+     * La comprobación de permiso está aquí y en el UseCase (§13 defensa en
+     * profundidad): esta pantalla la ven roles que no pueden autoasignarse.
+     */
+    public function tomarCuenta(int $casoId, AutoasignarCaso $autoasignar): void
+    {
+        $proyectoId = $this->proyectoId();
+
+        abort_unless(
+            $this->usuario()->tienePermiso('asignaciones.autoasignarse', $proyectoId),
+            403,
+            'No tienes permiso para tomar cuentas en este proyecto.',
+        );
+
+        try {
+            $autoasignar->execute($proyectoId, $casoId, $this->usuarioId(), new DateTimeImmutable);
+            $this->mensajeAsignacion = __('casos.assign_taken');
+        } catch (AutoasignacionNoPermitida $e) {
+            $this->addError('asignacion', $e->getMessage());
+        }
+    }
+
     public function limpiarFiltros(): void
     {
         $this->busqueda = '';
         $this->carteraId = '';
         $this->estadoCasoId = '';
+        $this->soloSinDuenio = false;
         $this->resetPage();
     }
 
@@ -167,9 +209,19 @@ final class ListadoCasos extends Component
             $this->usuario()->carterasPermitidas($proyectoId),
         );
 
+        $filtrada = $consulta->aplicarFiltros($base, $filtros);
+
+        if ($this->soloSinDuenio) {
+            $filtrada->whereNotExists(fn (Builder $q) => $q
+                ->from('asignaciones as asg')
+                ->whereColumn('asg.caso_id', 'c.id'));
+        }
+
         $casos = $this
-            ->ordenar($consulta->aplicarFiltros($base, $filtros)->select($this->seleccion($columnas, $visibles)), $columnas)
+            ->ordenar($filtrada->select($this->seleccion($columnas, $visibles)), $columnas)
             ->paginate(25);
+
+        $autoasignar = app(AutoasignarCaso::class);
 
         return view('casos::livewire.listado-casos', [
             'casos' => $casos,
@@ -179,6 +231,8 @@ final class ListadoCasos extends Component
             'catalogoColumnas' => CatalogoColumnasCaso::paraTipoOperacion($tipoOperacion),
             'columnasVisibles' => $visibles,
             'urlExportar' => route('proyectos.casos.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
+            'puedeTomar' => $this->usuario()->tienePermiso('asignaciones.autoasignarse', $proyectoId)
+                && $autoasignar->proyectoLoPermite($proyectoId),
         ]);
     }
 
@@ -220,6 +274,12 @@ final class ListadoCasos extends Component
             'c.id', 'c.public_id', 'c.tipo_caso',
             'p.public_id as persona_public_id', 'p.tipo_persona',
             'p.nombres', 'p.apellidos', 'p.razon_social',
+            // Quién tiene la cuenta ahora. Subconsulta escalar y no join: un caso
+            // puede estar asignado en varias campañas y el join duplicaría la fila.
+            DB::raw('(select u.name from asignaciones asg'
+                .' inner join users u on u.id = asg.usuario_id'
+                .' where asg.caso_id = c.id'
+                .' order by asg.id desc limit 1) as asignado_a'),
         ];
 
         foreach ($visibles as $clave) {
