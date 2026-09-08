@@ -113,7 +113,7 @@
                                 : trim((string) ($g->nombres ?? '').' '.(string) ($g->apellidos ?? ''));
                         @endphp
                         <tr>
-                            <td class="px-3 py-2 text-xs">{{ \Illuminate\Support\Carbon::parse($g->creada_en)->format('d/m H:i') }}</td>
+                            <td class="px-3 py-2 text-xs">{{ hora_local($g->creada_en, 'd/m H:i') }}</td>
                             <td class="px-3 py-2">
                                 <div class="text-ink-900">{{ $nombre !== '' ? $nombre : '—' }}</div>
                                 <div class="text-[10px] text-ink-500 font-mono">{{ $g->identificacion }}</div>

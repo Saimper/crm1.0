@@ -500,7 +500,7 @@
                 <tbody class="divide-y divide-ink-100">
                     @foreach($historial as $h)
                         <tr>
-                            <td class="px-3 py-2 text-xs">{{ \Illuminate\Support\Carbon::parse($h->creada_en)->format('d/m/Y H:i') }}</td>
+                            <td class="px-3 py-2 text-xs">{{ hora_local($h->creada_en) }}</td>
                             <td class="px-3 py-2 text-xs">{{ $h->nombre_archivo }}</td>
                             <td class="px-3 py-2 text-xs"><code>{{ $h->tipo_entidad }}</code></td>
                             <td class="px-3 py-2 text-xs"><code>{{ $h->modo }}</code></td>

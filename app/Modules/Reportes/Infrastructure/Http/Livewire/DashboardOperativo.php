@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,7 @@ final class DashboardOperativo extends Component
         $totalGestiones = (clone $gestionesBase)->count();
         $efectividad = $cuentasIntentadas === 0 ? 0.0 : round(($cuentasGestionadas / $cuentasIntentadas) * 100, 1);
 
-        $hoy = Carbon::today();
+        $hoy = app(RelojDelMandante::class)->hoy();
         $compromisosVigentes = DB::table('compromisos')
             ->where('proyecto_id', $proyectoId)
             ->where('estado', 'pendiente')
@@ -129,27 +130,30 @@ final class DashboardOperativo extends Component
     /** @return array{desde: Carbon, hasta: Carbon, etiqueta: string} */
     private function rangoActual(): array
     {
-        $ahora = Carbon::now();
+        // En la zona del cliente, no en la del servidor: cortar el día en UTC
+        // metía el último tramo del turno de tarde en el día siguiente.
+        $reloj = app(RelojDelMandante::class);
+        $ahora = Carbon::now($reloj->zonaActiva());
 
         return match ($this->rango) {
             'ayer' => [
-                'desde' => $ahora->copy()->subDay()->startOfDay(),
-                'hasta' => $ahora->copy()->subDay()->endOfDay(),
+                'desde' => $ahora->copy()->subDay()->startOfDay()->setTimezone('UTC'),
+                'hasta' => $ahora->copy()->subDay()->endOfDay()->setTimezone('UTC'),
                 'etiqueta' => 'Ayer',
             ],
             'semana' => [
-                'desde' => $ahora->copy()->subDays(6)->startOfDay(),
-                'hasta' => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->subDays(6)->startOfDay()->setTimezone('UTC'),
+                'hasta' => $ahora->copy()->endOfDay()->setTimezone('UTC'),
                 'etiqueta' => 'Últimos 7 días',
             ],
             'mes' => [
-                'desde' => $ahora->copy()->startOfMonth(),
-                'hasta' => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->startOfMonth()->setTimezone('UTC'),
+                'hasta' => $ahora->copy()->endOfDay()->setTimezone('UTC'),
                 'etiqueta' => 'Mes en curso',
             ],
             default => [
-                'desde' => $ahora->copy()->startOfDay(),
-                'hasta' => $ahora->copy()->endOfDay(),
+                'desde' => $ahora->copy()->startOfDay()->setTimezone('UTC'),
+                'hasta' => $ahora->copy()->endOfDay()->setTimezone('UTC'),
                 'etiqueta' => 'Hoy',
             ],
         };

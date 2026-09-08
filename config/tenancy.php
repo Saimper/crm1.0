@@ -35,4 +35,19 @@ return [
      */
     'avisar_sin_contexto' => (bool) env('TENANCY_AVISAR_SIN_CONTEXTO', false),
 
+    /*
+     | Valores de la plataforma cuando un mandante no declara los suyos, y
+     | cuando no hay mandante activo (comandos, jobs, pantallas cross-cliente).
+     |
+     | UTC y USD reproducen lo que el sistema hacía antes de que la
+     | configuración regional existiera, así que estrenarla no mueve ningún
+     | número: sólo lo mueve el cliente que ajusta el suyo.
+     |
+     | OJO: esto NO es `app.timezone`, que sigue y debe seguir en UTC. Lo que
+     | hay guardado son instantes UTC; cambiar el huso de la aplicación haría
+     | que Eloquent los reinterpretara como hora local al hidratarlos.
+     */
+    'zona_horaria_por_defecto' => env('TENANCY_ZONA_HORARIA', 'UTC'),
+    'moneda_por_defecto' => env('TENANCY_MONEDA', 'USD'),
+
 ];

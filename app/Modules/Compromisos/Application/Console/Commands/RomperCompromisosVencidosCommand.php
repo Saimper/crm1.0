@@ -7,9 +7,10 @@ namespace App\Modules\Compromisos\Application\Console\Commands;
 use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
 use App\Modules\Compromisos\Application\UseCases\MarcarCompromisoRoto;
 use App\Modules\Compromisos\Infrastructure\Persistence\Models\CompromisoModel;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use DateTimeImmutable;
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
@@ -41,9 +42,8 @@ final class RomperCompromisosVencidosCommand extends Command
 
     protected $description = 'Marca como rotos los compromisos vencidos que siguen pendientes. Sin periodo de gracia.';
 
-    public function handle(MarcarCompromisoRoto $romper): int
+    public function handle(MarcarCompromisoRoto $romper, RelojDelMandante $reloj): int
     {
-        $hoy = Carbon::today();
         $simulacro = (bool) $this->option('dry-run');
         $proyecto = $this->option('proyecto') !== null ? (int) $this->option('proyecto') : null;
 
@@ -51,13 +51,28 @@ final class RomperCompromisosVencidosCommand extends Command
         // HTTP no hay proyecto activo y el scope no filtraría igual, pero eso
         // sería depender del fallo abierto. Aquí recorrer todos los proyectos es
         // la intención, y se escribe (§10).
+        // El corte del día lo pone el calendario de CADA cliente, no el del
+        // servidor. Con la operación en Panamá y el corte en UTC, una promesa
+        // que vence el día 7 se rompía a las 19:00 hora local del 7, cinco horas
+        // antes de que al deudor se le acabara el plazo.
+        //
+        // La tarea recorre todos los mandantes, así que se agrupa por el suyo:
+        // cada uno se compara con su propio «hoy».
         $consulta = CompromisoModel::query()
             ->sinScopeProyecto()
-            ->where('estado', 'pendiente')
-            ->whereNull('eliminada_en')
-            ->whereDate('fecha_vencimiento', '<', $hoy->toDateString())
-            ->when($proyecto !== null, fn ($q) => $q->where('proyecto_id', $proyecto))
-            ->orderBy('id');
+            ->where('compromisos.estado', 'pendiente')
+            ->whereNull('compromisos.eliminada_en')
+            ->join('proyectos', 'proyectos.id', '=', 'compromisos.proyecto_id')
+            ->where(function ($q) use ($reloj): void {
+                foreach ($this->mandantesConSuHoy($reloj) as $mandanteId => $hoyLocal) {
+                    $q->orWhere(fn ($w) => $w
+                        ->where('proyectos.mandante_id', $mandanteId)
+                        ->whereDate('compromisos.fecha_vencimiento', '<', $hoyLocal));
+                }
+            })
+            ->when($proyecto !== null, fn ($q) => $q->where('compromisos.proyecto_id', $proyecto))
+            ->select('compromisos.*')
+            ->orderBy('compromisos.id');
 
         $total = (clone $consulta)->count();
 
@@ -69,7 +84,7 @@ final class RomperCompromisosVencidosCommand extends Command
 
         if ($simulacro) {
             $this->warn("Simulacro: se romperían {$total} compromisos.");
-            foreach ((clone $consulta)->limit(20)->get(['id', 'proyecto_id', 'tipo_compromiso', 'fecha_vencimiento']) as $c) {
+            foreach ((clone $consulta)->limit(20)->get(['compromisos.id', 'compromisos.proyecto_id', 'compromisos.tipo_compromiso', 'compromisos.fecha_vencimiento']) as $c) {
                 $this->line(sprintf(
                     '  #%d  proyecto %d  %s  venció %s',
                     $c->id, $c->proyecto_id, $c->tipo_compromiso, $c->fecha_vencimiento
@@ -88,8 +103,8 @@ final class RomperCompromisosVencidosCommand extends Command
         // Los ids se toman de una vez: el UseCase cambia el estado a `roto` y eso
         // saca la fila del criterio de la consulta, así que paginar sobre ella
         // mientras se modifica se saltaría lotes enteros.
-        $ids = (clone $consulta)->pluck('id', 'id');
-        $vencimientos = (clone $consulta)->pluck('fecha_vencimiento', 'id');
+        $ids = (clone $consulta)->pluck('compromisos.id', 'compromisos.id');
+        $vencimientos = (clone $consulta)->pluck('compromisos.fecha_vencimiento', 'compromisos.id');
 
         foreach ($ids->chunk((int) $this->option('chunk')) as $lote) {
             foreach ($lote as $id) {
@@ -111,5 +126,21 @@ final class RomperCompromisosVencidosCommand extends Command
         $this->info("Compromisos rotos: {$rotos}".($fallidos > 0 ? " · fallidos: {$fallidos}" : ''));
 
         return $fallidos > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * El «hoy» de cada mandante, en su propio calendario.
+     *
+     * @return array<int, string> mandante_id => 'Y-m-d'
+     */
+    private function mandantesConSuHoy(RelojDelMandante $reloj): array
+    {
+        $hoyPorMandante = [];
+
+        foreach (DB::table('mandantes')->pluck('id') as $mandanteId) {
+            $hoyPorMandante[(int) $mandanteId] = $reloj->hoy((int) $mandanteId);
+        }
+
+        return $hoyPorMandante;
     }
 }

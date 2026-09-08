@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
@@ -59,7 +60,7 @@ final class PanelDelDia extends Component
     public function render(): View
     {
         $desde = $this->desde();
-        $hoy = Carbon::today();
+        $hoy = $this->hoyDelCliente();
 
         $gestiones = DB::table('gestiones')
             ->where('proyecto_id', $this->proyectoId)
@@ -268,12 +269,29 @@ final class PanelDelDia extends Component
             ->count();
     }
 
+    /**
+     * El inicio del rango, en la zona del cliente y devuelto en UTC.
+     *
+     * `Carbon::today()` cortaba el día a medianoche UTC: con la operación en
+     * Panamá eso son las 19:00 locales, así que el último tramo de cada turno de
+     * tarde se contaba en el día siguiente y el panel nunca cuadraba con lo que
+     * el supervisor había visto pasar.
+     */
     private function desde(): Carbon
     {
+        $reloj = app(RelojDelMandante::class);
+        $zona = $reloj->zonaActiva();
+
         return match ($this->rango) {
-            'semana' => Carbon::today()->subDays(6),
-            'mes' => Carbon::today()->subDays(29),
-            default => Carbon::today(),
+            'semana' => Carbon::today($zona)->subDays(6)->setTimezone('UTC'),
+            'mes' => Carbon::today($zona)->subDays(29)->setTimezone('UTC'),
+            default => Carbon::today($zona)->setTimezone('UTC'),
         };
+    }
+
+    /** El día de hoy en el calendario del cliente, para comparar con columnas `date`. */
+    private function hoyDelCliente(): string
+    {
+        return app(RelojDelMandante::class)->hoy();
     }
 }

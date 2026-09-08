@@ -72,7 +72,7 @@
                                 @endif
                             </td>
                             <td style="font-size:11px;color:var(--text-tertiary);">
-                                {{ $m->actualizada_en ? \Illuminate\Support\Carbon::parse($m->actualizada_en)->format('d/m/Y H:i') : '—' }}
+                                {{ hora_local($m->actualizada_en) }}
                             </td>
                             <td style="text-align:center;">
                                 <x-ui.badge :tone="$m->activo ? 'success' : 'neutral'" size="sm">

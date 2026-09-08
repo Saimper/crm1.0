@@ -288,7 +288,7 @@
                                 @endphp
                                 <x-ui.timeline-item
                                     :tone="$tone"
-                                    :timestamp="\Illuminate\Support\Carbon::parse($g->creada_en)->format('d/m/Y H:i')"
+                                    :timestamp="hora_local($g->creada_en)"
                                     :title="($g->resultado_nombre ?? '—') . ' · ' . ($g->tipo_gestion_nombre ?? '—')">
                                     @if($g->notas)
                                         <div style="margin-bottom:4px;">{{ $g->notas }}</div>

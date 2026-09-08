@@ -88,7 +88,7 @@
                             <td><span style="font-weight:500;">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
                             <td class="num">{{ $p->total_casos }}</td>
                             <td style="font-size:12px;color:var(--text-secondary);">
-                                {{ \Illuminate\Support\Carbon::parse($p->creada_en)->format('d/m/Y') }}
+                                {{ hora_local($p->creada_en, 'd/m/Y') }}
                             </td>
                             <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
                         </tr>

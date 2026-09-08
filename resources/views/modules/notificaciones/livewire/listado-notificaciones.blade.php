@@ -67,7 +67,7 @@
                                     <div class="text-sm font-semibold text-ink-900">{{ $n->titulo }}</div>
                                 @endif
                                 <div class="text-xs text-ink-500 whitespace-nowrap">
-                                    {{ \Illuminate\Support\Carbon::parse($n->creada_en)->diffForHumans() }}
+                                    {{ hace_cuanto($n->creada_en) }}
                                 </div>
                             </div>
                             <div class="text-sm text-ink-700 mt-1">{{ $n->mensaje }}</div>
