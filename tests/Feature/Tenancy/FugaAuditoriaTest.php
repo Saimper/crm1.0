@@ -421,10 +421,18 @@ final class FugaAuditoriaTest extends TestCase
     }
 
     // ---------------------------------------------------------------------
-    // 4. Las acciones administrativas no dejan rastro
+    // 4. Toda acción administrativa sobre cuentas y accesos deja rastro
     // ---------------------------------------------------------------------
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Dar de alta una cuenta con acceso a datos de clientes deja rastro.
+     *
+     * Lo escribe `AdminUsuarios::crearUsuario()` llamando al contrato
+     * `RegistroDeAccionesAdministrativas`, y lo hace DENTRO de la transacción
+     * del alta: la cuenta y su testigo se guardan juntos o no se guarda
+     * ninguno. Un acceso concedido cuyo registro se perdió es peor que no tener
+     * registro, porque nadie sabe que falta.
+     */
     public function test_crear_un_usuario_desde_admin_usuarios_deja_rastro_en_auditoria(): void
     {
         $adminGlobal = $this->crearAdminGlobal();
@@ -451,7 +459,15 @@ final class FugaAuditoriaTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Editar una cuenta deja rastro, con el diff de lo que cambió.
+     *
+     * El correo por encima de todo: es la identidad con la que se entra
+     * —también por SSO, que resuelve al usuario por email—, así que cambiarlo es
+     * cambiar quién puede entrar en esa cuenta. Lo que el rastro nunca lleva es
+     * la contraseña: de ella se registra el hecho y jamás el valor, y eso lo
+     * vigila `AuditoriaDeAdministracionDeUsuariosTest`.
+     */
     public function test_editar_un_usuario_desde_admin_usuarios_deja_rastro_en_auditoria(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -482,7 +498,15 @@ final class FugaAuditoriaTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Dar a alguien un rol sobre el proyecto de un cliente deja rastro: en qué
+     * proyecto se abrió la puerta y quién la abrió.
+     *
+     * `usuario_proyecto_rol` es una pivote de clave compuesta, sin modelo que
+     * observar: ningún observer Eloquent la ve pasar. Por eso el rastro se
+     * escribe a mano en `AdminUsuarios::guardarAsignacion()`, en la misma
+     * transacción que el upsert.
+     */
     public function test_asignar_un_rol_de_proyecto_desde_admin_usuarios_deja_rastro_en_auditoria(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -522,7 +546,15 @@ final class FugaAuditoriaTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Convertir a alguien en ADMIN_GLOBAL —acceso a los datos de TODOS los
+     * clientes— deja rastro.
+     *
+     * Es la única puerta que abre todos los tenants a la vez, y se abría sin
+     * testigos porque el rol global también vive en una pivote. Su revocación
+     * deja el suyo, por simetría: retirar un acceso es tan auditable como
+     * concederlo.
+     */
     public function test_promover_a_admin_global_deja_rastro_en_auditoria(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
