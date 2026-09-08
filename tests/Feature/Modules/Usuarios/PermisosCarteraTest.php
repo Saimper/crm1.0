@@ -6,11 +6,14 @@ namespace Tests\Feature\Modules\Usuarios;
 
 use App\Models\User;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\GestionUsuariosProyecto;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -22,18 +25,20 @@ use Tests\TestCase;
  */
 final class PermisosCarteraTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_sin_restriccion_aplica_a_todas_las_carteras(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->proyectoConCarteras();
+        $proyectoId = (int) $proyecto->id;
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
 
         $carteras = DB::table('carteras')->where('proyecto_id', $proyectoId)->pluck('id')->all();
         $this->assertNotEmpty($carteras);
@@ -48,8 +53,9 @@ final class PermisosCarteraTest extends TestCase
 
     public function test_con_restriccion_solo_aplica_a_carteras_listadas(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->proyectoConCarteras();
+        $proyectoId = (int) $proyecto->id;
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
 
         $carteras = DB::table('carteras')->where('proyecto_id', $proyectoId)->pluck('id')->all();
         $this->assertGreaterThanOrEqual(2, count($carteras));
@@ -77,8 +83,9 @@ final class PermisosCarteraTest extends TestCase
 
     public function test_sin_cartera_especificada_ignora_restricciones(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->proyectoConCarteras();
+        $proyectoId = (int) $proyecto->id;
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
 
         $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
         $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
@@ -96,15 +103,9 @@ final class PermisosCarteraTest extends TestCase
 
     public function test_admin_global_ignora_restriccion_de_cartera(): void
     {
-        $proyectoId = $this->proyectoId();
-        $admin = User::query()->create([
-            'name' => 'Admin', 'email' => 'admin.cart.'.Str::random(4).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolAdminId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
-        DB::table('usuario_global_rol')->insert([
-            'usuario_id' => $admin->id, 'rol_id' => $rolAdminId,
-        ]);
+        $proyecto = $this->proyectoConCarteras();
+        $proyectoId = (int) $proyecto->id;
+        $admin = $this->crearAdminGlobal();
 
         $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
 
@@ -114,9 +115,10 @@ final class PermisosCarteraTest extends TestCase
 
     public function test_livewire_asigna_rol_con_carteras(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->proyectoConCarteras();
+        $proyectoId = (int) $proyecto->id;
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearUsuarioConRol($proyecto, 'SUPERVISOR'));
 
         $nuevo = User::query()->create([
             'name' => 'NuevoGestor', 'email' => 'nuevo.gestor.'.Str::random(4).'@crm.local',
@@ -150,9 +152,10 @@ final class PermisosCarteraTest extends TestCase
 
     public function test_reasignar_reemplaza_restricciones_de_cartera(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->proyectoConCarteras();
+        $proyectoId = (int) $proyecto->id;
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearUsuarioConRol($proyecto, 'SUPERVISOR'));
 
         $u = User::query()->create([
             'name' => 'Reasig', 'email' => 'reasig.'.Str::random(4).'@crm.local',
@@ -183,31 +186,16 @@ final class PermisosCarteraTest extends TestCase
             ->where('usuario_id', $u->id)->where('rol_id', $rolGestorId)->count());
     }
 
-    private function proyectoId(): int
+    /**
+     * El escenario que antes venía del seeder demo: un proyecto de cobranza con
+     * dos carteras, que es lo mínimo para distinguir «permitida» de «denegada».
+     */
+    private function proyectoConCarteras(): stdClass
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearCarteraEn($proyecto, 'CONSUMO');
+        $this->crearCarteraEn($proyecto, 'HIPOTECARIO');
 
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
+        return $proyecto;
     }
 }

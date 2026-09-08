@@ -9,20 +9,23 @@ use App\Modules\Compromisos\Application\UseCases\CancelarCompromiso;
 use App\Modules\Compromisos\Application\UseCases\MarcarCompromisoCumplido;
 use App\Modules\Compromisos\Application\UseCases\MarcarCompromisoRoto;
 use App\Modules\Compromisos\Domain\Exceptions\TransicionCompromisoInvalida;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ResolverCompromisoTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_cumplir_compromiso_baja_bandera_del_caso(): void
@@ -97,33 +100,14 @@ final class ResolverCompromisoTest extends TestCase
     /** @return array{0:int,1:int}  [casoId, compromisoId] */
     private function crearCasoConCompromisoVigente(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoAbiertoId = (int) DB::table('estados_caso')->where('codigo', 'ABIERTO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $usuario = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'Gestor Test', 'email' => 'gestor.test.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
-        ]);
-
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
-        ]);
-
-        $casoId = (int) DB::table('casos')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'cartera_id' => $carteraId, 'persona_id' => $personaId,
-            'tipo_caso' => 'cobranza', 'estado_caso_id' => $estadoAbiertoId,
-            'fecha_ingreso' => '2026-04-17', 'prioridad' => 100,
-        ]);
+        $casoId = $this->crearCasoEn($proyecto, ['fecha_ingreso' => '2026-04-17']);
 
         $compromisoId = (int) DB::table('compromisos')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'caso_id' => $casoId, 'usuario_id' => $usuarioId,
+            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyecto->id,
+            'caso_id' => $casoId, 'usuario_id' => $usuario->id,
             'tipo_compromiso' => 'promesa_pago', 'estado' => 'pendiente',
             'fecha_vencimiento' => '2026-04-25',
         ]);
@@ -137,7 +121,8 @@ final class ResolverCompromisoTest extends TestCase
 
         return (int) DB::table('compromisos')->insertGetId([
             'public_id' => (string) Str::ulid(), 'proyecto_id' => $caso->proyecto_id,
-            'caso_id' => $casoId, 'usuario_id' => DB::table('users')->value('id'),
+            'caso_id' => $casoId,
+            'usuario_id' => DB::table('compromisos')->where('caso_id', $casoId)->value('usuario_id'),
             'tipo_compromiso' => 'promesa_pago', 'estado' => 'pendiente',
             'fecha_vencimiento' => '2026-05-05',
         ]);

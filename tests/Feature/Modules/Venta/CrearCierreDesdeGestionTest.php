@@ -15,20 +15,24 @@ use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use App\Modules\Venta\Domain\ValueObjects\DatosCierreVenta;
 use App\Modules\Venta\Domain\ValueObjects\FechaCierreEstimada;
 use App\Modules\Venta\Domain\ValueObjects\MontoCierre;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class CrearCierreDesdeGestionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registrar_gestion_con_promesa_cierre_crea_compromiso_y_cierre(): void
@@ -41,9 +45,9 @@ final class CrearCierreDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_CIERRE', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -53,7 +57,7 @@ final class CrearCierreDesdeGestionTest extends TestCase
             datosCompromiso: new DatosCierreVenta(
                 monto: new MontoCierre('2500.00'),
                 fechaEstimada: new FechaCierreEstimada(new DateTimeImmutable('2026-05-10')),
-                etapaEmbudoId: $this->idProyecto('etapas_embudo', 'CIERRE', $ctx['proyectoId']),
+                etapaEmbudoId: $ctx['etapaEmbudoId'],
             ),
         ));
 
@@ -113,7 +117,7 @@ final class CrearCierreDesdeGestionTest extends TestCase
         $this->assertDatabaseHas('compromisos', ['id' => $compromisoId, 'estado' => 'cancelado']);
     }
 
-    /** @param array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} $ctx */
+    /** @param array<string, int> $ctx */
     private function registrarCierre(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
@@ -122,9 +126,9 @@ final class CrearCierreDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_CIERRE', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -138,30 +142,34 @@ final class CrearCierreDesdeGestionTest extends TestCase
         ));
     }
 
-    /** @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} */
+    /**
+     * Escenario mínimo de venta: proyecto, cartera, persona, estado, gestor y la
+     * cascada canal → tipo → resultado con `requiere_compromiso`, que es la que
+     * dispara el listener CrearCierreDesdeGestion.
+     *
+     * @return array<string, int>
+     */
     private function contexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'VENTA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'PREMIUM')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'NUEVO')->value('id');
+        $proyecto = $this->crearProyectoVenta();
+        $cartera = $this->crearCarteraEn($proyecto, 'PREMIUM');
+        $persona = $this->crearPersonaEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'NUEVO');
+        $usuario = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'codigo_tipo' => 'LLAMADA_SALIENTE',
+            'codigo_resultado' => 'PROMESA_CIERRE',
         ]);
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Tester', 'apellidos' => 'Venta',
-        ]);
+
+        $etapaEmbudoId = $this->crearEtapaEmbudoEn((int) $proyecto->id, 'CIERRE');
 
         $out = $this->app->make(RegistrarCasoLeadVenta::class)->execute(new RegistrarCasoLeadVentaInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estadoId,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-18'),
             prioridad: 100,
             codigoLead: 'LEAD-CIERRE-'.Str::random(4),
@@ -175,20 +183,32 @@ final class CrearCierreDesdeGestionTest extends TestCase
         ));
 
         return [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'casoId' => $out->casoId,
-            'personaId' => $personaId,
-            'usuarioId' => $usuarioId,
+            'personaId' => (int) $persona->id,
+            'usuarioId' => (int) $usuario->id,
+            'canalId' => $cascada['canal_id'],
+            'tipoGestionId' => $cascada['tipo_gestion_id'],
+            'resultadoId' => $cascada['resultado_id'],
+            'etapaEmbudoId' => $etapaEmbudoId,
         ];
     }
 
-    private function idGlobal(string $tabla, string $codigo): int
+    /** `etapas_embudo` no tiene helper en EscenarioOperativo; se inserta aquí. */
+    private function crearEtapaEmbudoEn(int $proyectoId, string $codigo): int
     {
-        return (int) DB::table($tabla)->where('codigo', $codigo)->value('id');
-    }
+        $ahora = Carbon::now();
 
-    private function idProyecto(string $tabla, string $codigo, int $proyectoId): int
-    {
-        return (int) DB::table($tabla)->where('proyecto_id', $proyectoId)->where('codigo', $codigo)->value('id');
+        return (int) DB::table('etapas_embudo')->insertGetId([
+            'proyecto_id' => $proyectoId,
+            'codigo' => $codigo,
+            'nombre' => 'Etapa '.$codigo,
+            'nivel' => 1,
+            'probabilidad_cierre' => 80,
+            'activo' => true,
+            'orden' => 10,
+            'creada_en' => $ahora,
+            'actualizada_en' => $ahora,
+        ]);
     }
 }

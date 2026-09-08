@@ -6,23 +6,30 @@ namespace Tests\Feature\Modules\Reportes;
 
 use App\Models\User;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\ConstructorReporte;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ConstructorLivewireTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    private stdClass $proyecto;
 
     private int $proyectoId;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $this->proyecto = $this->crearProyectoCobranza();
+        $this->proyectoId = (int) $this->proyecto->id;
+        $this->activarProyecto($this->proyecto);
     }
 
     public function test_supervisor_construye_y_guarda_definicion(): void
@@ -105,20 +112,6 @@ final class ConstructorLivewireTest extends TestCase
 
     private function usuarioConRol(string $codigoRol): User
     {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $this->proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
+        return $this->crearUsuarioConRol($this->proyecto, $codigoRol);
     }
 }

@@ -9,35 +9,38 @@ use App\Modules\EntidadesConfigurables\Application\Services\ServicioEntidades;
 use App\Modules\EntidadesConfigurables\Domain\ValueObjects\RelacionEntidad;
 use App\Modules\EntidadesConfigurables\Infrastructure\Http\Livewire\AdminEntidadesConfigurables;
 use App\Modules\EntidadesConfigurables\Infrastructure\Http\Livewire\GestorRegistrosEntidad;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class EntidadesConfigurablesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     // ====== Admin (definir entidades) ======
 
     public function test_gestor_y_supervisor_no_pueden_entrar_admin_entidades(): void
     {
-        $proyectoId = $this->proyectoId();
+        $proyecto = $this->crearProyectoCobranza();
 
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $gestor = $this->crearGestor($proyecto);
         $this->actingAs($gestor)
             ->get('/admin/entidades-configurables')
             ->assertStatus(403);
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $supervisor = $this->crearSupervisor($proyecto);
         $this->actingAs($supervisor)
             ->get('/admin/entidades-configurables')
             ->assertStatus(403);
@@ -45,6 +48,7 @@ final class EntidadesConfigurablesTest extends TestCase
 
     public function test_admin_global_accede_admin_entidades(): void
     {
+        $this->crearProyectoCobranza();
         $admin = $this->crearAdminGlobal();
 
         $this->actingAs($admin)
@@ -54,8 +58,8 @@ final class EntidadesConfigurablesTest extends TestCase
 
     public function test_livewire_admin_aborta_para_gestor(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->actingAs($this->crearConRol($proyectoId, 'GESTOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->actingAs($this->crearGestor($proyecto));
 
         Livewire::test(AdminEntidadesConfigurables::class)
             ->assertStatus(403);
@@ -66,7 +70,8 @@ final class EntidadesConfigurablesTest extends TestCase
         $admin = $this->crearAdminGlobal();
         $this->actingAs($admin);
 
-        $proyectoId = $this->proyectoId();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
 
         $c = Livewire::test(AdminEntidadesConfigurables::class)
             ->set('proyectoSeleccionadoId', $proyectoId)
@@ -108,7 +113,8 @@ final class EntidadesConfigurablesTest extends TestCase
     {
         $admin = $this->crearAdminGlobal();
         $this->actingAs($admin);
-        $proyectoId = $this->proyectoId();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
 
         $c = Livewire::test(AdminEntidadesConfigurables::class)
             ->set('proyectoSeleccionadoId', $proyectoId);
@@ -119,19 +125,35 @@ final class EntidadesConfigurablesTest extends TestCase
             ->call('guardarEntidad')
             ->assertHasNoErrors();
 
+        // La invariante que protege este test es que el proyecto NUNCA acaba con
+        // dos entidades del mismo código. Cómo se cumple cambió: cuando se
+        // escribió, la pantalla devolvía un error de validación en `formCodigo`;
+        // hoy `GeneradorCodigo::resolverConflicto` (política B6: sufijar `_2`,
+        // `_3`, … hasta `_99`) desambigua y guarda. Se comprueba el resultado, que
+        // es lo que el negocio pide, no el mecanismo.
         $c->call('abrirFormCrear')
             ->set('formCodigo', 'DUP')
             ->set('formNombre', 'Segunda')
             ->call('guardarEntidad')
-            ->assertHasErrors(['formCodigo']);
+            ->assertHasNoErrors();
+
+        $codigos = DB::table('entidades_configurables')
+            ->where('proyecto_id', $proyectoId)
+            ->orderBy('id')
+            ->pluck('codigo')
+            ->all();
+
+        $this->assertSame(['DUP', 'DUP_2'], $codigos);
+        $this->assertSame($codigos, array_unique($codigos));
     }
 
     // ====== Operativo (CRUD registros) ======
 
     public function test_crear_y_listar_registro_como_supervisor(): void
     {
-        $admin = $this->crearAdminGlobal();
-        $proyectoId = $this->proyectoId();
+        $this->crearAdminGlobal();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
 
         $entidadId = app(ServicioEntidades::class)->crearEntidad(
             proyectoId: $proyectoId,
@@ -152,8 +174,8 @@ final class EntidadesConfigurablesTest extends TestCase
             'orden' => 10,
         ]);
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
         Livewire::test(GestorRegistrosEntidad::class, [
@@ -185,8 +207,9 @@ final class EntidadesConfigurablesTest extends TestCase
 
     public function test_gestor_sin_permiso_crear_es_rechazado(): void
     {
-        $admin = $this->crearAdminGlobal();
-        $proyectoId = $this->proyectoId();
+        $this->crearAdminGlobal();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
 
         $entidadId = app(ServicioEntidades::class)->crearEntidad(
             proyectoId: $proyectoId, codigo: 'X', nombre: 'X',
@@ -197,7 +220,7 @@ final class EntidadesConfigurablesTest extends TestCase
             'name' => 'SinRol', 'email' => 'sin.'.Str::random(4).'@crm.local',
             'password' => Hash::make('x'), 'activo' => true,
         ]);
-        $this->bindProyectoActivo($proyectoId);
+        $this->activarProyecto($proyecto);
         $this->actingAs($sinRol);
 
         Livewire::test(GestorRegistrosEntidad::class, [
@@ -209,10 +232,14 @@ final class EntidadesConfigurablesTest extends TestCase
 
     public function test_scope_cross_proyecto(): void
     {
-        $admin = $this->crearAdminGlobal();
+        $this->crearAdminGlobal();
 
-        $pA = $this->proyectoId();
-        $pB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $mandante = $this->crearMandante();
+        $proyectoA = $this->crearProyectoCobranza($mandante);
+        $proyectoB = $this->crearProyectoCx($mandante);
+
+        $pA = (int) $proyectoA->id;
+        $pB = (int) $proyectoB->id;
 
         $entidadA = app(ServicioEntidades::class)->crearEntidad(
             proyectoId: $pA, codigo: 'ENT_A', nombre: 'A',
@@ -239,8 +266,9 @@ final class EntidadesConfigurablesTest extends TestCase
 
     public function test_eliminar_registro_marca_eliminado_en(): void
     {
-        $admin = $this->crearAdminGlobal();
-        $proyectoId = $this->proyectoId();
+        $this->crearAdminGlobal();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
 
         $entidadId = app(ServicioEntidades::class)->crearEntidad(
             proyectoId: $proyectoId, codigo: 'X', nombre: 'X',
@@ -249,8 +277,8 @@ final class EntidadesConfigurablesTest extends TestCase
             proyectoId: $proyectoId, entidadId: $entidadId, titulo: 'Para borrar', valoresPorCodigo: [],
         );
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
         Livewire::test(GestorRegistrosEntidad::class, [
@@ -260,50 +288,5 @@ final class EntidadesConfigurablesTest extends TestCase
             ->call('eliminar', $regId);
 
         $this->assertNotNull(DB::table('entidades_registros')->where('id', $regId)->value('eliminado_en'));
-    }
-
-    // ====== Helpers ======
-
-    private function proyectoId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
-    }
-
-    private function crearAdminGlobal(): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => 'Admin', 'email' => 'admin.ent.'.Str::random(4).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolAdminId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
-        DB::table('usuario_global_rol')->insert([
-            'usuario_id' => $u->id, 'rol_id' => $rolAdminId,
-        ]);
-
-        return $u;
     }
 }

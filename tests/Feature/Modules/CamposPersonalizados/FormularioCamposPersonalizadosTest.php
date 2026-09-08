@@ -6,35 +6,43 @@ namespace Tests\Feature\Modules\CamposPersonalizados;
 
 use App\Models\User;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\FormularioCamposPersonalizados;
-use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
-use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
-use DateTimeImmutable;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
+/**
+ * Quién puede escribir valores de campos personalizados desde el formulario.
+ *
+ * `campos.editar` es el permiso de VALORES (no de definiciones, §7): lo tienen
+ * ADMIN_GLOBAL, SUPERVISOR y GESTOR; el AUDITOR y quien no tenga rol en el
+ * proyecto entran bloqueados y `guardar()` aborta con 403 aunque manipulen el
+ * payload — la defensa está en el componente, no en el estado del front.
+ */
 final class FormularioCamposPersonalizadosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_admin_global_puede_guardar_valor(): void
     {
-        [$casoId, $proyectoId, $carteraId] = $this->crearContexto();
-        $this->actingAs($this->obtenerAdminGlobal());
+        ['casoId' => $casoId, 'proyecto' => $proyecto, 'cartera' => $cartera] = $this->crearContexto();
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'ambito' => 'caso',
-            'ambitoId' => $carteraId,
+            'ambitoId' => (int) $cartera->id,
             'entidadId' => $casoId,
         ])
             ->set('valores.operador_externo', 'Agente Admin')
@@ -42,7 +50,7 @@ final class FormularioCamposPersonalizadosTest extends TestCase
             ->assertHasNoErrors();
 
         $campoId = (int) DB::table('campos_personalizados')
-            ->where('proyecto_id', $proyectoId)
+            ->where('proyecto_id', $proyecto->id)
             ->where('codigo', 'operador_externo')
             ->value('id');
 
@@ -55,13 +63,13 @@ final class FormularioCamposPersonalizadosTest extends TestCase
 
     public function test_supervisor_con_permiso_puede_guardar_valor(): void
     {
-        [$casoId, $proyectoId, $carteraId] = $this->crearContexto();
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
+        ['casoId' => $casoId, 'proyecto' => $proyecto, 'cartera' => $cartera] = $this->crearContexto();
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'ambito' => 'caso',
-            'ambitoId' => $carteraId,
+            'ambitoId' => (int) $cartera->id,
             'entidadId' => $casoId,
         ])
             ->set('valores.operador_externo', 'Supervisor editó')
@@ -76,13 +84,13 @@ final class FormularioCamposPersonalizadosTest extends TestCase
 
     public function test_gestor_con_permiso_puede_guardar_valor(): void
     {
-        [$casoId, $proyectoId, $carteraId] = $this->crearContexto();
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'GESTOR'));
+        ['casoId' => $casoId, 'proyecto' => $proyecto, 'cartera' => $cartera] = $this->crearContexto();
+        $this->actingAs($this->crearGestor($proyecto));
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'ambito' => 'caso',
-            'ambitoId' => $carteraId,
+            'ambitoId' => (int) $cartera->id,
             'entidadId' => $casoId,
         ])
             ->set('valores.operador_externo', 'Gestor editó')
@@ -97,13 +105,13 @@ final class FormularioCamposPersonalizadosTest extends TestCase
 
     public function test_auditor_sin_permiso_campos_editar_se_monta_bloqueado_y_guardar_aborta(): void
     {
-        [$casoId, $proyectoId, $carteraId] = $this->crearContexto();
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'AUDITOR'));
+        ['casoId' => $casoId, 'proyecto' => $proyecto, 'cartera' => $cartera] = $this->crearContexto();
+        $this->actingAs($this->crearAuditor($proyecto));
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'ambito' => 'caso',
-            'ambitoId' => $carteraId,
+            'ambitoId' => (int) $cartera->id,
             'entidadId' => $casoId,
         ])
             ->assertSet('bloqueado', true)
@@ -116,13 +124,13 @@ final class FormularioCamposPersonalizadosTest extends TestCase
 
     public function test_usuario_sin_rol_en_proyecto_bloqueado_y_aborta(): void
     {
-        [$casoId, $proyectoId, $carteraId] = $this->crearContexto();
+        ['casoId' => $casoId, 'proyecto' => $proyecto, 'cartera' => $cartera] = $this->crearContexto();
         $this->actingAs(User::factory()->create());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'ambito' => 'caso',
-            'ambitoId' => $carteraId,
+            'ambitoId' => (int) $cartera->id,
             'entidadId' => $casoId,
         ])
             ->assertSet('bloqueado', true)
@@ -132,74 +140,42 @@ final class FormularioCamposPersonalizadosTest extends TestCase
         $this->assertSame(0, DB::table('valores_campo_personalizado')->count());
     }
 
-    private function obtenerAdminGlobal(): User
-    {
-        /** @var User $u */
-        $u = User::query()->where('email', 'admin@crm.local')->firstOrFail();
-
-        return $u;
-    }
-
-    private function crearUsuarioConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)).' '.Str::random(4),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id,
-            'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId,
-            'equipo_id' => null,
-            'activo' => true,
-        ]);
-
-        return $u;
-    }
-
-    /** @return array{int,int,int} */
+    /**
+     * Proyecto de cobranza con una cartera, un caso suyo y un campo
+     * personalizado de ámbito caso — que es lo que el formulario pinta.
+     *
+     * @return array{casoId: int, proyecto: stdClass, cartera: stdClass}
+     */
     private function crearContexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto, 'CONSUMO');
+        $this->activarProyecto($proyecto);
 
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
+        $casoId = $this->crearCasoEn($proyecto, [
+            'cartera' => $cartera,
+            'persona' => $this->crearPersonaEn($proyecto),
+            'estado' => $this->crearEstadoCasoEn($proyecto, 'ABIERTO'),
+            'fecha_ingreso' => '2026-04-17',
         ]);
 
-        $out = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estado,
-            fechaIngreso: new DateTimeImmutable('2026-04-17'),
-            prioridad: 100,
-            numeroPrestamo: 'PRST-CP-'.Str::random(4),
-            moneda: 'USD',
-            montoOriginal: '1000.00',
-            saldoCapital: '900.00',
-            saldoInteres: '10.00',
-            saldoTotal: '910.00',
-            cuotaMensual: '100.00',
-            cuotasTotales: 10,
-            cuotasPagadas: 1,
-            diasMora: 0,
-            fechaDesembolso: new DateTimeImmutable('2026-02-01'),
-            fechaVencimiento: new DateTimeImmutable('2026-12-01'),
-        ));
+        DB::table('campos_personalizados')->insert([
+            'proyecto_id' => $proyecto->id,
+            'ambito' => 'caso',
+            'ambito_id' => $cartera->id,
+            'grupo_campo_id' => null,
+            'tipo' => 'texto_corto',
+            'codigo' => 'operador_externo',
+            'etiqueta' => 'Operador externo',
+            'obligatorio' => false,
+            'activo' => true,
+            'visible_en_gestion' => true,
+            'orden' => 10,
+            'reglas' => json_encode([]),
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
 
-        return [$out->casoId, $proyectoId, $carteraId];
+        return ['casoId' => $casoId, 'proyecto' => $proyecto, 'cartera' => $cartera];
     }
 }

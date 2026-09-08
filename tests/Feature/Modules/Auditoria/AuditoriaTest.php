@@ -4,36 +4,37 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Auditoria;
 
-use App\Models\User;
 use App\Modules\Auditoria\Infrastructure\Http\Livewire\ListadoAuditoria;
 use App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AuditoriaTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_observer_registra_creacion_de_persona(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $persona = PersonaModel::query()->create([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
             'identificacion' => '8100000001',
@@ -42,7 +43,7 @@ final class AuditoriaTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('auditorias', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'entidad_tipo' => 'personas',
             'entidad_id' => $persona->id,
             'evento' => 'creado',
@@ -51,14 +52,14 @@ final class AuditoriaTest extends TestCase
 
     public function test_observer_registra_actualizacion_con_cambios(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         $persona = PersonaModel::query()->create([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
             'identificacion' => '8100000002',
@@ -84,69 +85,75 @@ final class AuditoriaTest extends TestCase
 
     public function test_listado_no_muestra_eventos_de_otro_proyecto(): void
     {
-        $proyectoA = $this->proyectoCobranzaId();
-        $proyectoB = $this->proyectoCxId();
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
 
         // Creamos personas en ambos proyectos con diferente usuario contexto.
-        $supervisorA = $this->crearUsuarioConRol($proyectoA, 'SUPERVISOR');
+        $supervisorA = $this->crearSupervisor($proyectoA);
         $this->actingAs($supervisorA);
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoA));
+        $this->activarProyecto($proyectoA);
         PersonaModel::query()->create([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoA,
+            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoA->id,
             'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
             'identificacion' => '8200000001', 'nombres' => 'A',
         ]);
 
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoB));
+        $this->activarProyecto($proyectoB);
         PersonaModel::query()->create([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoB,
+            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoB->id,
             'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
             'identificacion' => '8200000002', 'nombres' => 'B',
         ]);
 
         // Vuelvo al proyecto A y consulto el Livewire.
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoA));
+        $this->activarProyecto($proyectoA);
 
         $componente = Livewire::test(ListadoAuditoria::class);
         $registros = $componente->viewData('registros');
 
         foreach ($registros as $r) {
-            $this->assertSame((int) $r->entidad_id, DB::table('personas')
-                ->where('proyecto_id', $proyectoA)
-                ->where('entidad_id', '!=', 0) ? (int) $r->entidad_id : 0);
-            // Chequeo directo: el proyecto del registro coincide con A
-            $this->assertSame($proyectoA, (int) DB::table('auditorias')
+            // Chequeo directo: el proyecto del registro coincide con A.
+            $this->assertSame((int) $proyectoA->id, (int) DB::table('auditorias')
                 ->where('id', $r->id)->value('proyecto_id'));
         }
         $this->assertGreaterThan(0, $registros->total());
+
+        // Y el evento del proyecto B existe, pero no salió en el listado.
+        $idsListados = collect($registros->items())->pluck('id')->map(fn ($v): int => (int) $v)->all();
+        $eventoB = (int) DB::table('auditorias')
+            ->where('proyecto_id', $proyectoB->id)
+            ->where('entidad_tipo', 'personas')
+            ->value('id');
+        $this->assertGreaterThan(0, $eventoB);
+        $this->assertNotContains($eventoB, $idsListados);
     }
 
     public function test_auditor_accede_ruta_y_gestor_recibe_403(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $auditor = $this->crearUsuarioConRol($proyectoId, 'AUDITOR');
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $auditor = $this->crearAuditor($proyecto);
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($auditor)
-            ->get(route('proyectos.auditoria', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.auditoria', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.auditoria', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.auditoria', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_supervisor_puede_filtrar_por_entidad(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         PersonaModel::query()->create([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
+            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyecto->id,
             'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
             'identificacion' => '8300000001', 'nombres' => 'Filtrada',
         ]);
@@ -159,33 +166,5 @@ final class AuditoriaTest extends TestCase
             $this->assertSame('personas', $r->entidad_tipo);
         }
         $this->assertGreaterThan(0, $registros->total());
-    }
-
-    private function proyectoCobranzaId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function proyectoCxId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-    }
-
-    private function crearUsuarioConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

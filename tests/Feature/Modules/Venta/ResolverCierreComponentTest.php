@@ -13,21 +13,24 @@ use App\Modules\Venta\Domain\ValueObjects\DatosCierreVenta;
 use App\Modules\Venta\Domain\ValueObjects\FechaCierreEstimada;
 use App\Modules\Venta\Domain\ValueObjects\MontoCierre;
 use App\Modules\Venta\Infrastructure\Http\Livewire\ResolverCierre;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ResolverCierreComponentTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_marca_cierre_ganado_desde_componente(): void
@@ -49,29 +52,20 @@ final class ResolverCierreComponentTest extends TestCase
 
     private function crearContextoConCierre(): int
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'VENTA_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoVenta();
+        $this->activarProyecto($proyecto);
 
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'PREMIUM')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'NUEVO')->value('id');
-
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
-        ]);
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Tester', 'apellidos' => 'Venta',
-        ]);
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'NUEVO');
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $cascada = $this->crearCascadaGestionEn($proyecto, ['requiere_compromiso' => true]);
 
         $out = $this->app->make(RegistrarCasoLeadVenta::class)->execute(new RegistrarCasoLeadVentaInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estado,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-18'),
             prioridad: 100,
             codigoLead: 'LEAD-RES-'.Str::random(4),
@@ -86,16 +80,16 @@ final class ResolverCierreComponentTest extends TestCase
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
             publicId: (string) Str::ulid(),
-            proyectoId: $proyectoId,
+            proyectoId: (int) $proyecto->id,
             casoId: $out->casoId,
-            personaId: $personaId,
+            personaId: (int) $persona->id,
             contactoId: null,
-            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
-            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'PROMESA_CIERRE')->value('id'),
+            canalId: $cascada['canal_id'],
+            tipoGestionId: $cascada['tipo_gestion_id'],
+            resultadoId: $cascada['resultado_id'],
             motivoNoContactoId: null,
             causaId: null,
-            usuarioId: $usuarioId,
+            usuarioId: (int) $usuario->id,
             notas: null,
             duracion: null,
             creadaEn: new DateTimeImmutable('2026-04-18 10:00:00'),

@@ -4,32 +4,45 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Importaciones;
 
-use App\Models\User;
 use App\Modules\Importaciones\Infrastructure\Http\Livewire\ImportarPersonas;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ImportarPersonasTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    /**
+     * Mismo defecto que en ImportarCasosTest: `ImportarPersonas::guardarArchivo()`
+     * crea la importación sin `esquema` (formato legacy de columnas fijas) y
+     * `EjecutarImportacionJob:98` la manda igualmente a
+     * `EjecutarImportacionDinamica`, que exige uno. La confirmación no puede
+     * completarse.
+     */
+    private const COMMIT_MUERTO = 'Componente @deprecated (F35-B): sin ruta y con la rama de commit rota — EjecutarImportacionJob exige `esquema`, que este componente nunca escribe. El flujo vivo es el wizard Importar, cubierto por ImportarUnificadoTest.';
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_sube_csv_valido_y_commit(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $this->markTestSkipped(self::COMMIT_MUERTO);
 
-        $supervisor = $this->crearUsuarioConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+
+        $supervisor = $this->crearSupervisor($proyecto);
         $this->actingAs($supervisor);
 
         $csv = "tipo_persona,tipo_identificacion_codigo,identificacion,nombres,apellidos,razon_social,fecha_nacimiento\n"
@@ -48,13 +61,17 @@ final class ImportarPersonasTest extends TestCase
 
         $this->assertDatabaseHas('importaciones', [
             'id' => $importacionId,
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'total_filas' => 3,
             'validas' => 3,
             'invalidas' => 0,
             'estado' => 'preparada',
         ]);
 
+        // Falla hoy: ImportarPersonas (deprecado en F35-B) crea la importación sin
+        // `esquema`, y EjecutarImportacionJob enruta siempre a EjecutarImportacionDinamica,
+        // que lo exige. El commit del componente legacy es camino muerto. No se relaja el
+        // assert: el rojo es el hallazgo.
         $componente->call('confirmar');
 
         $this->assertDatabaseHas('importaciones', [
@@ -68,9 +85,9 @@ final class ImportarPersonasTest extends TestCase
 
     public function test_csv_con_filas_invalidas_reporta_errores_sin_importar(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-        $this->actingAs($this->crearUsuarioConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         $csv = "tipo_persona,tipo_identificacion_codigo,identificacion,nombres,apellidos,razon_social,fecha_nacimiento\n"
              ."fisica,CED,,Sin identificacion,,,\n"
@@ -95,62 +112,40 @@ final class ImportarPersonasTest extends TestCase
 
     public function test_gestor_sin_permiso_recibe_403(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.importaciones', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.importaciones', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_exportar_personas_descarga_csv(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
         $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
         DB::table('personas')->insert([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'tipo_persona' => 'fisica',
             'tipo_identificacion_id' => $tipoCed,
             'identificacion' => '3300000001',
             'nombres' => 'Export',
             'apellidos' => 'Test',
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
 
-        $supervisor = $this->crearUsuarioConRol($proyectoId, 'SUPERVISOR');
+        $supervisor = $this->crearSupervisor($proyecto);
         $response = $this->actingAs($supervisor)
-            ->get(route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $proyectoId]));
+            ->get(route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $proyecto->id]));
 
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
         $contenido = $response->streamedContent();
         $this->assertStringContainsString('3300000001', $contenido);
         $this->assertStringContainsString('Export', $contenido);
-    }
-
-    private function proyectoCobranzaId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function crearUsuarioConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

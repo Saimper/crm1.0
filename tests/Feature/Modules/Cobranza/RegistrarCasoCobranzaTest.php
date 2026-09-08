@@ -8,21 +8,24 @@ use App\Modules\Casos\Domain\Events\CasoCreado;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use App\Modules\Cobranza\Domain\Exceptions\NumeroPrestamoYaRegistrado;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class RegistrarCasoCobranzaTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registra_caso_cobranza_crea_caso_base_y_especializacion(): void
@@ -80,42 +83,12 @@ final class RegistrarCasoCobranzaTest extends TestCase
 
     public function test_permite_mismo_numero_prestamo_en_proyectos_distintos(): void
     {
-        [$proyectoA, $carteraA, $personaA, $estadoA] = $this->setupBase();
+        $mandante = $this->crearMandante();
 
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
-        $proyectoB = (int) DB::table('proyectos')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'mandante_id' => $mandanteId,
-            'codigo' => 'COBRANZA_PROYB_2026',
-            'nombre' => 'Cobranza Proyecto B',
-            'tipo_operacion' => 'cobranza',
-            'activo' => true,
-            'fecha_inicio' => '2026-04-17',
-        ]);
-        $carteraB = (int) DB::table('carteras')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoB,
-            'codigo' => 'CONSUMO',
-            'nombre' => 'Cartera Consumo B',
-            'activo' => true,
-        ]);
-        $estadoB = (int) DB::table('estados_caso')->insertGetId([
-            'proyecto_id' => $proyectoB,
-            'codigo' => 'ABIERTO',
-            'nombre' => 'Abierto',
-            'activo' => true,
-            'orden' => 10,
-        ]);
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $personaB = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoB,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Persona',
-            'apellidos' => 'Proyecto B',
-        ]);
+        [$proyectoA, $carteraA, $personaA, $estadoA] = $this->setupBase($mandante);
+        [$proyectoB, $carteraB, $personaB, $estadoB] = $this->setupBase($mandante);
+
+        $this->assertNotSame($proyectoA, $proyectoB);
 
         $useCase = $this->app->make(RegistrarCasoCobranza::class);
         $outA = $useCase->execute($this->inputBase($proyectoA, $carteraA, $personaA, $estadoA, 'PRST-SHARED'));
@@ -126,26 +99,24 @@ final class RegistrarCasoCobranzaTest extends TestCase
     }
 
     /**
+     * Proyecto de cobranza con cartera, estado abierto y persona: lo mínimo que
+     * pide el UseCase. Antes venía de los *DemoSeeder borrados.
+     *
      * @return array{int,int,int,int}
      */
-    private function setupBase(): array
+    private function setupBase(?stdClass $mandante = null): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoAbiertoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $cartera = $this->crearCarteraEn($proyecto, 'CONSUMO');
+        $estadoAbierto = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $persona = $this->crearPersonaEn($proyecto);
 
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Juan',
-            'apellidos' => 'Tester',
-        ]);
-
-        return [$proyectoId, $carteraId, $personaId, $estadoAbiertoId];
+        return [
+            (int) $proyecto->id,
+            (int) $cartera->id,
+            (int) $persona->id,
+            (int) $estadoAbierto->id,
+        ];
     }
 
     private function inputBase(int $proyectoId, int $carteraId, int $personaId, int $estadoId, string $numero): RegistrarCasoCobranzaInput

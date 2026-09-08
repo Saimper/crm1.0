@@ -9,22 +9,34 @@ use App\Modules\Reportes\Application\DTOs\EntradaDefinicionReporte;
 use App\Modules\Reportes\Application\Servicios\ServicioCamposPersonalizadosReporte;
 use App\Modules\Reportes\Application\UseCases\CrearDefinicionReporte;
 use App\Modules\Reportes\Infrastructure\Persistence\Repositories\RepositorioDefinicionReporteEloquent;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ConstructorRutasTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    private stdClass $mandante;
+
+    private stdClass $proyecto;
 
     private int $proyectoId;
 
+    private int $autorId;
+
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $this->mandante = $this->crearMandante();
+        $this->proyecto = $this->crearProyectoCobranza($this->mandante);
+        $this->proyectoId = (int) $this->proyecto->id;
+        $this->autorId = (int) $this->crearAdminGlobal()->id;
     }
 
     public function test_supervisor_accede_listado_custom(): void
@@ -128,21 +140,15 @@ final class ConstructorRutasTest extends TestCase
     public function test_export_definicion_otro_proyecto_da_404(): void
     {
         $defId = $this->crearDefinicionDePrueba();
-        $otroProy = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
 
-        $u = User::query()->create([
-            'name' => 'Cross', 'email' => 'cross.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $otroProy,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
+        // Otro proyecto del MISMO mandante: la definición no debe ser visible
+        // desde él aunque el usuario sea supervisor allí.
+        $otroProyecto = $this->crearProyectoCx($this->mandante);
+        $u = $this->crearSupervisor($otroProyecto);
 
         $this->actingAs($u)
             ->get(route('proyectos.reportes.custom.exportar', [
-                'proyecto_id' => $otroProy, 'definicion_id' => $defId, 'formato' => 'csv',
+                'proyecto_id' => (int) $otroProyecto->id, 'definicion_id' => $defId, 'formato' => 'csv',
             ]))
             ->assertStatus(404);
     }
@@ -164,7 +170,6 @@ final class ConstructorRutasTest extends TestCase
         $repo = new RepositorioDefinicionReporteEloquent;
         $cp = new ServicioCamposPersonalizadosReporte;
         $crear = new CrearDefinicionReporte($repo, $cp);
-        $usuarioId = (int) DB::table('users')->where('email', 'admin@crm.local')->value('id');
 
         return $crear->execute(
             new EntradaDefinicionReporte(
@@ -177,26 +182,12 @@ final class ConstructorRutasTest extends TestCase
                     ['campo' => 'casos.tipo_caso', 'etiqueta' => 'Tipo'],
                 ],
             ),
-            $usuarioId,
+            $this->autorId,
         );
     }
 
     private function usuarioConRol(string $codigoRol): User
     {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $this->proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
+        return $this->crearUsuarioConRol($this->proyecto, $codigoRol);
     }
 }

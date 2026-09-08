@@ -4,34 +4,43 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Notificaciones;
 
-use App\Models\User;
 use App\Modules\Asignaciones\Application\UseCases\AsignarCasosAEquipo;
 use App\Modules\Asignaciones\Application\UseCases\ReasignarCasosEntreEquipos;
 use App\Modules\Asignaciones\Infrastructure\Persistence\Models\AsignacionModel;
 use App\Modules\Auditoria\Infrastructure\Providers\AuditoriaServiceProvider;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class NotificarAsignacionesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_asignacion_masiva_notifica_a_miembros(): void
     {
-        $proyectoId = $this->proyectoId();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
         $campanaId = $this->crearCampana($proyectoId, 'CAMP_NOT_A');
-        $g1 = $this->crearConRol($proyectoId, 'GESTOR');
-        $g2 = $this->crearConRol($proyectoId, 'GESTOR');
+
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        for ($i = 0; $i < 4; $i++) {
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]);
+        }
+
+        $g1 = $this->crearGestor($proyecto);
+        $g2 = $this->crearGestor($proyecto);
         $equipoId = $this->crearEquipoConMiembros($proyectoId, 'EQ_NOT_A', [$g1->id, $g2->id]);
 
         app(AsignarCasosAEquipo::class)->execute(
@@ -62,14 +71,15 @@ final class NotificarAsignacionesTest extends TestCase
 
     public function test_reasignacion_notifica_con_contexto_reasignacion(): void
     {
-        $proyectoId = $this->proyectoId();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
         $campanaId = $this->crearCampana($proyectoId, 'CAMP_NOT_R');
-        $gOri = $this->crearConRol($proyectoId, 'GESTOR');
-        $gDest = $this->crearConRol($proyectoId, 'GESTOR');
+        $gOri = $this->crearGestor($proyecto);
+        $gDest = $this->crearGestor($proyecto);
         $eqO = $this->crearEquipoConMiembros($proyectoId, 'EQ_NOT_RO', [$gOri->id]);
         $eqD = $this->crearEquipoConMiembros($proyectoId, 'EQ_NOT_RD', [$gDest->id]);
 
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->value('id');
+        $casoId = $this->crearCasoEn($proyecto);
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId, 'campana_id' => $campanaId,
@@ -102,15 +112,16 @@ final class NotificarAsignacionesTest extends TestCase
 
     public function test_reasignacion_audita_cambio_de_usuario(): void
     {
-        $proyectoId = $this->proyectoId();
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
         $campanaId = $this->crearCampana($proyectoId, 'CAMP_AUD');
-        $gOri = $this->crearConRol($proyectoId, 'GESTOR');
-        $gDest = $this->crearConRol($proyectoId, 'GESTOR');
+        $gOri = $this->crearGestor($proyecto);
+        $gDest = $this->crearGestor($proyecto);
         $eqO = $this->crearEquipoConMiembros($proyectoId, 'EQ_AUD_O', [$gOri->id]);
         $eqD = $this->crearEquipoConMiembros($proyectoId, 'EQ_AUD_D', [$gDest->id]);
 
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->value('id');
-        $asignacionId = (int) DB::table('asignaciones')->insertGetId([
+        $casoId = $this->crearCasoEn($proyecto);
+        DB::table('asignaciones')->insertGetId([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId, 'campana_id' => $campanaId,
             'caso_id' => $casoId, 'usuario_id' => $gOri->id,
@@ -134,11 +145,6 @@ final class NotificarAsignacionesTest extends TestCase
             AsignacionModel::class,
             $modelosAuditados['MODELOS_AUDITADOS'],
         );
-    }
-
-    private function proyectoId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
     }
 
     private function crearCampana(int $proyectoId, string $codigo): int
@@ -174,23 +180,5 @@ final class NotificarAsignacionesTest extends TestCase
         }
 
         return $equipoId;
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

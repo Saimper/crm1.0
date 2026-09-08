@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\UI;
 
-use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -17,21 +19,22 @@ use Tests\TestCase;
  */
 final class PantallasOperativasRefactorTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_bandeja_usa_tokens_design_system(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $response = $this->actingAs($gestor)
-            ->get(route('proyectos.bandeja', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.bandeja', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
 
         // Page header con tokens
@@ -42,11 +45,11 @@ final class PantallasOperativasRefactorTest extends TestCase
 
     public function test_bandeja_equipo_refactorizada(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $response = $this->actingAs($supervisor)
-            ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
 
         $response->assertSee('page-header', false);
@@ -55,11 +58,11 @@ final class PantallasOperativasRefactorTest extends TestCase
 
     public function test_notificaciones_refactorizada(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $response = $this->actingAs($gestor)
-            ->get(route('proyectos.notificaciones', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.notificaciones', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
 
         $response->assertSee('page-header', false);
@@ -67,17 +70,21 @@ final class PantallasOperativasRefactorTest extends TestCase
 
     public function test_vista_trabajo_shell_refactorizada(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
+
+        $persona = $this->crearPersonaEn($proyecto);
+        $casoId = $this->crearCasoEn($proyecto, ['persona' => $persona]);
+        $this->insertarCtiCobranza($proyecto, $casoId);
 
         $personaPublicId = (string) DB::table('personas')
-            ->where('proyecto_id', $proyectoId)
+            ->where('proyecto_id', $proyecto->id)
             ->value('public_id');
         $this->assertNotEmpty($personaPublicId);
 
         $response = $this->actingAs($gestor)
             ->get(route('proyectos.trabajo', [
-                'proyecto_id' => $proyectoId,
+                'proyecto_id' => $proyecto->id,
                 'persona' => $personaPublicId,
             ]))
             ->assertStatus(200);
@@ -86,26 +93,26 @@ final class PantallasOperativasRefactorTest extends TestCase
         $response->assertSee('page-header', false);
     }
 
-    private function proyectoId(): int
+    /**
+     * La fila CTI del caso de cobranza. `EscenarioOperativo::crearCasoEn` sólo
+     * inserta en `casos`, y la Vista de Trabajo pinta el panel del tipo leyendo
+     * `casos_cobranza`; sin esta fila el caso se renderiza a medias.
+     */
+    private function insertarCtiCobranza(stdClass $proyecto, int $casoId): void
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.ui.'.Str::random(4).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
+        DB::table('casos_cobranza')->insert([
+            'caso_id' => $casoId,
+            'proyecto_id' => $proyecto->id,
+            'numero_prestamo' => 'PRST-'.Str::random(6),
+            'monto_original' => 1000.00,
+            'saldo_capital' => 1000.00,
+            'saldo_total' => 1000.00,
+            'cuota_mensual' => 100.00,
+            'cuotas_totales' => 12,
+            'fecha_desembolso' => Carbon::today()->subYear(),
+            'fecha_vencimiento' => Carbon::today()->addYear(),
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

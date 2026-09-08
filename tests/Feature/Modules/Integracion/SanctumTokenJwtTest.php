@@ -5,15 +5,23 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Integracion;
 
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class SanctumTokenJwtTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    private stdClass $mandante;
+
+    private stdClass $proyecto;
 
     private int $proyectoId;
 
@@ -21,8 +29,14 @@ final class SanctumTokenJwtTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $this->mandante = $this->crearMandante();
+        $this->proyecto = $this->crearProyectoCobranza($this->mandante);
+        $this->proyectoId = (int) $this->proyecto->id;
+        // F37: el secret vive en el mandante, no en el proyecto.
+        $this->secret = (string) $this->mandante->sso_secret;
     }
 
     public function test_jwt_valido_emite_sanctum_token_y_jit_provisiona(): void
@@ -31,6 +45,7 @@ final class SanctumTokenJwtTest extends TestCase
             'sub' => 'wrap.s2s@wrap.io',
             'name' => 'Wrap S2S',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -64,10 +79,13 @@ final class SanctumTokenJwtTest extends TestCase
 
     public function test_token_emitido_funciona_para_preview_persona(): void
     {
+        $persona = $this->crearPersonaEn($this->proyecto);
+
         $jwt = $this->firmar([
             'sub' => 'wrap.preview@wrap.io',
             'name' => 'Wrap Preview',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -78,7 +96,6 @@ final class SanctumTokenJwtTest extends TestCase
             ->assertStatus(201)
             ->json('access_token');
 
-        $persona = DB::table('personas')->where('proyecto_id', $this->proyectoId)->first();
         $tiCodigo = (string) DB::table('tipos_identificacion')
             ->where('id', $persona->tipo_identificacion_id)->value('codigo');
 
@@ -93,6 +110,7 @@ final class SanctumTokenJwtTest extends TestCase
         $claims = [
             'sub' => 'replay.s2s@wrap.io',
             'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -108,6 +126,7 @@ final class SanctumTokenJwtTest extends TestCase
     {
         $jwt = $this->firmar([
             'sub' => 'a@wrap.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -121,6 +140,7 @@ final class SanctumTokenJwtTest extends TestCase
     {
         $jwt = $this->firmar([
             'sub' => 'a@wrap.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -135,6 +155,7 @@ final class SanctumTokenJwtTest extends TestCase
         $jwt = $this->firmar([
             'sub' => 'super.s2s@wrap.io',
             'wrapper_role' => 'super_admin',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => $this->proyectoId,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),
@@ -152,8 +173,12 @@ final class SanctumTokenJwtTest extends TestCase
 
     public function test_proyecto_inexistente_devuelve_401(): void
     {
+        // Mismo escenario que antes de F37: proyecto que no existe y token
+        // firmado con un secret que no es el del mandante. La firma se valida
+        // antes que el proyecto, así que el rechazo sigue siendo 401.
         $jwt = $this->firmar([
             'sub' => 'a@wrap.io',
+            'mandante_id' => (int) $this->mandante->id,
             'proyecto_id' => 999_999,
             'jti' => Str::uuid()->toString(),
             'iat' => time(),

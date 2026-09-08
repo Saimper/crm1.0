@@ -4,50 +4,54 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Cobranza;
 
-use App\Models\User;
 use App\Modules\Casos\Infrastructure\Http\Livewire\NuevaGestion;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class NuevaGestionComponentTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registra_gestion_con_promesa_desde_componente_livewire(): void
     {
-        [$casoId, $personaId, $proyectoId] = $this->crearCasoCobranza();
-        $this->bindProyecto($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $gestor = $this->crearGestor();
-        $this->actingAs($gestor);
+        [$casoId, $personaId] = $this->crearCasoCobranza($proyecto);
 
-        $canalId = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
-        $resultadoId = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'PROMESA_PAGO')->value('id');
-        $causaId = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'DESEMPLEO')->value('id');
-        $tipoPagoId = (int) DB::table('tipos_pago')->where('proyecto_id', $proyectoId)->where('codigo', 'TRANSFERENCIA')->value('id');
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'requiere_causa' => true,
+        ]);
+        $tipoPagoId = $this->crearTipoPagoEn($proyecto);
+
+        $this->actingAs($this->crearGestor($proyecto));
 
         Livewire::test(NuevaGestion::class, [
             'casoId' => $casoId,
             'personaId' => $personaId,
             'tipoCaso' => 'cobranza',
         ])
-            ->set('canalId', $canalId)
-            ->set('tipoGestionId', $tipoGestionId)
-            ->set('resultadoId', $resultadoId)
-            ->set('causaId', $causaId)
+            ->set('canalId', $cascada['canal_id'])
+            ->set('tipoGestionId', $cascada['tipo_gestion_id'])
+            ->set('resultadoId', $cascada['resultado_id'])
+            ->set('causaId', $cascada['causa_id'])
             ->set('promesaMonto', '750.50')
             ->set('promesaFecha', '2026-04-25')
             ->set('promesaTipoPagoId', $tipoPagoId)
@@ -58,8 +62,8 @@ final class NuevaGestionComponentTest extends TestCase
 
         $this->assertDatabaseHas('gestiones', [
             'caso_id' => $casoId,
-            'resultado_id' => $resultadoId,
-            'causa_id' => $causaId,
+            'resultado_id' => $cascada['resultado_id'],
+            'causa_id' => $cascada['causa_id'],
         ]);
         $this->assertDatabaseHas('compromisos', [
             'caso_id' => $casoId,
@@ -76,45 +80,37 @@ final class NuevaGestionComponentTest extends TestCase
 
     public function test_valida_que_resultado_es_requerido(): void
     {
-        [$casoId, $personaId, $proyectoId] = $this->crearCasoCobranza();
-        $this->bindProyecto($proyectoId);
-        $this->actingAs($this->crearGestor());
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $canalId = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
+        [$casoId, $personaId] = $this->crearCasoCobranza($proyecto);
+        $cascada = $this->crearCascadaGestionEn($proyecto);
+
+        $this->actingAs($this->crearGestor($proyecto));
 
         Livewire::test(NuevaGestion::class, [
             'casoId' => $casoId,
             'personaId' => $personaId,
             'tipoCaso' => 'cobranza',
         ])
-            ->set('canalId', $canalId)
-            ->set('tipoGestionId', $tipoGestionId)
+            ->set('canalId', $cascada['canal_id'])
+            ->set('tipoGestionId', $cascada['tipo_gestion_id'])
             ->call('guardar')
             ->assertHasErrors(['resultadoId']);
     }
 
-    /** @return array{int,int,int} */
-    private function crearCasoCobranza(): array
+    /** @return array{int,int} */
+    private function crearCasoCobranza(stdClass $proyecto): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoAbiertoId = (int) DB::table('estados_caso')
-            ->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
-
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
-        ]);
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
         $out = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estadoAbiertoId,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-17'),
             prioridad: 100,
             numeroPrestamo: 'PRST-UI-'.Str::random(4),
@@ -131,17 +127,6 @@ final class NuevaGestionComponentTest extends TestCase
             fechaVencimiento: new DateTimeImmutable('2027-01-01'),
         ));
 
-        return [$out->casoId, $personaId, $proyectoId];
-    }
-
-    private function crearGestor(): User
-    {
-        return User::factory()->create();
-    }
-
-    private function bindProyecto(int $proyectoId): void
-    {
-        $proyecto = DB::table('proyectos')->where('id', $proyectoId)->first();
-        $this->app->instance('tenancy.proyecto_activo', $proyecto);
+        return [$out->casoId, (int) $persona->id];
     }
 }

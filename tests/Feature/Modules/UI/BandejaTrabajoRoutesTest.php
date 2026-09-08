@@ -4,135 +4,82 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\UI;
 
-use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class BandejaTrabajoRoutesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_gestor_accede_a_bandeja_del_proyecto(): void
     {
-        $gestor = User::factory()->create();
-        $proyectoId = $this->idProyecto();
-        $this->asignar($gestor->id, $proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get("/proyectos/{$proyectoId}/bandeja")
+            ->get("/proyectos/{$proyecto->id}/bandeja")
             ->assertOk()
             ->assertSee('Bandeja');
     }
 
     public function test_usuario_sin_permiso_bandeja_recibe_403(): void
     {
-        $auditor = User::factory()->create();
-        $proyectoId = $this->idProyecto();
-        $this->asignar($auditor->id, $proyectoId, 'AUDITOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $auditor = $this->crearAuditor($proyecto);
 
         // AUDITOR no tiene asignaciones.ver_propia según matriz.
         $this->actingAs($auditor)
-            ->get("/proyectos/{$proyectoId}/bandeja")
+            ->get("/proyectos/{$proyecto->id}/bandeja")
             ->assertForbidden();
     }
 
     public function test_gestor_accede_a_vista_de_trabajo_de_persona_en_proyecto(): void
     {
-        $gestor = User::factory()->create();
-        $proyectoId = $this->idProyecto();
-        $this->asignar($gestor->id, $proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
-        $personaPublicId = $this->crearPersona($proyectoId);
+        $persona = $this->crearPersonaEn($proyecto);
 
         $this->actingAs($gestor)
-            ->get("/proyectos/{$proyectoId}/trabajo/{$personaPublicId}")
+            ->get("/proyectos/{$proyecto->id}/trabajo/{$persona->public_id}")
             ->assertOk()
             ->assertSee('Vista de trabajo');
     }
 
     public function test_vista_de_trabajo_rechaza_persona_de_otro_proyecto(): void
     {
-        $gestor = User::factory()->create();
-        $proyectoId = $this->idProyecto();
-        $this->asignar($gestor->id, $proyectoId, 'GESTOR');
+        $mandante = $this->crearMandante();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $gestor = $this->crearGestor($proyecto);
 
-        // Crear otro proyecto del mismo mandante y una persona allí.
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
-        $otroProyectoId = (int) DB::table('proyectos')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'mandante_id' => $mandanteId,
-            'codigo' => 'OTRO_P',
-            'nombre' => 'Otro proyecto',
-            'tipo_operacion' => 'cobranza',
-            'activo' => true,
-        ]);
-        $personaAjenaPublicId = $this->crearPersona($otroProyectoId);
+        // Otro proyecto del mismo mandante, con una persona propia.
+        $otroProyecto = $this->crearProyectoCobranza($mandante);
+        $personaAjena = $this->crearPersonaEn($otroProyecto);
 
         $this->actingAs($gestor)
-            ->get("/proyectos/{$proyectoId}/trabajo/{$personaAjenaPublicId}")
+            ->get("/proyectos/{$proyecto->id}/trabajo/{$personaAjena->public_id}")
             ->assertNotFound();
     }
 
     public function test_bandeja_de_otro_proyecto_sin_acceso_recibe_403(): void
     {
-        $gestor = User::factory()->create();
-        $proyectoAsignado = $this->idProyecto();
-        $this->asignar($gestor->id, $proyectoAsignado, 'GESTOR');
+        $mandante = $this->crearMandante();
+        $proyectoAsignado = $this->crearProyectoCobranza($mandante);
+        $gestor = $this->crearGestor($proyectoAsignado);
 
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
-        $otroProyectoId = (int) DB::table('proyectos')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'mandante_id' => $mandanteId,
-            'codigo' => 'AJENO_P',
-            'nombre' => 'Proyecto ajeno',
-            'tipo_operacion' => 'cobranza',
-            'activo' => true,
-        ]);
+        $otroProyecto = $this->crearProyectoCobranza($mandante);
 
         $this->actingAs($gestor)
-            ->get("/proyectos/{$otroProyectoId}/bandeja")
+            ->get("/proyectos/{$otroProyecto->id}/bandeja")
             ->assertForbidden();
-    }
-
-    private function idProyecto(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function asignar(int $usuarioId, int $proyectoId, string $rolCodigo): void
-    {
-        $rolId = (int) DB::table('roles')->where('codigo', $rolCodigo)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $usuarioId,
-            'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId,
-            'activo' => true,
-        ]);
-    }
-
-    private function crearPersona(int $proyectoId): string
-    {
-        $tipoIdentId = (int) DB::table('tipos_identificacion')->orderBy('id')->value('id');
-        $publicId = (string) Str::ulid();
-
-        DB::table('personas')->insert([
-            'public_id' => $publicId,
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoIdentId,
-            'identificacion' => '9999'.$proyectoId,
-            'nombres' => 'Persona',
-            'apellidos' => 'Test',
-        ]);
-
-        return $publicId;
     }
 }

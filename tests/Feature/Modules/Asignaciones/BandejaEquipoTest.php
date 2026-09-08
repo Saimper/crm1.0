@@ -4,51 +4,53 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Asignaciones;
 
-use App\Models\User;
 use App\Modules\Asignaciones\Infrastructure\Http\Livewire\BandejaEquipo;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class BandejaEquipoTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_accede_ruta_bandeja_equipo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)
-            ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
     }
 
     public function test_gestor_recibe_403_en_bandeja_equipo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.bandeja.equipo', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_sin_equipo_seleccionado_no_hay_asignaciones(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         $c = Livewire::test(BandejaEquipo::class);
         $asign = $c->viewData('asignaciones');
@@ -57,27 +59,29 @@ final class BandejaEquipoTest extends TestCase
 
     public function test_muestra_asignaciones_de_miembros_del_equipo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $g1 = $this->crearConRol($proyectoId, 'GESTOR');
-        $g2 = $this->crearConRol($proyectoId, 'GESTOR');
-        $gFuera = $this->crearConRol($proyectoId, 'GESTOR');
+        $supervisor = $this->crearSupervisor($proyecto);
+        $g1 = $this->crearGestor($proyecto);
+        $g2 = $this->crearGestor($proyecto);
+        $gFuera = $this->crearGestor($proyecto);
 
-        $equipoId = $this->crearEquipoConMiembros($proyectoId, 'EQ_BE', [$g1->id, $g2->id]);
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_BE');
+        $equipoId = $this->crearEquipoConMiembros($proyecto, 'EQ_BE', [$g1->id, $g2->id]);
+        $campanaId = $this->crearCampana($proyecto, 'CAMP_BE');
 
-        $casoIds = DB::table('casos')
-            ->where('proyecto_id', $proyectoId)
-            ->where('tipo_caso', 'cobranza')
-            ->orderBy('id')
-            ->pluck('id')->all();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        $casoIds = [
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
+        ];
 
         // 2 asignaciones del equipo + 1 a gestor fuera del equipo
-        $this->asignar($proyectoId, $campanaId, $casoIds[0], $g1->id);
-        $this->asignar($proyectoId, $campanaId, $casoIds[1], $g2->id);
-        $this->asignar($proyectoId, $campanaId, $casoIds[2], $gFuera->id);
+        $this->asignar($proyecto, $campanaId, $casoIds[0], (int) $g1->id);
+        $this->asignar($proyecto, $campanaId, $casoIds[1], (int) $g2->id);
+        $this->asignar($proyecto, $campanaId, $casoIds[2], (int) $gFuera->id);
 
         $this->actingAs($supervisor);
 
@@ -91,19 +95,26 @@ final class BandejaEquipoTest extends TestCase
 
     public function test_filtro_por_miembro_limita_resultados(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $g1 = $this->crearConRol($proyectoId, 'GESTOR');
-        $g2 = $this->crearConRol($proyectoId, 'GESTOR');
-        $equipoId = $this->crearEquipoConMiembros($proyectoId, 'EQ_F', [$g1->id, $g2->id]);
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_F');
+        $supervisor = $this->crearSupervisor($proyecto);
+        $g1 = $this->crearGestor($proyecto);
+        $g2 = $this->crearGestor($proyecto);
+        $equipoId = $this->crearEquipoConMiembros($proyecto, 'EQ_F', [$g1->id, $g2->id]);
+        $campanaId = $this->crearCampana($proyecto, 'CAMP_F');
 
-        $casoIds = DB::table('casos')->where('proyecto_id', $proyectoId)->orderBy('id')->pluck('id')->all();
-        $this->asignar($proyectoId, $campanaId, $casoIds[0], $g1->id);
-        $this->asignar($proyectoId, $campanaId, $casoIds[1], $g1->id);
-        $this->asignar($proyectoId, $campanaId, $casoIds[2], $g2->id);
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        $casoIds = [
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
+        ];
+
+        $this->asignar($proyecto, $campanaId, $casoIds[0], (int) $g1->id);
+        $this->asignar($proyecto, $campanaId, $casoIds[1], (int) $g1->id);
+        $this->asignar($proyecto, $campanaId, $casoIds[2], (int) $g2->id);
 
         $this->actingAs($supervisor);
 
@@ -117,14 +128,15 @@ final class BandejaEquipoTest extends TestCase
 
     public function test_no_muestra_asignaciones_de_otro_proyecto(): void
     {
-        $proyA = $this->proyectoId();
-        $proyB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $proyA = $this->crearProyectoCobranza();
+        $proyB = $this->crearProyectoCx();
 
-        $this->bindProyectoActivo($proyA);
-        $supervisor = $this->crearConRol($proyA, 'SUPERVISOR');
-        $gestor = $this->crearConRol($proyA, 'GESTOR');
+        $this->activarProyecto($proyA);
+        $supervisor = $this->crearSupervisor($proyA);
+        $gestor = $this->crearGestor($proyA);
         DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $gestor->id, 'proyecto_id' => $proyB,
+            'usuario_id' => $gestor->id,
+            'proyecto_id' => $proyB->id,
             'rol_id' => (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id'),
             'activo' => true,
         ]);
@@ -133,8 +145,8 @@ final class BandejaEquipoTest extends TestCase
 
         // Asignación en proyecto B al mismo gestor — NO debe aparecer en bandeja de A.
         $campanaB = $this->crearCampana($proyB, 'CAMP_B');
-        $casoB = (int) DB::table('casos')->where('proyecto_id', $proyB)->where('tipo_caso', 'ticket_cx')->value('id');
-        $this->asignar($proyB, $campanaB, $casoB, $gestor->id);
+        $casoB = $this->crearCasoEn($proyB);
+        $this->asignar($proyB, $campanaB, $casoB, (int) $gestor->id);
 
         $this->actingAs($supervisor);
         $c = Livewire::test(BandejaEquipo::class)
@@ -146,17 +158,17 @@ final class BandejaEquipoTest extends TestCase
 
     public function test_supervisor_cambia_prioridad_de_asignacion(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $g1 = $this->crearConRol($proyectoId, 'GESTOR');
-        $equipoId = $this->crearEquipoConMiembros($proyectoId, 'EQ_PRIO', [$g1->id]);
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_PRIO');
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->value('id');
-        $this->asignar($proyectoId, $campanaId, $casoId, $g1->id);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $supervisor = $this->crearSupervisor($proyecto);
+        $g1 = $this->crearGestor($proyecto);
+        $equipoId = $this->crearEquipoConMiembros($proyecto, 'EQ_PRIO', [$g1->id]);
+        $campanaId = $this->crearCampana($proyecto, 'CAMP_PRIO');
+        $casoId = $this->crearCasoEn($proyecto);
+        $this->asignar($proyecto, $campanaId, $casoId, (int) $g1->id);
 
         $asignacionId = (int) DB::table('asignaciones')
-            ->where('proyecto_id', $proyectoId)
+            ->where('proyecto_id', $proyecto->id)
             ->where('caso_id', $casoId)
             ->value('id');
 
@@ -179,22 +191,12 @@ final class BandejaEquipoTest extends TestCase
         $this->assertSame(0, (int) DB::table('asignaciones')->where('id', $asignacionId)->value('prioridad'));
     }
 
-    private function proyectoId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
     /** @param list<int> $miembroIds */
-    private function crearEquipoConMiembros(int $proyectoId, string $codigo, array $miembroIds): int
+    private function crearEquipoConMiembros(stdClass $proyecto, string $codigo, array $miembroIds): int
     {
         $equipoId = (int) DB::table('equipos')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'codigo' => $codigo,
             'nombre' => $codigo,
             'activo' => true,
@@ -203,7 +205,7 @@ final class BandejaEquipoTest extends TestCase
             DB::table('equipo_usuario')->insert([
                 'equipo_id' => $equipoId,
                 'usuario_id' => $uid,
-                'proyecto_id' => $proyectoId,
+                'proyecto_id' => $proyecto->id,
                 'activo' => true,
                 'creada_en' => Carbon::now(),
             ]);
@@ -212,11 +214,11 @@ final class BandejaEquipoTest extends TestCase
         return $equipoId;
     }
 
-    private function crearCampana(int $proyectoId, string $codigo): int
+    private function crearCampana(stdClass $proyecto, string $codigo): int
     {
         return (int) DB::table('campanas')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'codigo' => $codigo,
             'nombre' => $codigo,
             'fecha_inicio' => Carbon::today()->toDateString(),
@@ -224,11 +226,11 @@ final class BandejaEquipoTest extends TestCase
         ]);
     }
 
-    private function asignar(int $proyectoId, int $campanaId, int $casoId, int $usuarioId): void
+    private function asignar(stdClass $proyecto, int $campanaId, int $casoId, int $usuarioId): void
     {
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'campana_id' => $campanaId,
             'caso_id' => $casoId,
             'usuario_id' => $usuarioId,
@@ -236,23 +238,5 @@ final class BandejaEquipoTest extends TestCase
             'prioridad' => 100,
             'estado' => 'pendiente',
         ]);
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

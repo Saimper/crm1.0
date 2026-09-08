@@ -13,12 +13,16 @@ use App\Modules\Reportes\Application\UseCases\EjecutarReporte;
 use App\Modules\Reportes\Application\UseCases\EliminarDefinicionReporte;
 use App\Modules\Reportes\Domain\Constructor\Contracts\RepositorioDefinicionReporte;
 use App\Modules\Reportes\Domain\Constructor\Exceptions\CampoNoPermitidoEnReporte;
+use App\Modules\Reportes\Infrastructure\Persistence\Repositories\RepositorioDefinicionReporteEloquent;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ConstructorUseCasesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     private int $proyectoId;
@@ -33,8 +37,19 @@ final class ConstructorUseCasesTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearCarteraEn($proyecto);
+
+        $this->proyectoId = (int) $proyecto->id;
+        $this->usuarioId = (int) $this->crearAdminGlobal()->id;
+
+        $this->repo = new RepositorioDefinicionReporteEloquent;
+        $cp = new ServicioCamposPersonalizadosReporte;
+        $this->crear = new CrearDefinicionReporte($this->repo, $cp);
+        $this->ejecutar = new EjecutarReporte($cp);
     }
 
     public function test_crear_definicion_basica(): void
@@ -135,7 +150,7 @@ final class ConstructorUseCasesTest extends TestCase
 
     public function test_definicion_otro_proyecto_no_se_encuentra(): void
     {
-        $otroProy = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $otroProy = (int) $this->crearProyectoCx()->id;
         $entrada = new EntradaDefinicionReporte(
             proyectoId: $this->proyectoId,
             codigo: 'cross_proy',

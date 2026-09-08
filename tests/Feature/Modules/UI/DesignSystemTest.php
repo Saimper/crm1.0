@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\UI;
 
-use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -20,12 +18,13 @@ use Tests\TestCase;
  */
 final class DesignSystemTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_badge_renderiza_con_tone(): void
@@ -129,19 +128,11 @@ BLADE);
 
     public function test_proyecto_dashboard_renderiza_con_design_system(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $supervisor = User::query()->create([
-            'name' => 'Sup', 'email' => 'sup.ds.'.Str::random(4).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $supervisor->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $response = $this->actingAs($supervisor)
-            ->get(route('proyectos.dashboard', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
 
         // Nuevo dashboard usa layout F29: x-ui.page-header + x-ui.card.

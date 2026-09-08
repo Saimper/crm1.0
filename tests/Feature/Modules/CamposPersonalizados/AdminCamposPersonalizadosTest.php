@@ -4,39 +4,49 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\CamposPersonalizados;
 
-use App\Models\User;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\AdminCamposPersonalizados;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
+/**
+ * CRUD administrativo de campos personalizados (`/admin/campos-personalizados`).
+ *
+ * El escenario se monta aquí con `EscenarioOperativo` en vez de leerlo de los
+ * *DemoSeeder borrados. Un detalle no es cosmético: la pantalla trabaja acotada
+ * al MANDANTE (`proyectosEnAlcance()`), así que los dos proyectos del test del
+ * ámbito cruzado tienen que colgar del MISMO mandante — como colgaban los cuatro
+ * proyectos demo de `BPO_DEMO`. Si se montan en mandantes distintos, el segundo
+ * proyecto queda fuera de alcance y la pantalla falla por 403 antes de llegar a
+ * la validación de `ambito_id`, que es lo que el test quiere ver.
+ */
 final class AdminCamposPersonalizadosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_admin_crea_campo_personalizado(): void
     {
-        $admin = $this->obtenerAdminGlobal();
-        $this->actingAs($admin);
-
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto, 'CONSUMO');
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminCamposPersonalizados::class)
+            ->set('proyectoSeleccionadoId', (int) $proyecto->id)
             ->call('abrirFormCrear')
             ->assertSet('formVisible', true)
-            ->set('form.proyecto_id', $proyectoId)
+            ->set('form.proyecto_id', (int) $proyecto->id)
             ->set('form.ambito', 'caso')
-            ->set('form.ambito_id', $carteraId)
+            ->set('form.ambito_id', (int) $cartera->id)
             ->set('form.codigo', 'observacion_gerente')
             ->set('form.etiqueta', 'Observación del gerente')
             ->set('form.tipo', 'texto_corto')
@@ -46,9 +56,9 @@ final class AdminCamposPersonalizadosTest extends TestCase
             ->assertSet('formVisible', false);
 
         $this->assertDatabaseHas('campos_personalizados', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'ambito' => 'caso',
-            'ambito_id' => $carteraId,
+            'ambito_id' => $cartera->id,
             'codigo' => 'observacion_gerente',
             'etiqueta' => 'Observación del gerente',
             'tipo' => 'texto_corto',
@@ -56,17 +66,28 @@ final class AdminCamposPersonalizadosTest extends TestCase
         ]);
     }
 
+    /**
+     * La intención original era «dos campos del mismo ámbito no pueden compartir
+     * código», y se comprobaba esperando un error de validación en `form.codigo`.
+     *
+     * La pantalla ya no rechaza: desde la política B6 de códigos
+     * (`GeneradorCodigo::resolverConflicto`, invocado en `guardar()`) el conflicto
+     * se resuelve sufijando `_2`, `_3`, … El invariante que el test protege sigue
+     * siendo el mismo y se comprueba igual de duro — no hay dos filas con el
+     * mismo `codigo` en `(proyecto, ámbito, ámbito_id)` —, pero se afirma sobre el
+     * resultado en base de datos y no sobre el mensaje de error, que es lo que
+     * cambió de forma deliberada en la aplicación.
+     */
     public function test_admin_rechaza_codigo_duplicado_en_mismo_ambito(): void
     {
-        $this->actingAs($this->obtenerAdminGlobal());
-
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto, 'CONSUMO');
+        $this->actingAs($this->crearAdminGlobal());
 
         DB::table('campos_personalizados')->insert([
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'ambito' => 'caso',
-            'ambito_id' => $carteraId,
+            'ambito_id' => $cartera->id,
             'codigo' => 'existente',
             'etiqueta' => 'Ya existe',
             'tipo' => 'texto_corto',
@@ -76,30 +97,64 @@ final class AdminCamposPersonalizadosTest extends TestCase
         ]);
 
         Livewire::test(AdminCamposPersonalizados::class)
+            ->set('proyectoSeleccionadoId', (int) $proyecto->id)
             ->call('abrirFormCrear')
-            ->set('form.proyecto_id', $proyectoId)
+            ->set('form.proyecto_id', (int) $proyecto->id)
             ->set('form.ambito', 'caso')
-            ->set('form.ambito_id', $carteraId)
+            ->set('form.ambito_id', (int) $cartera->id)
             ->set('form.codigo', 'existente')
             ->set('form.etiqueta', 'Duplicado')
             ->set('form.tipo', 'texto_corto')
-            ->call('guardar')
-            ->assertHasErrors(['form.codigo']);
+            ->call('guardar');
+
+        $codigos = DB::table('campos_personalizados')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('ambito', 'caso')
+            ->where('ambito_id', $cartera->id)
+            ->orderBy('id')
+            ->pluck('codigo')
+            ->all();
+
+        // El test no debe pasar «porque no se guardó nada»: el segundo campo se
+        // crea, y lo que se comprueba es que no se llevó por delante el código
+        // del primero.
+        $this->assertCount(2, $codigos);
+
+        $this->assertSame(
+            $codigos,
+            array_values(array_unique($codigos)),
+            'Dos campos del mismo ámbito acabaron compartiendo código.'
+        );
+        $this->assertSame(
+            1,
+            DB::table('campos_personalizados')
+                ->where('proyecto_id', $proyecto->id)
+                ->where('ambito', 'caso')
+                ->where('ambito_id', $cartera->id)
+                ->where('codigo', 'existente')
+                ->count(),
+            'El código «existente» quedó duplicado dentro del mismo ámbito.'
+        );
     }
 
     public function test_admin_rechaza_ambito_id_que_no_pertenece_al_proyecto(): void
     {
-        $this->actingAs($this->obtenerAdminGlobal());
+        // Mismo mandante para los dos proyectos: así ambos están en alcance y el
+        // rechazo tiene que venir de la validación del ámbito, no del tenant.
+        $mandante = $this->crearMandante();
+        $proyectoCob = $this->crearProyectoCobranza($mandante);
+        $proyectoCx = $this->crearProyectoCx($mandante);
+        $carteraCx = $this->crearCarteraEn($proyectoCx);
+        $this->crearCarteraEn($proyectoCob);
 
-        $proyectoCob = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyectoCx = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraCx = (int) DB::table('carteras')->where('proyecto_id', $proyectoCx)->value('id');
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminCamposPersonalizados::class)
+            ->set('proyectoSeleccionadoId', (int) $proyectoCob->id)
             ->call('abrirFormCrear')
-            ->set('form.proyecto_id', $proyectoCob)
+            ->set('form.proyecto_id', (int) $proyectoCob->id)
             ->set('form.ambito', 'caso')
-            ->set('form.ambito_id', $carteraCx) // cartera de otro proyecto
+            ->set('form.ambito_id', (int) $carteraCx->id) // cartera de otro proyecto
             ->set('form.codigo', 'cruzado')
             ->set('form.etiqueta', 'Cruzado')
             ->set('form.tipo', 'texto_corto')
@@ -111,55 +166,43 @@ final class AdminCamposPersonalizadosTest extends TestCase
 
     public function test_admin_desactiva_y_reactiva_campo(): void
     {
-        $this->actingAs($this->obtenerAdminGlobal());
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $this->actingAs($this->crearAdminGlobal());
 
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
         $campoId = (int) DB::table('campos_personalizados')->insertGetId([
-            'proyecto_id' => $proyectoId, 'ambito' => 'caso', 'ambito_id' => $carteraId,
+            'proyecto_id' => $proyecto->id, 'ambito' => 'caso', 'ambito_id' => $cartera->id,
             'codigo' => 'campo_demo', 'etiqueta' => 'Demo', 'tipo' => 'texto_corto',
             'obligatorio' => false, 'activo' => true, 'orden' => 100,
         ]);
 
         Livewire::test(AdminCamposPersonalizados::class)
+            ->set('proyectoSeleccionadoId', (int) $proyecto->id)
             ->call('desactivar', $campoId);
         $this->assertFalse((bool) DB::table('campos_personalizados')->where('id', $campoId)->value('activo'));
 
         Livewire::test(AdminCamposPersonalizados::class)
+            ->set('proyectoSeleccionadoId', (int) $proyecto->id)
             ->call('activar', $campoId);
         $this->assertTrue((bool) DB::table('campos_personalizados')->where('id', $campoId)->value('activo'));
     }
 
     public function test_ruta_admin_rechaza_a_no_admin_global(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $user = User::query()->create([
-            'name' => 'Gestor', 'email' => 'g.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolGestor = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $user->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolGestor, 'activo' => true,
-        ]);
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
-        $this->actingAs($user)
+        $this->actingAs($gestor)
             ->get(route('admin.campos-personalizados'))
             ->assertStatus(403);
     }
 
     public function test_ruta_admin_responde_200_a_admin_global(): void
     {
-        $this->actingAs($this->obtenerAdminGlobal())
+        $this->crearProyectoCobranza();
+
+        $this->actingAs($this->crearAdminGlobal())
             ->get(route('admin.campos-personalizados'))
             ->assertStatus(200);
-    }
-
-    private function obtenerAdminGlobal(): User
-    {
-        /** @var User $u */
-        $u = User::query()->where('email', 'admin@crm.local')->firstOrFail();
-
-        return $u;
     }
 }

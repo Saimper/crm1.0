@@ -8,10 +8,12 @@ use App\Models\User;
 use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionPersonas;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -22,12 +24,13 @@ use Tests\TestCase;
  */
 final class ModosImportacionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_modo_merge_solo_rellena_columnas_vacias(): void
@@ -43,6 +46,8 @@ final class ModosImportacionTest extends TestCase
             'nombres' => 'Juan',
             'apellidos' => null,
             'fecha_nacimiento' => null,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
 
         $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
@@ -78,6 +83,8 @@ final class ModosImportacionTest extends TestCase
             'identificacion' => '5500000002',
             'nombres' => 'Juan',
             'apellidos' => 'Apellido viejo',
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
 
         $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
@@ -110,6 +117,8 @@ final class ModosImportacionTest extends TestCase
             'tipo_identificacion_id' => $this->idTipoCed(),
             'identificacion' => '5500000003',
             'nombres' => 'Original',
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
 
         $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
@@ -146,6 +155,8 @@ final class ModosImportacionTest extends TestCase
             'identificacion' => '5500000004',
             'nombres' => 'Juan',
             'apellidos' => 'Pérez',
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
 
         $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
@@ -167,25 +178,16 @@ final class ModosImportacionTest extends TestCase
         $this->assertSame('Pérez', $persona->apellidos, 'CSV vacío no debe sobreescribir a null');
     }
 
+    /** @return array{0: int, 1: User} */
     private function setupContexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $rolId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        $u = User::query()->create([
-            'name' => 'Sup',
-            'email' => 'sup.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-        $this->actingAs($u);
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->actingAs($supervisor);
 
-        return [$proyectoId, $u];
+        return [(int) $proyecto->id, $supervisor];
     }
 
     private function idTipoCed(): int

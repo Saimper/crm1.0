@@ -6,31 +6,34 @@ namespace Tests\Feature\Modules\Tenancy;
 
 use App\Models\User;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\AdminProyectos;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AdminProyectosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_admin_crea_proyecto_nuevo(): void
     {
-        $this->actingAs($this->admin());
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
+        $mandante = $this->crearMandante('BPO_DEMO');
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminProyectos::class)
             ->call('abrirFormCrear')
-            ->set('form.mandante_id', $mandanteId)
+            ->set('form.mandante_id', (int) $mandante->id)
             ->set('form.codigo', 'NUEVO_PROYECTO_2026')
             ->set('form.nombre', 'Proyecto nuevo')
             ->set('form.tipo_operacion', 'cobranza')
@@ -41,7 +44,7 @@ final class AdminProyectosTest extends TestCase
             ->assertSet('formVisible', false);
 
         $this->assertDatabaseHas('proyectos', [
-            'mandante_id' => $mandanteId,
+            'mandante_id' => $mandante->id,
             'codigo' => 'NUEVO_PROYECTO_2026',
             'nombre' => 'Proyecto nuevo',
             'tipo_operacion' => 'cobranza',
@@ -49,25 +52,54 @@ final class AdminProyectosTest extends TestCase
         ]);
     }
 
+    /**
+     * El invariante es el mismo que cuando se escribió el test —dentro de un
+     * mandante no puede haber dos proyectos con el mismo `codigo`—, pero la
+     * forma en que la aplicación lo garantiza cambió de manera deliberada: desde
+     * la política B6 (`GeneradorCodigo::resolverConflicto`, invocado en
+     * `guardar()`) el choque no se rechaza con un error de validación, se
+     * resuelve sufijando `_2`, `_3`, … Por eso se afirma sobre las filas de la
+     * base y no sobre el mensaje de error, que es lo que se movió.
+     */
     public function test_admin_rechaza_codigo_duplicado_en_mismo_mandante(): void
     {
-        $this->actingAs($this->admin());
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
+        $mandante = $this->crearMandante('BPO_DEMO');
+        $existente = $this->crearProyecto('cobranza', $mandante, 'COBRANZA_DEMO_2026');
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminProyectos::class)
             ->call('abrirFormCrear')
-            ->set('form.mandante_id', $mandanteId)
+            ->set('form.mandante_id', (int) $mandante->id)
             ->set('form.codigo', 'COBRANZA_DEMO_2026')     // ya existe
             ->set('form.nombre', 'Duplicado')
             ->set('form.tipo_operacion', 'cobranza')
-            ->call('guardar')
-            ->assertHasErrors(['form.codigo']);
+            ->call('guardar');
+
+        $codigos = DB::table('proyectos')
+            ->where('mandante_id', $mandante->id)
+            ->orderBy('id')
+            ->pluck('codigo')
+            ->all();
+
+        $this->assertSame(
+            $codigos,
+            array_values(array_unique($codigos)),
+            'El código «COBRANZA_DEMO_2026» quedó duplicado dentro del mismo mandante.'
+        );
+
+        // Y la fila que ya existía no se tocó.
+        $this->assertDatabaseHas('proyectos', [
+            'id' => $existente->id,
+            'codigo' => 'COBRANZA_DEMO_2026',
+            'nombre' => $existente->nombre,
+        ]);
     }
 
     public function test_admin_edita_proyecto_nombre_pero_no_tipo(): void
     {
-        $this->actingAs($this->admin());
-        $id = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        $proyecto = $this->crearProyecto('cobranza', null, 'COBRANZA_DEMO_2026');
+        $id = (int) $proyecto->id;
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminProyectos::class)
             ->call('abrirFormEditar', $id)
@@ -85,8 +117,9 @@ final class AdminProyectosTest extends TestCase
 
     public function test_admin_desactiva_proyecto(): void
     {
-        $this->actingAs($this->admin());
-        $id = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        $proyecto = $this->crearProyecto('cobranza', null, 'COBRANZA_DEMO_2026');
+        $id = (int) $proyecto->id;
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminProyectos::class)->call('desactivar', $id);
         $this->assertFalse((bool) DB::table('proyectos')->where('id', $id)->value('activo'));
@@ -103,14 +136,12 @@ final class AdminProyectosTest extends TestCase
 
     public function test_ruta_200_admin_global(): void
     {
-        $this->actingAs($this->admin())->get(route('admin.proyectos'))->assertStatus(200);
-    }
+        // La ruta va detrás de `mandante.activo`: sin ningún cliente en la base
+        // no hay contexto que resolver y el middleware manda a elegir (302). Con
+        // uno solo lo deriva sin preguntar, que es el escenario que este test
+        // quiere comprobar — que el admin global entra en la pantalla.
+        $this->crearMandante();
 
-    private function admin(): User
-    {
-        /** @var User $u */
-        $u = User::query()->where('email', 'admin@crm.local')->firstOrFail();
-
-        return $u;
+        $this->actingAs($this->crearAdminGlobal())->get(route('admin.proyectos'))->assertStatus(200);
     }
 }

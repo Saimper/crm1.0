@@ -5,27 +5,40 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Tenancy;
 
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AccesoProyectoTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    /**
+     * El proyecto contra el que se prueba el acceso. Se monta en setUp y no
+     * dentro de cada test porque también fija el ÚNICO mandante del escenario:
+     * `mandante.activo` manda a elegir cliente cuando el usuario alcanza más de
+     * uno, y los tests de /admin esperan la pantalla, no el selector.
+     */
+    private stdClass $proyecto;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $this->proyecto = $this->crearProyectoCobranza();
     }
 
     public function test_usuario_sin_asignacion_recibe_403_al_entrar_a_proyecto(): void
     {
         $gestor = User::factory()->create();
-        $proyectoId = $this->idProyecto();
 
         $this->actingAs($gestor)
-            ->get("/proyectos/{$proyectoId}")
+            ->get("/proyectos/{$this->idProyecto()}")
             ->assertForbidden();
     }
 
@@ -46,10 +59,8 @@ final class AccesoProyectoTest extends TestCase
         $rolAdmin = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
         DB::table('usuario_global_rol')->insert(['usuario_id' => $admin->id, 'rol_id' => $rolAdmin]);
 
-        $proyectoId = $this->idProyecto();
-
         $this->actingAs($admin)
-            ->get("/proyectos/{$proyectoId}")
+            ->get("/proyectos/{$this->idProyecto()}")
             ->assertOk();
     }
 
@@ -85,7 +96,7 @@ final class AccesoProyectoTest extends TestCase
 
     private function idProyecto(): int
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        return (int) $this->proyecto->id;
     }
 
     private function asignar(int $usuarioId, int $proyectoId, string $rolCodigo): void

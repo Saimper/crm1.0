@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\CamposPersonalizados;
 
-use App\Models\User;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\Exceptions\ReglaViolada;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
@@ -12,19 +11,23 @@ use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\AdminCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\FormularioCamposPersonalizados;
 use Carbon\CarbonImmutable;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ReglasAvanzadasF30Test extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
+        CarbonImmutable::setTestNow('2026-04-30 09:15:00');
     }
 
     protected function tearDown(): void
@@ -35,13 +38,14 @@ final class ReglasAvanzadasF30Test extends TestCase
 
     public function test_admin_persiste_reglas_avanzadas_en_json(): void
     {
-        $this->actingAs($this->adminGlobal());
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $tipoGestionId = $this->crearCascadaGestionEn($proyecto, ['codigo_tipo' => 'LLAMADA_SALIENTE'])['tipo_gestion_id'];
+
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminCamposPersonalizados::class)
             ->call('abrirFormCrear')
-            ->set('form.proyecto_id', $proyectoId)
+            ->set('form.proyecto_id', (int) $proyecto->id)
             ->set('form.ambito', 'gestion')
             ->set('form.ambito_id', $tipoGestionId)
             ->set('form.codigo', 'fecha_promesa')
@@ -61,8 +65,9 @@ final class ReglasAvanzadasF30Test extends TestCase
 
     public function test_servicio_lanza_regla_violada_cuando_fecha_es_anterior_a_minima(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
+        $tipoGestionId = $this->crearCascadaGestionEn($proyecto, ['codigo_tipo' => 'LLAMADA_SALIENTE'])['tipo_gestion_id'];
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
@@ -88,8 +93,9 @@ final class ReglasAvanzadasF30Test extends TestCase
 
     public function test_auto_fill_now_precarga_form_con_timestamp_actual(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'NOTA')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
+        $tipoGestionId = $this->crearCascadaGestionEn($proyecto, ['codigo_tipo' => 'NOTA'])['tipo_gestion_id'];
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
@@ -104,7 +110,7 @@ final class ReglasAvanzadasF30Test extends TestCase
             'reglas' => json_encode(['auto_fill' => 'now', 'solo_lectura_tras_guardar' => true]),
         ]);
 
-        $this->actingAs($this->adminGlobal());
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
             'proyectoId' => $proyectoId,
@@ -117,8 +123,9 @@ final class ReglasAvanzadasF30Test extends TestCase
 
     public function test_auto_fill_proyecto_codigo_se_aplica_al_renderizar(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
+        $carteraId = (int) $this->crearCarteraEn($proyecto, 'CONSUMO')->id;
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
@@ -133,7 +140,7 @@ final class ReglasAvanzadasF30Test extends TestCase
             'reglas' => json_encode(['auto_fill' => 'proyecto_codigo']),
         ]);
 
-        $this->actingAs($this->adminGlobal());
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
             'proyectoId' => $proyectoId,
@@ -141,13 +148,14 @@ final class ReglasAvanzadasF30Test extends TestCase
             'ambitoId' => $carteraId,
             'entidadId' => 5555,
         ])
-            ->assertSet('valores.origen_proyecto', 'COBRANZA_DEMO_2026');
+            ->assertSet('valores.origen_proyecto', (string) $proyecto->codigo);
     }
 
     public function test_solo_lectura_tras_guardar_marca_campo_disabled_cuando_existe_valor(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
+        $carteraId = (int) $this->crearCarteraEn($proyecto, 'CONSUMO')->id;
 
         $campoId = (int) DB::table('campos_personalizados')->insertGetId([
             'proyecto_id' => $proyectoId,
@@ -167,7 +175,7 @@ final class ReglasAvanzadasF30Test extends TestCase
             'valor_texto_corto' => 'firma original',
         ]);
 
-        $this->actingAs($this->adminGlobal());
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(FormularioCamposPersonalizados::class, [
             'proyectoId' => $proyectoId,
@@ -181,10 +189,17 @@ final class ReglasAvanzadasF30Test extends TestCase
 
     public function test_multi_tenancy_reglas_de_proyecto_a_no_aplican_a_proyecto_b(): void
     {
-        $proyA = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $proyB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $tgA = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyA)->value('id');
-        $tgB = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyB)->value('id');
+        // Dos proyectos del MISMO mandante, como en el escenario demo original
+        // (COBRANZA_DEMO_2026 y SOPORTE_DEMO_2026 colgaban de BPO_DEMO): lo que
+        // aísla las reglas es el proyecto, no el mandante.
+        $mandante = $this->crearMandante();
+        $proyectoA = $this->crearProyectoCobranza($mandante);
+        $proyectoB = $this->crearProyectoCx($mandante);
+
+        $proyA = (int) $proyectoA->id;
+        $proyB = (int) $proyectoB->id;
+        $tgA = $this->crearCascadaGestionEn($proyectoA)['tipo_gestion_id'];
+        $tgB = $this->crearCascadaGestionEn($proyectoB)['tipo_gestion_id'];
 
         DB::table('campos_personalizados')->insert([
             [
@@ -221,8 +236,9 @@ final class ReglasAvanzadasF30Test extends TestCase
 
     public function test_campo_existente_sin_reglas_nuevas_sigue_funcionando(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $proyectoId = (int) $proyecto->id;
+        $carteraId = (int) $this->crearCarteraEn($proyecto, 'CONSUMO')->id;
 
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
@@ -251,13 +267,5 @@ final class ReglasAvanzadasF30Test extends TestCase
         $ctx = new ContextoUsuarioProyecto(1, 'X', 'x@x.io', 'COB');
         $auto = $servicio->valoresAutoRelleno($proyectoId, AmbitoCampo::CASO, $carteraId, $ctx);
         $this->assertSame([], $auto);
-    }
-
-    private function adminGlobal(): User
-    {
-        /** @var User $u */
-        $u = User::query()->where('email', 'admin@crm.local')->firstOrFail();
-
-        return $u;
     }
 }

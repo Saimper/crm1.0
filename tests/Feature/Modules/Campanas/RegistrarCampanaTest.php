@@ -9,11 +9,13 @@ use App\Modules\Campanas\Application\UseCases\RegistrarCampana;
 use App\Modules\Campanas\Domain\Events\CampanaCreada;
 use App\Modules\Campanas\Domain\Exceptions\CodigoCampanaDuplicadoEnProyecto;
 use App\Modules\Campanas\Domain\ValueObjects\CodigoCampana;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -22,12 +24,13 @@ use Tests\TestCase;
  */
 final class RegistrarCampanaTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registra_campana_dispara_evento_y_persiste(): void
@@ -100,11 +103,11 @@ final class RegistrarCampanaTest extends TestCase
 
     private function proyectoCobranza(): int
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        return (int) $this->crearProyectoCobranza()->id;
     }
 
     private function proyectoCx(): int
     {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        return (int) $this->crearProyectoCx()->id;
     }
 }

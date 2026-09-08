@@ -4,71 +4,80 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Reportes;
 
-use App\Models\User;
+use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
+use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
+use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\DashboardAnalitico;
+use Database\Seeders\DatabaseSeeder;
+use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ReportesAnaliticosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_accede_ruta_analiticos(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)
-            ->get(route('proyectos.reportes.analiticos', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.reportes.analiticos', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
     }
 
     public function test_gestor_recibe_403_en_analiticos(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.reportes.analiticos', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.reportes.analiticos', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_componente_render_con_datos(): void
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $casoId = $this->crearCasoEn($proyecto, ['persona' => $persona]);
+        $cascada = $this->crearCascadaGestionEn($proyecto);
+        $gestor = $this->crearGestor($proyecto);
 
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
+            publicId: (string) Str::ulid(),
+            proyectoId: (int) $proyecto->id,
+            casoId: $casoId,
+            personaId: (int) $persona->id,
+            contactoId: null,
+            canalId: $cascada['canal_id'],
+            tipoGestionId: $cascada['tipo_gestion_id'],
+            resultadoId: $cascada['resultado_id'],
+            motivoNoContactoId: null,
+            causaId: null,
+            usuarioId: (int) $gestor->id,
+            notas: null,
+            duracion: new DuracionSegundos(120),
+            creadaEn: new DateTimeImmutable('now'),
+        ));
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         Livewire::test(DashboardAnalitico::class)
             ->assertViewHas('distribucionCasos')
             ->assertViewHas('compromisosPorEstado')
             ->assertViewHas('efectividadPorResultado');
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId, 'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

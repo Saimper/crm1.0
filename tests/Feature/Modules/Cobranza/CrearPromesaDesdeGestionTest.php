@@ -15,20 +15,23 @@ use App\Modules\Cobranza\Domain\ValueObjects\MontoPromesa;
 use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class CrearPromesaDesdeGestionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registrar_gestion_promesa_pago_crea_compromiso_y_promesa(): void
@@ -41,11 +44,11 @@ final class CrearPromesaDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
-            causaId: $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
+            causaId: $ctx['causaId'],
             usuarioId: $ctx['usuarioId'],
             notas: 'Promesa registrada.',
             duracion: null,
@@ -53,7 +56,7 @@ final class CrearPromesaDesdeGestionTest extends TestCase
             datosCompromiso: new DatosPromesaPago(
                 monto: new MontoPromesa('1500.00', 'USD'),
                 fechaVencimiento: new FechaPromesa(new DateTimeImmutable('2026-04-24')),
-                tipoPagoId: $this->idProyecto('tipos_pago', 'TRANSFERENCIA', $ctx['proyectoId']),
+                tipoPagoId: $ctx['tipoPagoId'],
             ),
         ));
 
@@ -84,11 +87,11 @@ final class CrearPromesaDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
-            causaId: $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
+            causaId: $ctx['causaId'],
             usuarioId: $ctx['usuarioId'],
             notas: null,
             duracion: null,
@@ -148,7 +151,7 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         $this->assertFalse((bool) DB::table('casos')->where('id', $ctx['casoId'])->value('tiene_compromiso_vigente'));
     }
 
-    /** @param array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} $ctx */
+    /** @param array{proyectoId:int, casoId:int, personaId:int, usuarioId:int, canalId:int, tipoGestionId:int, resultadoId:int, causaId:int, tipoPagoId:int} $ctx */
     private function registrarPromesa(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
@@ -157,11 +160,11 @@ final class CrearPromesaDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
-            causaId: $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']),
+            causaId: $ctx['causaId'],
             usuarioId: $ctx['usuarioId'],
             notas: null,
             duracion: null,
@@ -173,32 +176,33 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         ));
     }
 
-    /** @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} */
+    /**
+     * El escenario que antes venía del seeder demo: proyecto de cobranza con su
+     * cartera, persona, estado, gestor y la cascada canal → tipo → resultado con
+     * `requiere_compromiso` (que es la bandera que dispara la promesa).
+     *
+     * @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int, canalId:int, tipoGestionId:int, resultadoId:int, causaId:int, tipoPagoId:int}
+     */
     private function contexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoAbiertoId = (int) DB::table('estados_caso')
-            ->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $persona = $this->crearPersonaEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $usuario = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'Tester', 'email' => 'tester.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
-        ]);
-
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'requiere_causa' => true,
+            'codigo_tipo' => 'LLAMADA_SALIENTE',
+            'codigo_resultado' => 'PROMESA_PAGO',
         ]);
 
         $output = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estadoAbiertoId,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-17'),
             prioridad: 100,
             numeroPrestamo: 'PRST-TEST-'.Str::random(4),
@@ -216,20 +220,15 @@ final class CrearPromesaDesdeGestionTest extends TestCase
         ));
 
         return [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'casoId' => $output->casoId,
-            'personaId' => $personaId,
-            'usuarioId' => $usuarioId,
+            'personaId' => (int) $persona->id,
+            'usuarioId' => (int) $usuario->id,
+            'canalId' => $cascada['canal_id'],
+            'tipoGestionId' => $cascada['tipo_gestion_id'],
+            'resultadoId' => $cascada['resultado_id'],
+            'causaId' => $cascada['causa_id'],
+            'tipoPagoId' => $this->crearTipoPagoEn($proyecto),
         ];
-    }
-
-    private function idGlobal(string $tabla, string $codigo): int
-    {
-        return (int) DB::table($tabla)->where('codigo', $codigo)->value('id');
-    }
-
-    private function idProyecto(string $tabla, string $codigo, int $proyectoId): int
-    {
-        return (int) DB::table($tabla)->where('proyecto_id', $proyectoId)->where('codigo', $codigo)->value('id');
     }
 }
