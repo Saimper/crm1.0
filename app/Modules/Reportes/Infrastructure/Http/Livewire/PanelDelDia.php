@@ -130,12 +130,20 @@ final class PanelDelDia extends Component
         // que no es una tendencia — ahí no se dibuja.
         $tendencia = $this->rango === 'hoy' ? collect() : $this->gestionesPorDia($desde);
 
+        // La portada del proyecto no pide permiso —todo el que trabaja ahí tiene
+        // que poder entrar—, así que este panel es el que tiene que decidir qué
+        // enseña. El ranking de compañeros y el dinero del proyecto son informe
+        // de supervisión: sin `reportes.operativos` no se pintan. El resto (lo
+        // que ha pasado hoy en el proyecto) sí, que es para lo que se entra.
+        $puedeVerSupervision = auth()->user()?->tienePermiso('reportes.operativos', $this->proyectoId) === true;
+
         return view('reportes::livewire.panel-del-dia', [
+            'puedeVerSupervision' => $puedeVerSupervision,
             'efectividad' => $totalGestiones > 0
                 ? (int) round($gestionesEfectivas * 100 / $totalGestiones)
                 : null,
             'gestionesEfectivas' => $gestionesEfectivas,
-            'dinero' => $dinero,
+            'dinero' => $puedeVerSupervision ? $dinero : null,
             'tendencia' => $tendencia,
             'maximoDia' => (int) ($tendencia->max('total') ?? 0),
             'totalGestiones' => $totalGestiones,

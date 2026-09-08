@@ -59,9 +59,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:personas.editar')
                 ->name('proyectos.personas.editar');
 
+            // `contactos.ver` y no `personas.ver`: la pantalla enseña teléfonos y
+            // correos, que es el dato de contacto en sí. Era la única ruta de
+            // proyecto que no pedía ningún permiso, así que bastaba con tener
+            // acceso al proyecto para leerlos.
             Route::get('/personas/{persona}/contactos', fn (int $proyecto_id, string $persona) => view('contactos::lista-page', [
                 'persona' => $persona,
-            ]))->name('proyectos.personas.contactos');
+            ]))
+                ->middleware('can:contactos.ver')
+                ->name('proyectos.personas.contactos');
 
             Route::view('/bandeja', 'asignaciones::bandeja-page')
                 ->middleware('can:asignaciones.ver_propia')

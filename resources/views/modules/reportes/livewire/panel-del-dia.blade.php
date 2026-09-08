@@ -62,7 +62,7 @@
 
     {{-- Efectividad y dinero. Los dos son proporciones, así que los dos llevan la
          misma barra: una parte sobre un todo, no dos escalas distintas. --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 @if($puedeVerSupervision) sm:grid-cols-2 @endif gap-3">
         <div class="card" style="padding:16px;">
             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
                 <span class="label-xs">{{ __('reportes.panel_efectividad') }}</span>
@@ -80,6 +80,7 @@
             @endif
         </div>
 
+        @if($puedeVerSupervision)
         <div class="card" style="padding:16px;">
             <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
                 <span class="label-xs">{{ __('reportes.panel_dinero') }}</span>
@@ -101,6 +102,7 @@
                 </span>
             @endif
         </div>
+        @endif
     </div>
 
     {{-- Tendencia: un punto por día. Barras y no línea porque son conteos
@@ -127,6 +129,7 @@
         </div>
     @endif
 
+    @if($puedeVerSupervision)
     {{-- Gestiones por usuario. Una sola serie, así que un solo tono y sin
          leyenda: el título ya dice qué se mide. Barras horizontales porque los
          nombres son largos y desiguales, y ordenadas de mayor a menor porque lo
@@ -154,4 +157,5 @@
             </div>
         @endforelse
     </div>
+@endif
 </div>

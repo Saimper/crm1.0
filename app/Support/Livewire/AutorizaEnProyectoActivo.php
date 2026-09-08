@@ -27,8 +27,19 @@ trait AutorizaEnProyectoActivo
 {
     use AuthorizesRequests;
 
+    /**
+     * El proyecto activo, o 403 si no hay ninguno.
+     *
+     * Sin la guarda, un componente montado fuera de una ruta con
+     * `proyecto.activo` revienta con BindingResolutionException: un 500 con
+     * traza, que además del ruido dice más de la cuenta a quien sondea
+     * /livewire/update. Aquí la ausencia de contexto es exactamente lo que
+     * significa —no se puede autorizar— y se responde como tal.
+     */
     protected function proyectoActivoId(): int
     {
+        abort_unless(app()->bound('tenancy.proyecto_activo'), 403, 'Sin proyecto activo.');
+
         return (int) app('tenancy.proyecto_activo')->id;
     }
 
