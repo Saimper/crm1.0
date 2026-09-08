@@ -24,4 +24,13 @@ return [
     | Timeout total del Job en segundos.
     */
     'job_timeout' => (int) env('IMPORTS_JOB_TIMEOUT', 3600),
+
+    /*
+    | Días que se conserva el contenido del archivo importado (el `payload` de
+    | cada fila) después de que la importación termine. Pasado ese plazo,
+    | `importaciones:purgar-payloads` lo vacía: es la fila cruda del cliente
+    | —cédula, teléfonos, saldos— y su único uso posterior es descargar las
+    | filas rechazadas para corregirlas y volver a subirlas.
+    */
+    'retencion_payload_dias' => (int) env('IMPORTS_RETENCION_PAYLOAD_DIAS', 30),
 ];

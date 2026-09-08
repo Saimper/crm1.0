@@ -470,7 +470,7 @@
             @endif
 
             <div class="flex items-center justify-end gap-2">
-                @if(! $progreso->enCurso() && $rechazadas > 0)
+                @if(! $progreso->enCurso() && $rechazadas > 0 && ($importacionActual?->payload_purgado_en ?? null) === null)
                     <a href="{{ route('proyectos.importaciones.rechazadas', ['proyecto_id' => $proyectoId, 'importacion' => $progreso->publicId]) }}"
                        class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
                         {{ __('importaciones.btn_download_rejected', ['count' => number_format($rechazadas)]) }}
@@ -545,8 +545,9 @@
                             <td class="px-3 py-2 text-right text-xs whitespace-nowrap">
                                 <button type="button" wire:click="verImportacion({{ (int) $h->id }})"
                                         class="text-brand-700 hover:underline">{{ __('importaciones.link_view') }}</button>
-                                {{-- Sólo cuando terminó: en curso, el archivo se quedaría corto. --}}
-                                @if($rechazadasFila > 0 && in_array($h->estado, ['completada', 'fallida', 'cancelada'], true))
+                                {{-- Sólo cuando terminó y mientras el archivo siga guardado: en
+                                     curso se quedaría corto, y depurado saldría en blanco. --}}
+                                @if($rechazadasFila > 0 && $h->payload_purgado_en === null && in_array($h->estado, ['completada', 'fallida', 'cancelada'], true))
                                     <a href="{{ route('proyectos.importaciones.rechazadas', ['proyecto_id' => $proyectoId, 'importacion' => $h->public_id]) }}"
                                        class="ml-2 text-ink-700 hover:underline">{{ __('importaciones.link_download_rejected', ['count' => number_format($rechazadasFila)]) }}</a>
                                 @endif

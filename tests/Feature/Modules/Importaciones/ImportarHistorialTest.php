@@ -7,6 +7,7 @@ namespace Tests\Feature\Modules\Importaciones;
 use App\Modules\Importaciones\Infrastructure\Http\Livewire\Importar;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -64,6 +65,29 @@ final class ImportarHistorialTest extends TestCase
             ->assertSee('cartera_agosto.xlsx')
             ->assertSee(__('importaciones.btn_download_rejected', ['count' => 3]))
             ->assertSee(route('proyectos.importaciones.rechazadas', ['proyecto_id' => $proyecto->id, 'importacion' => $publicId]), escape: false);
+    }
+
+    /**
+     * Pasada la retención, el contenido del archivo se depura y la descarga de
+     * rechazadas saldría con las columnas en blanco. La pantalla deja de
+     * ofrecerla; el 410 del controlador es sólo para la URL guardada.
+     */
+    public function test_una_importacion_ya_depurada_no_ofrece_la_descarga(): void
+    {
+        $proyecto = $this->contexto();
+        $importacionId = $this->importacionEn($proyecto, [
+            'estado' => 'completada',
+            'total_filas' => 10,
+            'procesadas' => 7,
+            'invalidas' => 3,
+            'payload_purgado_en' => Carbon::now(),
+        ]);
+        $publicId = (string) DB::table('importaciones')->where('id', $importacionId)->value('public_id');
+
+        Livewire::test(Importar::class)
+            ->call('verImportacion', $importacionId)
+            ->assertSet('paso', 4)
+            ->assertDontSee(route('proyectos.importaciones.rechazadas', ['proyecto_id' => $proyecto->id, 'importacion' => $publicId]), escape: false);
     }
 
     public function test_una_importacion_sin_rechazadas_no_ofrece_la_descarga(): void

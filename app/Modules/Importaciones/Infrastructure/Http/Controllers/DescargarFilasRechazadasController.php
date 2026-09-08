@@ -37,6 +37,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * lista de rechazadas crece por detrás y el supervisor corregiría un archivo
  * al que le faltan filas. La pantalla no ofrece el enlace antes; el 409 es
  * para la URL escrita a mano o guardada.
+ *
+ * Pasada la retención, el contenido del archivo se depura
+ * (`importaciones:purgar-payloads`) y esto responde 410: el fichero saldría
+ * con las columnas en blanco, que es peor que no salir, porque el supervisor
+ * lo subiría de vuelta creyendo que corrige algo.
  */
 final class DescargarFilasRechazadasController
 {
@@ -51,9 +56,10 @@ final class DescargarFilasRechazadasController
         $fila = DB::table('importaciones')
             ->where('proyecto_id', $proyecto_id)
             ->where('public_id', $importacion)
-            ->first(['id', 'public_id', 'esquema', 'estado']);
+            ->first(['id', 'public_id', 'esquema', 'estado', 'payload_purgado_en']);
         abort_if($fila === null, 404);
         abort_unless(EstadoImportacion::from((string) $fila->estado)->esTerminal(), 409);
+        abort_unless($fila->payload_purgado_en === null, 410);
 
         $importacionId = (int) $fila->id;
         $publicId = (string) $fila->public_id;

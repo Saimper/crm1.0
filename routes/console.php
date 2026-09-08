@@ -41,6 +41,19 @@ Schedule::command('importaciones:purgar-obsoletas --dias=7')
     ->withoutOverlapping()
     ->name('importaciones-purgar-obsoletas');
 
+// Lo que queda del archivo del cliente después de importarlo, que es todo: la
+// fila cruda en `importacion_filas.payload` y el fichero que la subida deja en
+// disco. Las dos cosas son datos de un tercero y las dos caducan.
+Schedule::command('importaciones:purgar-payloads')
+    ->dailyAt('03:45')
+    ->withoutOverlapping()
+    ->name('importaciones-purgar-payloads');
+
+Schedule::command('importaciones:purgar-subidas-temporales')
+    ->dailyAt('03:50')
+    ->withoutOverlapping()
+    ->name('importaciones-purgar-subidas-temporales');
+
 // Envejece los días de mora hasta el «hoy» de cada cliente y, después,
 // reclasifica la cartera en sus tramos. Cada hora y no a una hora fija: el
 // scheduler corre en UTC y cada mandante tiene su propia medianoche —a las

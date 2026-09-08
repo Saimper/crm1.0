@@ -555,7 +555,7 @@ final class Importar extends Component
                 'i.id', 'i.public_id', 'i.estado', 'i.modo', 'i.nombre_archivo', 'i.tipo_entidad',
                 'i.total_filas', 'i.procesadas', 'i.insertadas', 'i.actualizadas',
                 'i.validas', 'i.invalidas', 'i.omitidas', 'i.duplicadas',
-                'i.creada_en', 'i.error_global', 'u.name as usuario_nombre',
+                'i.creada_en', 'i.error_global', 'i.payload_purgado_en', 'u.name as usuario_nombre',
             ])
             ->orderByDesc('i.creada_en')
             ->limit(30)
