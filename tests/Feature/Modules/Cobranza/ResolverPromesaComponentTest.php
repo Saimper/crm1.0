@@ -27,6 +27,14 @@ final class ResolverPromesaComponentTest extends TestCase
     use EscenarioOperativo;
     use RefreshDatabase;
 
+    /**
+     * El gestor que monta el escenario. Antes estos tests actuaban como un
+     * `User::factory()` sin rol en el proyecto y pasaban igual, porque el
+     * componente no comprobaba permisos. Ahora sí, y el actor tiene que ser
+     * quien de verdad puede resolver.
+     */
+    private ?User $gestor = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -36,7 +44,7 @@ final class ResolverPromesaComponentTest extends TestCase
     public function test_marca_promesa_cumplida_desde_componente(): void
     {
         $compromisoId = $this->crearContextoConPromesa();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->gestor);
 
         Livewire::test(ResolverPromesa::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'cumplida')
@@ -56,7 +64,7 @@ final class ResolverPromesaComponentTest extends TestCase
     public function test_valida_fecha_resolucion_requerida(): void
     {
         $compromisoId = $this->crearContextoConPromesa();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->gestor);
 
         Livewire::test(ResolverPromesa::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'rota')
@@ -73,7 +81,7 @@ final class ResolverPromesaComponentTest extends TestCase
         $cartera = $this->crearCarteraEn($proyecto, 'CONSUMO');
         $persona = $this->crearPersonaEn($proyecto);
         $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
-        $usuario = $this->crearGestor($proyecto);
+        $usuario = $this->gestor = $this->crearGestor($proyecto);
 
         $cascada = $this->crearCascadaGestionEn($proyecto, [
             'requiere_compromiso' => true,

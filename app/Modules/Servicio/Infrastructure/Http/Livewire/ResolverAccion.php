@@ -8,8 +8,10 @@ use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
 use App\Modules\Servicio\Application\UseCases\CancelarAccion;
 use App\Modules\Servicio\Application\UseCases\MarcarAccionEjecutada;
 use App\Modules\Servicio\Application\UseCases\MarcarAccionFallida;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
 
@@ -19,6 +21,14 @@ use Throwable;
  */
 final class ResolverAccion extends Component
 {
+    use AutorizaEnProyectoActivo;
+
+    /**
+     * `#[Locked]` porque el id lo fija `mount()` y el cliente no debe reapuntarlo:
+     * el repositorio busca el compromiso con `sinScopeProyecto()`, así que un
+     * `$wire.set('compromisoId', N)` alcanzaba el de cualquier mandante.
+     */
+    #[Locked]
     public int $compromisoId = 0;
 
     public string $accion = '';
@@ -59,6 +69,15 @@ final class ResolverAccion extends Component
             'fechaResolucion' => ['required', 'date'],
             'accion' => ['required', 'in:ejecutada,fallida,cancelada'],
         ]);
+
+        // Cancelar no es resolver: `compromisos.resolver` lo tiene también el
+        // GESTOR y `compromisos.cancelar` sólo SUPERVISOR hacia arriba. Los dos
+        // permisos existían en el seeder y no los exigía nadie.
+        $this->autorizarEn($this->accion === 'cancelada' ? 'compromisos.cancelar' : 'compromisos.resolver');
+
+        // Y que el compromiso sea de este proyecto: el permiso es por proyecto,
+        // tenerlo en el propio no autoriza a tocar el del ajeno.
+        $this->exigirDelProyecto('compromisos', $this->compromisoId);
 
         $input = new ResolverCompromisoInput(
             compromisoId: $this->compromisoId,

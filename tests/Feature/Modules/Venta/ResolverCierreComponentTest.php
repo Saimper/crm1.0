@@ -27,6 +27,14 @@ final class ResolverCierreComponentTest extends TestCase
     use EscenarioOperativo;
     use RefreshDatabase;
 
+    /**
+     * El gestor que monta el escenario. Antes estos tests actuaban como un
+     * `User::factory()` sin rol en el proyecto y pasaban igual, porque el
+     * componente no comprobaba permisos. Ahora sí, y el actor tiene que ser
+     * quien de verdad puede resolver.
+     */
+    private ?User $gestor = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -36,7 +44,7 @@ final class ResolverCierreComponentTest extends TestCase
     public function test_marca_cierre_ganado_desde_componente(): void
     {
         $compromisoId = $this->crearContextoConCierre();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->gestor);
 
         Livewire::test(ResolverCierre::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'ganado')
@@ -58,7 +66,7 @@ final class ResolverCierreComponentTest extends TestCase
         $cartera = $this->crearCarteraEn($proyecto);
         $estado = $this->crearEstadoCasoEn($proyecto, 'NUEVO');
         $persona = $this->crearPersonaEn($proyecto);
-        $usuario = $this->crearGestor($proyecto);
+        $usuario = $this->gestor = $this->crearGestor($proyecto);
         $cascada = $this->crearCascadaGestionEn($proyecto, ['requiere_compromiso' => true]);
 
         $out = $this->app->make(RegistrarCasoLeadVenta::class)->execute(new RegistrarCasoLeadVentaInput(

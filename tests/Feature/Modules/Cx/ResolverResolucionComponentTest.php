@@ -27,6 +27,14 @@ final class ResolverResolucionComponentTest extends TestCase
     use EscenarioOperativo;
     use RefreshDatabase;
 
+    /**
+     * El gestor que monta el escenario. Antes estos tests actuaban como un
+     * `User::factory()` sin rol en el proyecto y pasaban igual, porque el
+     * componente no comprobaba permisos. Ahora sí, y el actor tiene que ser
+     * quien de verdad puede resolver.
+     */
+    private ?User $gestor = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -36,7 +44,7 @@ final class ResolverResolucionComponentTest extends TestCase
     public function test_marca_resolucion_cumplida_desde_componente(): void
     {
         $compromisoId = $this->crearContextoConResolucion();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->gestor);
 
         Livewire::test(ResolverResolucion::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'cumplida')
@@ -64,7 +72,7 @@ final class ResolverResolucionComponentTest extends TestCase
         $cartera = $this->crearCarteraEn($proyecto, 'SOPORTE_GENERAL');
         $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
         $persona = $this->crearPersonaEn($proyecto);
-        $usuario = $this->crearGestor($proyecto);
+        $usuario = $this->gestor = $this->crearGestor($proyecto);
 
         $cascada = $this->crearCascadaGestionEn($proyecto, [
             'codigo_tipo' => 'LLAMADA_ENTRANTE',
