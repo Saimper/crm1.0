@@ -38,6 +38,26 @@ class LoginForm extends Form
             ]);
         }
 
+        // `users.activo` se comprobaba en el handshake SSO y no aquí, así que un
+        // agente dado de baja seguía entrando por /login con sus credenciales de
+        // siempre, con la pantalla de administración confirmando que estaba
+        // desactivado.
+        //
+        // Se comprueba DESPUÉS de validar la contraseña, y no metiendo
+        // `'activo' => true` en las credenciales, por dos motivos: quien acaba de
+        // demostrar que la cuenta es suya no aprende nada nuevo al leer que está
+        // desactivada, y con el mensaje genérico acabaría llamando a soporte
+        // convencido de que su contraseña dejó de funcionar. A quien falla la
+        // contraseña se le sigue respondiendo lo mismo de siempre.
+        if ((bool) Auth::user()?->activo !== true) {
+            Auth::guard('web')->logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'form.email' => trans('auth.desactivada'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 
