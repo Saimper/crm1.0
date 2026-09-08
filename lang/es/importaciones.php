@@ -71,6 +71,10 @@ return [
     'label_processed' => 'Procesadas',
     'label_valid' => 'Válidas',
     'label_progress' => 'Progreso',
+    'label_file' => 'Archivo',
+    'label_started' => 'Iniciado',
+    'label_finished' => 'Terminado',
+    'btn_download_rejected' => 'Descargar filas rechazadas (:count)',
     'error_prefix' => 'Error: :message',
     'cp_created_notice' => '✓ :count campos personalizados creados durante la importación.',
     'btn_cancel_import' => 'Cancelar',
@@ -93,13 +97,8 @@ return [
     'col_invalid' => 'Inválidas',
     'col_status' => 'Estado',
     'col_processed' => 'Procesadas',
-
-    // Exportaciones
-    'exports_title' => 'Exportaciones CSV del proyecto',
-    'export_personas' => 'Personas',
-    'export_casos' => ':Entidades',
-    'export_gestiones' => 'Gestiones',
-    'export_compromisos' => 'Compromisos',
+    'col_actions' => 'Acciones',
+    'link_download_rejected' => 'Rechazadas (:count)',
 
     // Importar casos
     'import_cases_title' => 'Importar :tipo',

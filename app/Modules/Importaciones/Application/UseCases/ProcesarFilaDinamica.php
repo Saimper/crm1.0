@@ -7,15 +7,20 @@ namespace App\Modules\Importaciones\Application\UseCases;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
+use App\Modules\Cobranza\Domain\Exceptions\DatosCasoCobranzaInvalidos;
+use App\Modules\Cobranza\Domain\ValueObjects\DiasMora;
 use App\Modules\Contactos\Domain\Contracts\AltaContactosEnLote;
 use App\Modules\Contactos\Domain\ValueObjects\ExtractorDeContactos;
 use App\Modules\Cx\Application\DTOs\RegistrarCasoTicketCxInput;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
-use App\Modules\Importaciones\Domain\Enums\AccionColumna;
+use App\Modules\Importaciones\Domain\Enums\EstadoFila;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Domain\Exceptions\FilaNoImportable;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoProcesable;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Domain\ValueObjects\ResultadoFila;
@@ -25,6 +30,7 @@ use App\Modules\Personas\Domain\ValueObjects\Identificacion;
 use App\Modules\Personas\Domain\ValueObjects\TipoPersona;
 use App\Modules\Servicio\Application\DTOs\RegistrarCasoServicioInput;
 use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaInput;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use Carbon\CarbonImmutable;
@@ -39,8 +45,12 @@ use Throwable;
  *
  * NO persiste valores de campos personalizados directamente; los retorna
  * para que el job los acumule y llame a guardarValoresEnLote() en batch.
+ *
+ * No es `readonly` porque memoriza el mandante de cada proyecto: hace falta
+ * para anclar la mora al calendario del cliente y no se va a consultar por
+ * cada una de las 8.000 filas de un archivo.
  */
-final readonly class ProcesarFilaDinamica
+final class ProcesarFilaDinamica
 {
     /** @var array<string, string> Mapeo target value → tabla CTI */
     private const TABLAS_CTI = [
@@ -58,15 +68,20 @@ final readonly class ProcesarFilaDinamica
         'caso_servicio' => 'codigo_servicio',
     ];
 
+    /** @var array<int, int|null> proyecto_id → mandante_id */
+    private array $mandantePorProyecto = [];
+
     public function __construct(
-        private ResolverPersonaImportacion $personaResolver,
-        private RegistrarPersona $registrarPersona,
-        private RegistrarCasoCobranza $registrarCobranza,
-        private RegistrarCasoTicketCx $registrarCx,
-        private RegistrarCasoLeadVenta $registrarVenta,
-        private RegistrarCasoServicio $registrarServicio,
-        private ConnectionInterface $db,
-        private AltaContactosEnLote $altaContactos,
+        private readonly ResolverPersonaImportacion $personaResolver,
+        private readonly RegistrarPersona $registrarPersona,
+        private readonly RegistrarCasoCobranza $registrarCobranza,
+        private readonly RegistrarCasoTicketCx $registrarCx,
+        private readonly RegistrarCasoLeadVenta $registrarVenta,
+        private readonly RegistrarCasoServicio $registrarServicio,
+        private readonly ConnectionInterface $db,
+        private readonly AltaContactosEnLote $altaContactos,
+        private readonly DescriptorDeFalloImportacion $descriptor,
+        private readonly RelojDelMandante $reloj,
     ) {}
 
     public function execute(ProcesarFilaInput $input): ResultadoFilaConValoresCp
@@ -75,11 +90,7 @@ final readonly class ProcesarFilaDinamica
         $fila = $input->fila;
 
         $columnaIdentidad = $esquema->columnaIdentificador();
-        $identKey = $columnaIdentidad !== null
-            ? ($columnaIdentidad->accion === AccionColumna::MAPEAR_SISTEMA
-                ? $columnaIdentidad->campoSistemaMapeado
-                : $columnaIdentidad->codigoSugerido())
-            : null;
+        $identKey = $columnaIdentidad?->clavePayload();
         $valorIdentidad = $identKey !== null ? ($fila[$identKey] ?? '') : '';
 
         $proyectoId = $esquema->proyectoId;
@@ -112,47 +123,42 @@ final readonly class ProcesarFilaDinamica
                 $casoId = $input->casosExistentes[$casoKey];
                 $casoExistente = true;
             } else {
-                $casoId = $this->buscarCasoExistente($esquema->target, $proyectoId, $fila, $esquema);
+                $casoId = $this->buscarCasoExistente($esquema->target, $proyectoId, $fila);
                 $casoExistente = $casoId !== null;
             }
         }
 
         $resultado = match ($esquema->modo) {
             ModoImportacion::INSERT => $this->procesarInsert(
-                $input, $fila, $esquema, $proyectoId, $carteraId,
-                $personaId, $personaExistente, $casoId, $casoExistente,
-                $tipoIdentId, $tiposIdentificacion,
+                $input, $personaId, $personaExistente, $casoId, $casoExistente,
             ),
             ModoImportacion::UPDATE => $this->procesarUpdate(
-                $input, $fila, $esquema, $proyectoId, $carteraId,
-                $personaId, $personaExistente, $casoId, $casoExistente,
-                $tipoIdentId, $tiposIdentificacion,
+                $input, $fila, $esquema, $proyectoId, $casoId, $casoExistente,
             ),
-            ModoImportacion::UPSERT => $this->procesarUpsert(
+            ModoImportacion::UPSERT, ModoImportacion::OVERWRITE => $this->procesarUpsert(
                 $input, $fila, $esquema, $proyectoId, $carteraId,
                 $personaId, $personaExistente, $casoId, $casoExistente,
-                $tipoIdentId, $tiposIdentificacion,
+                $tipoIdentId,
             ),
             ModoImportacion::MERGE => $this->procesarMerge(
                 $input, $fila, $esquema, $proyectoId, $carteraId,
                 $personaId, $personaExistente, $casoId, $casoExistente,
-                $tipoIdentId, $tiposIdentificacion,
+                $tipoIdentId,
             ),
             ModoImportacion::SKIP_DUPLICADOS => $this->procesarSkipDuplicados(
                 $casoExistente, $personaExistente, $casoId, $personaId,
-            ),
-            ModoImportacion::OVERWRITE => $this->procesarOverwrite(
-                $input, $fila, $esquema, $proyectoId, $carteraId,
-                $personaId, $personaExistente, $casoId, $casoExistente,
-                $tipoIdentId, $tiposIdentificacion,
             ),
         };
 
         // Los contactos van después del modo, no dentro: la persona puede
         // haberla creado el propio modo, y los contactos cuelgan de ella y no
         // del caso. Es best-effort a propósito — que un teléfono mal escrito no
-        // tumbe la fila entera de una importación de 8.000.
-        $this->generarContactos($input, $proyectoId, $personaId, $tipoIdentId, $valorIdentidad);
+        // tumbe la fila entera de una importación de 8.000. Y sólo si la fila
+        // ENTRÓ: una duplicada de `skip_duplicados` o una omitida prometen no
+        // tocar nada, y colgarle teléfonos a la persona ya era tocarla.
+        if ($resultado->resultadoFila->estado === EstadoFila::PROCESADA) {
+            $this->generarContactos($input, $proyectoId, $personaId, $tipoIdentId, $valorIdentidad);
+        }
 
         return $resultado;
     }
@@ -195,11 +201,7 @@ final readonly class ProcesarFilaDinamica
         $contactos = [];
 
         foreach ($columnas as $columna) {
-            $clave = $columna->accion === AccionColumna::MAPEAR_SISTEMA
-                ? (string) $columna->campoSistemaMapeado
-                : $columna->codigoSugerido();
-
-            $bruto = trim((string) ($input->fila[$clave] ?? ''));
+            $bruto = trim((string) ($input->fila[$columna->clavePayload()] ?? ''));
 
             if ($bruto === '') {
                 continue;
@@ -223,7 +225,7 @@ final readonly class ProcesarFilaDinamica
             Log::warning('importacion: no se pudieron dar de alta los contactos de una fila', [
                 'proyecto_id' => $proyectoId,
                 'persona_id' => $personaId,
-                'error' => $e->getMessage(),
+                'error' => $this->descriptor->motivoDeFila($e),
             ]);
         }
     }
@@ -259,7 +261,6 @@ final readonly class ProcesarFilaDinamica
         TargetImportacion $target,
         int $proyectoId,
         array $fila,
-        EsquemaImportacion $esquema,
     ): ?int {
         $tabla = self::TABLAS_CTI[$target->value] ?? null;
         $columnaUnique = self::COLUMNAS_UNIQUE[$target->value] ?? null;
@@ -300,22 +301,12 @@ final readonly class ProcesarFilaDinamica
         return $fila[$columna->campoSistemaMapeado] ?? null;
     }
 
-    /**
-     * @param  array<string, string>  $fila
-     * @param  array<string, int>  $tiposIdentificacion
-     */
     private function procesarInsert(
         ProcesarFilaInput $input,
-        array $fila,
-        EsquemaImportacion $esquema,
-        int $proyectoId,
-        ?int $carteraId,
         ?int $personaId,
         bool $personaExistente,
         ?int $casoId,
         bool $casoExistente,
-        ?int $tipoIdentId,
-        array $tiposIdentificacion,
     ): ResultadoFilaConValoresCp {
         if ($casoExistente) {
             return new ResultadoFilaConValoresCp(
@@ -344,22 +335,16 @@ final readonly class ProcesarFilaDinamica
 
     /**
      * @param  array<string, string>  $fila
-     * @param  array<string, int>  $tiposIdentificacion
      */
     private function procesarUpdate(
         ProcesarFilaInput $input,
         array $fila,
         EsquemaImportacion $esquema,
         int $proyectoId,
-        ?int $carteraId,
-        ?int $personaId,
-        bool $personaExistente,
         ?int $casoId,
         bool $casoExistente,
-        ?int $tipoIdentId,
-        array $tiposIdentificacion,
     ): ResultadoFilaConValoresCp {
-        if (! $casoExistente) {
+        if (! $casoExistente || $casoId === null) {
             return new ResultadoFilaConValoresCp(
                 ResultadoFila::omitida('El caso no existe en el proyecto'),
                 [],
@@ -367,20 +352,15 @@ final readonly class ProcesarFilaDinamica
             );
         }
 
-        $valoresCp = $this->acumularValoresCp($input, $casoId);
-
-        $this->actualizarCasoExistente($esquema->target, $casoId, $fila, $esquema);
-
-        return new ResultadoFilaConValoresCp(
-            ResultadoFila::procesada($casoId),
-            $valoresCp,
-            fueInsert: false,
-        );
+        return $this->actualizarCaso($input, $fila, $esquema, $proyectoId, $casoId, mergeOnly: false);
     }
 
     /**
+     * Upsert y overwrite hacen lo mismo aquí: actualizar lo que existe y crear
+     * lo que no. `OVERWRITE` sigue en el enum como deprecado para que las
+     * importaciones antiguas que lo tienen guardado sigan pudiendo leerse.
+     *
      * @param  array<string, string>  $fila
-     * @param  array<string, int>  $tiposIdentificacion
      */
     private function procesarUpsert(
         ProcesarFilaInput $input,
@@ -393,69 +373,16 @@ final readonly class ProcesarFilaDinamica
         ?int $casoId,
         bool $casoExistente,
         ?int $tipoIdentId,
-        array $tiposIdentificacion,
     ): ResultadoFilaConValoresCp {
-        if ($casoExistente) {
-            $valoresCp = $this->acumularValoresCp($input, $casoId);
-            $this->actualizarCasoExistente($esquema->target, $casoId, $fila, $esquema);
-
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::procesada($casoId),
-                $valoresCp,
-                fueInsert: false,
-            );
+        if ($casoExistente && $casoId !== null) {
+            return $this->actualizarCaso($input, $fila, $esquema, $proyectoId, $casoId, mergeOnly: false);
         }
 
-        if ($carteraId === null) {
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::invalida('Se requiere carteraId para crear un caso'),
-                [],
-            );
-        }
-
-        try {
-            if (! $personaExistente) {
-                $personaId = $this->crearOCrearPersona(
-                    $proyectoId,
-                    $tipoIdentId,
-                    $fila,
-                    $esquema,
-                );
-            }
-
-            $estadoCasoId = $this->obtenerEstadoCasoDefault($proyectoId);
-            $fechaIngreso = new DateTimeImmutable;
-
-            $casoId = $this->registrarCaso(
-                $esquema->target,
-                $proyectoId,
-                $carteraId,
-                (int) $personaId,
-                (int) $estadoCasoId,
-                $fechaIngreso,
-                $fila,
-                $esquema,
-            );
-
-            $valoresCp = $this->acumularValoresCp($input, $casoId);
-
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::procesada($casoId),
-                $valoresCp,
-                fueInsert: true,
-            );
-        } catch (Throwable $e) {
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::invalida('Error al crear caso: '.mb_substr($e->getMessage(), 0, 200)),
-                [],
-                fueInsert: false,
-            );
-        }
+        return $this->crearCaso($input, $fila, $esquema, $proyectoId, $carteraId, $personaId, $personaExistente, $tipoIdentId);
     }
 
     /**
      * @param  array<string, string>  $fila
-     * @param  array<string, int>  $tiposIdentificacion
      */
     private function procesarMerge(
         ProcesarFilaInput $input,
@@ -468,64 +395,12 @@ final readonly class ProcesarFilaDinamica
         ?int $casoId,
         bool $casoExistente,
         ?int $tipoIdentId,
-        array $tiposIdentificacion,
     ): ResultadoFilaConValoresCp {
-        if ($casoExistente) {
-            $valoresCp = $this->acumularValoresCp($input, $casoId);
-            $this->actualizarCasoExistente($esquema->target, $casoId, $fila, $esquema, mergeOnly: true);
-
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::procesada($casoId),
-                $valoresCp,
-                fueInsert: false,
-            );
+        if ($casoExistente && $casoId !== null) {
+            return $this->actualizarCaso($input, $fila, $esquema, $proyectoId, $casoId, mergeOnly: true);
         }
 
-        if ($carteraId === null) {
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::invalida('Se requiere carteraId para crear un caso'),
-                [],
-            );
-        }
-
-        try {
-            if (! $personaExistente) {
-                $personaId = $this->crearOCrearPersona(
-                    $proyectoId,
-                    $tipoIdentId,
-                    $fila,
-                    $esquema,
-                );
-            }
-
-            $estadoCasoId = $this->obtenerEstadoCasoDefault($proyectoId);
-            $fechaIngreso = new DateTimeImmutable;
-
-            $casoId = $this->registrarCaso(
-                $esquema->target,
-                $proyectoId,
-                $carteraId,
-                (int) $personaId,
-                (int) $estadoCasoId,
-                $fechaIngreso,
-                $fila,
-                $esquema,
-            );
-
-            $valoresCp = $this->acumularValoresCp($input, $casoId);
-
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::procesada($casoId),
-                $valoresCp,
-                fueInsert: true,
-            );
-        } catch (Throwable $e) {
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::invalida('Error al crear caso: '.mb_substr($e->getMessage(), 0, 200)),
-                [],
-                fueInsert: false,
-            );
-        }
+        return $this->crearCaso($input, $fila, $esquema, $proyectoId, $carteraId, $personaId, $personaExistente, $tipoIdentId);
     }
 
     private function procesarSkipDuplicados(
@@ -558,10 +433,39 @@ final readonly class ProcesarFilaDinamica
     }
 
     /**
+     * El caso existe: se escribe lo que el archivo trae y, si la fila no pasa
+     * la validación, queda inválida SIN que se haya escrito nada ni se hayan
+     * acumulado valores de campos personalizados para ella.
+     *
      * @param  array<string, string>  $fila
-     * @param  array<string, int>  $tiposIdentificacion
      */
-    private function procesarOverwrite(
+    private function actualizarCaso(
+        ProcesarFilaInput $input,
+        array $fila,
+        EsquemaImportacion $esquema,
+        int $proyectoId,
+        int $casoId,
+        bool $mergeOnly,
+    ): ResultadoFilaConValoresCp {
+        $motivo = $this->actualizarCasoExistente($esquema->target, $casoId, $fila, $esquema, $proyectoId, $mergeOnly);
+
+        if ($motivo !== null) {
+            return new ResultadoFilaConValoresCp(ResultadoFila::invalida($motivo), [], fueInsert: false);
+        }
+
+        return new ResultadoFilaConValoresCp(
+            ResultadoFila::procesada($casoId),
+            $this->acumularValoresCp($input, $casoId),
+            fueInsert: false,
+        );
+    }
+
+    /**
+     * El caso no existe: se crea, y antes la persona si tampoco existe.
+     *
+     * @param  array<string, string>  $fila
+     */
+    private function crearCaso(
         ProcesarFilaInput $input,
         array $fila,
         EsquemaImportacion $esquema,
@@ -569,22 +473,8 @@ final readonly class ProcesarFilaDinamica
         ?int $carteraId,
         ?int $personaId,
         bool $personaExistente,
-        ?int $casoId,
-        bool $casoExistente,
         ?int $tipoIdentId,
-        array $tiposIdentificacion,
     ): ResultadoFilaConValoresCp {
-        if ($casoExistente) {
-            $valoresCp = $this->acumularValoresCp($input, $casoId);
-            $this->actualizarCasoExistente($esquema->target, $casoId, $fila, $esquema);
-
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::procesada($casoId),
-                $valoresCp,
-                fueInsert: false,
-            );
-        }
-
         if ($carteraId === null) {
             return new ResultadoFilaConValoresCp(
                 ResultadoFila::invalida('Se requiere carteraId para crear un caso'),
@@ -593,39 +483,34 @@ final readonly class ProcesarFilaDinamica
         }
 
         try {
-            if (! $personaExistente) {
-                $personaId = $this->crearOCrearPersona(
-                    $proyectoId,
-                    $tipoIdentId,
-                    $fila,
-                    $esquema,
-                );
+            if (! $personaExistente || $personaId === null) {
+                $personaId = $this->crearOCrearPersona($proyectoId, $tipoIdentId, $fila, $esquema);
             }
 
             $estadoCasoId = $this->obtenerEstadoCasoDefault($proyectoId);
-            $fechaIngreso = new DateTimeImmutable;
 
             $casoId = $this->registrarCaso(
                 $esquema->target,
                 $proyectoId,
                 $carteraId,
-                (int) $personaId,
-                (int) $estadoCasoId,
-                $fechaIngreso,
+                $personaId,
+                $estadoCasoId,
+                new DateTimeImmutable,
                 $fila,
                 $esquema,
             );
 
-            $valoresCp = $this->acumularValoresCp($input, $casoId);
-
             return new ResultadoFilaConValoresCp(
                 ResultadoFila::procesada($casoId),
-                $valoresCp,
+                $this->acumularValoresCp($input, $casoId),
                 fueInsert: true,
             );
         } catch (Throwable $e) {
+            // Lo que se guarda en `mensaje_error` se pinta en pantalla y se
+            // descarga en el CSV de rechazadas: el mensaje de la base de datos
+            // trae la fila entera y no puede ir ahí.
             return new ResultadoFilaConValoresCp(
-                ResultadoFila::invalida('Error al crear caso: '.mb_substr($e->getMessage(), 0, 200)),
+                ResultadoFila::invalida($this->descriptor->motivoDeFila($e)),
                 [],
                 fueInsert: false,
             );
@@ -633,6 +518,11 @@ final readonly class ProcesarFilaDinamica
     }
 
     /**
+     * Escribe en la tabla CTI lo que el archivo trae para un caso existente.
+     *
+     * Devuelve el motivo por el que la fila no puede aplicarse —y entonces no
+     * se escribe nada— o null si se escribió.
+     *
      * @param  array<string, string>  $fila
      */
     private function actualizarCasoExistente(
@@ -640,17 +530,24 @@ final readonly class ProcesarFilaDinamica
         int $casoId,
         array $fila,
         EsquemaImportacion $esquema,
+        int $proyectoId,
         bool $mergeOnly = false,
-    ): void {
+    ): ?string {
         $tabla = self::TABLAS_CTI[$target->value] ?? null;
         if ($tabla === null) {
-            return;
+            return null;
         }
 
         $columnasSistema = $esquema->columnasParaSistema();
-        $update = [];
-
         $camposMutables = $this->camposMutablesPorTarget($target);
+
+        // Una lectura por fila, no una por campo: con diez campos mutables en
+        // cobranza eran diez consultas por cada fila en modo «completar vacíos».
+        $actual = $mergeOnly
+            ? $this->db->table($tabla)->where('caso_id', $casoId)->first()
+            : null;
+
+        $update = [];
 
         foreach ($camposMutables as $campo) {
             $columna = $columnasSistema[$campo] ?? null;
@@ -663,23 +560,100 @@ final readonly class ProcesarFilaDinamica
                 continue;
             }
 
-            if ($mergeOnly) {
-                $valorActual = $this->db->table($tabla)
-                    ->where('caso_id', $casoId)
-                    ->value($campo);
-
-                if ($valorActual !== null && (string) $valorActual !== '' && (float) $valorActual !== 0.0) {
-                    continue;
-                }
+            if ($mergeOnly && ! $this->estaVacio($campo, $actual === null ? null : ($actual->{$campo} ?? null))) {
+                continue;
             }
 
             $update[$campo] = $valor;
+        }
+
+        if ($target === TargetImportacion::CASO_COBRANZA && array_key_exists('dias_mora', $update)) {
+            $motivo = $this->anclarDiasMora($update, $fila, $esquema, $proyectoId);
+            if ($motivo !== null) {
+                return $motivo;
+            }
         }
 
         if ($update !== []) {
             $update['actualizada_en'] = CarbonImmutable::now();
             $this->db->table($tabla)->where('caso_id', $casoId)->update($update);
         }
+
+        return null;
+    }
+
+    /**
+     * Qué cuenta como «vacío» para el modo completar vacíos.
+     *
+     * Para `dias_mora` sólo NULL: un 0 es una cuenta al día, un valor que el
+     * cliente afirmó, y pisarlo con lo que traiga el siguiente archivo sería
+     * justo lo que este modo promete no hacer. El resto de campos conserva la
+     * regla de siempre (nulo, vacío o cero).
+     */
+    private function estaVacio(string $campo, mixed $valorActual): bool
+    {
+        if ($campo === 'dias_mora') {
+            return $valorActual === null;
+        }
+
+        return $valorActual === null || (string) $valorActual === '' || (float) $valorActual === 0.0;
+    }
+
+    /**
+     * Valida los días de mora con el value object de Cobranza y fija la fecha
+     * a la que corresponde el valor.
+     *
+     * `dias_mora_actualizado_en` y `dias_mora_confirmado_en` son la «fecha en
+     * que la fuente afirmó el valor», en el calendario del mandante: el archivo
+     * del cliente dice que HOY la cuenta lleva N días. El envejecimiento
+     * nocturno (`cobranza:avanzar-dias-mora`) suma a partir de esa fecha, así
+     * que si no se escribiera aquí, la mora de una cuenta recién importada
+     * seguiría contando desde la carga anterior.
+     *
+     * Se importa el VO de otro módulo, no su modelo Eloquent (§3, §13.6). Y se
+     * valida ANTES de escribir: un 99999 en el archivo es una fecha mal leída,
+     * y la fila queda inválida con el mensaje del VO en vez de entrar a la base.
+     *
+     * Un negativo o un texto NO invalidan la fila: son días por vencer o una
+     * celda rota, y el alta (`enteroSinSigno`) ya los deja pasar sin escribir
+     * nada. Aquí se hace lo mismo —se quita la columna y sigue el resto— para
+     * que el mismo archivo no entre en INSERT y se rechace en UPDATE.
+     *
+     * @param  array<string, mixed>  $update
+     * @param  array<string, string>  $fila
+     */
+    private function anclarDiasMora(array &$update, array $fila, EsquemaImportacion $esquema, int $proyectoId): ?string
+    {
+        $dias = $this->enteroSinSigno('dias_mora', $fila, $esquema);
+        if ($dias === null) {
+            unset($update['dias_mora']);
+
+            return null;
+        }
+
+        try {
+            $diasMora = new DiasMora($dias);
+        } catch (DatosCasoCobranzaInvalidos $e) {
+            return $e->getMessage();
+        }
+
+        $hoy = $this->reloj->hoy($this->mandanteDe($proyectoId));
+
+        $update['dias_mora'] = $diasMora->dias;
+        $update['dias_mora_actualizado_en'] = $hoy;
+        $update['dias_mora_confirmado_en'] = $hoy;
+
+        return null;
+    }
+
+    private function mandanteDe(int $proyectoId): ?int
+    {
+        if (! array_key_exists($proyectoId, $this->mandantePorProyecto)) {
+            $mandanteId = $this->db->table('proyectos')->where('id', $proyectoId)->value('mandante_id');
+            $this->mandantePorProyecto[$proyectoId] = $mandanteId === null ? null : (int) $mandanteId;
+        }
+
+        return $this->mandantePorProyecto[$proyectoId];
     }
 
     /**
@@ -715,7 +689,7 @@ final readonly class ProcesarFilaDinamica
             ->value('id');
 
         if ($estadoId === null) {
-            throw new \RuntimeException("No hay estados de caso activos configurados para el proyecto {$proyectoId}.");
+            throw ImportacionNoProcesable::sinEstadosDeCaso($proyectoId);
         }
 
         return (int) $estadoId;
@@ -734,14 +708,11 @@ final readonly class ProcesarFilaDinamica
         if ($identificacionValor === '') {
             $columnaIdentidad = $esquema->columnaIdentificador();
             if ($columnaIdentidad !== null) {
-                $identKey = $columnaIdentidad->accion === AccionColumna::MAPEAR_SISTEMA
-                    ? $columnaIdentidad->campoSistemaMapeado
-                    : $columnaIdentidad->codigoSugerido();
-                $identificacionValor = $fila[$identKey] ?? '';
+                $identificacionValor = $fila[$columnaIdentidad->clavePayload()] ?? '';
             }
         }
         if ($identificacionValor === '') {
-            throw new \RuntimeException('No se puede crear persona sin identificación.');
+            throw FilaNoImportable::sinIdentificacion();
         }
 
         $nombres = $this->extraerValorCampoSistema('nombres', $fila, $esquema)
@@ -766,7 +737,7 @@ final readonly class ProcesarFilaDinamica
             $cedId = (int) $this->db->table('tipos_identificacion')->where('codigo', 'CED')->value('id');
             $tipoIdentId = $cedId > 0 ? $cedId : (int) $this->db->table('tipos_identificacion')->orderBy('id')->value('id');
             if ($tipoIdentId === 0 || $tipoIdentId === null) {
-                throw new \RuntimeException('No hay tipos de identificación disponibles en el sistema.');
+                throw ImportacionNoProcesable::sinTiposDeIdentificacion();
             }
         }
 
@@ -890,7 +861,7 @@ final readonly class ProcesarFilaDinamica
                     fechaProgramada: $this->fecha('fecha_programada', $fila, $esquema),
                 ),
             )->casoId,
-            default => throw new \RuntimeException("Target no soportado: {$target->value}"),
+            default => throw ImportacionNoProcesable::targetNoSoportado($target->value),
         };
     }
 

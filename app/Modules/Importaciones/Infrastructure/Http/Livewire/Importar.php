@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Infrastructure\Http\Livewire;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\Services\LectorCsv;
 use App\Modules\Importaciones\Application\Services\LectorXlsx;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
@@ -31,7 +32,6 @@ use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -163,7 +163,7 @@ final class Importar extends Component
         try {
             [$headers, $muestra] = $this->leerArchivo($file);
         } catch (\Throwable $e) {
-            $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
+            $this->addError('archivo', 'No se pudo leer el archivo: '.$this->motivoParaPantalla($e));
 
             return;
         }
@@ -293,14 +293,28 @@ final class Importar extends Component
         try {
             $this->confirmarMapeoInterno();
         } catch (\Throwable $e) {
-            Log::error('[importar] confirmarMapeo failed', [
-                'msg' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->addError('columnas', 'Error interno: '.$e->getMessage());
+            // Un fallo de base de datos al preparar pintaba el INSERT con los
+            // datos del archivo en el formulario. El descriptor resume, y es él
+            // quien deja el detalle en el log bajo la referencia.
+            $this->addError('columnas', $this->motivoParaPantalla($e));
         }
+    }
+
+    /**
+     * Abre el paso 4 de una importación pasada del historial.
+     *
+     * `importacionId` es `#[Locked]` para que el cliente no lo reapunte, pero
+     * asignarlo desde el servidor —tras comprobar permiso y pertenencia— es
+     * exactamente para lo que existe el candado.
+     */
+    public function verImportacion(int $id): void
+    {
+        $this->autorizarEn('importaciones.crear');
+        $this->exigirDelProyecto('importaciones', $id);
+
+        $this->reset(['resultadoDryRun', 'filtroFilas', 'advertencias']);
+        $this->importacionId = $id;
+        $this->paso = 4;
     }
 
     private function confirmarMapeoInterno(): void
@@ -352,7 +366,7 @@ final class Importar extends Component
         try {
             $esquema->validar();
         } catch (\DomainException $e) {
-            $this->addError('columnas', $e->getMessage());
+            $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
         }
@@ -371,7 +385,7 @@ final class Importar extends Component
         try {
             [$headers, , $totalFilas, $filas] = $this->leerArchivo($file, leerTodas: true);
         } catch (\Throwable $e) {
-            $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
+            $this->addError('archivo', 'No se pudo leer el archivo: '.$this->motivoParaPantalla($e));
 
             return;
         }
@@ -427,7 +441,7 @@ final class Importar extends Component
                 'camposReutilizados' => $resultado->camposReutilizados,
             ];
         } catch (ImportacionSinPermisoCamposException $e) {
-            $this->addError('columnas', $e->getMessage());
+            $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
         }
@@ -462,7 +476,7 @@ final class Importar extends Component
         try {
             $encolar->execute($this->importacionId, $modo);
         } catch (ImportacionEnCursoNoEditable|ImportacionNoEncontrada $e) {
-            $this->addError('columnas', $e->getMessage());
+            $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
         }
@@ -541,7 +555,7 @@ final class Importar extends Component
                 'i.id', 'i.public_id', 'i.estado', 'i.modo', 'i.nombre_archivo', 'i.tipo_entidad',
                 'i.total_filas', 'i.procesadas', 'i.insertadas', 'i.actualizadas',
                 'i.validas', 'i.invalidas', 'i.omitidas', 'i.duplicadas',
-                'i.creada_en', 'u.name as usuario_nombre',
+                'i.creada_en', 'i.error_global', 'u.name as usuario_nombre',
             ])
             ->orderByDesc('i.creada_en')
             ->limit(30)
@@ -559,7 +573,23 @@ final class Importar extends Component
             'preview' => $preview,
             'historial' => $historial,
             'tipoOperacion' => $tipoOperacion,
+            'proyectoId' => $proyectoId,
         ]);
+    }
+
+    /**
+     * Lo que se le dice al usuario cuando algo falla en el wizard.
+     *
+     * Siempre a través del descriptor: los cinco `catch` de este componente
+     * pintaban `getMessage()` en el formulario, y un fallo de base de datos al
+     * preparar enseñaba el INSERT con los datos del archivo en pantalla.
+     */
+    private function motivoParaPantalla(\Throwable $e): string
+    {
+        return app(DescriptorDeFalloImportacion::class)->describir($e, [
+            'importacion_id' => $this->importacionId,
+            'proyecto_id' => $this->proyectoId(),
+        ])->motivo;
     }
 
     /**
@@ -616,7 +646,7 @@ final class Importar extends Component
         $payload = [];
 
         foreach ($columnas as $columna) {
-            if ($columna->accion === AccionColumna::IGNORAR) {
+            if (! $columna->debePersistirse()) {
                 continue;
             }
 
@@ -630,11 +660,7 @@ final class Importar extends Component
                 continue;
             }
 
-            if ($columna->accion === AccionColumna::MAPEAR_SISTEMA && $columna->campoSistemaMapeado !== null) {
-                $payload[$columna->campoSistemaMapeado] = $valor;
-            } else {
-                $payload[$columna->codigoSugerido()] = $valor;
-            }
+            $payload[$columna->clavePayload()] = $valor;
 
             if ($columna->esIdentificadorCaso) {
                 $payload['id_cpelegido'] = $valor;

@@ -59,7 +59,7 @@ final readonly class EncolarImportacion
             return $row['proyecto_id'];
         });
 
-        $this->bus->dispatch(new EjecutarImportacionJob($importacionId, $modo->value));
+        $this->bus->dispatch(new EjecutarImportacionJob($importacionId));
 
         $this->events->dispatch(new ImportacionEncolada(
             importacionId: $importacionId,

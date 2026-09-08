@@ -9,6 +9,7 @@ use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaOutput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use App\Modules\Contactos\Domain\Contracts\AltaContactosEnLote;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Application\UseCases\ProcesarFilaDinamica;
 use App\Modules\Importaciones\Application\UseCases\ProcesarFilaInput;
@@ -21,6 +22,7 @@ use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Personas\Application\DTOs\RegistrarPersonaOutput;
 use App\Modules\Personas\Application\UseCases\RegistrarPersona;
 use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
@@ -111,6 +113,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $this->createMock(ConnectionInterface::class),
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -146,6 +150,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -187,6 +193,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -231,6 +239,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -273,6 +283,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -308,6 +320,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -340,6 +354,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -373,6 +389,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -415,6 +433,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -465,6 +485,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoServicio::class),
             $db,
             $this->createMock(AltaContactosEnLote::class),
+            new DescriptorDeFalloImportacion,
+            new RelojDelMandante,
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(

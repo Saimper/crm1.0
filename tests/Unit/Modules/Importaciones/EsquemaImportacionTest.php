@@ -7,6 +7,7 @@ namespace Tests\Unit\Modules\Importaciones;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ColisionCodigosCampoException;
 use App\Modules\Importaciones\Domain\Exceptions\ColumnaIdentificadorAmbiguaException;
@@ -277,6 +278,13 @@ final class EsquemaImportacionTest extends TestCase
             $this->crearColumna('identificacion', TipoCampo::TEXTO_CORTO, 'identificacion', false, AccionColumna::MAPEAR_SISTEMA),
             $this->crearColumna('saldo_deuda', TipoCampo::NUMERO_DECIMAL, null, true, AccionColumna::CREAR_CP),
             $this->crearColumna('basura', TipoCampo::TEXTO_LARGO, null, false, AccionColumna::IGNORAR),
+            // El rol se perdía al persistir: el camino asíncrono nunca generó contactos.
+            new ColumnaExcel(
+                nombreOriginal: 'Telefonos',
+                tipoInferido: TipoCampo::TEXTO_CORTO,
+                accion: AccionColumna::CREAR_CP,
+                rolContacto: RolContacto::TELEFONO,
+            ),
         ];
 
         $original = new EsquemaImportacion(
@@ -303,7 +311,61 @@ final class EsquemaImportacionTest extends TestCase
             self::assertSame($colOriginal->campoSistemaMapeado, $colReconstruido->campoSistemaMapeado);
             self::assertSame($colOriginal->esIdentificadorPersona, $colReconstruido->esIdentificadorPersona);
             self::assertSame($colOriginal->accion, $colReconstruido->accion);
+            self::assertSame($colOriginal->rolContacto, $colReconstruido->rolContacto);
         }
+
+        self::assertSame(RolContacto::TELEFONO, $reconstruido->columnas[3]->rolContacto);
+    }
+
+    public function test_con_modo_devuelve_otra_instancia_con_el_mismo_esquema_y_el_modo_nuevo(): void
+    {
+        $original = new EsquemaImportacion(
+            target: TargetImportacion::CASO_COBRANZA,
+            proyectoId: 42,
+            carteraId: 7,
+            modo: ModoImportacion::UPSERT,
+            columnas: [$this->crearColumna('cedula', esId: true)],
+        );
+
+        $conMerge = $original->conModo(ModoImportacion::MERGE);
+
+        self::assertNotSame($original, $conMerge);
+        self::assertSame(ModoImportacion::UPSERT, $original->modo, 'El VO es inmutable: el original no cambia.');
+        self::assertSame(ModoImportacion::MERGE, $conMerge->modo);
+        self::assertSame($original->target, $conMerge->target);
+        self::assertSame($original->proyectoId, $conMerge->proyectoId);
+        self::assertSame($original->carteraId, $conMerge->carteraId);
+        self::assertSame($original->columnas, $conMerge->columnas);
+        self::assertSame('merge', json_decode($conMerge->serializar(), true)['modo']);
+    }
+
+    public function test_la_clave_de_payload_es_el_campo_del_sistema_o_el_codigo_sugerido(): void
+    {
+        $sistema = $this->crearColumna('CEDULA', campoSistema: 'identificacion', accion: AccionColumna::MAPEAR_SISTEMA);
+        $cp = $this->crearColumna('Saldo Actual', accion: AccionColumna::CREAR_CP);
+
+        self::assertSame('identificacion', $sistema->clavePayload());
+        self::assertSame('saldo_actual', $cp->clavePayload());
+    }
+
+    public function test_columnas_del_archivo_excluye_las_ignoradas_y_conserva_el_orden(): void
+    {
+        $esquema = new EsquemaImportacion(
+            target: TargetImportacion::CASO_COBRANZA,
+            proyectoId: 1,
+            carteraId: 5,
+            modo: ModoImportacion::UPSERT,
+            columnas: [
+                $this->crearColumna('CEDULA', campoSistema: 'identificacion', accion: AccionColumna::MAPEAR_SISTEMA),
+                $this->crearColumna('BASURA', accion: AccionColumna::IGNORAR),
+                $this->crearColumna('CUENTA', accion: AccionColumna::CREAR_CP),
+            ],
+        );
+
+        self::assertSame(
+            ['CEDULA', 'CUENTA'],
+            array_map(static fn (ColumnaExcel $c): string => $c->nombreOriginal, $esquema->columnasDelArchivo()),
+        );
     }
 
     public function test_deserializar_reconstruye_enums_correctamente(): void

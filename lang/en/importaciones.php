@@ -71,6 +71,10 @@ return [
     'label_processed' => 'Processed',
     'label_valid' => 'Valid',
     'label_progress' => 'Progress',
+    'label_file' => 'File',
+    'label_started' => 'Started',
+    'label_finished' => 'Finished',
+    'btn_download_rejected' => 'Download rejected rows (:count)',
     'error_prefix' => 'Error: :message',
     'cp_created_notice' => '✓ :count custom fields created during import.',
     'btn_cancel_import' => 'Cancel',
@@ -93,13 +97,8 @@ return [
     'col_invalid' => 'Invalid',
     'col_status' => 'Status',
     'col_processed' => 'Processed',
-
-    // Exports
-    'exports_title' => 'Project CSV exports',
-    'export_personas' => 'People',
-    'export_casos' => ':Entidades',
-    'export_gestiones' => 'Interactions',
-    'export_compromisos' => 'Commitments',
+    'col_actions' => 'Actions',
+    'link_download_rejected' => 'Rejected (:count)',
 
     // Import cases
     'import_cases_title' => 'Import :tipo',

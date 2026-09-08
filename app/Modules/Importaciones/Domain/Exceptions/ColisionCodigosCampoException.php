@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Domain\Exceptions;
 
-class ColisionCodigosCampoException extends \DomainException
+class ColisionCodigosCampoException extends \DomainException implements MensajeAptoParaPantalla
 {
     public function __construct(string $codigoA, string $codigoB)
     {

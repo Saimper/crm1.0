@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Infrastructure\Providers;
 
 use App\Modules\Importaciones\Application\Console\Commands\PurgarImportacionesObsoletasCommand;
+use App\Modules\Importaciones\Application\Console\Commands\RepararEncodingCommand;
 use App\Modules\Importaciones\Application\Console\Commands\RescatarCamposNativosCommand;
 use App\Modules\Importaciones\Application\Console\Commands\VerificarImportacionesCommand;
 use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
@@ -39,6 +40,7 @@ final class ImportacionesServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 PurgarImportacionesObsoletasCommand::class,
+                RepararEncodingCommand::class,
                 RescatarCamposNativosCommand::class,
                 VerificarImportacionesCommand::class,
             ]);

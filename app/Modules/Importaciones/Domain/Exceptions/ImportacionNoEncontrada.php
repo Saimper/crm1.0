@@ -6,7 +6,7 @@ namespace App\Modules\Importaciones\Domain\Exceptions;
 
 use DomainException;
 
-final class ImportacionNoEncontrada extends DomainException
+final class ImportacionNoEncontrada extends DomainException implements MensajeAptoParaPantalla
 {
     public static function conId(int $id): self
     {

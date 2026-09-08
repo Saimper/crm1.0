@@ -122,7 +122,7 @@ final class VerificarImportacionesCommand extends Command
             'EjecutarImportacionJob puede instanciarse y serializarse',
             static function (): bool {
                 try {
-                    $job = new EjecutarImportacionJob(1, 'upsert');
+                    $job = new EjecutarImportacionJob(1);
                     $serialized = serialize($job);
                     $unserialized = unserialize($serialized);
 

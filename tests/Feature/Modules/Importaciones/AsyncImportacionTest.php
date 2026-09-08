@@ -6,6 +6,7 @@ namespace Tests\Feature\Modules\Importaciones;
 
 use App\Models\User;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ConsultarProgresoImportacion;
 use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionDinamica;
@@ -268,9 +269,9 @@ final class AsyncImportacionTest extends TestCase
     }
 
     /** El job resuelve su ejecutor por inyección, no lo construye. */
-    private function ejecutarJob(int $importacionId, string $modo = 'merge'): void
+    private function ejecutarJob(int $importacionId): void
     {
-        (new EjecutarImportacionJob($importacionId, $modo))
-            ->handle(app(EjecutarImportacionDinamica::class));
+        (new EjecutarImportacionJob($importacionId))
+            ->handle(app(EjecutarImportacionDinamica::class), app(DescriptorDeFalloImportacion::class));
     }
 }

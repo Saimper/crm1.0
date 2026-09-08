@@ -78,6 +78,24 @@ final class LectorXlsxTest extends TestCase
         $this->assertSame(['ced', 'ced_2', 'nom'], (new LectorXlsx)->leerHeaders($this->path));
     }
 
+    /** Lo que alguien pegó en la hoja ya venía doblemente codificado: se repara celda a celda. */
+    public function test_repara_la_doble_codificacion_en_cabeceras_y_celdas(): void
+    {
+        $this->path = $this->escribirXlsx([
+            ['ced', "Direcci\xC3\x83\xC2\xB3n"],
+            ['1', "DOM\xC3\x83\xC2\x8DNGUEZ"],
+            ['2', "CEDE\xC3\x83\xC3\x91O"],
+        ]);
+
+        $lector = new LectorXlsx;
+
+        $this->assertSame(['ced', 'Dirección'], $lector->leerHeaders($this->path));
+
+        $filas = $lector->leerFilas($this->path);
+        $this->assertSame('DOMÍNGUEZ', $filas[0][1]);
+        $this->assertSame("CEDE\xC3\x83\xC3\x91O", $filas[1][1], 'El patrón «ÃÑ» no es reversible y se deja intacto.');
+    }
+
     /** @param list<list<string>> $filas */
     private function escribirXlsx(array $filas): string
     {

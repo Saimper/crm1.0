@@ -7,7 +7,7 @@ namespace App\Modules\Importaciones\Domain\Exceptions;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use DomainException;
 
-final class ImportacionEnCursoNoEditable extends DomainException
+final class ImportacionEnCursoNoEditable extends DomainException implements MensajeAptoParaPantalla
 {
     public static function estado(EstadoImportacion $estado): self
     {

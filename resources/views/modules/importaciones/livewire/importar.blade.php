@@ -369,7 +369,10 @@
 
             <div>
                 <label class="block text-xs font-medium text-ink-700 mb-1">{{ __('importaciones.import_mode_label') }}</label>
-                <select wire:model="modo" class="block w-full text-sm border-ink-300 rounded-md">
+                {{-- `.live` para que la tarjeta «Modo» de arriba refleje lo elegido:
+                     con el binding diferido seguía diciendo «Insertar y actualizar»
+                     hasta el siguiente commit, y nadie sabía qué iba a correr. --}}
+                <select wire:model.live="modo" class="block w-full text-sm border-ink-300 rounded-md">
                     @foreach(\App\Modules\Importaciones\Domain\Enums\ModoImportacion::cases() as $m)
                         @if($m->esNuevo() || $m === \App\Modules\Importaciones\Domain\Enums\ModoImportacion::MERGE)
                             <option value="{{ $m->value }}">{{ $m->label() }} — {{ $m->descripcion() }}</option>
@@ -408,8 +411,18 @@
 
     {{-- PASO 4: procesando --}}
     @if($paso === 4 && $progreso !== null)
-        @php $estadoActual = $progreso->estado->value; @endphp
+        @php
+            $estadoActual = $progreso->estado->value;
+            $rechazadas = $progreso->invalidas + $progreso->duplicadas + $progreso->omitidas;
+        @endphp
         <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-ink-600">
+                <span><span class="uppercase text-[10px] text-ink-500">{{ __('importaciones.label_file') }}</span> <span class="font-medium text-ink-900">{{ $importacionActual?->nombre_archivo ?? '—' }}</span></span>
+                <span><span class="uppercase text-[10px] text-ink-500">{{ __('importaciones.label_mode') }}</span> <span class="font-medium text-ink-900">{{ $progreso->modo->label() }}</span></span>
+                <span><span class="uppercase text-[10px] text-ink-500">{{ __('importaciones.label_started') }}</span> <span class="font-mono">{{ hora_local($progreso->iniciadoEn) }}</span></span>
+                <span><span class="uppercase text-[10px] text-ink-500">{{ __('importaciones.label_finished') }}</span> <span class="font-mono">{{ hora_local($progreso->terminadoEn) }}</span></span>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-sm">
                 <div class="rounded border border-ink-200 p-3">
                     <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_status') }}</div>
@@ -457,13 +470,22 @@
             @endif
 
             <div class="flex items-center justify-end gap-2">
+                @if(! $progreso->enCurso() && $rechazadas > 0)
+                    <a href="{{ route('proyectos.importaciones.rechazadas', ['proyecto_id' => $proyectoId, 'importacion' => $progreso->publicId]) }}"
+                       class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
+                        {{ __('importaciones.btn_download_rejected', ['count' => number_format($rechazadas)]) }}
+                    </a>
+                @endif
                 @if($estadoActual === 'procesando')
                     <button type="button" wire:click="cancelar"
                             wire:confirm="{{ __('importaciones.confirm_cancel') }}"
                             class="px-3 py-1.5 text-xs text-white bg-danger-600 rounded hover:bg-danger-700">
                         {{ __('importaciones.btn_cancel_import') }}
                     </button>
-                @elseif(in_array($estadoActual, ['completada', 'fallida', 'cancelada'], true))
+                @else
+                    {{-- También para una importación que se quedó en pendiente o
+                         preparada (un asistente abandonado, abierto desde el
+                         historial): sin esto el paso 4 no tenía salida. --}}
                     <button type="button" wire:click="cerrar"
                             class="px-3 py-1.5 text-xs text-white bg-success-600 rounded hover:bg-success-700">
                         {{ __('importaciones.btn_new_import') }}
@@ -495,10 +517,12 @@
                         <th class="px-3 py-2 text-right">{{ __('importaciones.col_duplicated') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('importaciones.col_invalid') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('importaciones.col_status') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('importaciones.col_actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-ink-100">
                     @foreach($historial as $h)
+                        @php $rechazadasFila = (int) $h->invalidas + (int) $h->duplicadas + (int) $h->omitidas; @endphp
                         <tr>
                             <td class="px-3 py-2 text-xs">{{ hora_local($h->creada_en) }}</td>
                             <td class="px-3 py-2 text-xs">{{ $h->nombre_archivo }}</td>
@@ -510,7 +534,23 @@
                             <td class="px-3 py-2 text-right font-mono text-blue-700">{{ number_format((int) ($h->actualizadas ?? 0)) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-warning-700">{{ number_format((int) $h->duplicadas) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-danger-700">{{ number_format((int) $h->invalidas) }}</td>
-                            <td class="px-3 py-2 text-xs"><code>{{ $h->estado }}</code></td>
+                            <td class="px-3 py-2 text-xs">
+                                <code>{{ $h->estado }}</code>
+                                @if($h->estado === 'fallida' && $h->error_global)
+                                    <div class="mt-1 max-w-xs text-[11px] text-danger-700">{{ $h->error_global }}</div>
+                                @endif
+                            </td>
+                            {{-- El id va como literal numérico: con strict_types un '5' en el
+                                 payload de Livewire llegaría como string y sería TypeError. --}}
+                            <td class="px-3 py-2 text-right text-xs whitespace-nowrap">
+                                <button type="button" wire:click="verImportacion({{ (int) $h->id }})"
+                                        class="text-brand-700 hover:underline">{{ __('importaciones.link_view') }}</button>
+                                {{-- Sólo cuando terminó: en curso, el archivo se quedaría corto. --}}
+                                @if($rechazadasFila > 0 && in_array($h->estado, ['completada', 'fallida', 'cancelada'], true))
+                                    <a href="{{ route('proyectos.importaciones.rechazadas', ['proyecto_id' => $proyectoId, 'importacion' => $h->public_id]) }}"
+                                       class="ml-2 text-ink-700 hover:underline">{{ __('importaciones.link_download_rejected', ['count' => number_format($rechazadasFila)]) }}</a>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -518,19 +558,4 @@
         @endif
     </section>
 
-    {{-- Exportaciones --}}
-    <section class="rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
-        <div class="text-sm font-semibold text-brand-900">{{ __('importaciones.exports_title') }}</div>
-        @php $pid = app('tenancy.proyecto_activo')->id; @endphp
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
-            <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_personas') }}</a>
-            <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_casos', ['entidades' => $rotuloCasos]) }}</a>
-            <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_gestiones') }}</a>
-            <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_compromisos') }}</a>
-        </div>
-    </section>
 </div>

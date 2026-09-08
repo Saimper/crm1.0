@@ -8,9 +8,6 @@ use App\Modules\Importaciones\Infrastructure\Http\Livewire\ImportarPersonas;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
@@ -118,34 +115,5 @@ final class ImportarPersonasTest extends TestCase
         $this->actingAs($gestor)
             ->get(route('proyectos.importaciones', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
-    }
-
-    public function test_exportar_personas_descarga_csv(): void
-    {
-        $proyecto = $this->crearProyectoCobranza();
-        $this->activarProyecto($proyecto);
-
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        DB::table('personas')->insert([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyecto->id,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => '3300000001',
-            'nombres' => 'Export',
-            'apellidos' => 'Test',
-            'creada_en' => Carbon::now(),
-            'actualizada_en' => Carbon::now(),
-        ]);
-
-        $supervisor = $this->crearSupervisor($proyecto);
-        $response = $this->actingAs($supervisor)
-            ->get(route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $proyecto->id]));
-
-        $response->assertStatus(200);
-        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-        $contenido = $response->streamedContent();
-        $this->assertStringContainsString('3300000001', $contenido);
-        $this->assertStringContainsString('Export', $contenido);
     }
 }

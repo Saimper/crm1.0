@@ -12,12 +12,20 @@ namespace App\Modules\Importaciones\Application\Services;
  * - BOM UTF-8 stripped.
  * - Líneas vacías ignoradas.
  * - Cabeceras duplicadas se renombran sufijando "_2", "_3", ... para conservar índice posicional.
+ * - El contenido se lleva a UTF-8 una vez por lectura y cada celda pasa por la
+ *   reparación de doble codificación: es aquí, al leer, donde se corta lo que
+ *   dejó 26 personas con «GONZÃ\x81LEZ» en la base (ver NormalizadorEncoding).
  */
 final readonly class LectorCsv
 {
+    public function __construct(
+        private NormalizadorEncoding $normalizador = new NormalizadorEncoding,
+    ) {}
+
     /** @return list<string> */
     public function leerHeaders(string $contenido): array
     {
+        $contenido = $this->normalizador->aUtf8($contenido);
         $contenido = $this->limpiarBom($contenido);
         $lineas = $this->lineasNoVacias($contenido);
         if ($lineas === []) {
@@ -25,7 +33,10 @@ final readonly class LectorCsv
         }
 
         $cabeceras = str_getcsv($lineas[0]);
-        $cabeceras = array_map(static fn (?string $c): string => trim((string) $c), $cabeceras);
+        $cabeceras = array_map(
+            fn (?string $c): string => $this->normalizador->limpiarCelda(trim((string) $c)),
+            $cabeceras,
+        );
 
         return $this->desambiguarDuplicados($cabeceras);
     }
@@ -37,6 +48,7 @@ final readonly class LectorCsv
      */
     public function leerFilas(string $contenido, int $limit = 0): array
     {
+        $contenido = $this->normalizador->aUtf8($contenido);
         $contenido = $this->limpiarBom($contenido);
         $lineas = $this->lineasNoVacias($contenido);
         if (count($lineas) < 2) {
@@ -47,7 +59,10 @@ final readonly class LectorCsv
         $totalLineas = count($lineas);
         for ($i = 1; $i < $totalLineas; $i++) {
             $valores = str_getcsv($lineas[$i]);
-            $filas[] = array_map(static fn (?string $v): string => (string) $v, $valores);
+            $filas[] = array_map(
+                fn (?string $v): string => $this->normalizador->limpiarCelda((string) $v),
+                $valores,
+            );
             if ($limit > 0 && count($filas) >= $limit) {
                 break;
             }
@@ -58,6 +73,7 @@ final readonly class LectorCsv
 
     public function contarFilas(string $contenido): int
     {
+        $contenido = $this->normalizador->aUtf8($contenido);
         $lineas = $this->lineasNoVacias($this->limpiarBom($contenido));
 
         return max(0, count($lineas) - 1);
