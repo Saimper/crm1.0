@@ -61,7 +61,7 @@ final class RolPermisoSeeder extends Seeder
             // Catálogos
             'catalogos.ver', 'catalogos.crear', 'catalogos.editar', 'catalogos.gestionar', 'catalogos.administrar',
             // Reportes
-            'reportes.operativos', 'reportes.analiticos', 'reportes.exportar',
+            'reportes.operativos', 'reportes.analiticos',
             'reportes.constructor.gestionar', 'reportes.constructor.ejecutar', 'reportes.constructor.exportar',
             // Importaciones
             'importaciones.ver', 'importaciones.crear', 'importaciones.procesar',
@@ -97,7 +97,7 @@ final class RolPermisoSeeder extends Seeder
             // Catálogos
             'catalogos.ver', 'catalogos.crear', 'catalogos.editar', 'catalogos.gestionar', 'catalogos.administrar',
             // Reportes
-            'reportes.operativos', 'reportes.analiticos', 'reportes.exportar',
+            'reportes.operativos', 'reportes.analiticos',
             'reportes.constructor.gestionar', 'reportes.constructor.ejecutar', 'reportes.constructor.exportar',
             // Importaciones
             'importaciones.ver', 'importaciones.crear', 'importaciones.procesar',
@@ -143,7 +143,7 @@ final class RolPermisoSeeder extends Seeder
             'usuarios.ver',
             'catalogos.ver',
             'asignaciones.ver_equipo',
-            'reportes.operativos', 'reportes.analiticos', 'reportes.exportar',
+            'reportes.operativos', 'reportes.analiticos',
             'reportes.constructor.ejecutar',
             'auditoria.ver', 'auditoria.exportar',
             'notificaciones.ver',

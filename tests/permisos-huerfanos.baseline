@@ -1,0 +1,51 @@
+# Permisos sembrados que hoy no comprueba nadie.
+#
+# La lista la vigila PermisosSinConsumidorTest: puede MENGUAR, nunca crecer.
+# Cablea uno y quítalo de aquí; siembra uno nuevo sin cablearlo y el build se
+# rompe. No es una lista de permisos «reservados para más adelante»: es deuda,
+# y mientras esté aquí un administrador puede asignarlos creyendo que dan algo.
+#
+# De dónde salen los grupos grandes:
+#   - catalogos.*  quedaron sin pantalla cuando F36 sustituyó los catálogos por
+#     el configurador de proyecto, que se protege con `proyectos.configurar`.
+#   - usuarios.*   salvo `usuarios.gestionar`, nunca gobernaron nada.
+#   - *.eliminar / *.administrar  son las mitades del CRUD de F22 que ninguna
+#     pantalla llegó a ofrecer.
+#   - mandante.administrar y proyectos.crear (F38) se sembraron con el rol
+#     ADMIN_MANDANTE, que se autoriza por su propia tabla y no por ellos.
+asignaciones.administrar
+asignaciones.cerrar
+asignaciones.crear
+asignaciones.eliminar
+campanas.administrar
+campanas.editar
+campanas.eliminar
+campos.ver
+casos.administrar
+casos.cerrar
+casos.eliminar
+casos.reabrir
+catalogos.administrar
+catalogos.crear
+catalogos.editar
+catalogos.eliminar
+catalogos.gestionar
+catalogos.ver
+compromisos.administrar
+compromisos.eliminar
+equipos.eliminar
+gestiones.administrar
+gestiones.editar
+gestiones.eliminar
+gestiones.ver
+importaciones.eliminar
+importaciones.ver
+mandante.administrar
+personas.administrar
+personas.eliminar
+proyectos.crear
+usuarios.administrar
+usuarios.crear
+usuarios.editar
+usuarios.eliminar
+usuarios.ver

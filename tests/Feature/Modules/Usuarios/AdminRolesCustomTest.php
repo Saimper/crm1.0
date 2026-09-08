@@ -248,7 +248,7 @@ final class AdminRolesCustomTest extends TestCase
         $this->assertTrue($usuario->tienePermiso('casos.ver', $proyectoId));
         $this->assertTrue($usuario->tienePermiso('gestiones.crear', $proyectoId));
         $this->assertTrue($usuario->tienePermiso('compromisos.crear', $proyectoId));
-        $this->assertFalse($usuario->tienePermiso('reportes.exportar', $proyectoId));
+        $this->assertFalse($usuario->tienePermiso('casos.exportar', $proyectoId));
         $this->assertFalse($usuario->tienePermiso('roles.gestionar', $proyectoId));
     }
 
