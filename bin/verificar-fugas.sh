@@ -3,12 +3,17 @@
 # Trinquete de fugas multi-mandante.
 #
 # Ejecuta el grupo `fuga-pendiente` —los tests que documentan agujeros de
-# aislamiento entre mandantes y que `phpunit.xml` excluye del run normal— y
-# compara el número de fallos con el que hay anotado en
-# tests/fugas-pendientes.baseline.
+# aislamiento entre mandantes— y compara el número de fallos con el que hay
+# anotado en tests/fugas-pendientes.baseline.
 #
 # Rompe SÓLO si el número sube. Así el CI ve las fugas sin bloquear el trabajo
 # del día, y una regresión que abra un agujero nuevo se para en el acto.
+#
+# Desde que el baseline llegó a 0 el grupo está VACÍO: sus tests dejaron de
+# describir agujeros, describen garantías y corren con el resto de la suite. El
+# trinquete se queda de guardia igualmente, porque su trabajo ahora es otro —que
+# nadie vuelva a marcar un test como fuga pendiente sin que se vea— y porque un
+# grupo vacío es la forma más barata de sostener que el número sigue en cero.
 #
 # Uso:  bin/verificar-fugas.sh
 #
@@ -40,11 +45,18 @@ echo "$SALIDA"
 RESUMEN=$(echo "$SALIDA" | grep -E '^\s*Tests:' | tail -1)
 
 if [[ -z "$RESUMEN" ]]; then
-    echo "::error::El grupo no llegó a ejecutarse (sin línea de resumen). Revisa la salida de arriba."
-    exit 1
+    # Un grupo vacío no imprime resumen y PHPUnit dice «No tests found». Es el
+    # estado al que esto aspiraba: cero fugas y ningún test marcado. Cualquier
+    # otra ausencia de resumen sí es que algo se rompió antes de correr.
+    if echo "$SALIDA" | grep -q 'No tests found'; then
+        ACTUALES=0
+    else
+        echo "::error::El grupo no llegó a ejecutarse (sin línea de resumen). Revisa la salida de arriba."
+        exit 1
+    fi
+else
+    ACTUALES=$(echo "$RESUMEN" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo "0")
 fi
-
-ACTUALES=$(echo "$RESUMEN" | grep -oE '[0-9]+ failed' | grep -oE '[0-9]+' || echo "0")
 
 echo
 echo "──────────────────────────────────────────────"
@@ -77,6 +89,11 @@ fi
 
 if (( ACTUALES < ESPERADOS )); then
     echo "✅ Se han cerrado $((ESPERADOS - ACTUALES)) fuga(s). Baja el número de $BASELINE_FILE a $ACTUALES para que no puedan reabrirse."
+    exit 0
+fi
+
+if (( ESPERADOS == 0 )); then
+    echo "✅ Cero fugas conocidas, y el grupo está vacío. Que siga así."
     exit 0
 fi
 

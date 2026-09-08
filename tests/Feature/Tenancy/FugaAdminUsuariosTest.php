@@ -12,7 +12,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
-use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
 
@@ -386,7 +385,6 @@ final class FugaAdminUsuariosTest extends TestCase
     // Falta de contexto de mandante
     // ---------------------------------------------------------------------
 
-    #[Group('fuga-pendiente')]
     public function test_la_tabla_de_usuarios_debe_mostrar_a_que_mandante_pertenece_cada_usuario(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -408,7 +406,6 @@ final class FugaAdminUsuariosTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
     public function test_usuario_creado_por_un_admin_mandante_queda_ligado_a_su_mandante(): void
     {
         ['a' => $a] = $this->montarDosMandantes();

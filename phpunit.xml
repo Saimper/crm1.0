@@ -12,13 +12,12 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
-    <!-- Red de fugas multi-mandante: tests que documentan trabajo pendiente y
-         fallan a propósito. Se corren con `php artisan test -group fuga-pendiente`. -->
-    <groups>
-        <exclude>
-            <group>fuga-pendiente</group>
-        </exclude>
-    </groups>
+    <!-- La red de fugas multi-mandante ya no se excluye: el grupo se quedó sin
+         miembros el 2026-09-08, cuando la última fuga documentada se cerró.
+         Aquellos tests fallaban a propósito, así que había que apartarlos para
+         que la suite del día a día fuera utilizable; ahora describen garantías y
+         corren con el resto, que era el objetivo declarado en
+         tests/fugas-pendientes.baseline desde el principio. -->
     <source>
         <include>
             <directory>app</directory>

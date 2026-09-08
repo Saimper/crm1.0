@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
-use PHPUnit\Framework\Attributes\Group;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
 
@@ -63,7 +62,6 @@ final class FugaAuditoriaTest extends TestCase
     // 1. Listado /admin/auditoria — modo global (sin proyecto activo)
     // ---------------------------------------------------------------------
 
-    #[Group('fuga-pendiente')]
     public function test_admin_mandante_no_ve_eventos_de_proyectos_de_otro_mandante(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -202,7 +200,6 @@ final class FugaAuditoriaTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
     public function test_el_listado_no_se_fia_del_proyecto_activo_sin_comprobar_el_permiso(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -367,7 +364,6 @@ final class FugaAuditoriaTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
     public function test_el_listado_permite_filtrar_por_mandante(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -393,7 +389,6 @@ final class FugaAuditoriaTest extends TestCase
         $this->assertNotContains($eventoB, $ids, 'Filtrando por el mandante A siguen apareciendo eventos del mandante B.');
     }
 
-    #[Group('fuga-pendiente')]
     public function test_un_evento_sin_proyecto_sigue_siendo_visible_para_el_admin_de_su_mandante(): void
     {
         ['a' => $a] = $this->montarDosMandantes();

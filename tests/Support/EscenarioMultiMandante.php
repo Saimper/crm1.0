@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -157,6 +159,16 @@ trait EscenarioMultiMandante
      */
     protected function idsDe(iterable $filas): array
     {
+        // Un paginador es Arrayable además de recorrible, y `Arr::from()` mira
+        // lo primero: `new Collection($paginador)` acaba envolviendo el SOBRE
+        // de la paginación —`current_page`, `data`, `links`— en vez de las
+        // filas, y el mapeo revienta con «Undefined array key id». Cuatro
+        // tests de fuga llevaban meses en rojo por esto, no por el código que
+        // decían estar vigilando.
+        if ($filas instanceof Paginator || $filas instanceof LengthAwarePaginator) {
+            $filas = $filas->items();
+        }
+
         return (new Collection($filas))
             ->map(fn ($f): int => is_scalar($f) ? (int) $f : (int) (is_object($f) ? $f->id : $f['id']))
             ->values()
