@@ -147,6 +147,78 @@ final class ConstructorRutasTest extends TestCase
         $this->assertTrue($cambios['completa']['despues']);
     }
 
+    /**
+     * Un reporte es una consulta que el usuario compone, así que el recorte por
+     * cartera del rol (F22) tiene que valer aquí igual que en la bandeja. Sin
+     * esto, el constructor era la puerta de atrás: se elige `personas` como
+     * entidad raíz y sale el padrón completo, sin tope de filas.
+     */
+    public function test_el_recorte_por_cartera_del_rol_gobierna_el_reporte(): void
+    {
+        $proyecto = DB::table('proyectos')->where('id', $this->proyectoId)->first();
+        $permitida = $this->crearCarteraEn($proyecto);
+        $vetada = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+
+        $dentro = $this->crearPersonaEn($proyecto, '7200000001');
+        $fuera = $this->crearPersonaEn($proyecto, '7200000002');
+        $this->crearCasoEn($proyecto, ['cartera' => $permitida, 'estado' => $estado, 'persona' => $dentro]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'estado' => $estado, 'persona' => $fuera]);
+
+        $defId = $this->crearDefinicionDePersonas();
+
+        $supervisor = $this->usuarioConRol('SUPERVISOR');
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $this->proyectoId,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
+            'cartera_id' => $permitida->id,
+        ]);
+
+        $csv = $this->actingAs($supervisor)->get(route('proyectos.reportes.custom.exportar', [
+            'proyecto_id' => $this->proyectoId, 'definicion_id' => $defId, 'formato' => 'csv',
+        ]))->assertOk()->streamedContent();
+
+        $this->assertStringContainsString('7200000001', $csv);
+        $this->assertStringNotContainsString('7200000002', $csv, 'La persona de la cartera vetada no sale por el constructor.');
+    }
+
+    /**
+     * El CSV del constructor pasa por las mismas celdas que el resto: el DSL
+     * expone las notas de gestión, que las escribe otra persona, y una nota que
+     * empiece por «=» la evalúa Excel al abrir el fichero.
+     */
+    public function test_el_csv_del_constructor_neutraliza_las_formulas(): void
+    {
+        $proyecto = DB::table('proyectos')->where('id', $this->proyectoId)->first();
+        $this->crearPersonaEn($proyecto, '=HYPERLINK("http://x")');
+
+        $defId = $this->crearDefinicionDePersonas();
+
+        $csv = $this->actingAs($this->usuarioConRol('SUPERVISOR'))->get(route('proyectos.reportes.custom.exportar', [
+            'proyecto_id' => $this->proyectoId, 'definicion_id' => $defId, 'formato' => 'csv',
+        ]))->assertOk()->streamedContent();
+
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+    }
+
+    /** Una definición sobre personas, con la identificación como única columna. */
+    private function crearDefinicionDePersonas(): int
+    {
+        $crear = new CrearDefinicionReporte(new RepositorioDefinicionReporteEloquent, new ServicioCamposPersonalizadosReporte);
+
+        return $crear->execute(
+            new EntradaDefinicionReporte(
+                proyectoId: $this->proyectoId,
+                codigo: 'padron',
+                nombre: 'Padrón',
+                entidadRaiz: 'personas',
+                columnas: [['campo' => 'personas.identificacion', 'etiqueta' => 'Identificación']],
+            ),
+            $this->autorId,
+        );
+    }
+
     public function test_export_registra_ejecucion(): void
     {
         $defId = $this->crearDefinicionDePrueba();

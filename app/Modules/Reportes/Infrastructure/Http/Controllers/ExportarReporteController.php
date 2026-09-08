@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Controllers;
 
+use App\Models\User;
 use App\Modules\Auditoria\Domain\Contracts\RegistroDeExportaciones;
 use App\Modules\Reportes\Application\Hidratacion\HidratadorDefinicionReporte;
 use App\Modules\Reportes\Application\UseCases\EjecutarReporte;
@@ -55,8 +56,13 @@ final class ExportarReporteController
         $def = HidratadorDefinicionReporte::desdeArray($data);
 
         $inicio = (int) (microtime(true) * 1000);
-        $resultado = $this->ejecutar->execute($def);
-        $usuarioId = (int) auth()->id();
+        $usuario = $request->user();
+        abort_unless($usuario instanceof User, 401);
+        // El recorte por cartera del rol (F22) vale también aquí: un reporte es
+        // una consulta que el usuario compone, y sin esto era la puerta de
+        // atrás a las carteras que la bandeja le esconde.
+        $resultado = $this->ejecutar->execute($def, null, $usuario->carterasPermitidas($proyecto_id));
+        $usuarioId = (int) $usuario->id;
 
         $onComplete = function (int $total, bool $completa) use ($def, $data, $definicion_id, $proyecto_id, $usuarioId, $formato, $inicio): void {
             $duracion = (int) ((microtime(true) * 1000) - $inicio);

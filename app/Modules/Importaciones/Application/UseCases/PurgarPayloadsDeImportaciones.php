@@ -27,11 +27,17 @@ use Illuminate\Database\ConnectionInterface;
  * celda del cliente, y una vez que el payload no está, el motivo suelto ya no
  * explica nada que se pueda mirar.
  *
- * SÓLO importaciones en estado terminal. Una terminada no vuelve a ejecutarse
- * —`EstadoImportacion::puedeEncolarse()` sólo admite PREPARADA, y
- * `EjecutarImportacionDinamica` sólo arranca en PREPARADA o PROCESANDO—, así
- * que vaciar sus filas no le quita el trabajo a nadie. Si algún día se permite
- * reintentar una importación fallida, esta purga tiene que cambiar con ella.
+ * Entran las TERMINADAS, y también las que se quedaron colgadas en
+ * `procesando`. Una terminada no vuelve a ejecutarse —`puedeEncolarse()` sólo
+ * admite PREPARADA— así que vaciar sus filas no le quita el trabajo a nadie. Y
+ * una colgada tampoco: nada en la aplicación devuelve a terminal una
+ * importación cuyo worker murió, así que si no entrara aquí, su archivo se
+ * quedaría en la base para siempre, que es justo lo que esto existe para
+ * impedir. El plazo las protege de sobra: un mes después, ningún worker va a
+ * volver a por ella.
+ *
+ * Si algún día se permite reintentar una importación fallida o reanudar una
+ * colgada, esta purga tiene que cambiar con ella.
  */
 final readonly class PurgarPayloadsDeImportaciones
 {
@@ -53,15 +59,21 @@ final readonly class PurgarPayloadsDeImportaciones
     {
         $limite = CarbonImmutable::now()->subDays(max(1, $diasRetencion));
 
+        $estados = array_map(
+            static fn (EstadoImportacion $estado): string => $estado->value,
+            array_filter(
+                EstadoImportacion::cases(),
+                static fn (EstadoImportacion $e): bool => $e->esTerminal() || $e === EstadoImportacion::PROCESANDO,
+            ),
+        );
+
         $importaciones = $this->db->table('importaciones')
-            ->whereIn('estado', array_map(
-                static fn (EstadoImportacion $estado): string => $estado->value,
-                array_filter(EstadoImportacion::cases(), static fn (EstadoImportacion $e): bool => $e->esTerminal()),
-            ))
+            ->whereIn('estado', $estados)
             ->whereNull('payload_purgado_en')
-            // `terminado_en` es nulo en las importaciones anteriores al modo
-            // asíncrono: para ésas manda la fecha de creación.
-            ->whereRaw('COALESCE(terminado_en, creada_en) < ?', [$limite])
+            // `terminado_en` es nulo en las colgadas y en las anteriores al
+            // modo asíncrono: para ésas manda cuándo empezó, y si tampoco eso,
+            // cuándo se creó.
+            ->whereRaw('COALESCE(terminado_en, iniciado_en, creada_en) < ?', [$limite])
             ->orderBy('id')
             ->pluck('id');
 
@@ -93,7 +105,14 @@ final readonly class PurgarPayloadsDeImportaciones
     private function depurar(int $importacionId): int
     {
         $total = 0;
-        $ultimoId = 0;
+
+        // Arranca en la primera fila de ESTA importación y no en 0: con
+        // `id > 0` la primera vuelta es un rango del índice agrupado desde el
+        // principio de la tabla, y en una tabla de 50.000 filas eso es recorrer
+        // todo lo que hay por delante para juntar el primer lote.
+        $ultimoId = (int) $this->db->table('importacion_filas')
+            ->where('importacion_id', $importacionId)
+            ->min('id') - 1;
 
         while (true) {
             $ids = $this->db->table('importacion_filas')

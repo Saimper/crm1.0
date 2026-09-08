@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Personas\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -44,10 +46,23 @@ final class BuscadorGlobal extends Component
             $proyectoId = (int) $proyectoActivo->id;
             $like = "%{$texto}%";
 
+            // El recorte por cartera del rol (F22). El buscador es la puerta más
+            // usada de la aplicación: sin esto, un supervisor acotado encuentra
+            // por nombre o por cédula a las personas de las carteras que su
+            // bandeja le esconde, con el nombre de la cartera al lado.
+            $carteras = $this->carterasDelRol($proyectoId);
+
             $personas = DB::table('personas as p')
                 ->leftJoin('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
                 ->where('p.proyecto_id', $proyectoId)
                 ->whereNull('p.eliminada_en')
+                ->when($carteras !== null, fn ($q) => $q->whereExists(
+                    fn ($sub) => $sub->select(DB::raw('1'))
+                        ->from('casos as cr')
+                        ->whereColumn('cr.persona_id', 'p.id')
+                        ->whereNull('cr.eliminada_en')
+                        ->whereIn('cr.cartera_id', $carteras ?? []),
+                ))
                 ->where(function ($w) use ($like): void {
                     $w->where('p.identificacion', 'like', $like)
                         ->orWhere('p.nombres', 'like', $like)
@@ -68,6 +83,7 @@ final class BuscadorGlobal extends Component
                 ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
                 ->where('c.proyecto_id', $proyectoId)
                 ->whereNull('c.eliminada_en')
+                ->when($carteras !== null, fn ($q) => $q->whereIn('c.cartera_id', $carteras ?? []))
                 ->where(function ($w) use ($like): void {
                     $w->where('p.identificacion', 'like', $like)
                         ->orWhere('p.nombres', 'like', $like)
@@ -93,5 +109,15 @@ final class BuscadorGlobal extends Component
             'casos' => $casos,
             'proyectoActivo' => $proyectoActivo,
         ]);
+    }
+
+    /**
+     * @return list<int>|null Carteras del rol, o null si el rol no está acotado.
+     */
+    private function carterasDelRol(int $proyectoId): ?array
+    {
+        $usuario = Auth::user();
+
+        return $usuario instanceof User ? $usuario->carterasPermitidas($proyectoId) : [];
     }
 }

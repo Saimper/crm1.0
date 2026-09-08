@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use App\Modules\Reportes\Application\DTOs\EntradaDefinicionReporte;
 use App\Modules\Reportes\Application\Hidratacion\HidratadorDefinicionReporte;
 use App\Modules\Reportes\Application\Servicios\ServicioCamposPersonalizadosReporte;
@@ -15,6 +16,7 @@ use App\Modules\Reportes\Domain\Constructor\Contracts\RepositorioDefinicionRepor
 use App\Modules\Reportes\Domain\Constructor\Enums\EntidadRaiz;
 use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -213,7 +215,9 @@ final class ConstructorReporte extends Component
         try {
             $entrada = $this->construirEntrada();
             $def = HidratadorDefinicionReporte::desdeArray($entrada->paraHidratacion());
-            $resultado = app(EjecutarReporte::class)->execute($def, 50);
+            // La previsualización enseña lo mismo que enseñaría la descarga,
+            // recorte por cartera incluido.
+            $resultado = app(EjecutarReporte::class)->execute($def, 50, $this->carterasDelRol());
             $filas = [];
             foreach ($resultado->filas as $fila) {
                 $filas[] = $fila;
@@ -262,6 +266,20 @@ final class ConstructorReporte extends Component
      * sobreescribe: el permiso es por proyecto, así que un supervisor con
      * `gestionar` en el suyo lo arrastraría al ajeno si nadie mira la fila.
      */
+    /**
+     * Las carteras a las que el rol del usuario está acotado (F22), o `null`
+     * si no lo está. Es lo que el ejecutor necesita para no enseñar de más.
+     *
+     * @return list<int>|null
+     */
+    private function carterasDelRol(): ?array
+    {
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario->carterasPermitidas($this->proyectoActivoId());
+    }
+
     private function guardas(): void
     {
         $this->autorizarEn('reportes.constructor.gestionar');

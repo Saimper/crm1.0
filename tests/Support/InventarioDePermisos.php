@@ -17,10 +17,12 @@ use SplFileInfo;
  * sus comentarios, porque una plantilla no es PHP tokenizable y `@can('x')`
  * quedaría fuera de los tokens.
  *
- * La comparación es por «el literal contiene el código», y no por igualdad,
- * porque el middleware los escribe pegados: `can:casos.exportar`. Es holgado a
- * propósito: un falso «se usa» sólo deja pasar un permiso muerto, mientras que
- * un falso «no se usa» rompería el build por nada.
+ * La comparación no es por igualdad —el middleware los escribe pegados, como
+ * `can:casos.exportar`— pero tampoco por subcadena a secas: el código tiene que
+ * aparecer con FRONTERA, es decir sin una letra, un dígito, un punto, un guion
+ * o un guion bajo pegados a los lados. Sin esa frontera, `casos.ver` se daría
+ * por cableado porque existe `casos.ver_todos`, y un permiso nuevo entraría en
+ * verde a costa de parecerse a uno viejo.
  */
 final class InventarioDePermisos
 {
@@ -41,7 +43,7 @@ final class InventarioDePermisos
             $codigos,
             static function (string $codigo) use ($literales): bool {
                 foreach ($literales as $literal) {
-                    if (str_contains($literal, $codigo)) {
+                    if (self::apareceConFrontera($literal, $codigo)) {
                         return false;
                     }
                 }
@@ -53,6 +55,35 @@ final class InventarioDePermisos
         sort($huerfanos);
 
         return $huerfanos;
+    }
+
+    /**
+     * Si `$codigo` aparece en `$literal` sin caracteres de código pegados.
+     *
+     * `can:casos.exportar` cuenta; `casos.exportar_masivo` no, y `mis.casos.ver`
+     * tampoco, que es lo que evita que un permiso se apoye en el nombre de otro.
+     */
+    private static function apareceConFrontera(string $literal, string $codigo): bool
+    {
+        $desde = 0;
+
+        while (($pos = strpos($literal, $codigo, $desde)) !== false) {
+            $antes = $pos === 0 ? '' : $literal[$pos - 1];
+            $despues = $literal[$pos + strlen($codigo)] ?? '';
+
+            if (! self::esCaracterDeCodigo($antes) && ! self::esCaracterDeCodigo($despues)) {
+                return true;
+            }
+
+            $desde = $pos + 1;
+        }
+
+        return false;
+    }
+
+    private static function esCaracterDeCodigo(string $caracter): bool
+    {
+        return $caracter !== '' && (ctype_alnum($caracter) || in_array($caracter, ['.', '_', '-'], true));
     }
 
     /** @return list<string> */

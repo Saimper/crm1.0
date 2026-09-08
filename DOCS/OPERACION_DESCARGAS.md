@@ -62,12 +62,12 @@ Lo que queda fuera de su alcance, y es exactamente lo que corta:
   habría saltado y `set_time_limit(0)` no cambiaba nada. Los que sí saltan son
   los tres de arriba, que miden reloj de pared.
 
-Tres descargas no tienen ni siquiera lo que hace `RespuestaCsv`, porque no pasan
-por ella: `StreamerReporteCsv`, `StreamerReporteXlsx` y
-`DescargarPlantillaImportacionController` no llaman a `set_time_limit(0)` ni a
-`flush()`. Para ellas el `max_execution_time` de `php.ini` sigue gobernando de
-verdad. Están apuntadas para arreglar; hasta entonces, el valor de `php.ini` de
-la §4 es lo único que las cubre.
+Los dos streamers del constructor de reportes no pasan por `RespuestaCsv`
+—pagina por clave y allí el orden lo elige quien define el reporte— pero hacen
+lo mismo por su cuenta: `set_time_limit(0)`, `flush()` cada 500 filas, corte del
+bucle si el cliente se fue, y la huella desde un `finally`. La que sigue sin
+nada de eso es `DescargarPlantillaImportacionController`, y no importa: es un
+fichero de cabeceras vacías que se genera en milisegundos.
 
 ## 3. Los tres relojes, y cuál tiene que rendirse primero
 
@@ -203,13 +203,14 @@ tercera es la grave:
 Se desactiva con la cabecera `X-Accel-Buffering: no`, no con una directiva del
 servidor. Es la granularidad correcta —afecta a la respuesta que la necesita y
 deja bufferizadas las páginas normales, que sí se benefician— y ya la mandan las
-cuatro salidas: `RespuestaCsv.php:121`, `StreamerReporteCsv.php:57`,
-`StreamerReporteXlsx.php:55`, `DescargarPlantillaImportacionController.php:56`.
+cuatro salidas: `RespuestaCsv`, los dos streamers del constructor y la plantilla
+de importación (busca `X-Accel-Buffering` para verlas).
 
 Son cuatro literales sueltos y nada obliga a que un exportador nuevo los copie.
 Si se cae, no falla nada: la descarga sigue saliendo, sólo que bufferizada, y el
-síntoma aparece meses después como «a veces se corta». Por eso lleva test propio
-en vez de una directiva de nginx.
+síntoma aparece meses después como «a veces se corta». Sólo la de `RespuestaCsv`
+tiene test propio —`RespuestaCsvDesdeConsultaTest`—, así que las otras tres
+dependen de que alguien se acuerde. Es el cabo más fino de esta nota.
 
 Sobre `gzip`: los paquetes de Debian y Ubuntu traen `gzip on` en `nginx.conf`. No
 hace falta apagarlo por decreto —un CSV comprime cerca de 10 a 1, y ese ahorro es

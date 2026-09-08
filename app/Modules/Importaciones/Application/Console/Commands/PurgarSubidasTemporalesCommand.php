@@ -21,13 +21,16 @@ use Illuminate\Support\Facades\Storage;
  * ahí en octubre. Esto lo barre por reloj, que es como hay que barrer los
  * datos de otro.
  *
- * Doce horas por defecto: una subida que no llegó a procesarse en ese plazo es
- * un asistente abandonado, y el asistente vuelve a pedir el archivo.
+ * Veinticuatro horas por defecto, que es la misma ventana que usa la limpieza
+ * de Livewire. Bajarla parece más higiénico y no lo es: el supervisor que sube
+ * su archivo por la mañana y sigue mapeando treinta y cuatro columnas por la
+ * noche se quedaría sin el fichero a mitad del asistente, y el error de «no
+ * contiene filas» aparece en el paso 1, que ya no está en pantalla.
  */
 final class PurgarSubidasTemporalesCommand extends Command
 {
     protected $signature = 'importaciones:purgar-subidas-temporales
-                            {--horas=12 : Antigüedad mínima del archivo temporal}
+                            {--horas=24 : Antigüedad mínima del archivo temporal}
                             {--dry-run : Solo informa qué se borraría}';
 
     protected $description = 'Borra del disco los archivos subidos al asistente que quedaron sin procesar';

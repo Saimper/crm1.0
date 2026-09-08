@@ -55,8 +55,30 @@ final class PurgarPayloadsTest extends TestCase
         $this->assertStringContainsString('8-990-429', (string) DB::table('importacion_filas')->where('importacion_id', $enCurso)->value('payload'));
         $this->assertNull(
             DB::table('importaciones')->where('id', $enCurso)->value('payload_purgado_en'),
-            'Una importación que no ha terminado puede seguir leyendo sus filas.',
+            'Una importación que arrancó hace un rato sigue leyendo sus filas.',
         );
+    }
+
+    /**
+     * Nada devuelve a terminal una importación cuyo worker murió a mitad. Si
+     * las colgadas no entraran en la purga, su archivo se quedaría en la base
+     * para siempre, que es exactamente lo que esto existe para impedir. Un mes
+     * después, ningún worker va a volver a por ella.
+     */
+    public function test_una_importacion_colgada_en_procesando_tambien_caduca(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $colgada = $this->importacionCon($proyecto, $this->crearSupervisor($proyecto)->id, 'procesando', null);
+
+        DB::table('importaciones')->where('id', $colgada)->update([
+            'iniciado_en' => Carbon::now()->subDays(60),
+            'creada_en' => Carbon::now()->subDays(60),
+        ]);
+
+        $this->artisan('importaciones:purgar-payloads')->assertSuccessful();
+
+        $this->assertSame('{}', (string) DB::table('importacion_filas')->where('importacion_id', $colgada)->value('payload'));
+        $this->assertNotNull(DB::table('importaciones')->where('id', $colgada)->value('payload_purgado_en'));
     }
 
     public function test_depurar_no_mueve_la_fecha_de_la_fila(): void

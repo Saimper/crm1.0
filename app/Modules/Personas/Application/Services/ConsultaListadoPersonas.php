@@ -42,6 +42,13 @@ final readonly class ConsultaListadoPersonas
      * `null` es «sin límite». Una lista vacía no deja ver a nadie, que es lo
      * correcto para un rol restringido a carteras que ya no existen.
      *
+     * `EXISTS` y no `IN (SELECT persona_id FROM casos ...)`: medido sobre el
+     * proyecto 8 de la base de desarrollo (8.428 personas, 8.676 casos), el
+     * EXISTS conduce por `personas` con semi-join FirstMatch y tarda 46 ms,
+     * mientras que el IN conduce por `casos`, monta tabla temporal y tarda 90.
+     * El filesort que aparece en las dos es del `ORDER BY creada_en` del
+     * listado, no del recorte.
+     *
      * @param  list<int>|null  $carterasPermitidas  Lo que devuelve `User::carterasPermitidas()`.
      */
     public function recortarACarteras(Builder $q, ?array $carterasPermitidas): Builder
@@ -84,12 +91,24 @@ final readonly class ConsultaListadoPersonas
      * (`chunkById`) y necesita la clave limpia en cada fila; con la agrupación
      * el `where p.id > último` y el `limit` se pelean con el `group by`.
      *
+     * Cuenta sólo los casos de las carteras del rol: si contara todos, la fila
+     * que el usuario sí puede ver le diría cuántos casos más tiene esa persona
+     * en las carteras que no puede abrir, que es media fuga con otro nombre.
+     *
+     * @param  list<int>|null  $carterasPermitidas
      * @return Expression<string>
      */
-    public function totalCasos(): Expression
+    public function totalCasos(?array $carterasPermitidas = null): Expression
     {
+        // Los ids son enteros que salen de la base, no del cliente: se
+        // interpolan como literales porque una subconsulta cruda no admite
+        // bindings sin desordenar los del resto de la consulta.
+        $recorte = $carterasPermitidas === null
+            ? ''
+            : ' and c.cartera_id in ('.($carterasPermitidas === [] ? 'null' : implode(',', array_map('intval', $carterasPermitidas))).')';
+
         return $this->db->raw(
-            '(select count(*) from casos c where c.persona_id = p.id and c.eliminada_en is null) as total_casos'
+            '(select count(*) from casos c where c.persona_id = p.id and c.eliminada_en is null'.$recorte.') as total_casos'
         );
     }
 }

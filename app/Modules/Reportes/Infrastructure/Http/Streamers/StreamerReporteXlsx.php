@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Reportes\Infrastructure\Http\Streamers;
 
 use App\Modules\Reportes\Application\DTOs\ResultadoEjecucionReporte;
+use App\Support\Csv\RespuestaCsv;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -17,6 +18,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class StreamerReporteXlsx
 {
+    /** Cada cuántas filas se empuja lo escrito hacia el cliente. */
+    private const FILAS_POR_EMPUJE = 500;
+
     /**
      * @param  (callable(int $totalFilas, bool $completa): void)|null  $onComplete
      */
@@ -48,6 +52,18 @@ final class StreamerReporteXlsx
                     }
                     $writer->addRow(Row::fromValues($valores));
                     $total++;
+
+                    // OpenSpout escribe en su propio búfer; sin empujar, nginx
+                    // puede no ver un byte en varios minutos y dar el upstream
+                    // por muerto. Y es además el único punto donde
+                    // `connection_aborted()` puede llegar a ser cierto.
+                    if ($total % self::FILAS_POR_EMPUJE === 0) {
+                        flush();
+
+                        if (connection_aborted()) {
+                            break;
+                        }
+                    }
                 }
 
                 $completa = ! connection_aborted();
@@ -60,7 +76,7 @@ final class StreamerReporteXlsx
             }
         }, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => 'attachment; filename="'.RespuestaCsv::nombreSeguro($filename).'"',
             'X-Accel-Buffering' => 'no',
         ]);
     }

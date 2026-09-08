@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Reportes\Infrastructure\Http\Streamers;
 
 use App\Modules\Reportes\Application\DTOs\ResultadoEjecucionReporte;
+use App\Support\Csv\RespuestaCsv;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -67,6 +68,13 @@ final class StreamerReporteCsv
                     // JOIN contra los valores de campos personalizados.
                     if ($total % self::FILAS_POR_EMPUJE === 0) {
                         flush();
+
+                        // Y si el cliente se fue, se para: seguir leyendo el
+                        // resultado entero para no escribirlo a nadie es
+                        // gastar la base de datos por nada.
+                        if (connection_aborted()) {
+                            break;
+                        }
                     }
                 }
 
@@ -80,23 +88,22 @@ final class StreamerReporteCsv
             }
         }, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => 'attachment; filename="'.RespuestaCsv::nombreSeguro($filename).'"',
             'X-Accel-Buffering' => 'no',
         ]);
     }
 
+    /**
+     * La misma celda que el resto de descargas.
+     *
+     * Delega en `RespuestaCsv::celda()` para no tener dos criterios: de ahí
+     * salen los booleanos como «sí»/«no» y, sobre todo, la comilla delante de
+     * lo que Excel evaluaría como fórmula. El DSL de F32 expone las notas de
+     * gestión, que las escribe otra persona, así que este CSV era el único que
+     * podía abrir la calculadora al abrirse.
+     */
     private static function formatearValor(mixed $v): string
     {
-        if ($v === null) {
-            return '';
-        }
-        if (is_bool($v)) {
-            return $v ? '1' : '0';
-        }
-        if ($v instanceof \DateTimeInterface) {
-            return $v->format('Y-m-d H:i:s');
-        }
-
-        return (string) $v;
+        return RespuestaCsv::celda($v);
     }
 }

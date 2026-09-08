@@ -8,6 +8,7 @@ use App\Modules\Reportes\Application\DTOs\ResultadoEjecucionReporte;
 use App\Modules\Reportes\Application\Servicios\ServicioCamposPersonalizadosReporte;
 use App\Modules\Reportes\Domain\Constructor\Catalogo\CatalogoCamposReporte;
 use App\Modules\Reportes\Domain\Constructor\Entities\DefinicionReporte;
+use App\Modules\Reportes\Domain\Constructor\Enums\EntidadRaiz;
 use App\Modules\Reportes\Domain\Constructor\Enums\OperadorFiltro;
 use App\Modules\Reportes\Domain\Constructor\ValueObjects\CampoDisponible;
 use Illuminate\Database\Query\Builder;
@@ -38,7 +39,10 @@ final class EjecutarReporte
         private readonly ServicioCamposPersonalizadosReporte $servicioCp,
     ) {}
 
-    public function execute(DefinicionReporte $def, ?int $limite = null): ResultadoEjecucionReporte
+    /**
+     * @param  list<int>|null  $carterasPermitidas  Carteras del rol (F22); `null` si no está acotado.
+     */
+    public function execute(DefinicionReporte $def, ?int $limite = null, ?array $carterasPermitidas = null): ResultadoEjecucionReporte
     {
         $catalogo = new CatalogoCamposReporte(
             $def->entidad,
@@ -86,6 +90,8 @@ final class EjecutarReporte
             $q->whereNull($tabla.'.eliminada_en');
         }
 
+        $this->recortarACarteras($q, $def->entidad, $carterasPermitidas);
+
         $cabeceras = [];
         $selectExprs = [];
         $i = 0;
@@ -127,6 +133,45 @@ final class EjecutarReporte
         })();
 
         return new ResultadoEjecucionReporte($cabeceras, $generator);
+    }
+
+    /**
+     * El recorte por cartera del rol (F22), justo detrás del de proyecto.
+     *
+     * Un reporte es una consulta que el usuario compone, así que sin esto el
+     * constructor era la puerta de atrás a las carteras que la bandeja y las
+     * descargas le esconden: se elige `personas` como entidad raíz y sale el
+     * padrón completo, sin tope de filas.
+     *
+     * Cada entidad llega a la cartera por su propio camino, y ninguna se
+     * escribe con SQL del usuario: es la misma lista blanca de siempre.
+     *
+     * @param  list<int>|null  $carteras
+     */
+    private function recortarACarteras(Builder $q, EntidadRaiz $entidad, ?array $carteras): void
+    {
+        if ($carteras === null) {
+            return;
+        }
+
+        match ($entidad) {
+            EntidadRaiz::CASOS => $q->whereIn('casos.cartera_id', $carteras),
+            EntidadRaiz::GESTIONES, EntidadRaiz::COMPROMISOS => $q->whereExists(
+                fn (Builder $sub) => $sub->select(DB::raw('1'))
+                    ->from('casos as cr')
+                    ->whereColumn('cr.id', $entidad->tablaBase().'.caso_id')
+                    ->whereIn('cr.cartera_id', $carteras),
+            ),
+            // Una persona no pertenece a una cartera; sus casos sí. Mismo
+            // criterio que el listado y la descarga del padrón.
+            EntidadRaiz::PERSONAS => $q->whereExists(
+                fn (Builder $sub) => $sub->select(DB::raw('1'))
+                    ->from('casos as cr')
+                    ->whereColumn('cr.persona_id', 'personas.id')
+                    ->whereNull('cr.eliminada_en')
+                    ->whereIn('cr.cartera_id', $carteras),
+            ),
+        };
     }
 
     /**

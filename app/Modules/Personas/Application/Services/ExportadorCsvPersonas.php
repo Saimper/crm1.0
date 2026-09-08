@@ -58,7 +58,7 @@ final readonly class ExportadorCsvPersonas
                 'ti.codigo as tipo_identificacion_codigo',
                 'p.identificacion', 'p.nombres', 'p.apellidos', 'p.razon_social',
                 'p.fecha_nacimiento',
-                $this->consulta->totalCasos(),
+                $this->consulta->totalCasos($carterasPermitidas),
                 'p.creada_en',
             ]);
 

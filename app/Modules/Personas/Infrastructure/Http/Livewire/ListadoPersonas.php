@@ -9,7 +9,6 @@ use App\Modules\Personas\Application\DTOs\FiltrosListadoPersonas;
 use App\Modules\Personas\Application\Services\ConsultaListadoPersonas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -56,9 +55,11 @@ final class ListadoPersonas extends Component
         $filtros = FiltrosListadoPersonas::desde($this->busqueda, $this->tipoPersona);
         $consulta = app(ConsultaListadoPersonas::class);
 
+        $carteras = $this->usuario()->carterasPermitidas($proyectoId);
+
         $personas = $consulta
             ->aplicarFiltros(
-                $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $this->usuario()->carterasPermitidas($proyectoId)),
+                $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $carteras),
                 $filtros,
             )
             ->select([
@@ -66,14 +67,16 @@ final class ListadoPersonas extends Component
                 'p.identificacion', 'p.nombres', 'p.apellidos', 'p.razon_social',
                 'p.fecha_nacimiento', 'p.creada_en',
                 'ti.codigo as tipo_identificacion_codigo',
-                $consulta->totalCasos(),
+                $consulta->totalCasos($carteras),
             ])
             ->orderByDesc('p.creada_en')
             ->paginate(25);
 
-        $totalProyecto = (int) DB::table('personas')
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
+        // El mismo recorte que la lista: si la cabecera dijera «1.200 personas
+        // registradas» y debajo se vieran 300, el número de arriba estaría
+        // contando lo que este usuario no puede mirar.
+        $totalProyecto = $consulta
+            ->recortarACarteras($consulta->consultaBase($proyectoId), $carteras)
             ->count();
 
         return view('personas::livewire.listado-personas', [
