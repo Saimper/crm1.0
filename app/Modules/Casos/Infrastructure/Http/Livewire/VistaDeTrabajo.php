@@ -36,6 +36,21 @@ final class VistaDeTrabajo extends Component
 
     public string $mensajeAsignacion = '';
 
+    /**
+     * Enseñar sólo lo que llegó a ser una conversación.
+     *
+     * Un caso con treinta intentos y dos contactos cuenta su historia en esos
+     * dos: el resto es ruido cuando lo que se busca es qué se habló la última
+     * vez. No se persiste en la URL porque es una lente momentánea, no un sitio
+     * al que volver.
+     */
+    public bool $soloEfectivas = false;
+
+    public function alternarSoloEfectivas(): void
+    {
+        $this->soloEfectivas = ! $this->soloEfectivas;
+    }
+
     public function seleccionarCaso(string $publicId): void
     {
         $this->casoPublicIdSeleccionado = $publicId;
@@ -144,16 +159,22 @@ final class VistaDeTrabajo extends Component
                 ->where('g.proyecto_id', $proyectoId)
                 ->where('g.caso_id', $casoActivo->id)
                 ->whereNull('g.eliminada_en')
+                ->when($this->soloEfectivas, fn ($q) => $q->where('r.es_contacto_efectivo', true))
                 ->select([
                     'g.id', 'g.public_id', 'g.creada_en', 'g.notas', 'g.duracion_segundos',
                     'r.nombre as resultado_nombre', 'r.codigo as resultado_codigo',
+                    'r.es_contacto_efectivo',
                     'tg.nombre as tipo_gestion_nombre',
                     'cn.nombre as canal_nombre',
                     'u.name as usuario_nombre',
                     'mnc.nombre as motivo_no_contacto_nombre',
                     'cg.nombre as causa_nombre',
                 ])
+                // Desempate por clave: dos gestiones del mismo segundo —una
+                // llamada y su nota, lo normal— se turnaban entre renders, y con
+                // el límite de 30 una podía entrar y salir de la lista.
                 ->orderByDesc('g.creada_en')
+                ->orderByDesc('g.id')
                 ->limit(30)
                 ->get();
 

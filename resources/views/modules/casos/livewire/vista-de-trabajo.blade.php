@@ -137,6 +137,18 @@
                                             · <span class="font-medium text-success-500">{{ __('casos.active_commitment_label') }}</span>
                                         @endif
                                     </div>
+                                    {{-- En qué punto está el caso. La consulta traía las dos
+                                         cosas desde siempre y ninguna vista las pintaba: para
+                                         saber si a esta persona se la llamó ayer y qué dijo,
+                                         había que bajar al historial. --}}
+                                    <div class="text-xs text-ink-400">
+                                        @if($c->fecha_ultima_gestion)
+                                            {{ $c->resultado_ultimo_nombre ?? __('casos.last_outcome_none') }}
+                                            · {{ hora_local($c->fecha_ultima_gestion, 'd/m/Y') }}
+                                        @else
+                                            {{ __('casos.last_outcome_never') }}
+                                        @endif
+                                    </div>
                                 </div>
                                 <div class="text-xs text-ink-500 text-right">
                                     {{ __('casos.prio_label', ['value' => $c->prioridad]) }}
@@ -302,18 +314,29 @@
         <div class="vt-col-right">
             @if($casoActivo)
                 <x-ui.card :title="__('casos.history_title', ['count' => $historial->count()])">
+                    <x-slot:actions>
+                        <div class="flex items-center gap-1" title="{{ __('casos.history_effective_hint') }}">
+                            <button type="button" wire:click="alternarSoloEfectivas"
+                                    class="btn btn-sm {{ $soloEfectivas ? 'btn-ghost' : 'btn-secondary' }}"
+                                    @disabled(! $soloEfectivas)>{{ __('casos.history_all') }}</button>
+                            <button type="button" wire:click="alternarSoloEfectivas"
+                                    class="btn btn-sm {{ $soloEfectivas ? 'btn-secondary' : 'btn-ghost' }}"
+                                    @disabled($soloEfectivas)>{{ __('casos.history_effective') }}</button>
+                        </div>
+                    </x-slot:actions>
                     @if($historial->isEmpty())
                         <x-ui.empty-state :title="__('casos.no_gestions')" :message="__('casos.no_gestions_desc')" />
                     @else
                         <x-ui.timeline>
                             @foreach($historial as $g)
                                 @php
-                                    $tone = match (mb_strtolower((string) $g->resultado_nombre)) {
-                                        'contacto efectivo', 'promesa de pago', 'venta cerrada', 'resuelto' => 'success',
-                                        'sin contacto', 'no contesta'                                       => 'warning',
-                                        'rechazo', 'cancelado'                                              => 'danger',
-                                        default                                                             => 'neutral',
-                                    };
+                                    // El color sale de `resultados.es_contacto_efectivo`, que es
+                                    // lo que el proyecto declara de cada resultado. Antes salía de
+                                    // comparar el nombre en minúsculas contra una lista en
+                                    // español: un proyecto que llame «Contacto con tercero» a un
+                                    // resultado efectivo lo pintaba gris, y el catálogo es de cada
+                                    // mandante.
+                                    $tone = $g->es_contacto_efectivo ? 'success' : 'neutral';
                                 @endphp
                                 <x-ui.timeline-item
                                     :tone="$tone"

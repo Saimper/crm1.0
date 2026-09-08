@@ -162,4 +162,9 @@ return [
     'assign_owner' => 'Assigned to',
     'assign_unowned' => 'Unassigned',
     'assign_only_unowned' => 'Unassigned only',
+    'last_outcome_none' => 'no outcome',
+    'last_outcome_never' => 'no activity yet',
+    'history_all' => 'All',
+    'history_effective' => 'Effective',
+    'history_effective_hint' => 'Only the activity that reached the person',
 ];

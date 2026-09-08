@@ -162,4 +162,9 @@ return [
     'assign_owner' => 'Asignada a',
     'assign_unowned' => 'Sin dueño',
     'assign_only_unowned' => 'Sólo sin dueño',
+    'last_outcome_none' => 'sin resultado',
+    'last_outcome_never' => 'sin gestiones todavía',
+    'history_all' => 'Todas',
+    'history_effective' => 'Efectivas',
+    'history_effective_hint' => 'Sólo las gestiones que terminaron en contacto con la persona',
 ];
