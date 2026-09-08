@@ -108,7 +108,19 @@ return [
     'label_description' => 'Description (optional)',
     'label_start_date' => 'Start date',
     'label_end_date' => 'End date',
-    'confirm_deactivate_proyecto' => 'Deactivate this project?',
+    // Deactivating and archiving live side by side on this screen and look
+    // alike: the copy is the only thing telling them apart, so it says what
+    // happens afterwards rather than what the button does.
+    'baja_proyecto_titulo' => 'Taking the project down',
+    'deactivate_hint_proyecto' => 'Pauses it. It stays on this list and can be switched back on whenever you want.',
+    'archive_hint_proyecto' => 'Pulls it out of administration and the project picker. Nobody can enter it, and there is no way back.',
+    'btn_archive' => 'Archive',
+    'confirm_deactivate_proyecto' => 'Deactivate this project? It stops operating, but stays here and you can reactivate it.',
+    'confirm_archive_proyecto' => 'Archive this project? It disappears from administration and from the project picker, and nobody can enter it again. Nothing is deleted —its cases and interactions are kept— but unarchiving is no longer done from this screen.',
+    'flash_proyecto_guardado' => 'Project saved.',
+    'flash_proyecto_activado' => 'Project activated.',
+    'flash_proyecto_desactivado' => 'Project deactivated. It stays on the list; you can reactivate it.',
+    'flash_proyecto_archivado' => 'Project archived. It no longer shows in administration or the project picker.',
 
     // Project selector
     'admin_global_label' => 'Global administrator',

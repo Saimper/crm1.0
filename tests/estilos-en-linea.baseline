@@ -81,7 +81,7 @@
 1 resources/views/modules/reportes/reporte-equipos-page.blade.php
 6 resources/views/modules/tenancy/admin-dashboard.blade.php
 11 resources/views/modules/tenancy/admin/mandantes.blade.php
-28 resources/views/modules/tenancy/admin/proyectos.blade.php
+25 resources/views/modules/tenancy/admin/proyectos.blade.php
 9 resources/views/modules/tenancy/proyecto-dashboard.blade.php
 7 resources/views/modules/tenancy/selector-proyecto.blade.php
 1 resources/views/modules/usuarios/admin/equipos-proyecto-page.blade.php

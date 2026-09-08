@@ -205,7 +205,7 @@
                     {{-- Quién se queda la cuenta cuando un asesor la gestiona. Va
                          apagado por defecto: hay operaciones donde repartir es
                          decisión del supervisor y sólo suya. --}}
-                    <div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:12px;">
+                    <div class="field-block">
                         <label class="flex items-start" style="gap:9px;cursor:pointer;">
                             <input type="checkbox" wire:model="form.permite_autoasignacion" style="margin-top:2px;"/>
                             <span>
@@ -214,21 +214,36 @@
                             </span>
                         </label>
                     </div>
+                    {{-- Los dos botones de abajo se parecen y no hacen lo mismo.
+                         Aquí se dice cuál es cuál, antes de pulsarlos. --}}
+                    @if($proyectoEnEdicion !== null)
+                        <div class="field-block">
+                            <div class="text-base font-medium">{{ __('tenancy.baja_proyecto_titulo') }}</div>
+                            <div class="text-sm text-ink-500 mt-1">
+                                <span class="font-medium">{{ __('tenancy.btn_deactivate') }}</span> — {{ __('tenancy.deactivate_hint_proyecto') }}
+                            </div>
+                            <div class="text-sm text-ink-500 mt-0.5">
+                                <span class="font-medium">{{ __('tenancy.btn_archive') }}</span> — {{ __('tenancy.archive_hint_proyecto') }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
             <div class="drawer-footer">
-                @if($editandoId !== null)
-                    @php
-                        $row = \App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel::query()->find($editandoId);
-                    @endphp
-                    @if($row && $row->activo)
-                        <button type="button" wire:click="desactivar({{ $editandoId }})"
-                                wire:confirm="{{ __('tenancy.confirm_deactivate_proyecto') }}"
-                                class="btn btn-ghost" style="color:var(--danger-text);margin-right:auto;">{{ __('tenancy.btn_deactivate') }}</button>
-                    @elseif($row)
-                        <button type="button" wire:click="activar({{ $editandoId }})"
-                                class="btn btn-ghost" style="color:var(--success-text);margin-right:auto;">{{ __('tenancy.btn_activate') }}</button>
-                    @endif
+                @if($proyectoEnEdicion !== null)
+                    <span class="drawer-footer-start">
+                        @if($proyectoEnEdicion->activo)
+                            <button type="button" wire:click="desactivar({{ $editandoId }})"
+                                    wire:confirm="{{ __('tenancy.confirm_deactivate_proyecto') }}"
+                                    class="btn btn-ghost btn-ghost-danger">{{ __('tenancy.btn_deactivate') }}</button>
+                        @else
+                            <button type="button" wire:click="activar({{ $editandoId }})"
+                                    class="btn btn-ghost btn-ghost-success">{{ __('tenancy.btn_activate') }}</button>
+                        @endif
+                        <button type="button" wire:click="archivar({{ $editandoId }})"
+                                wire:confirm="{{ __('tenancy.confirm_archive_proyecto') }}"
+                                class="btn btn-ghost btn-ghost-danger">{{ __('tenancy.btn_archive') }}</button>
+                    </span>
                 @endif
                 <button type="button" wire:click="cerrarForm" class="btn btn-ghost">{{ __('common.cancel') }}</button>
                 <button type="button" wire:click="guardar" class="btn btn-primary">{{ __('common.save') }}</button>

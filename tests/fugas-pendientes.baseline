@@ -36,4 +36,17 @@
 # podía agotarle los accesos al otro; y dar de baja a un mandante revoca sus
 # tokens y además se comprueba en cada petición, que la baja puede llegar por
 # un camino que no sea el botón. Los ocho tests del fichero salen del grupo.
-11
+#
+# 2026-09-08 · 11 -> 4. Fase 4, la administración. Dos agujeros que no eran de
+# datos sino de rastro y de retirada. (1) Lo que un administrador hace con las
+# cuentas y con los accesos —altas, cambios de correo, roles sobre el proyecto
+# de un cliente, el rol global— no dejaba constancia: la mitad de esas acciones
+# escribe en pivotes sin modelo, que ningún observer Eloquent ve pasar. Ahora lo
+# registra `RegistroDeAccionesAdministrativas`, enumerando lo que guarda en vez
+# de fotografiar la fila entera, que en `users` significaría copiar el hash de
+# la contraseña a un registro inmutable. Y el listado de auditoría se acota al
+# mandante de quien mira. (2) No existía retirar un proyecto: `desactivar()` lo
+# pausa pero lo deja visible en toda la administración. `archivar()` lo saca de
+# los tres caminos por los que se alcanza —listado, selector y URL— sin borrar
+# una sola fila.
+4

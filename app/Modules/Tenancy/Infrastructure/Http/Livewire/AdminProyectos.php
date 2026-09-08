@@ -206,7 +206,7 @@ final class AdminProyectos extends Component
         }
 
         $this->cerrarForm();
-        session()->flash('admin-proyectos-ok', 'Proyecto guardado.');
+        session()->flash('admin-proyectos-ok', __('tenancy.flash_proyecto_guardado'));
     }
 
     public function desactivar(int $id): void
@@ -217,7 +217,7 @@ final class AdminProyectos extends Component
         }
         $this->guardContraMandanteAjeno((int) $row->mandante_id);
         ProyectoModel::query()->where('id', $id)->update(['activo' => false]);
-        session()->flash('admin-proyectos-ok', 'Proyecto desactivado.');
+        session()->flash('admin-proyectos-ok', __('tenancy.flash_proyecto_desactivado'));
     }
 
     public function activar(int $id): void
@@ -228,7 +228,39 @@ final class AdminProyectos extends Component
         }
         $this->guardContraMandanteAjeno((int) $row->mandante_id);
         ProyectoModel::query()->where('id', $id)->update(['activo' => true]);
-        session()->flash('admin-proyectos-ok', 'Proyecto activado.');
+        session()->flash('admin-proyectos-ok', __('tenancy.flash_proyecto_activado'));
+    }
+
+    /**
+     * Retirar un proyecto de circulación, que no es lo mismo que apagarlo.
+     *
+     * `desactivar()` lo pausa: sigue en esta lista y se vuelve a encender con un
+     * clic. Archivar lo saca de la vista — de la administración, del selector y
+     * del middleware que resuelve el proyecto activo, los tres caminos por los
+     * que se llega a un proyecto — y no hay botón de vuelta.
+     *
+     * Se marca `eliminada_en` y no se borra la fila (§4): del `proyecto_id`
+     * cuelga la operación entera, y una gestión no se borra nunca (§13.11).
+     */
+    public function archivar(int $id): void
+    {
+        $row = ProyectoModel::query()->find($id);
+        if ($row === null) {
+            return;
+        }
+        $this->guardContraMandanteAjeno((int) $row->mandante_id);
+
+        // Se apaga también el `activo`. Por un lado, quien algún día desarchive
+        // tendrá que reactivarlo a mano en vez de encontrarse el proyecto
+        // operando otra vez por sorpresa. Por otro, las consultas que sólo miran
+        // esa bandera y no el borrado lógico tampoco lo dejarán entrar.
+        ProyectoModel::query()->where('id', $id)->update([
+            'activo' => false,
+            'eliminada_en' => now(),
+        ]);
+
+        $this->cerrarForm();
+        session()->flash('admin-proyectos-ok', __('tenancy.flash_proyecto_archivado'));
     }
 
     public function render(): View
@@ -295,6 +327,13 @@ final class AdminProyectos extends Component
             ? null
             : $mandantes->firstWhere('id', (int) ($this->form['mandante_id'] ?? 0));
 
+        // Y el proyecto mismo, porque los botones de baja dependen de si está
+        // encendido. La vista lo resolvía con un find() suyo: una consulta
+        // dentro de la plantilla es una consulta que nadie puede acotar (§13.4).
+        $proyectoEnEdicion = $this->editandoId === null
+            ? null
+            : ProyectoModel::query()->find($this->editandoId);
+
         // Dentro de un cliente, repetir su nombre en cada fila es ruido: ya lo
         // dice el contexto. La columna solo aparece cuando de verdad hay mezcla.
         $dentroDeUnCliente = app()->bound('tenancy.mandante_activo');
@@ -304,6 +343,7 @@ final class AdminProyectos extends Component
             'proyectos' => $proyectos,
             'mandantes' => $mandantes,
             'mandanteEnEdicion' => $mandanteEnEdicion,
+            'proyectoEnEdicion' => $proyectoEnEdicion,
         ]);
     }
 
