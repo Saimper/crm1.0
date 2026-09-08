@@ -16,7 +16,7 @@
                 @endphp
                 <x-ui.card :title="$entidad->nombre" style="margin-bottom:10px;">
                     @if(auth()->user()->tienePermiso('entidades.crear', $proyectoId))
-                        <div style="margin-bottom:8px;text-align:right;">
+                        <div class="text-right" style="margin-bottom:8px;">
                             <button type="button"
                                     wire:click="abrirFormCrear({{ $entidad->id }})"
                                     class="btn btn-ghost btn-sm">
@@ -27,7 +27,7 @@
 
                     @if($formVisible && $entidadActivaId === (int) $entidad->id)
                         <div class="card card-pad" style="margin-bottom:10px;background:var(--bg-subtle);">
-                            <h4 style="font-size:12px;font-weight:600;margin-bottom:8px;">
+                            <h4 class="text-sm font-semibold" style="margin-bottom:8px;">
                                 {{ $registroEditandoId === null ? __('entidades.new_record') : __('entidades.edit_record') }}
                             </h4>
                             <form wire:submit.prevent="guardar" class="space-y-2">
@@ -49,7 +49,7 @@
                                     </div>
                                 @endforeach
 
-                                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">
+                                <div class="flex justify-end gap-[6px]" style="margin-top:8px;">
                                     <button type="button" wire:click="cerrarForm" class="btn btn-ghost btn-sm">
                                         {{ __('common.cancel') }}
                                     </button>
@@ -60,11 +60,11 @@
                     @endif
 
                     @if($registros->isEmpty())
-                        <div style="padding:8px;font-size:12px;color:var(--text-tertiary);">
+                        <div class="text-sm text-ink-500" style="padding:8px;">
                             {{ __('entidades.empty_records') }}
                         </div>
                     @else
-                        <table class="table table-compact" style="font-size:12px;">
+                        <table class="table table-compact text-sm">
                             <thead>
                                 <tr>
                                     <th>{{ __('entidades.col_title') }}</th>
@@ -76,10 +76,10 @@
                                 @foreach($registros as $r)
                                     <tr>
                                         <td>{{ $r->titulo ?? '—' }}</td>
-                                        <td style="color:var(--text-tertiary);">
+                                        <td class="text-ink-500">
                                             {{ \Illuminate\Support\Carbon::parse($r->creado_en)->format('d/m/Y H:i') }}
                                         </td>
-                                        <td style="text-align:right;">
+                                        <td class="text-right">
                                             @if(auth()->user()->tienePermiso('entidades.editar', $proyectoId))
                                                 <button type="button"
                                                         wire:click="abrirFormEditar({{ $entidad->id }}, {{ $r->id }})"

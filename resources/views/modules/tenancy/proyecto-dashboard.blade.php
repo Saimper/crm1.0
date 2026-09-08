@@ -47,7 +47,7 @@
             <div>
                 <h1 class="page-title">{{ $proyecto->nombre }}</h1>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
+            <div class="flex items-center gap-2">
                 <span class="badge {{ $tipoBadge }}">{{ ucfirst($proyecto->tipo_operacion) }}</span>
                 <span class="code-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $proyecto->codigo }}</span>
                 <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('tenancy.change_project') }}</a>
@@ -57,7 +57,7 @@
         <div class="card card-pad">
             <div class="card-title" style="margin-bottom:4px;">{{ $mandante->nombre ?? 'Proyecto' }}</div>
             @if(! empty($proyecto->descripcion))
-                <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 14px;">{{ $proyecto->descripcion }}</p>
+                <p class="text-sm text-ink-500" style="margin:0 0 14px;">{{ $proyecto->descripcion }}</p>
             @endif
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
@@ -68,7 +68,7 @@
                 </div>
                 <div>
                     <div class="label-xs">{{ __('tenancy.label_validity') }}</div>
-                    <div style="margin-top:6px;font-size:13px;color:var(--text);">{{ $vigencia }}</div>
+                    <div class="text-base text-ink" style="margin-top:6px;">{{ $vigencia }}</div>
                 </div>
                 <div>
                     <div class="label-xs">{{ __('tenancy.label_code_project') }}</div>
@@ -106,12 +106,12 @@
                                class="card card-pad proyecto-action-tile"
                                style="text-decoration:none;color:inherit;display:block;transition:border-color 120ms var(--ease), background 120ms var(--ease);">
                                 <div class="flex items-start gap-3">
-                                    <div class="flex-shrink-0" style="height:40px;width:40px;border-radius:8px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;border:1px solid var(--primary-soft-border);">
+                                    <div class="flex-shrink-0 flex items-center text-brand-700" style="height:40px;width:40px;border-radius:8px;background:var(--primary-soft);justify-content:center;border:1px solid var(--primary-soft-border);">
                                         <x-ui.icon :name="$c['icon']" :size="18" />
                                     </div>
                                     <div class="min-w-0">
-                                        <div style="font-weight:600;color:var(--text);font-size:14px;">{{ $c['title'] }}</div>
-                                        <p style="margin-top:2px;font-size:12px;color:var(--text-tertiary);">{{ $c['desc'] }}</p>
+                                        <div class="font-semibold text-ink text-md">{{ $c['title'] }}</div>
+                                        <p class="text-sm text-ink-500" style="margin-top:2px;">{{ $c['desc'] }}</p>
                                     </div>
                                 </div>
                             </a>

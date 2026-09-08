@@ -9,14 +9,14 @@
     {{-- Grupos: sólo un nombre y un orden. El acordeón de la Vista de Trabajo
          los pinta en este orden y mete dentro los campos de cada uno. --}}
     <div class="card" style="padding:12px 16px;margin-bottom:14px;">
-        <div class="flex items-center flex-wrap" style="gap:10px;">
+        <div class="flex items-center flex-wrap gap-2.5">
             <strong class="text-sm">{{ __('configurador.campos.grupos_titulo') }}</strong>
             <span class="text-sm text-ink-500">{{ __('configurador.campos.grupos_ayuda') }}</span>
         </div>
 
-        <div class="flex items-center flex-wrap" style="gap:6px;margin-top:10px;">
+        <div class="flex items-center flex-wrap gap-1.5" style="margin-top:10px;">
             @foreach($grupos as $i => $g)
-                <span class="badge" style="gap:6px;">
+                <span class="badge gap-1.5">
                     <button type="button" wire:click="moverGrupo({{ $g->id }}, -1)" class="btn btn-ghost btn-sm"
                             style="padding:0 2px;{{ $i === 0 ? 'visibility:hidden;' : '' }}" aria-label="{{ __('common.move_up') }}">↑</button>
                     {{ $g->nombre }}
@@ -28,7 +28,7 @@
                 </span>
             @endforeach
 
-            <div class="flex items-center" style="gap:6px;">
+            <div class="flex items-center gap-1.5">
                 <input type="text" wire:model="grupoNuevo" wire:keydown.enter="crearGrupo" class="input"
                        style="width:200px;height:28px;" placeholder="{{ __('configurador.campos.grupos_nuevo') }}"/>
                 <button type="button" wire:click="crearGrupo" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
@@ -74,7 +74,7 @@
                 <tbody>
                     @foreach($campos as $c)
                         <tr wire:key="paso-cp-{{ $c->id }}" wire:click="abrirFormEditar({{ $c->id }})">
-                            <td><span class="text-xs text-ink-500" style="text-transform:uppercase;">{{ $c->ambito }}</span></td>
+                            <td><span class="text-xs text-ink-500 uppercase">{{ $c->ambito }}</span></td>
                             <td><span class="text-sm text-ink-600">{{ $c->cartera_nombre ?? $c->tipo_gestion_nombre ?? '—' }}</span></td>
                             <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
                             <td><span class="font-medium">{{ $c->etiqueta }}</span></td>
@@ -98,7 +98,7 @@
                             </td>
                             <td class="num">{{ $c->orden }}</td>
                             <td>
-                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="inline-flex items-center gap-1.5">
                                     <span class="dot dot-{{ $c->activo ? 'success' : 'neutral' }}"></span>
                                     {{ $c->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
@@ -119,7 +119,7 @@
                 <button type="button" wire:click="cerrarForm" class="icon-btn"><x-ui.icon name="x" :size="14"/></button>
             </div>
             <div class="drawer-body">
-                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr] gap-3.5">
                     <div>
                         <label class="field-label">{{ __('configurador.campos.campo_ambito') }}</label>
                         <select wire:model.live="form.ambito" class="select @error('form.ambito') input-error @enderror">
@@ -183,7 +183,7 @@
                         </select>
                         @error('form.grupo_campo_id')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="grid grid-cols-[1fr_1fr] gap-3.5">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden" class="input"/>

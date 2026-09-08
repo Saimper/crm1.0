@@ -3,17 +3,17 @@
     @if(session('paso-resumen-error'))<div class="alert alert-warning" style="margin-bottom:14px;">{{ session('paso-resumen-error') }}</div>@endif
 
     <div class="card card-pad" style="margin-bottom:14px;">
-        <div class="flex items-center justify-between" style="gap:14px;">
+        <div class="flex items-center justify-between gap-3.5">
             <div>
                 <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.resumen.titulo') }}</div>
-                <div class="font-semibold" style="font-size:18px;color:var(--text);">{{ $proyecto->nombre }}</div>
-                <div class="flex items-center" style="gap:6px;margin-top:4px;">
+                <div class="font-semibold text-[18px] text-ink">{{ $proyecto->nombre }}</div>
+                <div class="flex items-center gap-1.5" style="margin-top:4px;">
                     <span class="font-mono text-xs text-ink-500">{{ $proyecto->codigo }}</span>
                     <span class="text-ink-500">·</span>
-                    <span class="font-mono text-xs text-ink-500" style="text-transform:uppercase;">{{ $proyecto->tipo_operacion }}</span>
+                    <span class="font-mono text-xs text-ink-500 uppercase">{{ $proyecto->tipo_operacion }}</span>
                 </div>
             </div>
-            <div style="text-align:right;">
+            <div class="text-right">
                 @if($estaCompleto)
                     <span class="badge badge-success" style="padding:6px 12px;">{{ __('configurador.resumen.configuracion_completa') }}</span>
                 @else
@@ -25,7 +25,7 @@
 
     <div class="card card-pad" style="padding:18px;margin-bottom:14px;">
         <div class="label-xs" style="margin-bottom:12px;">{{ __('configurador.resumen.pasos_wizard') }}</div>
-        <ul class="flex flex-col" style="list-style:none;padding:0;margin:0;gap:6px;">
+        <ul class="flex flex-col gap-1.5" style="list-style:none;padding:0;margin:0;">
             @foreach($pasos as $paso)
                 @php
                     $codigo = $paso->value;
@@ -36,7 +36,7 @@
                         ? true
                         : ($codigo === 'datos_proyecto' || ($conteo !== null && $conteo > 0));
                 @endphp
-                <li class="flex items-center" style="gap:10px;padding:8px 10px;border-radius:8px;
+                <li class="flex items-center gap-2.5" style="padding:8px 10px;border-radius:8px;
                           background:{{ $completo ? 'rgba(22,163,74,0.06)' : 'var(--bg-subtle)' }};">
                     <span style="
                         width:22px;height:22px;border-radius:999px;display:inline-flex;
@@ -47,7 +47,7 @@
                     ">
                         @if($completo)<x-ui.icon name="check" :size="15" :stroke="3" style="color:var(--text-inverse) !important;"/>@else{{ $paso->indice() }}@endif
                     </span>
-                    <span class="flex-1 min-w-0 text-base" style="color:var(--text);">{{ $etiquetasPasos[$codigo] }}</span>
+                    <span class="flex-1 min-w-0 text-base text-ink">{{ $etiquetasPasos[$codigo] }}</span>
                     @if($opcional)
                         <span class="text-ink-500" style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;">{{ __('configurador.opcional') }}</span>
                     @endif
@@ -64,15 +64,15 @@
     @if(count($catalogosTipo) > 0)
         <div class="card card-pad" style="padding:18px;margin-bottom:14px;">
             <div class="label-xs" style="margin-bottom:12px;">{{ __('configurador.resumen.catalogos_tipo', ['tipo' => $proyecto->tipo_operacion]) }}</div>
-            <ul class="flex flex-col" style="list-style:none;padding:0;margin:0;gap:6px;">
+            <ul class="flex flex-col gap-1.5" style="list-style:none;padding:0;margin:0;">
                 @foreach($catalogosTipo as $cat)
-                    <li class="flex items-center" style="gap:10px;padding:6px 10px;">
+                    <li class="flex items-center gap-2.5" style="padding:6px 10px;">
                         <span style="
                             width:14px;height:14px;border-radius:999px;
                             background:{{ $cat['conteo'] > 0 ? 'var(--success)' : 'var(--bg-subtle)' }};
                             border:1px solid {{ $cat['conteo'] > 0 ? 'var(--success)' : 'var(--border)' }};
                         "></span>
-                        <span class="flex-1 min-w-0 text-base" style="color:var(--text);">{{ $cat['etiqueta'] }}</span>
+                        <span class="flex-1 min-w-0 text-base text-ink">{{ $cat['etiqueta'] }}</span>
                         <span class="text-sm text-ink-600">
                             {{ $cat['conteo'] }} {{ $cat['conteo'] === 1 ? __('configurador.resumen.registro') : __('configurador.resumen.registros') }}
                         </span>

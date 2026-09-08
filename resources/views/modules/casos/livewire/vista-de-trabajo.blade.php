@@ -8,7 +8,7 @@
                     <div class="text-xs uppercase-spaced font-semibold text-success-700">
                         {{ __('casos.active_commitment') }}
                     </div>
-                    <div class="text-md font-medium" style="color:var(--text);">
+                    <div class="text-md font-medium text-ink">
                         {{ __('casos.expires', ['date' => \Illuminate\Support\Carbon::parse($compromisoActivo->fecha_vencimiento)->format('d/m/Y')]) }}
                         @if(isset($compromisoActivo->promesa) && $compromisoActivo->promesa)
                             · <span class="font-mono">{{ $compromisoActivo->promesa->moneda }} {{ number_format((float) $compromisoActivo->promesa->monto, 2, '.', ',') }}</span>
@@ -28,7 +28,7 @@
                 <div class="alert-actions">
                     @can('compromisos.crear', $proyectoActivo->id)
                         <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
-                           wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                           wire:navigate class="btn btn-ghost btn-sm">
                             <x-ui.icon name="edit" :size="13" />
                             <span>{{ __('common.edit') }}</span>
                         </a>
@@ -53,13 +53,13 @@
         {{-- Col izquierda: identidad + selector casos + datos caso --}}
         <div class="vt-col-left">
             <x-ui.card>
-                <div class="flex items-start gap-3" style="justify-content:space-between;">
-                    <div style="min-width:0;">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
                         <div class="label-xs">
                             {{ $persona->tipo_identificacion_codigo ?? 'ID' }}
                             · <span class="font-mono">{{ $persona->identificacion }}</span>
                         </div>
-                        <h2 class="font-semibold" style="font-size:18px;color:var(--text);margin-top:4px;line-height:1.25;">
+                        <h2 class="font-semibold text-ink" style="font-size:18px;margin-top:4px;line-height:1.25;">
                             {{ $nombrePersona !== '' ? $nombrePersona : '—' }}
                         </h2>
                         <div class="text-xs text-ink-500" style="margin-top:4px;">
@@ -69,16 +69,16 @@
                             @endif
                         </div>
                     </div>
-                    <div style="display:flex;gap:6px;">
+                    <div class="flex" style="gap:6px;">
                         @can('personas.editar', $proyectoActivo->id)
                             <a href="{{ route('proyectos.personas.editar', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                               wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                               wire:navigate class="btn btn-ghost btn-sm">
                                 <x-ui.icon name="edit" :size="14" />
                                 <span>{{ __('common.edit') }}</span>
                             </a>
                         @endcan
                         <a href="{{ route('proyectos.personas.contactos', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                           wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                           wire:navigate class="btn btn-ghost btn-sm">
                             <x-ui.icon name="phone" :size="14" />
                             <span>{{ __('casos.contacts_button') }}</span>
                         </a>
@@ -90,9 +90,9 @@
                         @foreach($contactos as $c)
                             <div style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
                                 <div class="flex items-center justify-between" style="gap:6px;">
-                                    <span class="text-xs font-medium" style="color:var(--text);">{{ ucfirst($c->tipo) }}</span>
+                                    <span class="text-xs font-medium text-ink">{{ ucfirst($c->tipo) }}</span>
                                     @if($c->es_principal)
-                                        <span class="font-semibold" style="font-size:9px;text-transform:uppercase;color:var(--primary);">{{ __('contactos.badge_principal') }}</span>
+                                        <span class="font-semibold text-brand-500" style="font-size:9px;text-transform:uppercase;">{{ __('contactos.badge_principal') }}</span>
                                     @endif
                                 </div>
                                 <div class="text-sm text-ink-600" style="word-break:break-all;">{{ $c->valor }}</div>
@@ -105,7 +105,7 @@
             <x-ui.card :title="__('casos.cases_count', ['count' => $casos->count(), 'entidades' => $rotuloCasos])" style="margin-top:12px;">
                 @can('casos.crear', $proyectoActivo->id)
                     <a href="{{ route('proyectos.casos.crear', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                       wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;text-decoration:none;">
+                       wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;">
                         <x-ui.icon name="plus" :size="13" />
                         <span>{{ __('casos.new_case', ['entidad' => $rotuloCaso]) }}</span>
                     </a>
@@ -130,15 +130,15 @@
                                     style="text-align:left;padding:10px 8px;border-radius:6px;background:{{ $activo ? 'var(--primary-soft)' : 'transparent' }};border:1px solid {{ $activo ? 'var(--primary-soft-border)' : 'transparent' }};gap:10px;cursor:pointer;width:100%;">
                                 <x-ui.badge :tone="$tipoTone">{{ ucfirst(str_replace('_', ' ', $c->tipo_caso)) }}</x-ui.badge>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-base font-medium" style="color:var(--text);">{{ $c->cartera_nombre }}</div>
+                                    <div class="text-base font-medium text-ink">{{ $c->cartera_nombre }}</div>
                                     <div class="text-xs text-ink-500">
                                         {{ $c->estado_caso_nombre }}
                                         @if($c->tiene_compromiso_vigente)
-                                            · <span class="font-medium" style="color:var(--success);">{{ __('casos.active_commitment_label') }}</span>
+                                            · <span class="font-medium text-success-500">{{ __('casos.active_commitment_label') }}</span>
                                         @endif
                                     </div>
                                 </div>
-                                <div class="text-xs text-ink-500" style="text-align:right;">
+                                <div class="text-xs text-ink-500 text-right">
                                     {{ __('casos.prio_label', ['value' => $c->prioridad]) }}
                                 </div>
                             </button>
@@ -160,9 +160,9 @@
                         @include('servicio::partials.panel-caso', ['servicio' => $casoServicio])
                     @endif
                     @can('casos.editar', $proyectoActivo->id)
-                        <div style="margin-top:8px;text-align:right;">
+                        <div class="text-right" style="margin-top:8px;">
                             <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
-                               wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                               wire:navigate class="btn btn-ghost btn-sm">
                                 <x-ui.icon name="edit" :size="13" />
                                 <span>{{ __('casos.edit_case', ['entidad' => $rotuloCaso]) }}</span>
                             </a>
@@ -185,7 +185,7 @@
                                              style="cursor:pointer;list-style:none;gap:6px;padding:6px 0;">
                                         <x-ui.icon name="chevron-right" :size="12" class="cp-grupo-flecha" />
                                         <span>{{ $grupo['nombre'] }}</span>
-                                        <span class="text-ink-500" style="font-weight:400;">({{ count($grupo['campos']) }})</span>
+                                        <span class="text-ink-500 font-normal">({{ count($grupo['campos']) }})</span>
                                     </summary>
                                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:4px 0 10px;">
                                         @foreach($grupo['campos'] as $fila)
@@ -211,7 +211,7 @@
                                     };
                                 @endphp
                                 <li class="flex items-center justify-between gap-2" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
-                                    <div style="min-width:0;">
+                                    <div class="min-w-0">
                                         <div class="flex items-center" style="gap:6px;">
                                             <x-ui.badge :tone="$estadoTone" size="sm">{{ ucfirst($c->estado) }}</x-ui.badge>
                                             <span class="text-xs text-ink-500">
@@ -222,7 +222,7 @@
                                             {{ __('casos.expiry_label', ['date' => \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y')]) }}
                                         </div>
                                     </div>
-                                    <div class="text-xs text-ink-600" style="text-align:right;">
+                                    <div class="text-xs text-ink-600 text-right">
                                         @if($c->fecha_resolucion)
                                             {{ __('casos.resolved_label') }}<br>
                                             <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
@@ -303,7 +303,7 @@
                                         @endif
                                     </div>
                                     @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
-                                        <div class="gap-1" style="margin-top:4px;display:flex;flex-wrap:wrap;">
+                                        <div class="flex flex-wrap gap-1" style="margin-top:4px;">
                                             @if($g->motivo_no_contacto_nombre)
                                                 <x-ui.badge tone="warning" size="sm">{{ __('casos.no_contact_badge', ['motivo' => $g->motivo_no_contacto_nombre]) }}</x-ui.badge>
                                             @endif
@@ -318,7 +318,7 @@
                                         <dl class="text-xs" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:grid;grid-template-columns:auto 1fr;gap:2px 8px;">
                                             @foreach($valoresCamposGestion[$g->id] as $cp)
                                                 <dt class="text-ink-500">{{ $cp['etiqueta'] }}</dt>
-                                                <dd style="color:var(--text);margin:0;">{{ $cp['valor'] }}</dd>
+                                                <dd class="text-ink" style="margin:0;">{{ $cp['valor'] }}</dd>
                                             @endforeach
                                         </dl>
                                     @endif

@@ -5,7 +5,7 @@
         <div class="alert alert-success" style="margin-bottom:12px;">{{ session('mensaje') }}</div>
     @endif
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="flex items-center justify-between" style="margin-bottom:16px;">
         <div></div>
         @if($puedeGestionar)
             <a href="{{ route('proyectos.reportes.custom.nuevo', ['proyecto_id' => $proyecto->id]) }}"
@@ -15,9 +15,11 @@
     </div>
 
     @if(count($definiciones) === 0)
-        <p style="color:var(--text-muted);text-align:center;padding:24px;">{{ __('reportes.empty_definitions') }}</p>
+        <p class="text-ink-400 text-center" style="padding:24px;">{{ __('reportes.empty_definitions') }}</p>
     @else
         <div class="card" style="overflow:hidden;">
+            <x-ui.cargando />
+
             <table class="table table-compact">
                 <thead>
                     <tr>
@@ -31,7 +33,7 @@
                 <tbody>
                     @foreach($definiciones as $d)
                         <tr>
-                            <td><span class="mono" style="font-size:11px;">{{ $d['codigo'] }}</span></td>
+                            <td><span class="mono text-xs">{{ $d['codigo'] }}</span></td>
                             <td>{{ $d['nombre'] }}</td>
                             <td>{{ $d['entidad_raiz'] }}</td>
                             <td>
@@ -41,7 +43,7 @@
                                     <span class="badge badge-neutral">{{ __('reportes.status_inactive') }}</span>
                                 @endif
                             </td>
-                            <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <td class="flex flex-wrap" style="gap:6px;">
                                 @if($puedeExportar && $d['activo'])
                                     <a href="{{ route('proyectos.reportes.custom.exportar', ['proyecto_id' => $proyecto->id, 'definicion_id' => $d['id'], 'formato' => 'csv']) }}" class="btn btn-secondary btn-sm">CSV</a>
                                     <a href="{{ route('proyectos.reportes.custom.exportar', ['proyecto_id' => $proyecto->id, 'definicion_id' => $d['id'], 'formato' => 'xlsx']) }}" class="btn btn-secondary btn-sm">XLSX</a>

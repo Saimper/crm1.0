@@ -1,6 +1,6 @@
 <div class="flex flex-col" style="gap:14px;">
     @if(session('campanas-ok'))
-        <div class="card text-base" style="padding:10px 14px;border-color:var(--success);background:var(--success-soft);color:var(--success-text);">
+        <div class="card text-base text-success-700" style="padding:10px 14px;border-color:var(--success);background:var(--success-soft);">
             {{ session('campanas-ok') }}
         </div>
     @endif
@@ -26,6 +26,10 @@
                 + {{ __('campanas.nueva') }}
             </button>
         </div>
+
+        {{-- La tabla de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($campanas->isNotEmpty())
             <table class="table">

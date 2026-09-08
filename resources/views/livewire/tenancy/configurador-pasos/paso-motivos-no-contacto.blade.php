@@ -46,7 +46,7 @@
                             <td><span class="font-medium">{{ $m->nombre }}</span></td>
                             <td class="num">{{ $m->orden }}</td>
                             <td>
-                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="inline-flex items-center gap-1.5">
                                     <span class="dot dot-{{ $m->activo ? 'success' : 'neutral' }}"></span>
                                     {{ $m->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
@@ -71,7 +71,7 @@
                 </button>
             </div>
             <div class="drawer-body">
-                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr] gap-3.5">
                     <div>
                         <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="BUZON_VOZ" maxlength="50"
@@ -84,7 +84,7 @@
                                class="input @error('form.nombre') input-error @enderror"/>
                         @error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="grid grid-cols-[1fr_1fr] gap-3.5">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"
@@ -121,12 +121,12 @@
          causa y la tabla estaba vacía, así que esas cuatro gestiones no se
          podían guardar. --}}
     <div class="card" style="padding:12px 16px;margin-top:14px;">
-        <div class="flex items-center flex-wrap" style="gap:10px;">
+        <div class="flex items-center flex-wrap gap-2.5">
             <strong class="text-base">{{ __('configurador.causas.titulo') }}</strong>
             <span class="text-sm text-ink-500">{{ __('configurador.causas.ayuda') }}</span>
         </div>
 
-        <div class="flex items-center flex-wrap" style="gap:6px;margin-top:10px;">
+        <div class="flex items-center flex-wrap gap-1.5" style="margin-top:10px;">
             @foreach($causas as $c)
                 <span class="badge" style="gap:6px;{{ $c->activo ? '' : 'opacity:.5;' }}">
                     <button type="button" wire:click="alternarCausa({{ $c->id }})" class="btn btn-ghost btn-sm" style="padding:0 2px;">
@@ -139,7 +139,7 @@
                 </span>
             @endforeach
 
-            <div class="flex items-center" style="gap:6px;">
+            <div class="flex items-center gap-1.5">
                 <input type="text" wire:model="causaNueva" wire:keydown.enter="crearCausa" class="input"
                        style="width:220px;height:28px;" placeholder="{{ __('configurador.causas.nueva') }}"/>
                 <button type="button" wire:click="crearCausa" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>

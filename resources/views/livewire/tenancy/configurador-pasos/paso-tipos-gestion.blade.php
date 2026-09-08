@@ -43,13 +43,13 @@
                                    wire:change="renombrarCanal({{ $canal->canal_id }}, $event.target.value)"/>
                         </td>
                         <td>
-                            <label class="text-sm" style="display:inline-flex;align-items:center;gap:6px;">
+                            <label class="text-sm inline-flex items-center gap-1.5">
                                 <input type="checkbox" @checked($canal->requiere_duracion)
                                        wire:click="alternarBanderaCanal({{ $canal->canal_id }}, 'requiere_duracion')"/>
                             </label>
                         </td>
                         <td>
-                            <label class="text-sm" style="display:inline-flex;align-items:center;gap:6px;">
+                            <label class="text-sm inline-flex items-center gap-1.5">
                                 <input type="checkbox" @checked($canal->permite_adjunto)
                                        wire:click="alternarBanderaCanal({{ $canal->canal_id }}, 'permite_adjunto')"/>
                             </label>
@@ -106,7 +106,7 @@
                             <td><span class="font-medium">{{ $t->nombre }}</span></td>
                             <td class="num">{{ $t->orden }}</td>
                             <td>
-                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="inline-flex items-center gap-1.5">
                                     <span class="dot dot-{{ $t->activo ? 'success' : 'neutral' }}"></span>
                                     {{ $t->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
@@ -131,7 +131,7 @@
                 </button>
             </div>
             <div class="drawer-body">
-                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr] gap-3.5">
                     <div>
                         <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="LLAMADA" maxlength="50"
@@ -144,7 +144,7 @@
                                class="input @error('form.nombre') input-error @enderror"/>
                         @error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="grid grid-cols-[1fr_1fr] gap-3.5">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"

@@ -48,12 +48,16 @@
                 </div>
             </div>
 
+            {{-- Elegir cartera va al servidor a por los campos personalizados y
+                 repinta medio formulario. Acotada a ese viaje, no al de guardar. --}}
+            <x-ui.cargando target="carteraId" />
+
             @if($carteraId !== '')
                 <hr style="margin:20px 0;border:0;border-top:1px solid var(--border);">
-                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">
+                <h3 class="text-base font-semibold" style="margin-bottom:10px;">
                     {{ __('casos.additional_info') }}
                     @if($camposPersonalizados->isEmpty())
-                        <span style="font-weight:400;color:var(--text-tertiary);font-size:11px;">
+                        <span class="font-normal text-ink-500 text-xs">
                             {{ __('casos.no_custom_fields') }}
                         </span>
                     @endif
@@ -75,7 +79,7 @@
                                 </label>
                                 <x-cp.control :campo="$campo" model="valoresCp.{{ $key }}" clase="input" />
                                 @if($campo->descripcion)
-                                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">{{ $campo->descripcion }}</div>
+                                    <div class="text-xs text-ink-500" style="margin-top:4px;">{{ $campo->descripcion }}</div>
                                 @endif
                             </div>
                         @endforeach
@@ -83,7 +87,7 @@
                 @endif
             @endif
 
-            <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+            <div class="flex gap-2" style="margin-top:20px;justify-content:flex-end;">
                 <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId]) }}"
                    wire:navigate class="btn btn-ghost">{{ __('common.cancel') }}</a>
                 <button type="button" wire:click="guardar" class="btn btn-primary">

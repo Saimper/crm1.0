@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('entidades.title') }}</h1>
             <div class="page-subtitle">{{ __('entidades.subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="flex gap-2">
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('entidades.back_to_panel') }}</a>
             <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
@@ -18,13 +18,13 @@
     @endif
 
     <div class="card card-pad" style="margin-bottom:14px;">
-        <div style="display:flex;align-items:flex-end;gap:14px;">
-            <div class="field" style="flex:1;max-width:360px;margin-bottom:0;">
+        <div class="flex items-end gap-[14px]">
+            <div class="field flex-1" style="max-width:360px;margin-bottom:0;">
                 <label class="field-label">{{ __('entidades.label_project') }}</label>
                 {{-- El selector solo ofrece los proyectos del cliente activo. Si no hay
                      ninguno, se dice por qué en vez de pintar un desplegable vacío. --}}
                 @if($proyectos->isEmpty())
-                    <div style="font-size:12px;color:var(--text-tertiary);padding:8px 0;">{{ __('entidades.empty_projects') }}</div>
+                    <div class="text-sm text-ink-500" style="padding:8px 0;">{{ __('entidades.empty_projects') }}</div>
                 @else
                     <select wire:model.live="proyectoSeleccionadoId" class="select">
                         @foreach($proyectos as $p)
@@ -34,25 +34,28 @@
                 @endif
             </div>
         </div>
+
+        {{-- Cambiar de proyecto repinta la barra lateral y la tabla enteras. --}}
+        <x-ui.cargando target="proyectoSeleccionadoId" />
     </div>
 
     <div style="display:grid;grid-template-columns:260px 1fr;gap:14px;">
         {{-- Sidebar selector --}}
         <div class="card" style="padding:0;">
-            <div style="padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;">
+            <div class="text-sm font-medium text-ink-500" style="padding:10px 12px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:0.06em;">
                 {{ __('entidades.sidebar_header') }}
             </div>
             @if($entidades->isEmpty())
-                <div style="padding:16px;font-size:12px;color:var(--text-tertiary);">{{ __('entidades.empty_entities') }}</div>
+                <div class="text-sm text-ink-500" style="padding:16px;">{{ __('entidades.empty_entities') }}</div>
             @else
                 @foreach($entidades as $e)
                     <button type="button" wire:key="ent-{{ $e->id }}"
                             wire:click="abrirCamposDe({{ $e->id }})"
                             class="sb-item {{ $entidadConCamposAbiertosId === $e->id ? 'active' : '' }}"
                             style="height:auto;padding:10px 14px;text-align:left;">
-                        <div style="flex:1;min-width:0;">
-                            <div style="font-size:13px;font-weight:500;">{{ $e->nombre }}</div>
-                            <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-base font-medium">{{ $e->nombre }}</div>
+                            <div class="text-xs text-ink-500" style="margin-top:2px;">
                                 <span class="font-mono">{{ $e->codigo }}</span> · {{ $e->relacion_con }}
                                 @if($e->cartera_nombre) · {{ $e->cartera_nombre }} @endif
                             </div>
@@ -66,7 +69,7 @@
         <div>
             @if($formVisible)
                 <div class="card card-pad" style="margin-bottom:14px;border-color:var(--primary-soft-border);background:var(--primary-soft);">
-                    <div style="font-size:13px;font-weight:600;color:var(--primary-text);margin-bottom:12px;">
+                    <div class="text-base font-semibold text-brand-700" style="margin-bottom:12px;">
                         {{ $entidadEditandoId === null ? __('entidades.form_create') : __('entidades.form_edit') }}
                     </div>
                     <form wire:submit.prevent="guardarEntidad" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
@@ -110,11 +113,11 @@
                                 <option value="0">{{ __('entidades.no') }}</option>
                             </select>
                         </div>
-                        <div class="field" style="grid-column:1 / -1;">
+                        <div class="field col-span-full">
                             <label class="field-label">{{ __('entidades.label_description') }}</label>
                             <textarea wire:model="formDescripcion" rows="2" class="textarea"></textarea>
                         </div>
-                        <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;gap:8px;">
+                        <div class="col-span-full flex justify-end gap-2">
                             <button type="button" wire:click="cerrarForm" class="btn btn-ghost">{{ __('common.cancel') }}</button>
                             <button type="submit" class="btn btn-primary">{{ __('common.save') }}</button>
                         </div>
@@ -127,16 +130,16 @@
                     $entidadActiva = $entidades->firstWhere('id', $entidadConCamposAbiertosId);
                 @endphp
                 <div class="card" style="padding:16px;margin-bottom:14px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <div class="flex items-center justify-between" style="margin-bottom:12px;">
                         <div>
-                            <div style="font-size:13px;font-weight:600;">{{ __('entidades.fields_title') }}</div>
+                            <div class="text-base font-semibold">{{ __('entidades.fields_title') }}</div>
                             @if($entidadActiva)
-                                <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                                <div class="text-xs text-ink-500" style="margin-top:2px;">
                                     <span class="font-mono">{{ $entidadActiva->codigo }}</span> · {{ $entidadActiva->nombre }}
                                 </div>
                             @endif
                         </div>
-                        <div style="display:flex;gap:6px;">
+                        <div class="flex gap-[6px]">
                             @if(! $formCampoVisible)
                                 <button type="button" wire:click="abrirFormCampoCrear" class="btn btn-secondary btn-sm">
                                     <x-ui.icon name="plus" :size="12" />
@@ -190,13 +193,13 @@
                                 <label class="field-label">{{ __('entidades.field_order') }}</label>
                                 <input type="number" wire:model="formCampoOrden" min="0" class="input input-sm mono"/>
                             </div>
-                            <div style="display:flex;align-items:flex-end;gap:6px;">
-                                <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;">
+                            <div class="flex items-end gap-[6px]">
+                                <label class="inline-flex items-center gap-[6px] text-sm">
                                     <input type="checkbox" wire:model="formCampoObligatorio" class="checkbox"/>
                                     {{ __('entidades.field_required') }}
                                 </label>
                             </div>
-                            <div style="grid-column:1 / -1;display:flex;justify-content:flex-end;gap:6px;">
+                            <div class="col-span-full flex justify-end gap-[6px]">
                                 <button type="button" wire:click="cerrarFormCampo" class="btn btn-ghost btn-sm">{{ __('common.cancel') }}</button>
                                 <button type="submit" class="btn btn-primary btn-sm">{{ __('entidades.save_field') }}</button>
                             </div>
@@ -223,25 +226,25 @@
                             <tbody>
                                 @foreach($campos as $c)
                                     <tr wire:key="campoent-{{ $c->id }}">
-                                        <td><span class="font-mono" style="font-size:12px;">{{ $c->codigo }}</span></td>
+                                        <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
                                         <td>{{ $c->etiqueta }}</td>
-                                        <td><span style="color:var(--text-secondary);font-size:12px;">{{ $c->tipo }}</span></td>
+                                        <td><span class="text-ink-600 text-sm">{{ $c->tipo }}</span></td>
                                         <td>
                                             @if($c->obligatorio)
-                                                <x-ui.icon name="check" :size="14" style="color:var(--success-text);" />
+                                                <x-ui.icon name="check" :size="14" class="text-success-700" />
                                             @else
-                                                <span style="color:var(--text-muted);">—</span>
+                                                <span class="text-ink-400">—</span>
                                             @endif
                                         </td>
                                         <td class="num">{{ $c->orden }}</td>
                                         <td>
-                                            <span style="display:inline-flex;align-items:center;gap:6px;">
+                                            <span class="inline-flex items-center gap-[6px]">
                                                 <span class="dot dot-{{ $c->activo ? 'success' : 'neutral' }}"></span>
                                                 {{ $c->activo ? __('entidades.status_active') : __('entidades.status_inactive') }}
                                             </span>
                                         </td>
                                         <td>
-                                            <div style="display:flex;gap:2px;">
+                                            <div class="flex gap-[2px]">
                                                 <button type="button" wire:click="abrirFormCampoEditar({{ $c->id }})" class="icon-btn" :title="__('common.edit')">
                                                     <x-ui.icon name="edit" :size="12" />
                                                 </button>

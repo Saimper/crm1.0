@@ -70,7 +70,7 @@
                             </td>
                             <td class="num">{{ $r->orden }}</td>
                             <td>
-                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="inline-flex items-center gap-1.5">
                                     <span class="dot dot-{{ $r->activo ? 'success' : 'neutral' }}"></span>
                                     {{ $r->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
@@ -95,7 +95,7 @@
                 </button>
             </div>
             <div class="drawer-body">
-                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr] gap-3.5">
                     <div>
                         <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="CONTACTO_EFECTIVO" maxlength="50"
@@ -148,7 +148,7 @@
                         </div>
                     @endif
 
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="grid grid-cols-[1fr_1fr] gap-3.5">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"
@@ -212,7 +212,7 @@
                                     @endunless
                                 </td>
                                 @foreach($tiposGestion as $tipo)
-                                    <td style="text-align:center;">
+                                    <td class="text-center">
                                         <input type="checkbox"
                                                @checked($combinaciones->has($tipo->id.'-'.$resultado->id))
                                                wire:click="alternarCombinacion({{ $tipo->id }}, {{ $resultado->id }})"
@@ -230,7 +230,7 @@
          resultado; sin él, salen siempre. Es texto que se pega en el textarea y
          el gestor edita después: no ejecuta nada ni rellena otros campos. --}}
     <div class="card" style="padding:12px 16px;margin-top:14px;">
-        <div class="flex items-center flex-wrap" style="gap:10px;">
+        <div class="flex items-center flex-wrap gap-2.5">
             <strong class="text-base">{{ __('configurador.plantillas.titulo') }}</strong>
             <span class="text-sm text-ink-500">{{ __('configurador.plantillas.ayuda') }}</span>
         </div>
@@ -240,7 +240,7 @@
                 @foreach($plantillas as $p)
                     <div class="flex items-center gap-2 text-sm">
                         <span class="badge">{{ $p->etiqueta }}</span>
-                        <span class="text-ink-600 flex-1 min-w-0" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $p->texto }}</span>
+                        <span class="text-ink-600 flex-1 min-w-0 truncate">{{ $p->texto }}</span>
                         @if($p->resultado_nombre)
                             <span class="badge badge-neutral">{{ $p->resultado_nombre }}</span>
                         @endif

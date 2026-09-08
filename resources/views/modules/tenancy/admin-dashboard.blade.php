@@ -103,7 +103,7 @@
                 </h1>
                 <div class="page-subtitle">
                     @if($mandanteActivo !== null)
-                        <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">
+                        <span class="font-mono text-xs text-ink-500">
                             {{ $mandanteActivo->codigo ?? str_pad((string) $mandanteActivo->id, 4, '0', STR_PAD_LEFT) }}
                         </span>
                         <span>
@@ -116,7 +116,7 @@
                     @endif
                 </div>
             </div>
-            <div style="display:flex;gap:8px;">
+            <div class="flex gap-2">
                 <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('tenancy.back_to_selector') }}</a>
             </div>
         </div>
@@ -127,13 +127,13 @@
                     <a href="{{ route($t['route']) }}" wire:navigate
                        class="card card-pad admin-tile"
                        style="text-decoration:none;color:inherit;display:block;transition:border-color 120ms var(--ease),background 120ms var(--ease);">
-                        <div style="display:flex;align-items:flex-start;gap:12px;">
-                            <div style="flex-shrink:0;height:40px;width:40px;border-radius:8px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;border:1px solid var(--primary-soft-border);">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 flex items-center text-brand-700" style="height:40px;width:40px;border-radius:8px;background:var(--primary-soft);justify-content:center;border:1px solid var(--primary-soft-border);">
                                 <x-ui.icon :name="$t['icon']" :size="18" />
                             </div>
-                            <div style="min-width:0;">
-                                <div style="font-weight:600;color:var(--text);font-size:14px;">{{ $t['title'] }}</div>
-                                <p style="margin-top:4px;font-size:12px;color:var(--text-tertiary);line-height:1.5;">{{ $t['desc'] }}</p>
+                            <div class="min-w-0">
+                                <div class="font-semibold text-ink text-md">{{ $t['title'] }}</div>
+                                <p class="text-sm text-ink-500" style="margin-top:4px;line-height:1.5;">{{ $t['desc'] }}</p>
                                 {{-- Alcance del destino. La advertencia importa más que
                                      la confirmación: el tile que SÍ cruza clientes es el
                                      que puede hacer daño sin que se note. --}}

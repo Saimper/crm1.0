@@ -1,9 +1,9 @@
 <div class="flex flex-col" style="gap:14px;">
 
     {{-- Filtro de periodo: una sola fila encima de todo, como manda el patrón. --}}
-    <div class="gap-3" style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;">
+    <div class="gap-3 flex items-baseline justify-between flex-wrap">
         <div>
-            <div class="font-semibold" style="font-size:15px;color:var(--text);">{{ __('reportes.panel_titulo') }}</div>
+            <div class="font-semibold text-[15px] text-ink">{{ __('reportes.panel_titulo') }}</div>
             <div class="text-sm text-ink-500">{{ $etiquetaRango }}</div>
         </div>
         <div style="display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -44,7 +44,7 @@
                     @endif
                     <span class="label-xs">{{ __('reportes.panel_'.$t['clave']) }}</span>
                 </div>
-                <div class="font-semibold tnum" style="font-size:26px;line-height:1.15;margin-top:6px;color:{{ $t['color'] }};">
+                <div class="font-semibold tnum text-5xl" style="margin-top:6px;color:{{ $t['color'] }};">
                     {{ number_format($t['valor']) }}
                 </div>
             </div>
@@ -68,7 +68,7 @@
          misma barra: una parte sobre un todo, no dos escalas distintas. --}}
     <div class="grid grid-cols-1 @if($puedeVerSupervision) sm:grid-cols-2 @endif gap-3">
         <div class="card card-pad-sm">
-            <div class="gap-2" style="display:flex;align-items:baseline;justify-content:space-between;">
+            <div class="gap-2 flex items-baseline justify-between">
                 <span class="label-xs">{{ __('reportes.panel_efectividad') }}</span>
                 <span class="text-xs text-ink-500">
                     {{ __('reportes.panel_efectividad_pie', ['efectivas' => number_format($gestionesEfectivas), 'total' => number_format($totalGestiones)]) }}
@@ -77,7 +77,7 @@
             @if($efectividad === null)
                 <div class="text-base text-ink-500" style="margin-top:10px;">{{ __('reportes.panel_sin_gestiones') }}</div>
             @else
-                <div class="font-semibold tnum" style="font-size:26px;line-height:1.15;margin-top:6px;color:var(--text);">{{ $efectividad }}%</div>
+                <div class="font-semibold tnum text-5xl text-ink" style="margin-top:6px;">{{ $efectividad }}%</div>
                 <span class="bar-track" style="margin-top:10px;">
                     <span class="bar-fill" style="width:{{ $efectividad }}%;"></span>
                 </span>
@@ -86,7 +86,7 @@
 
         @if($puedeVerSupervision)
         <div class="card card-pad-sm">
-            <div class="gap-2" style="display:flex;align-items:baseline;justify-content:space-between;">
+            <div class="gap-2 flex items-baseline justify-between">
                 <span class="label-xs">{{ __('reportes.panel_dinero') }}</span>
                 <span class="text-xs text-ink-500">{{ __('reportes.panel_dinero_nota') }}</span>
             </div>
@@ -103,8 +103,8 @@
                         ? (int) round(((float) $dinero->cumplido) * 100 / $resuelto)
                         : null;
                 @endphp
-                <div class="gap-2" style="display:flex;align-items:baseline;margin-top:6px;">
-                    <span class="font-semibold tnum text-success-700" style="font-size:22px;">{{ number_format((float) $dinero->cumplido, 2) }}</span>
+                <div class="gap-2 flex items-baseline" style="margin-top:6px;">
+                    <span class="font-semibold tnum text-success-700 text-[22px]">{{ number_format((float) $dinero->cumplido, 2) }}</span>
                     <span class="text-base text-ink-500">{{ $dinero->moneda }} · {{ __('reportes.panel_dinero_cobrado') }}</span>
                 </div>
                 <div class="text-sm text-ink-500 tnum" style="margin-top:2px;">
@@ -128,12 +128,12 @@
          discretos y pocos; la línea insinuaría continuidad entre días. --}}
     @if($tendencia->isNotEmpty())
         <div class="card card-pad-sm">
-            <div class="text-base font-semibold" style="color:var(--text);margin-bottom:14px;">{{ __('reportes.panel_tendencia') }}</div>
-            <div class="gap-1" style="display:flex;align-items:flex-end;height:76px;">
+            <div class="text-base font-semibold text-ink" style="margin-bottom:14px;">{{ __('reportes.panel_tendencia') }}</div>
+            <div class="gap-1 flex items-end" style="height:76px;">
                 @foreach($tendencia as $d)
                     {{-- Ancho acotado: con pocos días, un flex:1 suelto convierte cada
                          barra en un bloque y la tendencia deja de leerse como tal. --}}
-                    <div class="flex flex-col" style="flex:1;max-width:26px;justify-content:flex-end;height:100%;"
+                    <div class="flex flex-col flex-1 justify-end" style="max-width:26px;height:100%;"
                          title="{{ $d->etiqueta }} · {{ number_format($d->total) }}">
                         <span style="display:block;border-radius:4px 4px 0 0;
                                      background:{{ $d->total > 0 ? 'var(--primary)' : 'var(--border)' }};
@@ -141,7 +141,7 @@
                     </div>
                 @endforeach
             </div>
-            <div class="text-xs text-ink-500" style="display:flex;justify-content:space-between;margin-top:6px;">
+            <div class="text-xs text-ink-500 flex justify-between" style="margin-top:6px;">
                 <span>{{ $tendencia->first()->etiqueta }}</span>
                 <span>{{ $tendencia->last()->etiqueta }}</span>
             </div>
@@ -154,21 +154,21 @@
          nombres son largos y desiguales, y ordenadas de mayor a menor porque lo
          que se busca es el ranking. --}}
     <div class="card card-pad-sm">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;">
-            <div class="text-base font-semibold" style="color:var(--text);">{{ __('reportes.panel_por_usuario') }}</div>
+        <div class="flex items-baseline justify-between" style="margin-bottom:14px;">
+            <div class="text-base font-semibold text-ink">{{ __('reportes.panel_por_usuario') }}</div>
             <a href="{{ route('proyectos.reportes.operativos', $proyectoId) }}" wire:navigate
-               class="text-sm" style="color:var(--primary);">{{ __('reportes.panel_ver_informe') }}</a>
+               class="text-sm text-brand-500">{{ __('reportes.panel_ver_informe') }}</a>
         </div>
 
         @forelse($porUsuario as $u)
-            <div style="display:grid;grid-template-columns:minmax(90px,150px) 1fr 44px;align-items:center;gap:10px;
+            <div class="items-center" style="display:grid;grid-template-columns:minmax(90px,150px) 1fr 44px;gap:10px;
                         padding:5px 0;" title="{{ $u->name }} · {{ number_format($u->total) }}">
                 <span class="text-[12.5px] text-ink-600" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $u->name }}</span>
                 <span class="bar-track">
                     <span class="bar-fill" style="
                                  width:{{ $maximo > 0 ? max(3, (int) round($u->total * 100 / $maximo)) : 0 }}%;"></span>
                 </span>
-                <span class="text-[12.5px] font-semibold tnum" style="color:var(--text);text-align:right;">{{ number_format($u->total) }}</span>
+                <span class="text-[12.5px] font-semibold tnum text-ink text-right">{{ number_format($u->total) }}</span>
             </div>
         @empty
             <div class="text-base text-ink-500" style="padding:6px 0;">

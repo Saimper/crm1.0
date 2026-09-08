@@ -7,7 +7,7 @@
                 <span class="text-ink-500" style="margin:0 6px;">·</span>
                 <span>{{ $proyecto->nombre }}</span>
                 <span class="text-ink-500" style="margin:0 6px;">·</span>
-                <span class="font-mono text-xs text-ink-500" style="text-transform:uppercase;">{{ $proyecto->tipo_operacion }}</span>
+                <span class="font-mono text-xs text-ink-500 uppercase">{{ $proyecto->tipo_operacion }}</span>
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -36,9 +36,9 @@
                 @endphp
 
                 <div style="margin-bottom:14px;">
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+                    <div class="flex justify-between items-baseline" style="margin-bottom:6px;">
                         <span class="text-xs text-ink-500" style="text-transform:uppercase;letter-spacing:0.04em;">{{ $estado->etiqueta() }}</span>
-                        <span class="text-base font-semibold" style="color:var(--text);">{{ $porcentaje }}%</span>
+                        <span class="text-base font-semibold text-ink">{{ $porcentaje }}%</span>
                     </div>
                     <div style="height:6px;background:var(--bg-subtle);border-radius:999px;overflow:hidden;">
                         <div style="height:100%;background:var(--primary);width:{{ $porcentaje }}%;transition:width 200ms ease;"></div>
@@ -46,7 +46,7 @@
                 </div>
             @endif
 
-            <ol class="flex flex-col" style="gap:2px;list-style:none;padding:0;margin:0;">
+            <ol class="flex flex-col gap-0.5" style="list-style:none;padding:0;margin:0;">
                 @foreach($pasos as $paso)
                     @php
                         $completo   = $this->avance->estaCompletado($paso);
@@ -94,7 +94,7 @@
                                 @endif
                             </span>
 
-                            <span class="flex-1 min-w-0 text-base" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <span class="flex-1 min-w-0 text-base truncate">
                                 {{ $paso->etiqueta() }}
                             </span>
 
@@ -116,7 +116,7 @@
                     @else
                         <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.seccion_label') }}</div>
                     @endif
-                    <h2 class="font-semibold" style="font-size:18px;color:var(--text);margin:0;">{{ $pasoActivo->etiqueta() }}</h2>
+                    <h2 class="font-semibold text-[18px] text-ink" style="margin:0;">{{ $pasoActivo->etiqueta() }}</h2>
                 </div>
                 @if($modo === 'edicion')
                     @if($this->avance->estaCompleto())

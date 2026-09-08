@@ -56,7 +56,7 @@
                             </td>
                             <td class="num">{{ $e->orden }}</td>
                             <td>
-                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="inline-flex items-center gap-1.5">
                                     <span class="dot dot-{{ $e->activo ? 'success' : 'neutral' }}"></span>
                                     {{ $e->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
@@ -81,7 +81,7 @@
                 </button>
             </div>
             <div class="drawer-body">
-                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr] gap-3.5">
                     <div>
                         <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="ABIERTO" maxlength="50"
@@ -100,7 +100,7 @@
                                   class="input @error('form.descripcion') input-error @enderror"></textarea>
                         @error('form.descripcion')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="grid grid-cols-[1fr_1fr] gap-3.5">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"

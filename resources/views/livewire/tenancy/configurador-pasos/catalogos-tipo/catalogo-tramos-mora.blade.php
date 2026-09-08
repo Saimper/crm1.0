@@ -25,7 +25,7 @@
                         <td class="num">{{ $r->dias_desde }}</td>
                         <td class="num">{{ $r->dias_hasta ?? '∞' }}</td>
                         <td class="num">{{ $r->orden }}</td>
-                        <td><span style="display:inline-flex;align-items:center;gap:6px;"><span class="dot dot-{{ $r->activo ? 'success' : 'neutral' }}"></span>{{ $r->activo ? __('configurador.activo') : __('configurador.inactivo') }}</span></td>
+                        <td><span class="inline-flex items-center gap-[6px]"><span class="dot dot-{{ $r->activo ? 'success' : 'neutral' }}"></span>{{ $r->activo ? __('configurador.activo') : __('configurador.inactivo') }}</span></td>
                         <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14"/></td>
                     </tr>
                 @endforeach
@@ -39,14 +39,14 @@
         <div class="drawer" wire:key="cat-tm-drawer">
             <div class="drawer-header"><div class="text-md font-semibold">{{ $editandoId === null ? __('configurador.tramos_mora.drawer_nuevo') : __('configurador.tramos_mora.drawer_editar') }}</div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}"><x-ui.icon name="x" :size="14"/></button></div>
-            <div class="drawer-body"><div style="display:grid;grid-template-columns:1fr;gap:14px;">
+            <div class="drawer-body"><div class="grid grid-cols-[1fr] gap-[14px]">
                 <div><label class="field-label">{{ __('configurador.campo_codigo') }}</label><input type="text" wire:model="form.codigo" maxlength="50" class="input mono uppercase @error('form.codigo') input-error @enderror"/>@error('form.codigo')<div class="field-error">{{ $message }}</div>@enderror</div>
                 <div><label class="field-label">{{ __('common.name') }}</label><input type="text" wire:model="form.nombre" maxlength="150" class="input @error('form.nombre') input-error @enderror"/>@error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr_1fr] gap-[14px]">
                     <div><label class="field-label">{{ __('configurador.tramos_mora.campo_dias_desde') }}</label><input type="number" min="0" wire:model="form.dias_desde" class="input @error('form.dias_desde') input-error @enderror"/>@error('form.dias_desde')<div class="field-error">{{ $message }}</div>@enderror</div>
                     <div><label class="field-label">{{ __('configurador.tramos_mora.campo_dias_hasta') }}</label><input type="number" min="0" wire:model="form.dias_hasta" class="input @error('form.dias_hasta') input-error @enderror"/>@error('form.dias_hasta')<div class="field-error">{{ $message }}</div>@enderror</div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr_1fr] gap-[14px]">
                     <div><label class="field-label">{{ __('configurador.campo_orden') }}</label><input type="number" min="0" wire:model="form.orden" class="input"/></div>
                     <div><label class="field-label">{{ __('configurador.campo_estado') }}</label><label class="flex items-center gap-2" style="padding-top:8px;"><input type="checkbox" wire:model="form.activo"/><span class="text-base">{{ __('configurador.activo') }}</span></label></div>
                 </div>
