@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 final class StreamerReporteXlsx
 {
     /**
-     * @param  callable(int $totalFilas): void|null  $onComplete
+     * @param  (callable(int $totalFilas, bool $completa): void)|null  $onComplete
      */
     public function stream(
         ResultadoEjecucionReporte $resultado,
@@ -26,28 +26,37 @@ final class StreamerReporteXlsx
         ?callable $onComplete = null,
     ): StreamedResponse {
         return new StreamedResponse(function () use ($resultado, $onComplete): void {
+            set_time_limit(0);
+            ignore_user_abort(true);
+
             $writer = new Writer;
             $writer->openToFile('php://output');
 
-            $cabeceras = array_map(static fn (array $h): string => $h['etiqueta'], $resultado->cabeceras);
-            $writer->addRow(Row::fromValues($cabeceras));
-
             $total = 0;
-            foreach ($resultado->filas as $fila) {
-                $i = 0;
-                $valores = [];
-                foreach ($resultado->cabeceras as $_) {
-                    $valores[] = self::formatearValor($fila['col_'.$i] ?? null);
-                    $i++;
+            $completa = false;
+
+            try {
+                $cabeceras = array_map(static fn (array $h): string => $h['etiqueta'], $resultado->cabeceras);
+                $writer->addRow(Row::fromValues($cabeceras));
+
+                foreach ($resultado->filas as $fila) {
+                    $i = 0;
+                    $valores = [];
+                    foreach ($resultado->cabeceras as $_) {
+                        $valores[] = self::formatearValor($fila['col_'.$i] ?? null);
+                        $i++;
+                    }
+                    $writer->addRow(Row::fromValues($valores));
+                    $total++;
                 }
-                $writer->addRow(Row::fromValues($valores));
-                $total++;
-            }
 
-            $writer->close();
+                $completa = ! connection_aborted();
+            } finally {
+                $writer->close();
 
-            if ($onComplete !== null) {
-                $onComplete($total);
+                if ($onComplete !== null) {
+                    $onComplete($total, $completa);
+                }
             }
         }, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

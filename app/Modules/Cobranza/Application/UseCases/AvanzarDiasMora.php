@@ -12,6 +12,7 @@ use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use stdClass;
 
 /**
@@ -66,6 +67,12 @@ use stdClass;
  */
 final class AvanzarDiasMora
 {
+    /** El índice por el que se busca lo que hay que avanzar. */
+    public const INDICE_AVANCE = 'casos_cobranza_proyecto_mora_actualizada_idx';
+
+    /** @var bool|null Si el índice existe. Se pregunta una vez por pasada, no por proyecto. */
+    private ?bool $hayIndice = null;
+
     /**
      * Filas por transacción. Rangos de PK cortos para no retener bloqueos
      * sobre `casos_cobranza` mientras un job de importación escribe en ella.
@@ -137,7 +144,7 @@ final class AvanzarDiasMora
                 ->count();
 
             $avanzados[$proyectoId] = $input->simulacro
-                ? $this->avanzables($proyectoId, $hoy)->count()
+                ? $this->soloDeCasosAbiertos($this->avanzables($proyectoId, $hoy), $proyectoId)->count()
                 : $this->avanzar($proyectoId, $hoy);
         }
 
@@ -179,6 +186,9 @@ final class AvanzarDiasMora
     /**
      * Cuentas en mora de casos abiertos: la población de la que hablan todos
      * los contadores. Recortada por proyecto antes que nada (§10).
+     *
+     * La usan los tres contadores del informe, no el avance: ésos sí quieren
+     * decir «de los casos abiertos», y son tres COUNT por proyecto y pasada.
      */
     private function conMoraAbierta(int $proyectoId): Builder
     {
@@ -201,11 +211,61 @@ final class AvanzarDiasMora
             ->where('dias_mora_actualizado_en', '<', $hoy);
     }
 
-    /** Las atrasadas cuyo avance cabe en el techo del VO. */
-    private function avanzables(int $proyectoId, string $hoy): Builder
+    /**
+     * Lo que hay que avanzar: una sola tabla, sin el join contra `casos`.
+     *
+     * Es la consulta de la ruta caliente —corre cada hora, por proyecto— y por
+     * eso no lleva el filtro de «caso abierto» aunque le importe: con el join,
+     * el optimizador arranca por `casos` y el coste pasa a ser el tamaño de la
+     * cartera entera, con tabla temporal y filesort, incluso en las 23 horas en
+     * las que no hay una sola cuenta que avanzar. Sin él es un rango del índice
+     * `(proyecto_id, dias_mora_actualizado_en)`: si nada venció, el rango está
+     * vacío y la pasada no lee nada.
+     *
+     * Quedarse corto no es un riesgo: el UPDATE repite las condiciones y añade
+     * la de caso abierto, así que un caso cerrado que entre en el rango de PK
+     * no se toca. Lo único que se paga es un puñado de ids de más en el lote.
+     * El simulacro, que sí informa números al usuario, compone encima
+     * `soloDeCasosAbiertos`.
+     *
+     * Pública para que el test que hace EXPLAIN mire exactamente la consulta
+     * que corre cada hora, y no una escrita a mano que se parezca.
+     */
+    public function avanzables(int $proyectoId, string $hoy): Builder
     {
-        return $this->atrasadas($proyectoId, $hoy)
+        $tabla = $this->db->table('casos_cobranza');
+
+        if ($this->hayIndiceDeAvance()) {
+            $tabla->forceIndex(self::INDICE_AVANCE);
+        }
+
+        return $tabla
+            ->where('proyecto_id', $proyectoId)
+            ->where('dias_mora', '>', 0)
+            ->whereNotNull('dias_mora_actualizado_en')
+            ->where('dias_mora_actualizado_en', '<', $hoy)
             ->whereRaw('CAST(dias_mora AS SIGNED) + DATEDIFF(?, dias_mora_actualizado_en) <= ?', [$hoy, DiasMora::MAXIMO_RAZONABLE]);
+    }
+
+    /** El filtro de caso abierto, para cuando el número se le enseña a alguien. */
+    private function soloDeCasosAbiertos(Builder $q, int $proyectoId): Builder
+    {
+        return $q->whereIn('caso_id', fn (Builder $sub) => $sub
+            ->select('id')
+            ->from('casos')
+            ->where('proyecto_id', $proyectoId)
+            ->whereNull('cerrado_en')
+            ->whereNull('eliminada_en'));
+    }
+
+    /**
+     * Una base restaurada de un dump anterior a la migración del índice no lo
+     * tiene, y forzar uno que no existe es un error de MySQL: la tarea moriría
+     * en vez de ir más lenta.
+     */
+    private function hayIndiceDeAvance(): bool
+    {
+        return $this->hayIndice ??= Schema::hasIndex('casos_cobranza', self::INDICE_AVANCE);
     }
 
     private function limiteSinConfirmar(string $hoy): string

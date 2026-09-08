@@ -11,6 +11,7 @@ use App\Modules\Reportes\Application\UseCases\CrearDefinicionReporte;
 use App\Modules\Reportes\Infrastructure\Persistence\Repositories\RepositorioDefinicionReporteEloquent;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use stdClass;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
@@ -117,6 +118,33 @@ final class ConstructorRutasTest extends TestCase
         $contenido = $resp->streamedContent();
         // XLSX = ZIP archive: magic bytes "PK"
         $this->assertStringStartsWith('PK', $contenido);
+    }
+
+    /**
+     * La descarga del constructor deja la MISMA huella que las cuatro
+     * descargas de listado: quién, qué tabla, con qué recorte y cuántas filas.
+     * `reportes_ejecuciones` es la métrica del módulo; esto es lo que el
+     * cliente mira cuando pregunta quién sacó sus datos.
+     */
+    public function test_export_deja_huella_en_la_auditoria_del_cliente(): void
+    {
+        $defId = $this->crearDefinicionDePrueba();
+        $u = $this->usuarioConRol('SUPERVISOR');
+
+        $this->actingAs($u)->get(route('proyectos.reportes.custom.exportar', [
+            'proyecto_id' => $this->proyectoId, 'definicion_id' => $defId, 'formato' => 'csv',
+        ]))->streamedContent();
+
+        $huella = DB::table('auditorias')->where('evento', 'exportado')->first();
+
+        $this->assertNotNull($huella, 'Sacar datos con un reporte custom también es sacarlos.');
+        $this->assertSame('casos', $huella->entidad_tipo, 'Se atribuye a la entidad raíz, que es de donde salieron las filas.');
+        $this->assertSame($this->proyectoId, (int) $huella->proyecto_id);
+        $this->assertSame((int) $u->id, (int) $huella->usuario_id);
+
+        $cambios = json_decode((string) $huella->cambios, true);
+        $this->assertSame('csv', $cambios['filtros']['despues']['formato']);
+        $this->assertTrue($cambios['completa']['despues']);
     }
 
     public function test_export_registra_ejecucion(): void

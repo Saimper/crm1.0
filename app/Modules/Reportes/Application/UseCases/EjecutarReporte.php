@@ -22,6 +22,15 @@ use Illuminate\Support\Facades\DB;
  * - Soft delete eliminada_en IS NULL aplicado a entidades históricas.
  * - SELECT/WHERE/GROUP/ORDER usan SOLO expresiones de CampoDisponible::$sql (whitelist).
  * - Los valores de filtro siempre van por bindings parametrizados.
+ *
+ * La previsualización lleva LIMIT y sale por la conexión de siempre. La
+ * descarga no lleva ninguno, y va por `mysql_streaming`, que tiene el buffer de
+ * PDO apagado: `cursor()` sobre una conexión con buffer se trae el resultado
+ * entero a memoria antes de dar la primera fila —difiere la hidratación, no la
+ * descarga—, y un reporte de gestiones de un año son cientos de MB de notas.
+ * No se pagina por clave como en `RespuestaCsv` porque aquí el orden lo elige
+ * quien define el reporte, y una paginación por `id > último` tendría que
+ * reescribírselo.
  */
 final class EjecutarReporte
 {
@@ -54,7 +63,7 @@ final class EjecutarReporte
         }
 
         $tabla = $def->entidad->tablaBase();
-        $q = DB::table($tabla);
+        $q = DB::connection($limite === null ? config('database.conexion_sin_buffer') : null)->table($tabla);
 
         foreach ($catalogo->joinsPara($joinKeys) as $j) {
             $q->leftJoin($j['tabla'].' as '.$j['alias'], $j['col_a'], '=', $j['col_b']);

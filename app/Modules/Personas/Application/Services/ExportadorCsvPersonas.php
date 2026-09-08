@@ -37,7 +37,10 @@ final readonly class ExportadorCsvPersonas
     /**
      * @param  stdClass  $proyecto  Fila de `proyectos` con `id`, `codigo` y `mandante_id`.
      */
-    public function responder(stdClass $proyecto, FiltrosListadoPersonas $filtros): StreamedResponse
+    /**
+     * @param  list<int>|null  $carterasPermitidas  Carteras del rol (F22); `null` si no está acotado.
+     */
+    public function responder(stdClass $proyecto, FiltrosListadoPersonas $filtros, ?array $carterasPermitidas = null): StreamedResponse
     {
         $proyectoId = (int) $proyecto->id;
 
@@ -46,7 +49,10 @@ final readonly class ExportadorCsvPersonas
         $zona = $this->reloj->zonaDe((int) $proyecto->mandante_id);
 
         $q = $this->consulta
-            ->aplicarFiltros($this->consulta->consultaBase($proyectoId), $filtros)
+            ->aplicarFiltros(
+                $this->consulta->recortarACarteras($this->consulta->consultaBase($proyectoId), $carterasPermitidas),
+                $filtros,
+            )
             ->select([
                 'p.id', 'p.tipo_persona',
                 'ti.codigo as tipo_identificacion_codigo',

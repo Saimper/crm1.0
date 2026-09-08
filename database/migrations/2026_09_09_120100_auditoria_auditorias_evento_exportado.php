@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\DB;
  *
  * `exportado` es el cuarto evento: quién, cuándo, qué tabla, con qué filtros y
  * cuántas filas. Lo escribe `RegistroDeExportaciones` desde cada descarga.
+ *
+ * No tiene vuelta atrás, y es deliberado. Estrechar el ENUM exige que no quede
+ * ninguna fila con `exportado`, así que un `down()` honesto tendría que
+ * borrarlas: un `migrate:rollback` —el gesto reflejo cuando un despliegue sale
+ * mal, y el deploy corre `migrate --force` solo— destruiría el registro de
+ * quién sacó datos del sistema, que es justo lo que esta columna existe para
+ * que no se pueda destruir. El `down()` deja el ENUM como está y lo dice.
  */
 return new class extends Migration
 {
@@ -23,7 +30,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('auditorias')->where('evento', 'exportado')->delete();
-        DB::statement("ALTER TABLE auditorias MODIFY evento ENUM('creado','actualizado','eliminado') NOT NULL");
+        // A propósito, nada. Volver atrás significaría borrar las huellas de
+        // exportación, y una auditoría que se puede deshacer no es una
+        // auditoría. Un ENUM con un valor de más no le estorba a nadie.
     }
 };

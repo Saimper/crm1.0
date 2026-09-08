@@ -8,6 +8,7 @@ use App\Modules\Auditoria\Domain\Contracts\RegistroDeExportaciones;
 use App\Support\Csv\RespuestaCsv;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -62,13 +63,30 @@ final readonly class ExportadorCsvAuditoria
      */
     public function consultaDelProyecto(int $proyectoId): Builder
     {
-        return DB::table('auditorias as a')
-            ->forceIndex(self::INDICE_PAGINACION)
+        $consulta = DB::table('auditorias as a');
+
+        if ($this->hayIndiceDePaginacion()) {
+            $consulta->forceIndex(self::INDICE_PAGINACION);
+        }
+
+        return $consulta
             ->leftJoin('users as u', 'u.id', '=', 'a.usuario_id')
             // El recorte va PRIMERO y no depende de ningún parámetro: los
             // filtros que se añadan después sólo pueden estrechar esto.
             ->where('a.proyecto_id', $proyectoId)
             ->select($this->columnas());
+    }
+
+    /**
+     * Una base restaurada de un dump anterior a la migración del índice no lo
+     * tiene, y `FORCE INDEX` sobre un índice que no existe es un error de
+     * MySQL: la descarga moriría con un 500 en vez de tardar más. Es una
+     * consulta de esquema por descarga, no por lote: se pregunta al construir
+     * la consulta, una sola vez.
+     */
+    private function hayIndiceDePaginacion(): bool
+    {
+        return Schema::hasIndex('auditorias', self::INDICE_PAGINACION);
     }
 
     /**

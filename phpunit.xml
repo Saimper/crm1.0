@@ -36,6 +36,10 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_DATABASE" value="crm_test"/>
+        <!-- Las descargas grandes salen por una conexión sin buffer de PDO. En
+             la suite tienen que ir por la de siempre: los tests corren dentro
+             de una transacción y una segunda conexión no vería sus datos. -->
+        <env name="DB_CONEXION_SIN_BUFFER" value="mysql"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

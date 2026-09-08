@@ -12,6 +12,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use stdClass;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
@@ -313,5 +314,37 @@ final class AvanzarDiasMoraTest extends TestCase
 
         $this->assertSame($diasMora, (int) $fila->dias_mora, $motivo);
         $this->assertSame($ancla, $fila->dias_mora_actualizado_en === null ? null : (string) $fila->dias_mora_actualizado_en, $motivo);
+    }
+
+    /**
+     * La tarea corre cada hora y 23 de esas 24 veces no tiene nada que hacer.
+     * Si la busca arranca por `casos`, el coste es el tamaño de la cartera
+     * —tabla temporal y filesort incluidos— aunque no haya una sola cuenta que
+     * avanzar. Con el índice del ancla, no haber nada vencido es un rango
+     * vacío. Se mira el plan de la consulta REAL, no de una parecida.
+     */
+    public function test_la_busqueda_de_lo_avanzable_va_por_el_indice_del_ancla(): void
+    {
+        self::assertTrue(
+            Schema::hasIndex('casos_cobranza', AvanzarDiasMora::INDICE_AVANCE),
+            'Sin el índice, cada pasada horaria recorre la cartera entera.',
+        );
+
+        $proyecto = $this->crearProyectoCobranza();
+        foreach (range(1, 5) as $i) {
+            $this->crearCuenta($proyecto, 10, '2026-09-01');
+        }
+
+        $consulta = app(AvanzarDiasMora::class)->avanzables((int) $proyecto->id, '2026-09-08');
+
+        /** @var list<stdClass> $plan */
+        $plan = DB::select('EXPLAIN '.$consulta->toSql(), $consulta->getBindings());
+
+        self::assertNotEmpty($plan);
+        $paso = $plan[0];
+
+        self::assertSame('casos_cobranza', $paso->table, 'El plan tiene que arrancar por la tabla de cobranza. Plan: '.json_encode($plan));
+        self::assertSame(AvanzarDiasMora::INDICE_AVANCE, $paso->key, 'Plan: '.json_encode($paso));
+        self::assertStringNotContainsString('temporary', (string) ($paso->Extra ?? ''), 'Plan: '.json_encode($paso));
     }
 }

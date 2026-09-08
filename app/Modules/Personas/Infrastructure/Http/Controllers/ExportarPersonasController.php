@@ -34,6 +34,13 @@ final class ExportarPersonasController
         $proyecto = DB::table('proyectos')->where('id', $proyecto_id)->first(['id', 'codigo', 'mandante_id']);
         abort_unless($proyecto !== null, 404);
 
-        return $this->exportador->responder($proyecto, FiltrosListadoPersonas::desdeRequest($request));
+        // El padrón se recorta a las carteras del rol (F22) igual que la
+        // cartera: un supervisor acotado no puede llevarse en un CSV a las
+        // personas cuyos casos no puede abrir en pantalla.
+        return $this->exportador->responder(
+            $proyecto,
+            FiltrosListadoPersonas::desdeRequest($request),
+            $usuario->carterasPermitidas($proyecto_id),
+        );
     }
 }

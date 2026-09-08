@@ -12,11 +12,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * Sin límite de filas: el generator del resultado se itera fila a fila
  * directamente sobre php://output. Memoria O(1) por fila.
+ *
+ * `$onComplete` se llama SIEMPRE, también si la descarga se corta a la mitad,
+ * y recibe si llegó entera: quien canceló al 90 % se llevó el 90 % de las
+ * filas, y eso tiene que constar igual en la auditoría.
  */
 final class StreamerReporteCsv
 {
+    /** Cada cuántas filas se empuja lo escrito hacia el cliente. */
+    private const FILAS_POR_EMPUJE = 500;
+
     /**
-     * @param  callable(int $totalFilas): void|null  $onComplete  Callback opcional para registrar ejecución.
+     * @param  (callable(int $totalFilas, bool $completa): void)|null  $onComplete  Registro de la ejecución.
      */
     public function stream(
         ResultadoEjecucionReporte $resultado,
@@ -24,32 +31,52 @@ final class StreamerReporteCsv
         ?callable $onComplete = null,
     ): StreamedResponse {
         return new StreamedResponse(function () use ($resultado, $onComplete): void {
+            // Lo mismo que hace `RespuestaCsv`, y por lo mismo: sin quitar el
+            // límite de ejecución sale un CSV truncado con pinta de completo, y
+            // sin `ignore_user_abort` PHP muere al cancelar el cliente y la
+            // huella de abajo no llega a escribirse.
+            set_time_limit(0);
+            ignore_user_abort(true);
+
             $out = fopen('php://output', 'w');
             if ($out === false) {
                 return;
             }
 
-            fwrite($out, "\xEF\xBB\xBF");
-
-            $cabeceras = array_map(static fn (array $h): string => $h['etiqueta'], $resultado->cabeceras);
-            fputcsv($out, $cabeceras);
-
             $total = 0;
-            foreach ($resultado->filas as $fila) {
-                $i = 0;
-                $valores = [];
-                foreach ($resultado->cabeceras as $_) {
-                    $valores[] = self::formatearValor($fila['col_'.$i] ?? null);
-                    $i++;
+            $completa = false;
+
+            try {
+                fwrite($out, "\xEF\xBB\xBF");
+
+                $cabeceras = array_map(static fn (array $h): string => $h['etiqueta'], $resultado->cabeceras);
+                fputcsv($out, $cabeceras);
+
+                foreach ($resultado->filas as $fila) {
+                    $i = 0;
+                    $valores = [];
+                    foreach ($resultado->cabeceras as $_) {
+                        $valores[] = self::formatearValor($fila['col_'.$i] ?? null);
+                        $i++;
+                    }
+                    fputcsv($out, $valores);
+                    $total++;
+
+                    // Empujar cada tanto: nginx da por muerto al upstream que
+                    // no escribe, y aquí una fila puede tardar lo que tarde el
+                    // JOIN contra los valores de campos personalizados.
+                    if ($total % self::FILAS_POR_EMPUJE === 0) {
+                        flush();
+                    }
                 }
-                fputcsv($out, $valores);
-                $total++;
-            }
 
-            fclose($out);
+                $completa = ! connection_aborted();
+            } finally {
+                fclose($out);
 
-            if ($onComplete !== null) {
-                $onComplete($total);
+                if ($onComplete !== null) {
+                    $onComplete($total, $completa);
+                }
             }
         }, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',

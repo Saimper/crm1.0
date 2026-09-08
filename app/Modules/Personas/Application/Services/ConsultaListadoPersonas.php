@@ -30,6 +30,34 @@ final readonly class ConsultaListadoPersonas
             ->whereNull('p.eliminada_en');
     }
 
+    /**
+     * El límite por cartera del rol del usuario (F22), ANTES de los filtros.
+     *
+     * Una persona no pertenece a una cartera; sus casos sí. Así que un rol
+     * acotado ve a quien tenga AL MENOS UN caso en sus carteras, y deja de ver
+     * al resto, incluidas las personas sin ningún caso: de ésas no puede mirar
+     * un solo dato operativo, y listarlas sería enseñar el padrón del cliente
+     * por la puerta de atrás.
+     *
+     * `null` es «sin límite». Una lista vacía no deja ver a nadie, que es lo
+     * correcto para un rol restringido a carteras que ya no existen.
+     *
+     * @param  list<int>|null  $carterasPermitidas  Lo que devuelve `User::carterasPermitidas()`.
+     */
+    public function recortarACarteras(Builder $q, ?array $carterasPermitidas): Builder
+    {
+        if ($carterasPermitidas !== null) {
+            $q->whereExists(fn (Builder $sub) => $sub
+                ->select($this->db->raw('1'))
+                ->from('casos as cr')
+                ->whereColumn('cr.persona_id', 'p.id')
+                ->whereNull('cr.eliminada_en')
+                ->whereIn('cr.cartera_id', $carterasPermitidas));
+        }
+
+        return $q;
+    }
+
     public function aplicarFiltros(Builder $q, FiltrosListadoPersonas $filtros): Builder
     {
         if ($filtros->busqueda !== '') {

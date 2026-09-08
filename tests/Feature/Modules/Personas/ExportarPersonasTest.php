@@ -162,6 +162,44 @@ final class ExportarPersonasTest extends TestCase
         $this->assertSame('0', $fila['total_casos']);
     }
 
+    /**
+     * Un rol acotado por cartera (F22) no se lleva el padrón entero.
+     *
+     * Una persona no pertenece a una cartera, sus casos sí: el recorte es
+     * «tener al menos un caso en mis carteras». Sin esto, el supervisor al que
+     * la pantalla le esconde una cartera se llevaba en el CSV a todas sus
+     * personas, con nombre e identificación.
+     */
+    public function test_el_recorte_por_cartera_del_rol_gobierna_el_padron(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $permitida = $this->crearCarteraEn($proyecto);
+        $vetada = $this->crearCarteraEn($proyecto);
+
+        $deLaPermitida = $this->crearPersonaEn($proyecto, '6100000001');
+        $deLaVetada = $this->crearPersonaEn($proyecto, '6100000002');
+        $this->crearPersonaEn($proyecto, '6100000003');
+
+        $this->crearCasoEn($proyecto, ['cartera' => $permitida, 'persona' => $deLaPermitida]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'persona' => $deLaVetada]);
+
+        $supervisor = $this->crearSupervisor($proyecto);
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $proyecto->id,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
+            'cartera_id' => $permitida->id,
+        ]);
+
+        $csv = $this->actingAs($supervisor)->get($this->url($proyecto))->assertOk()->streamedContent();
+
+        $this->assertSame(
+            ['6100000001'],
+            array_column($this->filasDe($csv), 'identificacion'),
+            'Ni la persona de la cartera vetada, ni la que no tiene ningún caso.',
+        );
+    }
+
     /** @param  array<string, string>  $filtros */
     private function url(stdClass $proyecto, array $filtros = []): string
     {

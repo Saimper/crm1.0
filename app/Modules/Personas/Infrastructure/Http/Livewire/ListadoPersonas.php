@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Personas\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use App\Modules\Personas\Application\DTOs\FiltrosListadoPersonas;
 use App\Modules\Personas\Application\Services\ConsultaListadoPersonas;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -55,7 +57,10 @@ final class ListadoPersonas extends Component
         $consulta = app(ConsultaListadoPersonas::class);
 
         $personas = $consulta
-            ->aplicarFiltros($consulta->consultaBase($proyectoId), $filtros)
+            ->aplicarFiltros(
+                $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $this->usuario()->carterasPermitidas($proyectoId)),
+                $filtros,
+            )
             ->select([
                 'p.id', 'p.public_id', 'p.tipo_persona',
                 'p.identificacion', 'p.nombres', 'p.apellidos', 'p.razon_social',
@@ -76,5 +81,13 @@ final class ListadoPersonas extends Component
             'totalProyecto' => $totalProyecto,
             'urlExportar' => route('proyectos.personas.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
         ]);
+    }
+
+    private function usuario(): User
+    {
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario;
     }
 }
