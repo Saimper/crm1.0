@@ -38,6 +38,25 @@ final class ImportarAutorizacionTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
+    /**
+     * La puerta de la calle: el middleware `can:importaciones.crear` de la
+     * ruta. Los demás tests de este fichero entran por dentro del wizard, así
+     * que si nadie mira esta línea, quitar el middleware de routes/web.php
+     * pasaría la suite entera en verde.
+     */
+    public function test_un_gestor_no_entra_a_la_pantalla_de_importaciones(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+
+        $this->actingAs($this->crearGestor($proyecto))
+            ->get(route('proyectos.importaciones', ['proyecto_id' => $proyecto->id]))
+            ->assertForbidden();
+
+        $this->actingAs($this->crearSupervisor($proyecto))
+            ->get(route('proyectos.importaciones', ['proyecto_id' => $proyecto->id]))
+            ->assertOk();
+    }
+
     public function test_importacion_id_no_es_reapuntable_desde_el_cliente(): void
     {
         $proyecto = $this->crearProyectoCobranza();

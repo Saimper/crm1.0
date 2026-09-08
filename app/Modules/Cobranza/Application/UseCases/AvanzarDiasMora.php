@@ -60,11 +60,9 @@ use stdClass;
  *    completada que escribió la fila, o el alta.
  *  - Este UseCase: sólo `dias_mora_actualizado_en`.
  *
- * Fuera de la lista a propósito: `ProcesarImportacionCasosCobranza`, el
- * importador anterior al asistente dinámico. Su pantalla (`ImportarCasos`) ya
- * no se monta en ninguna ruta; sigue en el código sólo por sus tests y escribe
- * `dias_mora` sin ancla. Si alguien lo resucita, tiene que anclar como
- * `ProcesarFilaDinamica`.
+ * La lista es cerrada y hay que mantenerla así: una fuente nueva que escriba
+ * `dias_mora` sin ancla deja la cuenta congelada en el día de su carga, y no
+ * se nota hasta que el gestor llama con la cifra de hace tres semanas.
  */
 final class AvanzarDiasMora
 {

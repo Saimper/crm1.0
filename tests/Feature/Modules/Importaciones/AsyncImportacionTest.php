@@ -143,6 +143,37 @@ final class AsyncImportacionTest extends TestCase
 
         $this->assertDatabaseHas('personas', ['identificacion' => '8800000001', 'proyecto_id' => $proyectoCob->id]);
         $this->assertDatabaseHas('personas', ['identificacion' => '8800000002', 'proyecto_id' => $proyectoCx->id]);
+
+        // Y el caso del tipo, no sólo la persona: el motor elige la tabla CTI
+        // por el target del esquema, y un fallo ahí dejaría la importación en
+        // «completada» con la persona creada y el ticket en ninguna parte.
+        $this->assertDatabaseHas('casos_ticket_cx', ['codigo_ticket' => 'EXP-8800000002']);
+    }
+
+    /**
+     * Venta y servicio por el mismo camino.
+     *
+     * Cobranza y CX ya tenían quien los mirase; los otros dos tipos vivían de
+     * los tests del importador de columnas fijas, que se retiró. Sin esto, un
+     * cambio en el `match` del target los rompería en silencio hasta que un
+     * cliente de venta subiera su archivo.
+     */
+    public function test_los_cuatro_tipos_de_proyecto_crean_su_caso(): void
+    {
+        [, $usuario] = $this->contextoProyectoCobranza();
+
+        $venta = $this->crearProyectoVenta();
+        $servicio = $this->crearProyectoServicio();
+
+        $this->ejecutarJob($this->crearImportacionPreparada($venta, $usuario, [
+            ['identificacion' => '8800000003', 'nombre' => 'Lead de venta'],
+        ]));
+        $this->ejecutarJob($this->crearImportacionPreparada($servicio, $usuario, [
+            ['identificacion' => '8800000004', 'nombre' => 'Orden de servicio'],
+        ]));
+
+        $this->assertDatabaseHas('casos_lead_venta', ['codigo_lead' => 'EXP-8800000003']);
+        $this->assertDatabaseHas('casos_servicio', ['codigo_servicio' => 'EXP-8800000004']);
     }
 
     public function test_cancelacion_marca_estado_y_evita_procesamiento(): void
