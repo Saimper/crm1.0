@@ -6,22 +6,21 @@
         <div class="alert alert-warning" style="margin-bottom:14px;">{{ session('paso-motivos-no-contacto-error') }}</div>
     @endif
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/>
-            </div>
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.motivos.n_motivos', ['n' => $motivos->count()]) }}</span>
-            <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
-                <x-ui.icon name="plus" :size="14" />
-                <span>{{ __('configurador.motivos.nuevo') }}</span>
-            </button>
-        </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('configurador.motivos.n_motivos', ['n' => $motivos->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda"
+                               placeholder="{{ __('common.search') }}…" />
+            <x-slot:acciones>
+                <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
+                    <x-ui.icon name="plus" :size="14" />
+                    <span>{{ __('configurador.motivos.nuevo') }}</span>
+                </button>
+            </x-slot:acciones>
+        </x-ui.toolbar>
+
+        {{-- La tabla de antes sigue en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($motivos->isEmpty())
             <div class="empty">
@@ -43,8 +42,8 @@
                 <tbody>
                     @foreach($motivos as $m)
                         <tr wire:key="paso-motivo-{{ $m->id }}" wire:click="abrirFormEditar({{ $m->id }})">
-                            <td><span class="font-mono" style="font-size:12px;">{{ $m->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $m->nombre }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $m->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $m->nombre }}</span></td>
                             <td class="num">{{ $m->orden }}</td>
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:6px;">
@@ -52,7 +51,7 @@
                                     {{ $m->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -64,7 +63,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="paso-motivo-scrim"></div>
         <div class="drawer" wire:key="paso-motivo-drawer">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('configurador.motivos.drawer_nuevo') : __('configurador.motivos.drawer_editar') }}
                 </div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}">
@@ -94,9 +93,9 @@
                         </div>
                         <div>
                             <label class="field-label">{{ __('configurador.campo_estado') }}</label>
-                            <label style="display:flex;align-items:center;gap:8px;padding-top:8px;">
+                            <label class="flex items-center gap-2" style="padding-top:8px;">
                                 <input type="checkbox" wire:model="form.activo"/>
-                                <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.activo') }}</span>
+                                <span class="text-base text-ink-600">{{ __('configurador.activo') }}</span>
                             </label>
                         </div>
                     </div>
@@ -122,14 +121,14 @@
          causa y la tabla estaba vacía, así que esas cuatro gestiones no se
          podían guardar. --}}
     <div class="card" style="padding:12px 16px;margin-top:14px;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <strong style="font-size:13px;">{{ __('configurador.causas.titulo') }}</strong>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.causas.ayuda') }}</span>
+        <div class="flex items-center flex-wrap" style="gap:10px;">
+            <strong class="text-base">{{ __('configurador.causas.titulo') }}</strong>
+            <span class="text-sm text-ink-500">{{ __('configurador.causas.ayuda') }}</span>
         </div>
 
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+        <div class="flex items-center flex-wrap" style="gap:6px;margin-top:10px;">
             @foreach($causas as $c)
-                <span class="badge" style="display:inline-flex;align-items:center;gap:6px;{{ $c->activo ? '' : 'opacity:.5;' }}">
+                <span class="badge" style="gap:6px;{{ $c->activo ? '' : 'opacity:.5;' }}">
                     <button type="button" wire:click="alternarCausa({{ $c->id }})" class="btn btn-ghost btn-sm" style="padding:0 2px;">
                         <span class="dot dot-{{ $c->activo ? 'success' : 'neutral' }}"></span>
                     </button>
@@ -140,12 +139,12 @@
                 </span>
             @endforeach
 
-            <div style="display:flex;gap:6px;align-items:center;">
+            <div class="flex items-center" style="gap:6px;">
                 <input type="text" wire:model="causaNueva" wire:keydown.enter="crearCausa" class="input"
                        style="width:220px;height:28px;" placeholder="{{ __('configurador.causas.nueva') }}"/>
                 <button type="button" wire:click="crearCausa" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
             </div>
         </div>
-        @error('causaNueva')<div style="font-size:12px;color:var(--danger-text);margin-top:6px;">{{ $message }}</div>@enderror
+        @error('causaNueva')<div class="field-error" style="margin-top:6px;">{{ $message }}</div>@enderror
     </div>
 </div>

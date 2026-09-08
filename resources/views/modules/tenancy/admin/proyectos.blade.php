@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('tenancy.proyectos_title') }}</h1>
             <div class="page-subtitle">{{ __('tenancy.proyectos_subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="flex items-start gap-2">
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('tenancy.back_to_panel') }}</a>
             <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
@@ -17,15 +17,9 @@
         <div class="alert alert-success" style="margin-bottom:14px;">{{ session('admin-proyectos-ok') }}</div>
     @endif
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" :placeholder="__('common.search')" style="padding-left:28px;"/>
-            </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('tenancy.records_count', ['count' => $proyectos->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda" :placeholder="__('common.search')" />
             <select wire:model.live="filtroTipo" class="select" style="width:160px;">
                 <option value="">{{ __('tenancy.filter_all_types') }}</option>
                 <option value="cobranza">{{ __('tenancy.filter_cobranza') }}</option>
@@ -33,9 +27,11 @@
                 <option value="venta">{{ __('tenancy.filter_venta') }}</option>
                 <option value="servicio">{{ __('tenancy.filter_servicio') }}</option>
             </select>
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('tenancy.records_count', ['count' => $proyectos->count()]) }}</span>
-        </div>
+        </x-ui.toolbar>
+
+        {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($proyectos->isEmpty())
             <div class="empty">
@@ -73,14 +69,13 @@
                              chevron de la derecha y lo que espera cualquiera. Editar y
                              configurar son acciones aparte, cada una con su icono. --}}
                         <tr wire:key="proyecto-{{ $p->id }}"
-                            onclick="window.location='{{ route('proyectos.dashboard', $p->id) }}'"
-                            style="cursor:pointer;">
-                            <td><span class="font-mono" style="font-size:12px;">{{ $p->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $p->nombre }}</span></td>
+                            onclick="window.location='{{ route('proyectos.dashboard', $p->id) }}'">
+                            <td><span class="font-mono text-sm">{{ $p->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $p->nombre }}</span></td>
                             @unless($dentroDeUnCliente)
                                 <td>
-                                    <div style="font-size:13px;color:var(--text);">{{ $p->mandante_codigo }}</div>
-                                    <div style="font-size:11px;color:var(--text-tertiary);">{{ $p->mandante_nombre }}</div>
+                                    <div class="text-base">{{ $p->mandante_codigo }}</div>
+                                    <div class="text-xs text-ink-500">{{ $p->mandante_nombre }}</div>
                                 </td>
                             @endunless
                             <td><span class="badge {{ $tipoBadge }}">{{ $p->tipo_operacion }}</span></td>
@@ -105,7 +100,7 @@
                                        aria-label="{{ __('tenancy.accion_configurar') }}">
                                         <x-ui.icon name="settings" :size="14" />
                                     </a>
-                                    <x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);margin-left:4px;" />
+                                    <x-ui.icon name="chevron-right" :size="14" class="text-ink-400" style="margin-left:4px;" />
                                 </span>
                             </td>
                         </tr>
@@ -119,7 +114,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="form-proyecto-scrim"></div>
         <div class="drawer" wire:key="form-proyecto">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('tenancy.drawer_new_proyecto') : __('tenancy.drawer_edit_proyecto') }}
                 </div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" :aria-label="__('tenancy.close')">
@@ -132,17 +127,17 @@
                         <label class="field-label">
                             {{ __('tenancy.label_mandante') }}
                             @if($editandoId !== null)
-                                <span style="color:var(--text-tertiary);font-weight:400;">{{ __('tenancy.type_locked') }}</span>
+                                <span class="text-ink-500" style="font-weight:400;">{{ __('tenancy.type_locked') }}</span>
                             @endif
                         </label>
                         {{-- Al editar, el cliente se muestra pero no se cambia: mover un
                              proyecto de empresa arrastra sus casos, personas y carteras,
                              que cuelgan de proyecto_id. Mismo trato que tipo_operacion. --}}
                         @if($editandoId !== null)
-                            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
+                            <div class="flex items-center gap-2" style="height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
                                 <span class="badge badge-neutral">{{ $mandanteEnEdicion?->codigo ?? '—' }}</span>
-                                <span style="font-size:12px;">{{ $mandanteEnEdicion?->nombre }}</span>
-                                <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;">{{ __('tenancy.not_editable') }}</span>
+                                <span class="text-sm">{{ $mandanteEnEdicion?->nombre }}</span>
+                                <span class="text-xs text-ink-500" style="margin-left:auto;">{{ __('tenancy.not_editable') }}</span>
                             </div>
                         @else
                             <select wire:model="form.mandante_id" class="select @error('form.mandante_id') input-error @enderror">
@@ -164,13 +159,13 @@
                         <label class="field-label">
                             {{ __('tenancy.label_type') }}
                             @if($editandoId !== null)
-                                <span style="color:var(--text-tertiary);font-weight:400;">{{ __('tenancy.type_locked') }}</span>
+                                <span class="text-ink-500" style="font-weight:400;">{{ __('tenancy.type_locked') }}</span>
                             @endif
                         </label>
                         @if($editandoId !== null)
-                            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
+                            <div class="flex items-center gap-2" style="height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
                                 <span class="badge badge-neutral">{{ $form['tipo_operacion'] }}</span>
-                                <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;" :title="__('tenancy.not_editable')">{{ __('tenancy.not_editable') }}</span>
+                                <span class="text-xs text-ink-500" style="margin-left:auto;" :title="__('tenancy.not_editable')">{{ __('tenancy.not_editable') }}</span>
                             </div>
                         @else
                             <select wire:model="form.tipo_operacion"
@@ -211,11 +206,11 @@
                          apagado por defecto: hay operaciones donde repartir es
                          decisión del supervisor y sólo suya. --}}
                     <div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:12px;">
-                        <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;">
+                        <label class="flex items-start" style="gap:9px;cursor:pointer;">
                             <input type="checkbox" wire:model="form.permite_autoasignacion" style="margin-top:2px;"/>
                             <span>
-                                <span style="font-size:13px;color:var(--text);">{{ __('tenancy.autoasignacion') }}</span>
-                                <span style="display:block;font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ __('tenancy.autoasignacion_ayuda') }}</span>
+                                <span class="text-base">{{ __('tenancy.autoasignacion') }}</span>
+                                <span class="text-sm text-ink-500" style="display:block;margin-top:2px;">{{ __('tenancy.autoasignacion_ayuda') }}</span>
                             </span>
                         </label>
                     </div>

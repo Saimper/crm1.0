@@ -8,7 +8,7 @@
     @error('form')<div class="alert alert-danger">{{ $message }}</div>@enderror
 
     <div class="flex items-center justify-between">
-        <div style="font-size:12px;color:var(--text-tertiary);">
+        <div class="text-sm text-ink-500">
             {{ __('usuarios.roles_summary', ['count' => $rolesCustom->count()]) }}
         </div>
         <button type="button" wire:click="abrirFormCrear" class="btn btn-primary btn-sm">
@@ -19,7 +19,7 @@
 
     <div class="space-y-3">
         <div class="card card-pad">
-            <div style="font-size:12px;color:var(--text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">
+            <div class="text-sm text-ink-500 font-semibold" style="text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">
                 {{ __('usuarios.section_base_roles') }}
             </div>
             <div class="space-y-2">
@@ -28,11 +28,11 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="badge badge-neutral">{{ __('usuarios.badge_system') }}</span>
-                                <span style="font-weight:600;font-family:var(--font-mono);">{{ $rb->codigo }}</span>
-                                <span style="color:var(--text-secondary);">{{ $rb->nombre }}</span>
+                                <span class="font-semibold font-mono">{{ $rb->codigo }}</span>
+                                <span class="text-ink-600">{{ $rb->nombre }}</span>
                             </div>
                             @if($rb->descripcion)
-                                <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ $rb->descripcion }}</div>
+                                <div class="text-sm text-ink-500" style="margin-top:2px;">{{ $rb->descripcion }}</div>
                             @endif
                         </div>
                     </div>
@@ -55,16 +55,16 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <span class="badge badge-primary">{{ __('usuarios.badge_custom_role') }}</span>
-                                <span style="font-weight:600;font-family:var(--font-mono);">{{ $rc->codigo }}</span>
-                                <span style="color:var(--text-secondary);">{{ $rc->nombre }}</span>
+                                <span class="font-semibold font-mono">{{ $rc->codigo }}</span>
+                                <span class="text-ink-600">{{ $rc->nombre }}</span>
                                 @if(! $rc->activo)
                                     <span class="badge badge-neutral">{{ __('usuarios.badge_inactive_role') }}</span>
                                 @endif
                             </div>
                             @if($rc->descripcion)
-                                <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">{{ $rc->descripcion }}</div>
+                                <div class="text-sm text-ink-500" style="margin-top:2px;">{{ $rc->descripcion }}</div>
                             @endif
-                            <div style="font-size:11px;color:var(--text-tertiary);margin-top:6px;">
+                            <div class="text-xs text-ink-500" style="margin-top:6px;">
                                 {{ __('usuarios.permissions_count', ['count' => $conteoPermisos[$rc->id] ?? 0]) }} ·
                                 {{ __('usuarios.assignments_count', ['count' => $conteoAsignaciones[$rc->id] ?? 0]) }}
                             </div>
@@ -97,7 +97,7 @@
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
-            <div style="padding:20px;">
+            <div class="card-pad">
                 <div class="field">
                     <label class="field-label">{{ __('usuarios.label_role_code') }}</label>
                     <input type="text" wire:model="form_codigo"
@@ -129,14 +129,14 @@
                     <div style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:10px;">
                         @foreach($permisosDisponibles as $grupo => $permisos)
                             <div style="margin-bottom:14px;">
-                                <div style="font-size:11px;color:var(--text-tertiary);font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">
+                                <div class="text-xs text-ink-500" style="font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">
                                     {{ $grupo }}
                                 </div>
                                 @foreach($permisos as $p)
-                                    <label class="flex items-center gap-2" style="font-size:12px;padding:3px 0;">
+                                    <label class="flex items-center gap-2 text-sm" style="padding:3px 0;">
                                         <input type="checkbox" value="{{ $p->codigo }}"
                                                wire:model="form_permisos" class="checkbox" />
-                                        <span class="font-mono" style="color:var(--text-tertiary);">{{ $p->codigo }}</span>
+                                        <span class="font-mono text-ink-500">{{ $p->codigo }}</span>
                                         <span>{{ $p->nombre }}</span>
                                     </label>
                                 @endforeach

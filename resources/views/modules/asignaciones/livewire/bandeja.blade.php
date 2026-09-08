@@ -49,6 +49,10 @@
         </div>
     </x-ui.card>
 
+    {{-- La bandeja de antes se queda en pantalla mientras llega la nueva; sólo
+         esta barra dice que se está trabajando. --}}
+    <x-ui.cargando />
+
     @if($asignaciones->isEmpty())
         <x-ui.empty-state
             :title="__('asignaciones.empty_title')"

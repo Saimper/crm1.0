@@ -1,6 +1,6 @@
-<div style="display:flex;flex-direction:column;gap:14px;">
+<div class="flex flex-col" style="gap:14px;">
     @if(session('campanas-ok'))
-        <div class="card" style="padding:10px 14px;border-color:var(--success);background:var(--success-soft);color:var(--success-text);font-size:13px;">
+        <div class="card text-base" style="padding:10px 14px;border-color:var(--success);background:var(--success-soft);color:var(--success-text);">
             {{ session('campanas-ok') }}
         </div>
     @endif
@@ -8,17 +8,17 @@
     {{-- Sin campañas no se puede asignar nada, y sin asignación ningún gestor ve
          su bandeja. Se dice aquí, que es donde se resuelve. --}}
     @if($campanas->isEmpty())
-        <div class="card" style="padding:16px;border-color:var(--warning);background:var(--warning-soft);">
-            <div style="font-size:13px;font-weight:600;color:var(--warning-text);">{{ __('campanas.vacio_titulo') }}</div>
-            <div style="font-size:13px;color:var(--warning-text);margin-top:4px;">{{ __('campanas.vacio_ayuda', ['entidades' => $rotuloCasos]) }}</div>
+        <div class="card card-pad-sm" style="border-color:var(--warning);background:var(--warning-soft);">
+            <div class="text-base font-semibold text-warning-700">{{ __('campanas.vacio_titulo') }}</div>
+            <div class="text-base text-warning-700" style="margin-top:4px;">{{ __('campanas.vacio_ayuda', ['entidades' => $rotuloCasos]) }}</div>
         </div>
     @endif
 
     <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);">
+        <div class="card-header" style="padding:14px 16px;">
             <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);">{{ __('campanas.titulo') }}</div>
-                <div style="font-size:12px;color:var(--text-tertiary);">
+                <div class="card-title">{{ __('campanas.titulo') }}</div>
+                <div class="text-sm text-ink-500">
                     {{ trans_choice('campanas.sin_asignar', $casosSinAsignar, ['n' => number_format($casosSinAsignar), 'entidad' => $rotuloCaso, 'entidades' => $rotuloCasos]) }}
                 </div>
             </div>
@@ -41,16 +41,16 @@
                 <tbody>
                     @foreach($campanas as $c)
                         <tr wire:key="campana-{{ $c->id }}">
-                            <td><span class="font-mono" style="font-size:12px;">{{ $c->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $c->nombre }}</span></td>
-                            <td style="font-size:12px;color:var(--text-secondary);">
+                            <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $c->nombre }}</span></td>
+                            <td class="text-sm text-ink-600">
                                 {{ \Illuminate\Support\Carbon::parse($c->fecha_inicio)->format('d/m/Y') }}
                                 → {{ $c->fecha_fin ? \Illuminate\Support\Carbon::parse($c->fecha_fin)->format('d/m/Y') : '∞' }}
                             </td>
                             <td class="num">{{ number_format($c->total_asignaciones) }}</td>
                             <td>
                                 <select wire:change="cambiarEstado({{ $c->id }}, $event.target.value)"
-                                        class="select" style="font-size:12px;padding:4px 8px;height:auto;">
+                                        class="select text-sm" style="padding:4px 8px;height:auto;">
                                     @foreach($estados as $e)
                                         <option value="{{ $e->value }}" @selected($c->estado === $e->value)>
                                             {{ __('campanas.estado_'.$e->value) }}
@@ -69,12 +69,12 @@
         <div class="drawer-backdrop" wire:click="cerrarForm"></div>
         <div class="drawer" style="max-width:520px;">
             <div class="drawer-header">
-                <span style="font-weight:600;">{{ __('campanas.nueva') }}</span>
+                <span class="font-semibold">{{ __('campanas.nueva') }}</span>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('common.cancel') }}">
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
-            <div class="drawer-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="drawer-body flex flex-col" style="gap:14px;">
                 <div>
                     <label class="field-label">{{ __('campanas.col_codigo') }}</label>
                     <input type="text" wire:model="form.codigo" placeholder="COBRANZA_SEP"

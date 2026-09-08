@@ -2,13 +2,16 @@
     @if(session('catalogo-niveles-sla-ok'))<div class="alert alert-success" style="margin-bottom:14px;">{{ session('catalogo-niveles-sla-ok') }}</div>@endif
     @if(session('catalogo-niveles-sla-error'))<div class="alert alert-warning" style="margin-bottom:14px;">{{ session('catalogo-niveles-sla-error') }}</div>@endif
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;"><span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;"><x-ui.icon name="search" :size="13"/></span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda" class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/></div>
-            <span style="flex:1;"></span><span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.niveles_sla.n_niveles', ['n' => $rows->count()]) }}</span>
-            <button type="button" wire:click="abrirFormCrear" class="btn btn-primary"><x-ui.icon name="plus" :size="14"/><span>{{ __('configurador.niveles_sla.nuevo') }}</span></button>
-        </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('configurador.niveles_sla.n_niveles', ['n' => $rows->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda" placeholder="{{ __('common.search') }}…" />
+            <x-slot:acciones>
+                <button type="button" wire:click="abrirFormCrear" class="btn btn-primary"><x-ui.icon name="plus" :size="14"/><span>{{ __('configurador.niveles_sla.nuevo') }}</span></button>
+            </x-slot:acciones>
+        </x-ui.toolbar>
+
+        <x-ui.cargando />
+
         @if($rows->isEmpty())
             <div class="empty"><div class="empty-icon"><x-ui.icon name="folder" :size="32"/></div><div class="empty-title">{{ __('configurador.niveles_sla.sin_titulo') }}</div></div>
         @else
@@ -17,12 +20,12 @@
                 <tbody>
                 @foreach($rows as $r)
                     <tr wire:key="cat-sla-{{ $r->id }}" wire:click="abrirFormEditar({{ $r->id }})">
-                        <td><span class="font-mono" style="font-size:12px;">{{ $r->codigo }}</span></td>
-                        <td><span style="font-weight:500;">{{ $r->nombre }}</span></td>
+                        <td><span class="font-mono text-sm">{{ $r->codigo }}</span></td>
+                        <td><span class="font-medium">{{ $r->nombre }}</span></td>
                         <td class="num">{{ $r->horas_resolucion }}</td>
                         <td class="num">{{ $r->orden }}</td>
                         <td><span style="display:inline-flex;align-items:center;gap:6px;"><span class="dot dot-{{ $r->activo ? 'success' : 'neutral' }}"></span>{{ $r->activo ? __('configurador.activo') : __('configurador.inactivo') }}</span></td>
-                        <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);"/></td>
+                        <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14"/></td>
                     </tr>
                 @endforeach
                 </tbody>
@@ -33,7 +36,7 @@
     @if($formVisible)
         <div class="scrim" wire:click="cerrarForm" wire:key="cat-sla-scrim"></div>
         <div class="drawer" wire:key="cat-sla-drawer">
-            <div class="drawer-header"><div style="font-size:14px;font-weight:600;">{{ $editandoId === null ? __('configurador.niveles_sla.drawer_nuevo') : __('configurador.niveles_sla.drawer_editar') }}</div>
+            <div class="drawer-header"><div class="text-md font-semibold">{{ $editandoId === null ? __('configurador.niveles_sla.drawer_nuevo') : __('configurador.niveles_sla.drawer_editar') }}</div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}"><x-ui.icon name="x" :size="14"/></button></div>
             <div class="drawer-body"><div style="display:grid;grid-template-columns:1fr;gap:14px;">
                 <div><label class="field-label">{{ __('configurador.campo_codigo') }}</label><input type="text" wire:model="form.codigo" maxlength="50" class="input mono uppercase @error('form.codigo') input-error @enderror"/>@error('form.codigo')<div class="field-error">{{ $message }}</div>@enderror</div>
@@ -41,7 +44,7 @@
                 <div><label class="field-label">{{ __('configurador.niveles_sla.campo_horas') }}</label><input type="number" min="1" wire:model="form.horas_resolucion" class="input @error('form.horas_resolucion') input-error @enderror"/>@error('form.horas_resolucion')<div class="field-error">{{ $message }}</div>@enderror</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div><label class="field-label">{{ __('configurador.campo_orden') }}</label><input type="number" min="0" wire:model="form.orden" class="input"/></div>
-                    <div><label class="field-label">{{ __('configurador.campo_estado') }}</label><label style="display:flex;align-items:center;gap:8px;padding-top:8px;"><input type="checkbox" wire:model="form.activo"/><span style="font-size:13px;">{{ __('configurador.activo') }}</span></label></div>
+                    <div><label class="field-label">{{ __('configurador.campo_estado') }}</label><label class="flex items-center gap-2" style="padding-top:8px;"><input type="checkbox" wire:model="form.activo"/><span class="text-base">{{ __('configurador.activo') }}</span></label></div>
                 </div>
             </div></div>
             <div class="drawer-footer">

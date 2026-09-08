@@ -92,6 +92,9 @@
             </button>
         </div>
     </section>
+    {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+         esta barra dice que se está trabajando. --}}
+    <x-ui.cargando />
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">

@@ -6,15 +6,10 @@
         </div>
     </div>
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="{{ __('casos.search_placeholder') }}" style="padding-left:28px;"/>
-            </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('casos.results', ['count' => $casos->total()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda"
+                               placeholder="{{ __('casos.search_placeholder') }}" />
             <select wire:model.live="carteraId" class="input" style="width:180px;">
                 <option value="">{{ __('casos.all_wallets') }}</option>
                 @foreach($carteras as $c)
@@ -37,39 +32,35 @@
                     {{ __('casos.export_csv') }}
                 </a>
             @endcan
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('casos.results', ['count' => $casos->total()]) }}</span>
-
-            <div style="position:relative;">
+            <x-slot:acciones>
+            <div class="popover-anchor">
                 <button type="button" wire:click="alternarSelectorColumnas"
                         class="btn btn-ghost btn-sm" title="{{ __('casos.columns_title') }}">
                     <x-ui.icon name="settings" :size="13" /> {{ __('casos.columns') }}
                 </button>
 
                 @if($selectorColumnasAbierto)
-                    <div style="position:absolute;right:0;top:34px;z-index:60;width:290px;background:var(--bg-elev);
-                                border:1px solid var(--border);border-radius:10px;
-                                box-shadow:0 10px 28px rgba(15,23,42,.18);padding:12px;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                            <strong style="font-size:12px;">{{ __('casos.columns_title') }}</strong>
+                    <div class="popover popover-right" style="width:290px;">
+                        <div class="flex items-center justify-between" style="margin-bottom:8px;">
+                            <strong class="text-sm">{{ __('casos.columns_title') }}</strong>
                             <button type="button" wire:click="restaurarColumnas"
-                                    class="btn btn-ghost btn-sm" style="font-size:11px;">{{ __('casos.columns_reset') }}</button>
+                                    class="btn btn-ghost btn-sm text-xs">{{ __('casos.columns_reset') }}</button>
                         </div>
 
-                        <div style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;">
+                        <div class="popover-scroll flex flex-col" style="gap:2px;">
                             @foreach($catalogoColumnas as $columna)
                                 @php
                                     $activa = in_array($columna->clave, $columnasVisibles, true);
                                     $posicion = array_search($columna->clave, $columnasVisibles, true);
                                 @endphp
-                                <div style="display:flex;align-items:center;gap:6px;padding:3px 2px;">
+                                <div class="flex items-center" style="gap:6px;padding:3px 2px;">
                                     {{-- input fuera del label: anidarlo hace que el click burbujee
                                          al label y este lo reenvíe, disparando wire:click dos veces
                                          (la columna se activaba y desactivaba en el mismo clic). --}}
                                     <input type="checkbox" id="col-{{ $columna->clave }}" @checked($activa)
                                            wire:click="alternarColumna('{{ $columna->clave }}')"/>
                                     <label for="col-{{ $columna->clave }}"
-                                           style="flex:1;cursor:pointer;font-size:12px;">{{ $columna->etiqueta }}</label>
+                                           class="flex-1 min-w-0 text-sm" style="cursor:pointer;">{{ $columna->etiqueta }}</label>
                                     @if($activa)
                                         <button type="button" wire:click="moverColumna('{{ $columna->clave }}', -1)"
                                                 class="btn btn-ghost btn-sm" style="padding:1px 5px;"
@@ -84,7 +75,12 @@
                     </div>
                 @endif
             </div>
-        </div>
+            </x-slot:acciones>
+        </x-ui.toolbar>
+
+        {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($casos->isEmpty())
             <div class="empty">
@@ -105,7 +101,9 @@
                         @foreach($columnasVisibles as $clave)
                             @php $col = collect($catalogoColumnas)->firstWhere('clave', $clave); @endphp
                             @if($col)
-                                <th @class(['num' => $col->numerica])>{{ $col->etiqueta }}</th>
+                                <x-ui.th :num="$col->numerica" :sort="$col->clave" :activo="$orden" :dir="$direccion">
+                                    {{ $col->etiqueta }}
+                                </x-ui.th>
                             @endif
                         @endforeach
                         <th style="width:60px;"></th>
@@ -122,20 +120,20 @@
                                 'caso' => $caso->public_id,
                             ]);
                         @endphp
-                        <tr wire:key="caso-{{ $caso->id }}" onclick="window.Livewire.navigate('{{ $url }}')" style="cursor:pointer;">
+                        <tr wire:key="caso-{{ $caso->id }}" onclick="window.Livewire.navigate('{{ $url }}')">
                             @foreach($columnasVisibles as $clave)
                                 @php $col = collect($catalogoColumnas)->firstWhere('clave', $clave); @endphp
                                 @if($col)
                                     <x-casos.celda-caso :caso="$caso" :columna="$col" :nombre="$nombre" />
                                 @endif
                             @endforeach
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
 
-            <div style="padding:10px 16px;border-top:1px solid var(--border);">
+            <div class="card-footer">
                 {{ $casos->links() }}
             </div>
         @endif

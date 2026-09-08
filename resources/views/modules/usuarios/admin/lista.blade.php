@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('usuarios.page_users_title') }}</h1>
             <div class="page-subtitle">{{ __('usuarios.page_users_subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="flex items-start gap-2">
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('usuarios.back_to_panel') }}</a>
             <button type="button" wire:click="abrirFormCrearUsuario" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
@@ -21,20 +21,19 @@
     @endif
 
     {{-- Listado --}}
-    <div class="card" style="padding:0;margin-bottom:14px;">
+    <div class="card" style="margin-bottom:14px;">
         <div class="card-header">
             <span class="card-title">{{ __('usuarios.list_title') }}</span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('usuarios.list_count', ['count' => $usuarios->count()]) }}</span>
+            <span class="text-sm text-ink-500">{{ __('usuarios.list_count', ['count' => $usuarios->count()]) }}</span>
         </div>
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="{{ __('usuarios.search_placeholder') }}" style="padding-left:28px;"/>
-            </div>
-        </div>
+        <x-ui.toolbar>
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda"
+                               placeholder="{{ __('usuarios.search_placeholder') }}" />
+        </x-ui.toolbar>
+
+        {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
         @if($usuarios->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="users" :size="32" /></div>
@@ -58,27 +57,27 @@
                     @foreach($usuarios as $u)
                         <tr wire:key="usuario-{{ $u->id }}">
                             <td>
-                                <div style="display:flex;align-items:center;gap:10px;">
+                                <div class="flex items-center" style="gap:10px;">
                                     <div class="avatar" style="background:var(--bg-subtle);color:var(--text-secondary);border-color:var(--border);">
                                         {{ \Illuminate\Support\Str::of($u->name)->explode(' ')->map(fn($p) => mb_substr($p, 0, 1))->take(2)->implode('') }}
                                     </div>
-                                    <span style="font-weight:500;">{{ $u->name }}</span>
+                                    <span class="font-medium">{{ $u->name }}</span>
                                 </div>
                             </td>
-                            <td><span class="font-mono" style="font-size:12px;">{{ $u->email }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $u->email }}</span></td>
                             {{-- De qué empresa es. Sin esto la tabla mezcla clientes sin decirlo. --}}
                             <td>
                                 @if($u->mandante_codigo)
-                                    <span class="badge badge-neutral" style="font-size:11px;">{{ $u->mandante_codigo }}</span>
+                                    <span class="badge badge-neutral text-xs">{{ $u->mandante_codigo }}</span>
                                 @else
-                                    <span style="color:var(--text-tertiary);font-size:12px;">{{ __('usuarios.sin_cliente') }}</span>
+                                    <span class="text-ink-500 text-sm">{{ __('usuarios.sin_cliente') }}</span>
                                 @endif
                             </td>
                             <td>
                                 @if($u->es_admin_global)
                                     <span class="badge badge-danger">ADMIN_GLOBAL</span>
                                 @else
-                                    <span style="color:var(--text-tertiary);font-size:12px;">—</span>
+                                    <span class="text-ink-500 text-sm">—</span>
                                 @endif
                             </td>
                             <td class="num">{{ isset($asignaciones[$u->id]) ? $asignaciones[$u->id]->count() : 0 }}</td>
@@ -120,24 +119,24 @@
 
     {{-- Matriz de acceso --}}
     @if($proyectos->isNotEmpty() && $usuarios->isNotEmpty())
-        <div class="card" style="padding:0;">
+        <div class="card">
             <div class="card-header">
                 <span class="card-title">{{ __('usuarios.matrix_title') }}</span>
             </div>
-            <div style="overflow-x:auto;">
+            <div class="scroll-x">
                 <table class="table table-compact">
                     <thead>
                         <tr>
                             <th>{{ __('usuarios.col_user') }}</th>
                             @foreach($proyectos as $p)
-                                <th style="width:140px;"><span class="font-mono" style="font-size:11px;">{{ $p->codigo }}</span></th>
+                                <th style="width:140px;"><span class="font-mono text-xs">{{ $p->codigo }}</span></th>
                             @endforeach
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($usuarios as $u)
                             <tr wire:key="matriz-{{ $u->id }}">
-                                <td style="font-weight:500;">{{ $u->name }}</td>
+                                <td class="font-medium">{{ $u->name }}</td>
                                 @foreach($proyectos as $p)
                                     @php
                                         $rolesDelUsuarioEnProyecto = isset($asignaciones[$u->id])
@@ -148,7 +147,7 @@
                                         @if($u->es_admin_global)
                                             <span class="badge badge-danger">Admin</span>
                                         @elseif($rolesDelUsuarioEnProyecto->isEmpty())
-                                            <span style="color:var(--text-muted);">—</span>
+                                            <span class="text-ink-400">—</span>
                                         @else
                                             @foreach($rolesDelUsuarioEnProyecto as $a)
                                                 @php
@@ -177,7 +176,7 @@
         <div class="scrim" wire:click="cerrarFormUsuario" wire:key="form-usuario-scrim"></div>
         <div class="drawer" wire:key="form-usuario">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $editandoUsuarioId === null ? __('usuarios.drawer_new_user') : __('usuarios.drawer_edit_user') }}
                 </div>
                 <button type="button" wire:click="cerrarFormUsuario" class="icon-btn" aria-label="{{ __('usuarios.aria_close') }}">
@@ -205,7 +204,7 @@
                            class="input @error('formUsuario.password') input-error @enderror"/>
                     @error('formUsuario.password')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
-                <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--text);">
+                <label class="text-base" style="display:inline-flex;align-items:center;gap:8px;">
                     <input type="checkbox" wire:model="formUsuario.activo" class="checkbox"/>
                     <span>{{ __('usuarios.label_active') }}</span>
                 </label>
@@ -213,11 +212,11 @@
                 @if($editandoUsuarioId !== null && isset($asignaciones[$editandoUsuarioId]))
                     <div style="margin-top:20px;">
                         <div class="label-xs">{{ __('usuarios.label_project_assignments') }}</div>
-                        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+                        <div class="flex flex-col" style="gap:6px;margin-top:8px;">
                             @foreach($asignaciones[$editandoUsuarioId] as $a)
-                                <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;">
-                                    <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $a->proyecto_codigo }}</span>
-                                    <span style="flex:1;font-size:12px;">{{ $a->proyecto_nombre }}</span>
+                                <div class="flex items-center gap-2" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;">
+                                    <span class="font-mono text-xs text-ink-500">{{ $a->proyecto_codigo }}</span>
+                                    <span class="flex-1 min-w-0 text-sm">{{ $a->proyecto_nombre }}</span>
                                     <span class="badge badge-primary">{{ $a->rol_codigo }}</span>
                                     <button type="button"
                                             wire:click="quitarAsignacion({{ $a->usuario_id }}, {{ $a->proyecto_id }}, {{ $a->rol_id }})"
@@ -243,7 +242,7 @@
         <div class="scrim" wire:click="cerrarFormAsignacion" wire:key="form-asignacion-scrim"></div>
         <div class="drawer" wire:key="form-asignacion">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">{{ __('usuarios.drawer_assign_role_title') }}</div>
+                <div class="text-md font-semibold">{{ __('usuarios.drawer_assign_role_title') }}</div>
                 <button type="button" wire:click="cerrarFormAsignacion" class="icon-btn" aria-label="{{ __('usuarios.aria_close') }}">
                     <x-ui.icon name="x" :size="14" />
                 </button>

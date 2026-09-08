@@ -79,6 +79,66 @@ final class ListadoCasosTest extends TestCase
         $this->assertSame($permitida->nombre, $casos[0]->col_cartera);
     }
 
+    /**
+     * Las cabeceras ordenan, y la clave que llega del cliente se contrasta
+     * contra el catálogo de columnas: nunca entra tal cual en el ORDER BY.
+     */
+    public function test_las_cabeceras_ordenan_y_el_segundo_clic_da_la_vuelta(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+
+        foreach (['2200000003', '2200000001', '2200000002'] as $identificacion) {
+            $this->crearCasoEn($proyecto, [
+                'cartera' => $cartera,
+                'estado' => $estado,
+                'persona' => $this->crearPersonaEn($proyecto, $identificacion),
+            ]);
+        }
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        $c = Livewire::test(ListadoCasos::class)->call('ordenarPor', 'identificacion');
+
+        $this->assertSame('identificacion', $c->get('orden'));
+        $this->assertSame('asc', $c->get('direccion'));
+        $this->assertSame(
+            ['2200000001', '2200000002', '2200000003'],
+            array_map(static fn (object $f): string => (string) $f->col_identificacion, iterator_to_array($c->viewData('casos'))),
+        );
+
+        $c->call('ordenarPor', 'identificacion');
+
+        $this->assertSame('desc', $c->get('direccion'));
+        $this->assertSame(
+            ['2200000003', '2200000002', '2200000001'],
+            array_map(static fn (object $f): string => (string) $f->col_identificacion, iterator_to_array($c->viewData('casos'))),
+        );
+    }
+
+    public function test_una_clave_de_orden_inventada_no_llega_a_la_consulta(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearCasoEn($proyecto, ['cartera' => $this->crearCarteraEn($proyecto), 'estado' => $this->crearEstadoCasoEn($proyecto)]);
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        // Ni por el método ni por la URL, que es la puerta que nadie filtra.
+        $c = Livewire::test(ListadoCasos::class)
+            ->call('ordenarPor', '(select 1)')
+            ->assertOk();
+        $this->assertSame('', $c->get('orden'), 'La clave no está en el catálogo: no se guarda.');
+
+        Livewire::withUrlParams(['orden' => 'casos.id; drop table casos', 'dir' => 'desc'])
+            ->test(ListadoCasos::class)
+            ->assertOk();
+
+        $this->assertSame(1, DB::table('casos')->where('proyecto_id', $proyecto->id)->count());
+    }
+
     public function test_filtro_cartera(): void
     {
         $proyecto = $this->crearProyectoCobranza();

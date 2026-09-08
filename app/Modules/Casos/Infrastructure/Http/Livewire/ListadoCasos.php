@@ -11,6 +11,7 @@ use App\Modules\Casos\Application\Services\PreferenciasColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -53,6 +54,32 @@ final class ListadoCasos extends Component
     public array $columnasVisibles = [];
 
     public bool $selectorColumnasAbierto = false;
+
+    /**
+     * Por qué columna se ordena. Vacío es el orden de siempre: primero lo
+     * urgente, y dentro de eso lo más nuevo.
+     *
+     * La clave llega del cliente y NUNCA se interpola en el ORDER BY: se busca
+     * en el catálogo de columnas, que es una lista cerrada, y lo que se usa es
+     * la expresión que el catálogo declara.
+     */
+    #[Url(as: 'orden', except: '')]
+    public string $orden = '';
+
+    #[Url(as: 'dir', except: 'asc')]
+    public string $direccion = 'asc';
+
+    public function ordenarPor(string $clave): void
+    {
+        if (! array_key_exists($clave, CatalogoColumnasCaso::indexadoPorClave($this->tipoOperacion()))) {
+            return;
+        }
+
+        // Segundo clic en la misma cabecera: se da la vuelta.
+        $this->direccion = $this->orden === $clave && $this->direccion === 'asc' ? 'desc' : 'asc';
+        $this->orden = $clave;
+        $this->resetPage();
+    }
 
     public function mount(): void
     {
@@ -140,11 +167,8 @@ final class ListadoCasos extends Component
             $this->usuario()->carterasPermitidas($proyectoId),
         );
 
-        $casos = $consulta
-            ->aplicarFiltros($base, $filtros)
-            ->select($this->seleccion($columnas, $visibles))
-            ->orderByDesc('c.prioridad')
-            ->orderByDesc('c.creada_en')
+        $casos = $this
+            ->ordenar($consulta->aplicarFiltros($base, $filtros)->select($this->seleccion($columnas, $visibles)), $columnas)
             ->paginate(25);
 
         return view('casos::livewire.listado-casos', [
@@ -156,6 +180,31 @@ final class ListadoCasos extends Component
             'columnasVisibles' => $visibles,
             'urlExportar' => route('proyectos.casos.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
         ]);
+    }
+
+    /**
+     * El orden elegido, o el de siempre si no hay ninguno.
+     *
+     * `$this->orden` ya pasó por el catálogo en `ordenarPor`, pero se vuelve a
+     * comprobar aquí porque también puede llegar por la URL, que nadie filtró.
+     *
+     * @param  array<string, ColumnaCaso>  $columnas
+     */
+    private function ordenar(Builder $consulta, array $columnas): Builder
+    {
+        $columna = $columnas[$this->orden] ?? null;
+
+        if ($columna === null) {
+            return $consulta->orderByDesc('c.prioridad')->orderByDesc('c.creada_en');
+        }
+
+        $direccion = $this->direccion === 'desc' ? 'desc' : 'asc';
+
+        // Desempate por PK: sin él, dos filas con el mismo valor pueden salir en
+        // distinto orden en cada página y una se repite mientras otra no sale.
+        return $consulta
+            ->orderBy(DB::raw($columna->expresion), $direccion)
+            ->orderBy('c.id');
     }
 
     /**

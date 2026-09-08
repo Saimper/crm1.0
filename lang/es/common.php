@@ -23,4 +23,7 @@ return [
     'password_current' => 'Contraseña actual',
     'password_new' => 'Nueva contraseña',
     'password_confirm' => 'Confirmar contraseña',
+    'loading' => 'Cargando…',
+    'pagination' => 'Paginación',
+    'pagination_range' => 'Del :desde al :hasta de :total',
 ];

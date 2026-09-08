@@ -18,6 +18,9 @@
             @endif
         </div>
     </x-ui.card>
+    {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+         esta barra dice que se está trabajando. --}}
+    <x-ui.cargando />
 
     @if($notificaciones->isEmpty())
         <x-ui.empty-state

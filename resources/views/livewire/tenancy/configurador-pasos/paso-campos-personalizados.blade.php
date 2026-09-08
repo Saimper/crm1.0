@@ -2,21 +2,21 @@
     @if(session('paso-campos-personalizados-ok'))<div class="alert alert-success" style="margin-bottom:14px;">{{ session('paso-campos-personalizados-ok') }}</div>@endif
     @if(session('paso-campos-personalizados-error'))<div class="alert alert-warning" style="margin-bottom:14px;">{{ session('paso-campos-personalizados-error') }}</div>@endif
 
-    <div class="alert alert-info" style="margin-bottom:14px;font-size:12px;">
+    <div class="alert alert-info text-sm" style="margin-bottom:14px;">
         {{ __('configurador.campos.info_opcional') }}
     </div>
 
     {{-- Grupos: sólo un nombre y un orden. El acordeón de la Vista de Trabajo
          los pinta en este orden y mete dentro los campos de cada uno. --}}
     <div class="card" style="padding:12px 16px;margin-bottom:14px;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <strong style="font-size:12px;">{{ __('configurador.campos.grupos_titulo') }}</strong>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.campos.grupos_ayuda') }}</span>
+        <div class="flex items-center flex-wrap" style="gap:10px;">
+            <strong class="text-sm">{{ __('configurador.campos.grupos_titulo') }}</strong>
+            <span class="text-sm text-ink-500">{{ __('configurador.campos.grupos_ayuda') }}</span>
         </div>
 
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+        <div class="flex items-center flex-wrap" style="gap:6px;margin-top:10px;">
             @foreach($grupos as $i => $g)
-                <span class="badge" style="display:inline-flex;align-items:center;gap:6px;">
+                <span class="badge" style="gap:6px;">
                     <button type="button" wire:click="moverGrupo({{ $g->id }}, -1)" class="btn btn-ghost btn-sm"
                             style="padding:0 2px;{{ $i === 0 ? 'visibility:hidden;' : '' }}" aria-label="{{ __('common.move_up') }}">↑</button>
                     {{ $g->nombre }}
@@ -28,25 +28,26 @@
                 </span>
             @endforeach
 
-            <div style="display:flex;gap:6px;align-items:center;">
+            <div class="flex items-center" style="gap:6px;">
                 <input type="text" wire:model="grupoNuevo" wire:keydown.enter="crearGrupo" class="input"
                        style="width:200px;height:28px;" placeholder="{{ __('configurador.campos.grupos_nuevo') }}"/>
                 <button type="button" wire:click="crearGrupo" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
             </div>
         </div>
-        @error('grupoNuevo')<div style="font-size:12px;color:var(--danger-text);margin-top:6px;">{{ $message }}</div>@enderror
+        @error('grupoNuevo')<div class="field-error" style="margin-top:6px;">{{ $message }}</div>@enderror
     </div>
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;"><x-ui.icon name="search" :size="13"/></span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda" class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/>
-            </div>
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.campos.n_campos', ['n' => $campos->count()]) }}</span>
-            <button type="button" wire:click="abrirFormCrear" class="btn btn-primary"><x-ui.icon name="plus" :size="14"/><span>{{ __('configurador.campos.nuevo') }}</span></button>
-        </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('configurador.campos.n_campos', ['n' => $campos->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda" placeholder="{{ __('common.search') }}…" />
+            <x-slot:acciones>
+                <button type="button" wire:click="abrirFormCrear" class="btn btn-primary"><x-ui.icon name="plus" :size="14"/><span>{{ __('configurador.campos.nuevo') }}</span></button>
+            </x-slot:acciones>
+        </x-ui.toolbar>
+
+        {{-- La tabla de antes sigue en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($campos->isEmpty())
             <div class="empty">
@@ -73,16 +74,16 @@
                 <tbody>
                     @foreach($campos as $c)
                         <tr wire:key="paso-cp-{{ $c->id }}" wire:click="abrirFormEditar({{ $c->id }})">
-                            <td><span style="font-size:11px;text-transform:uppercase;color:var(--text-tertiary);">{{ $c->ambito }}</span></td>
-                            <td><span style="font-size:12px;color:var(--text-secondary);">{{ $c->cartera_nombre ?? $c->tipo_gestion_nombre ?? '—' }}</span></td>
-                            <td><span class="font-mono" style="font-size:12px;">{{ $c->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $c->etiqueta }}</span></td>
-                            <td><span style="font-size:11px;color:var(--text-secondary);">{{ str_replace('_', ' ', $c->tipo) }}</span></td>
+                            <td><span class="text-xs text-ink-500" style="text-transform:uppercase;">{{ $c->ambito }}</span></td>
+                            <td><span class="text-sm text-ink-600">{{ $c->cartera_nombre ?? $c->tipo_gestion_nombre ?? '—' }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $c->etiqueta }}</span></td>
+                            <td><span class="text-xs text-ink-600">{{ str_replace('_', ' ', $c->tipo) }}</span></td>
                             <td>
                                 @if($c->grupo_nombre)
                                     <span class="badge">{{ $c->grupo_nombre }}</span>
                                 @else
-                                    <span style="font-size:12px;color:var(--text-muted);">—</span>
+                                    <span class="text-sm text-ink-400">—</span>
                                 @endif
                                 @unless($c->visible_en_gestion)
                                     <span class="badge badge-neutral" title="{{ __('configurador.campos.visible_en_gestion_ayuda') }}">{{ __('configurador.campos.oculto') }}</span>
@@ -92,7 +93,7 @@
                                 @if($c->obligatorio)
                                     <span class="badge badge-warning">{{ __('configurador.resultados.si') }}</span>
                                 @else
-                                    <span style="font-size:12px;color:var(--text-muted);">—</span>
+                                    <span class="text-sm text-ink-400">—</span>
                                 @endif
                             </td>
                             <td class="num">{{ $c->orden }}</td>
@@ -102,7 +103,7 @@
                                     {{ $c->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);"/></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14"/></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -114,7 +115,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="paso-cp-scrim"></div>
         <div class="drawer" wire:key="paso-cp-drawer">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">{{ $editandoId === null ? __('configurador.campos.drawer_nuevo') : __('configurador.campos.drawer_editar') }}</div>
+                <div class="text-md font-semibold">{{ $editandoId === null ? __('configurador.campos.drawer_nuevo') : __('configurador.campos.drawer_editar') }}</div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn"><x-ui.icon name="x" :size="14"/></button>
             </div>
             <div class="drawer-body">
@@ -180,7 +181,7 @@
                                 <option value="{{ $g->id }}">{{ $g->nombre }}</option>
                             @endforeach
                         </select>
-                        @error('form.grupo_campo_id')<div style="font-size:12px;color:var(--danger-text);margin-top:4px;">{{ $message }}</div>@enderror
+                        @error('form.grupo_campo_id')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
@@ -189,24 +190,24 @@
                         </div>
                         <div>
                             <label class="field-label">{{ __('configurador.campos.obligatorio') }}</label>
-                            <label style="display:flex;align-items:center;gap:8px;padding-top:8px;">
+                            <label class="flex items-center gap-2" style="padding-top:8px;">
                                 <input type="checkbox" wire:model="form.obligatorio"/>
-                                <span style="font-size:13px;">{{ __('configurador.campos.obligatorio') }}</span>
+                                <span class="text-base">{{ __('configurador.campos.obligatorio') }}</span>
                             </label>
                         </div>
                     </div>
                     <div>
-                        <label style="display:flex;align-items:center;gap:8px;">
+                        <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.activo"/>
-                            <span style="font-size:13px;">{{ __('configurador.campos.campo_activo') }}</span>
+                            <span class="text-base">{{ __('configurador.campos.campo_activo') }}</span>
                         </label>
                     </div>
                     <div>
-                        <label style="display:flex;align-items:center;gap:8px;">
+                        <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.visible_en_gestion"/>
-                            <span style="font-size:13px;">{{ __('configurador.campos.visible_en_gestion') }}</span>
+                            <span class="text-base">{{ __('configurador.campos.visible_en_gestion') }}</span>
                         </label>
-                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">
+                        <div class="text-xs text-ink-500" style="margin-top:4px;">
                             {{ __('configurador.campos.visible_en_gestion_ayuda') }}
                         </div>
                     </div>

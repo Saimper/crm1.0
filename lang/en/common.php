@@ -23,4 +23,7 @@ return [
     'password_current' => 'Current password',
     'password_new' => 'New password',
     'password_confirm' => 'Confirm password',
+    'loading' => 'Loading…',
+    'pagination' => 'Pagination',
+    'pagination_range' => ':desde to :hasta of :total',
 ];

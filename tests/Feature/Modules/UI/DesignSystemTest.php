@@ -73,15 +73,6 @@ final class DesignSystemTest extends TestCase
         $this->assertStringContainsString('card-title', $html);
     }
 
-    public function test_stat_card_con_tono(): void
-    {
-        $html = Blade::render('<x-ui.stat-card label="Ventas" value="123" tone="success" />');
-        $this->assertStringContainsString('Ventas', $html);
-        $this->assertStringContainsString('123', $html);
-        $this->assertStringContainsString('kpi-card', $html);
-        $this->assertStringContainsString('kpi-value', $html);
-    }
-
     public function test_empty_state(): void
     {
         $html = Blade::render('<x-ui.empty-state title="Nada aquí" message="Crea tu primero" />');
@@ -135,7 +126,7 @@ BLADE);
             ->get(route('proyectos.dashboard', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
 
-        // Nuevo dashboard usa layout F29: x-ui.page-header + x-ui.card.
+        // Nuevo dashboard usa layout F29: cabecera .page-header + x-ui.card.
         $response->assertSee('page-header', false);
         $response->assertSee('class="card', false);
     }

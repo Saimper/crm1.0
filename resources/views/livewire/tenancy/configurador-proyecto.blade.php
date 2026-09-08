@@ -3,14 +3,14 @@
         <div>
             <h1 class="page-title">{{ $modo === 'edicion' ? __('configurador.titulo_editar') : __('configurador.titulo_configurar') }}</h1>
             <div class="page-subtitle">
-                <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $proyecto->codigo }}</span>
-                <span style="margin:0 6px;color:var(--text-tertiary);">·</span>
+                <span class="font-mono text-xs text-ink-500">{{ $proyecto->codigo }}</span>
+                <span class="text-ink-500" style="margin:0 6px;">·</span>
                 <span>{{ $proyecto->nombre }}</span>
-                <span style="margin:0 6px;color:var(--text-tertiary);">·</span>
-                <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;">{{ $proyecto->tipo_operacion }}</span>
+                <span class="text-ink-500" style="margin:0 6px;">·</span>
+                <span class="font-mono text-xs text-ink-500" style="text-transform:uppercase;">{{ $proyecto->tipo_operacion }}</span>
             </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="flex items-center gap-2">
             <a href="{{ route('admin.proyectos') }}" wire:navigate class="btn btn-ghost btn-sm">
                 <x-ui.icon name="arrow-left" :size="13" />
                 <span>{{ __('configurador.volver') }}</span>
@@ -37,8 +37,8 @@
 
                 <div style="margin-bottom:14px;">
                     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
-                        <span style="font-size:11px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;">{{ $estado->etiqueta() }}</span>
-                        <span style="font-size:13px;font-weight:600;color:var(--text);">{{ $porcentaje }}%</span>
+                        <span class="text-xs text-ink-500" style="text-transform:uppercase;letter-spacing:0.04em;">{{ $estado->etiqueta() }}</span>
+                        <span class="text-base font-semibold" style="color:var(--text);">{{ $porcentaje }}%</span>
                     </div>
                     <div style="height:6px;background:var(--bg-subtle);border-radius:999px;overflow:hidden;">
                         <div style="height:100%;background:var(--primary);width:{{ $porcentaje }}%;transition:width 200ms ease;"></div>
@@ -46,7 +46,7 @@
                 </div>
             @endif
 
-            <ol style="display:flex;flex-direction:column;gap:2px;list-style:none;padding:0;margin:0;">
+            <ol class="flex flex-col" style="gap:2px;list-style:none;padding:0;margin:0;">
                 @foreach($pasos as $paso)
                     @php
                         $completo   = $this->avance->estaCompletado($paso);
@@ -58,10 +58,10 @@
                         <button
                             type="button"
                             @if($alcanzable) wire:click="irAPaso('{{ $paso->value }}')" @else disabled @endif
-                            class="sb-item"
+                            class="sb-item flex items-center"
                             style="
                                 width:100%;
-                                display:flex;align-items:center;gap:10px;
+                                gap:10px;
                                 padding:8px 10px;border-radius:8px;border:0;text-align:left;cursor:{{ $alcanzable ? 'pointer' : 'not-allowed' }};
                                 background:{{ $esActivo ? 'var(--bg-subtle)' : 'transparent' }};
                                 color:{{ $alcanzable ? 'var(--text)' : 'var(--text-muted)' }};
@@ -94,12 +94,12 @@
                                 @endif
                             </span>
 
-                            <span style="flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <span class="flex-1 min-w-0 text-base" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                 {{ $paso->etiqueta() }}
                             </span>
 
                             @if($paso->esOpcional())
-                                <span style="font-size:10px;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;">{{ __('configurador.opcional') }}</span>
+                                <span class="text-ink-500" style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;">{{ __('configurador.opcional') }}</span>
                             @endif
                         </button>
                     </li>
@@ -108,28 +108,28 @@
         </aside>
 
         {{-- Slot del paso activo --}}
-        <section class="card card-pad" style="padding:24px;min-height:420px;display:flex;flex-direction:column;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <section class="card card-pad flex flex-col" style="padding:24px;min-height:420px;">
+            <div class="flex items-center justify-between" style="margin-bottom:18px;">
                 <div>
                     @if($modo === 'wizard')
                         <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.paso_de', ['n' => $pasoActivo->indice(), 'total' => count($pasos)]) }}</div>
                     @else
                         <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.seccion_label') }}</div>
                     @endif
-                    <h2 style="font-size:18px;font-weight:600;color:var(--text);margin:0;">{{ $pasoActivo->etiqueta() }}</h2>
+                    <h2 class="font-semibold" style="font-size:18px;color:var(--text);margin:0;">{{ $pasoActivo->etiqueta() }}</h2>
                 </div>
                 @if($modo === 'edicion')
                     @if($this->avance->estaCompleto())
-                        <span class="badge badge-success" style="font-size:11px;">{{ __('configurador.configurado') }}</span>
+                        <span class="badge badge-success text-xs">{{ __('configurador.configurado') }}</span>
                     @else
-                        <span class="badge badge-warning" style="font-size:11px;">{{ __('configurador.configuracion_parcial') }}</span>
+                        <span class="badge badge-warning text-xs">{{ __('configurador.configuracion_parcial') }}</span>
                     @endif
                 @elseif($pasoActivo->esOpcional())
-                    <span class="badge badge-ghost" style="font-size:11px;">{{ __('configurador.paso_opcional') }}</span>
+                    <span class="badge badge-ghost text-xs">{{ __('configurador.paso_opcional') }}</span>
                 @endif
             </div>
 
-            <div style="flex:1;">
+            <div class="flex-1 min-w-0">
                 @switch($pasoActivo->value)
                     @case('datos_proyecto')
                         <livewire:tenancy.configurador-pasos.paso-datos-proyecto
@@ -181,7 +181,7 @@
             </div>
 
             @if($modo === 'wizard')
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
+                <div class="flex items-center justify-end gap-2" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px;">
                     <button type="button" wire:click="anterior" class="btn btn-ghost"
                         @if($pasoActivo->anterior() === null) disabled @endif>
                         <x-ui.icon name="arrow-left" :size="13" />

@@ -140,7 +140,7 @@
          el tipo seleccionado tiene definiciones; se persisten junto a la gestión. --}}
     @if($tipoGestionId && $camposGestion->isNotEmpty())
         <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
-            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-secondary);letter-spacing:0.06em;">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2 text-ink-600" style="letter-spacing:0.06em;">
                 {{ __('casos.custom_fields_title') }}
             </h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

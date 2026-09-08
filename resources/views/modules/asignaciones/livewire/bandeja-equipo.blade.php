@@ -41,6 +41,10 @@
         </div>
     </x-ui.card>
 
+    {{-- La bandeja de antes se queda en pantalla mientras llega la nueva; sólo
+         esta barra dice que se está trabajando. --}}
+    <x-ui.cargando />
+
     @if($equipoId === null)
         <x-ui.empty-state :title="__('asignaciones.empty_select_team')"
                           :message="__('asignaciones.empty_select_team_msg')" />

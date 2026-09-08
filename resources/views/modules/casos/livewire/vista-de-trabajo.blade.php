@@ -3,12 +3,12 @@
     {{-- Compromiso vigente alert (full-width arriba) --}}
     @if($compromisoActivo)
         <x-ui.alert tone="success" style="margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="flex items-center flex-wrap gap-3">
                 <div>
-                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;color:var(--success-text);">
+                    <div class="text-xs uppercase-spaced font-semibold text-success-700">
                         {{ __('casos.active_commitment') }}
                     </div>
-                    <div style="font-size:14px;color:var(--text);font-weight:500;">
+                    <div class="text-md font-medium" style="color:var(--text);">
                         {{ __('casos.expires', ['date' => \Illuminate\Support\Carbon::parse($compromisoActivo->fecha_vencimiento)->format('d/m/Y')]) }}
                         @if(isset($compromisoActivo->promesa) && $compromisoActivo->promesa)
                             · <span class="font-mono">{{ $compromisoActivo->promesa->moneda }} {{ number_format((float) $compromisoActivo->promesa->monto, 2, '.', ',') }}</span>
@@ -53,16 +53,16 @@
         {{-- Col izquierda: identidad + selector casos + datos caso --}}
         <div class="vt-col-left">
             <x-ui.card>
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+                <div class="flex items-start gap-3" style="justify-content:space-between;">
                     <div style="min-width:0;">
                         <div class="label-xs">
                             {{ $persona->tipo_identificacion_codigo ?? 'ID' }}
                             · <span class="font-mono">{{ $persona->identificacion }}</span>
                         </div>
-                        <h2 style="font-size:18px;font-weight:600;color:var(--text);margin-top:4px;line-height:1.25;">
+                        <h2 class="font-semibold" style="font-size:18px;color:var(--text);margin-top:4px;line-height:1.25;">
                             {{ $nombrePersona !== '' ? $nombrePersona : '—' }}
                         </h2>
-                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">
+                        <div class="text-xs text-ink-500" style="margin-top:4px;">
                             {{ ucfirst($persona->tipo_persona) }}
                             @if($persona->tipo_persona === 'fisica' && $persona->fecha_nacimiento)
                                 · {{ __('casos.born_abbrev') }} {{ \Illuminate\Support\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y') }}
@@ -89,13 +89,13 @@
                     <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;">
                         @foreach($contactos as $c)
                             <div style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
-                                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-                                    <span style="font-size:11px;font-weight:500;color:var(--text);">{{ ucfirst($c->tipo) }}</span>
+                                <div class="flex items-center justify-between" style="gap:6px;">
+                                    <span class="text-xs font-medium" style="color:var(--text);">{{ ucfirst($c->tipo) }}</span>
                                     @if($c->es_principal)
-                                        <span style="font-size:9px;text-transform:uppercase;color:var(--primary);font-weight:600;">{{ __('contactos.badge_principal') }}</span>
+                                        <span class="font-semibold" style="font-size:9px;text-transform:uppercase;color:var(--primary);">{{ __('contactos.badge_principal') }}</span>
                                     @endif
                                 </div>
-                                <div style="font-size:12px;color:var(--text-secondary);word-break:break-all;">{{ $c->valor }}</div>
+                                <div class="text-sm text-ink-600" style="word-break:break-all;">{{ $c->valor }}</div>
                             </div>
                         @endforeach
                     </div>
@@ -113,7 +113,7 @@
                 @if($casos->isEmpty())
                     <x-ui.empty-state :title="__('casos.no_open_cases', ['entidades' => $rotuloCasos])" :message="__('casos.no_open_cases_desc', ['entidades' => $rotuloCasos])" />
                 @else
-                    <div style="display:flex;flex-direction:column;gap:6px;margin:-4px -4px 0;">
+                    <div class="flex flex-col" style="gap:6px;margin:-4px -4px 0;">
                         @foreach($casos as $c)
                             @php
                                 $activo = $casoActivo && $c->public_id === $casoActivo->public_id;
@@ -126,18 +126,19 @@
                                 };
                             @endphp
                             <button type="button" wire:click="seleccionarCaso('{{ $c->public_id }}')"
-                                    style="text-align:left;padding:10px 8px;border-radius:6px;background:{{ $activo ? 'var(--primary-soft)' : 'transparent' }};border:1px solid {{ $activo ? 'var(--primary-soft-border)' : 'transparent' }};display:flex;align-items:center;gap:10px;cursor:pointer;width:100%;">
+                                    class="flex items-center"
+                                    style="text-align:left;padding:10px 8px;border-radius:6px;background:{{ $activo ? 'var(--primary-soft)' : 'transparent' }};border:1px solid {{ $activo ? 'var(--primary-soft-border)' : 'transparent' }};gap:10px;cursor:pointer;width:100%;">
                                 <x-ui.badge :tone="$tipoTone">{{ ucfirst(str_replace('_', ' ', $c->tipo_caso)) }}</x-ui.badge>
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-size:13px;font-weight:500;color:var(--text);">{{ $c->cartera_nombre }}</div>
-                                    <div style="font-size:11px;color:var(--text-tertiary);">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-base font-medium" style="color:var(--text);">{{ $c->cartera_nombre }}</div>
+                                    <div class="text-xs text-ink-500">
                                         {{ $c->estado_caso_nombre }}
                                         @if($c->tiene_compromiso_vigente)
-                                            · <span style="color:var(--success);font-weight:500;">{{ __('casos.active_commitment_label') }}</span>
+                                            · <span class="font-medium" style="color:var(--success);">{{ __('casos.active_commitment_label') }}</span>
                                         @endif
                                     </div>
                                 </div>
-                                <div style="font-size:11px;color:var(--text-tertiary);text-align:right;">
+                                <div class="text-xs text-ink-500" style="text-align:right;">
                                     {{ __('casos.prio_label', ['value' => $c->prioridad]) }}
                                 </div>
                             </button>
@@ -177,13 +178,14 @@
                      y ocurre en la pantalla que ya existía para eso. --}}
                 @if($gruposCamposCaso !== [])
                     <x-ui.card :title="__('casos.case_fields_title', ['entidad' => $rotuloCaso])" style="margin-top:12px;">
-                        <div style="display:flex;flex-direction:column;gap:2px;">
+                        <div class="flex flex-col" style="gap:2px;">
                             @foreach($gruposCamposCaso as $i => $grupo)
                                 <details @if($i === 0) open @endif class="cp-grupo">
-                                    <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;padding:6px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-secondary);">
+                                    <summary class="flex items-center text-xs uppercase-spaced text-ink-600"
+                                             style="cursor:pointer;list-style:none;gap:6px;padding:6px 0;">
                                         <x-ui.icon name="chevron-right" :size="12" class="cp-grupo-flecha" />
                                         <span>{{ $grupo['nombre'] }}</span>
-                                        <span style="color:var(--text-tertiary);font-weight:400;">({{ count($grupo['campos']) }})</span>
+                                        <span class="text-ink-500" style="font-weight:400;">({{ count($grupo['campos']) }})</span>
                                     </summary>
                                     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:4px 0 10px;">
                                         @foreach($grupo['campos'] as $fila)
@@ -198,7 +200,7 @@
 
                 @if(isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
                     <x-ui.card :title="__('casos.resolved_commitments', ['count' => $compromisosResueltos->count()])" style="margin-top:12px;">
-                        <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                        <ul class="flex flex-col text-sm" style="gap:6px;">
                             @foreach($compromisosResueltos as $c)
                                 @php
                                     $estadoTone = match ($c->estado) {
@@ -208,24 +210,24 @@
                                         default => 'neutral',
                                     };
                                 @endphp
-                                <li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+                                <li class="flex items-center justify-between gap-2" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
                                     <div style="min-width:0;">
-                                        <div style="display:flex;align-items:center;gap:6px;">
+                                        <div class="flex items-center" style="gap:6px;">
                                             <x-ui.badge :tone="$estadoTone" size="sm">{{ ucfirst($c->estado) }}</x-ui.badge>
-                                            <span style="font-size:11px;color:var(--text-tertiary);">
+                                            <span class="text-xs text-ink-500">
                                                 {{ str_replace('_', ' ', $c->tipo_compromiso) }}
                                             </span>
                                         </div>
-                                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                                        <div class="text-xs text-ink-500" style="margin-top:2px;">
                                             {{ __('casos.expiry_label', ['date' => \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y')]) }}
                                         </div>
                                     </div>
-                                    <div style="font-size:11px;color:var(--text-secondary);text-align:right;">
+                                    <div class="text-xs text-ink-600" style="text-align:right;">
                                         @if($c->fecha_resolucion)
                                             {{ __('casos.resolved_label') }}<br>
                                             <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
                                         @else
-                                            <span style="color:var(--text-tertiary);">{{ __('casos.no_date') }}</span>
+                                            <span class="text-ink-500">{{ __('casos.no_date') }}</span>
                                         @endif
                                     </div>
                                 </li>
@@ -293,7 +295,7 @@
                                     @if($g->notas)
                                         <div style="margin-bottom:4px;">{{ $g->notas }}</div>
                                     @endif
-                                    <div style="font-size:11px;color:var(--text-tertiary);">
+                                    <div class="text-xs text-ink-500">
                                         {{ $g->canal_nombre ?? '—' }}
                                         · {{ $g->usuario_nombre ?? '—' }}
                                         @if($g->duracion_segundos)
@@ -301,7 +303,7 @@
                                         @endif
                                     </div>
                                     @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
-                                        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
+                                        <div class="gap-1" style="margin-top:4px;display:flex;flex-wrap:wrap;">
                                             @if($g->motivo_no_contacto_nombre)
                                                 <x-ui.badge tone="warning" size="sm">{{ __('casos.no_contact_badge', ['motivo' => $g->motivo_no_contacto_nombre]) }}</x-ui.badge>
                                             @endif
@@ -313,9 +315,9 @@
 
                                     {{-- Valores de campos personalizados ámbito gestión × tipo_gestion. --}}
                                     @if(! empty($valoresCamposGestion[$g->id] ?? []))
-                                        <dl style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px;">
+                                        <dl class="text-xs" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:grid;grid-template-columns:auto 1fr;gap:2px 8px;">
                                             @foreach($valoresCamposGestion[$g->id] as $cp)
-                                                <dt style="color:var(--text-tertiary);">{{ $cp['etiqueta'] }}</dt>
+                                                <dt class="text-ink-500">{{ $cp['etiqueta'] }}</dt>
                                                 <dd style="color:var(--text);margin:0;">{{ $cp['valor'] }}</dd>
                                             @endforeach
                                         </dl>
