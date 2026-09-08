@@ -234,20 +234,13 @@ final class EscenarioOperativoCobranzaSeeder extends Seeder
      */
     private function repartirAsignaciones(int $proyectoId, array $gestores): void
     {
-        $campanaId = DB::table('campanas')->where('proyecto_id', $proyectoId)->value('id');
-        if ($campanaId === null) {
-            $this->command?->warn('Sin campaña en el proyecto: no se crean asignaciones.');
-
-            return;
-        }
-
         $candidatos = DB::table('casos')
             ->where('proyecto_id', $proyectoId)
             ->whereNull('eliminada_en')
             ->whereNotNull('fecha_ultima_gestion')
             ->whereNotExists(fn ($q) => $q->from('asignaciones')
                 ->whereColumn('asignaciones.caso_id', 'casos.id')
-                ->where('asignaciones.campana_id', $campanaId))
+                ->where('asignaciones.proyecto_id', $proyectoId))
             ->orderByDesc('fecha_ultima_gestion')
             ->limit(600)
             ->pluck('id');
@@ -259,7 +252,6 @@ final class EscenarioOperativoCobranzaSeeder extends Seeder
             $filas[] = [
                 'public_id' => (string) Str::ulid(),
                 'proyecto_id' => $proyectoId,
-                'campana_id' => $campanaId,
                 'caso_id' => $casoId,
                 'usuario_id' => $gestor['id'],
                 'fecha_asignacion' => $ahora->toDateString(),

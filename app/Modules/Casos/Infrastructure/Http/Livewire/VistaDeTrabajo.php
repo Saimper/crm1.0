@@ -347,7 +347,7 @@ final class VistaDeTrabajo extends Component
             'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,
             'gruposCamposCaso' => $casoActivo === null ? [] : $this->camposDelCasoPorGrupo($casoActivo),
-            'duenioCaso' => $casoActivo === null ? null : $this->duenioDelCaso((int) $casoActivo->id),
+            'duenioCaso' => $casoActivo === null ? null : $this->duenioDelCaso($proyectoId, (int) $casoActivo->id),
             'puedeTomar' => $casoActivo !== null
                 && auth()->user()?->tienePermiso('asignaciones.autoasignarse', $proyectoId) === true
                 && app(AutoasignarCaso::class)->proyectoLoPermite($proyectoId),
@@ -358,12 +358,13 @@ final class VistaDeTrabajo extends Component
      * Nombre de quien tiene la cuenta, o null si no la ha tenido nadie.
      *
      * También cuenta la asignación cerrada: mientras exista, la cuenta no se
-     * puede volver a tomar (único `(campana_id, caso_id)`).
+     * puede volver a tomar (único `(proyecto_id, caso_id)`).
      */
-    private function duenioDelCaso(int $casoId): ?string
+    private function duenioDelCaso(int $proyectoId, int $casoId): ?string
     {
         $nombre = DB::table('asignaciones as a')
             ->join('users as u', 'u.id', '=', 'a.usuario_id')
+            ->where('a.proyecto_id', $proyectoId)
             ->where('a.caso_id', $casoId)
             ->orderByDesc('a.id')
             ->value('u.name');

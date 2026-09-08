@@ -16,7 +16,7 @@ use Illuminate\Database\ConnectionInterface;
  * la cuenta le quedó grande, el cliente pidió otro interlocutor—.
  *
  * Se reasigna cambiando el dueño de la fila, no cerrando y creando otra: el
- * único `(campana_id, caso_id)` lo prohíbe, y además la cuenta es la misma; lo
+ * único `(proyecto_id, caso_id)` lo prohíbe, y además la cuenta es la misma; lo
  * que cambia es quién responde por ella.
  *
  * Se permite mover una asignación `en_trabajo` —a diferencia del movimiento por

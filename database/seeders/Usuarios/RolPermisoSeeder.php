@@ -49,8 +49,6 @@ final class RolPermisoSeeder extends Seeder
             'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar', 'casos.exportar',
             // Contactos
             'contactos.ver', 'contactos.crear', 'contactos.editar', 'contactos.eliminar',
-            // Campañas
-            'campanas.ver', 'campanas.crear', 'campanas.editar', 'campanas.gestionar', 'campanas.administrar',
             // Asignaciones
             'asignaciones.ver_propia', 'asignaciones.ver_equipo',
             'asignaciones.crear', 'asignaciones.reasignar', 'asignaciones.cerrar', 'asignaciones.administrar',
@@ -86,8 +84,6 @@ final class RolPermisoSeeder extends Seeder
             'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar', 'casos.exportar',
             // Contactos
             'contactos.ver', 'contactos.crear', 'contactos.editar', 'contactos.eliminar',
-            // Campañas
-            'campanas.ver', 'campanas.crear', 'campanas.editar', 'campanas.gestionar', 'campanas.administrar',
             // Asignaciones
             'asignaciones.ver_propia', 'asignaciones.ver_equipo',
             'asignaciones.crear', 'asignaciones.reasignar', 'asignaciones.cerrar', 'asignaciones.administrar',
@@ -140,7 +136,6 @@ final class RolPermisoSeeder extends Seeder
             'personas.ver',
             'casos.ver',
             'contactos.ver',
-            'campanas.ver',
             'equipos.ver',
             'usuarios.ver',
             'catalogos.ver',

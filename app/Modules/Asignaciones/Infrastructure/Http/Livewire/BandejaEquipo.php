@@ -182,7 +182,6 @@ final class BandejaEquipo extends Component
                 ->join('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
                 ->join('users as gu', 'gu.id', '=', 'a.usuario_id')
                 ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
-                ->leftJoin('campanas as cm', 'cm.id', '=', 'a.campana_id')
                 ->where('a.proyecto_id', $proyectoId)
                 ->whereIn('a.usuario_id', $usuariosQuery)
                 ->whereNull('c.eliminada_en');
@@ -214,7 +213,6 @@ final class BandejaEquipo extends Component
                     'ec.nombre as estado_caso_nombre',
                     'ca.nombre as cartera_nombre',
                     'ru.nombre as resultado_ultimo',
-                    'cm.nombre as campana_nombre',
                     'gu.id as gestor_id', 'gu.name as gestor_nombre',
                 ])
                 ->orderBy('gu.name')

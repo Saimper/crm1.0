@@ -13,22 +13,7 @@
             </p>
         </div>
 
-        <form wire:submit.prevent="asignar" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-            <div>
-                <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_campaign') }}</label>
-                <select wire:model.live="campanaId" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
-                    <option value="">{{ __('asignaciones.select_placeholder') }}</option>
-                    @foreach($campanas as $c)
-                        <option value="{{ $c->id }}">{{ $c->nombre }} ({{ $c->codigo }})</option>
-                    @endforeach
-                </select>
-                @error('campanaId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                @if($casosSinAsignar !== null)
-                    <div class="mt-1 text-[11px] text-ink-500">
-                        {{ __('asignaciones.cases_unassigned', ['count' => number_format($casosSinAsignar), 'entidades' => $rotuloCasos]) }}
-                    </div>
-                @endif
-            </div>
+        <form wire:submit.prevent="asignar" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div>
                 <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_target_team') }}</label>
                 <select wire:model.live="equipoId" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
@@ -38,11 +23,12 @@
                     @endforeach
                 </select>
                 @error('equipoId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                @if($miembrosActivos !== null)
-                    <div class="mt-1 text-[11px] text-ink-500">
-                        {{ __('asignaciones.active_members', ['count' => $miembrosActivos]) }}
-                    </div>
-                @endif
+                <div class="mt-1 text-[11px] text-ink-500">
+                    {{ __('asignaciones.cases_unassigned', ['count' => number_format($casosSinAsignar), 'entidades' => $rotuloCasos]) }}
+                    @if($miembrosActivos !== null)
+                        · {{ __('asignaciones.active_members', ['count' => $miembrosActivos]) }}
+                    @endif
+                </div>
             </div>
             <div>
                 <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_limit') }}</label>

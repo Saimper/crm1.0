@@ -68,7 +68,6 @@ final class BandejaEquipoTest extends TestCase
         $gFuera = $this->crearGestor($proyecto);
 
         $equipoId = $this->crearEquipoConMiembros($proyecto, 'EQ_BE', [$g1->id, $g2->id]);
-        $campanaId = $this->crearCampana($proyecto, 'CAMP_BE');
 
         $cartera = $this->crearCarteraEn($proyecto);
         $estado = $this->crearEstadoCasoEn($proyecto);
@@ -79,9 +78,9 @@ final class BandejaEquipoTest extends TestCase
         ];
 
         // 2 asignaciones del equipo + 1 a gestor fuera del equipo
-        $this->asignar($proyecto, $campanaId, $casoIds[0], (int) $g1->id);
-        $this->asignar($proyecto, $campanaId, $casoIds[1], (int) $g2->id);
-        $this->asignar($proyecto, $campanaId, $casoIds[2], (int) $gFuera->id);
+        $this->asignar($proyecto, $casoIds[0], (int) $g1->id);
+        $this->asignar($proyecto, $casoIds[1], (int) $g2->id);
+        $this->asignar($proyecto, $casoIds[2], (int) $gFuera->id);
 
         $this->actingAs($supervisor);
 
@@ -102,7 +101,6 @@ final class BandejaEquipoTest extends TestCase
         $g1 = $this->crearGestor($proyecto);
         $g2 = $this->crearGestor($proyecto);
         $equipoId = $this->crearEquipoConMiembros($proyecto, 'EQ_F', [$g1->id, $g2->id]);
-        $campanaId = $this->crearCampana($proyecto, 'CAMP_F');
 
         $cartera = $this->crearCarteraEn($proyecto);
         $estado = $this->crearEstadoCasoEn($proyecto);
@@ -112,9 +110,9 @@ final class BandejaEquipoTest extends TestCase
             $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]),
         ];
 
-        $this->asignar($proyecto, $campanaId, $casoIds[0], (int) $g1->id);
-        $this->asignar($proyecto, $campanaId, $casoIds[1], (int) $g1->id);
-        $this->asignar($proyecto, $campanaId, $casoIds[2], (int) $g2->id);
+        $this->asignar($proyecto, $casoIds[0], (int) $g1->id);
+        $this->asignar($proyecto, $casoIds[1], (int) $g1->id);
+        $this->asignar($proyecto, $casoIds[2], (int) $g2->id);
 
         $this->actingAs($supervisor);
 
@@ -144,9 +142,8 @@ final class BandejaEquipoTest extends TestCase
         $equipoA = $this->crearEquipoConMiembros($proyA, 'EQ_X', [$gestor->id]);
 
         // Asignación en proyecto B al mismo gestor — NO debe aparecer en bandeja de A.
-        $campanaB = $this->crearCampana($proyB, 'CAMP_B');
         $casoB = $this->crearCasoEn($proyB);
-        $this->asignar($proyB, $campanaB, $casoB, (int) $gestor->id);
+        $this->asignar($proyB, $casoB, (int) $gestor->id);
 
         $this->actingAs($supervisor);
         $c = Livewire::test(BandejaEquipo::class)
@@ -163,9 +160,8 @@ final class BandejaEquipoTest extends TestCase
         $supervisor = $this->crearSupervisor($proyecto);
         $g1 = $this->crearGestor($proyecto);
         $equipoId = $this->crearEquipoConMiembros($proyecto, 'EQ_PRIO', [$g1->id]);
-        $campanaId = $this->crearCampana($proyecto, 'CAMP_PRIO');
         $casoId = $this->crearCasoEn($proyecto);
-        $this->asignar($proyecto, $campanaId, $casoId, (int) $g1->id);
+        $this->asignar($proyecto, $casoId, (int) $g1->id);
 
         $asignacionId = (int) DB::table('asignaciones')
             ->where('proyecto_id', $proyecto->id)
@@ -214,24 +210,11 @@ final class BandejaEquipoTest extends TestCase
         return $equipoId;
     }
 
-    private function crearCampana(stdClass $proyecto, string $codigo): int
-    {
-        return (int) DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyecto->id,
-            'codigo' => $codigo,
-            'nombre' => $codigo,
-            'fecha_inicio' => Carbon::today()->toDateString(),
-            'estado' => 'activa',
-        ]);
-    }
-
-    private function asignar(stdClass $proyecto, int $campanaId, int $casoId, int $usuarioId): void
+    private function asignar(stdClass $proyecto, int $casoId, int $usuarioId): void
     {
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyecto->id,
-            'campana_id' => $campanaId,
             'caso_id' => $casoId,
             'usuario_id' => $usuarioId,
             'fecha_asignacion' => Carbon::today()->toDateString(),

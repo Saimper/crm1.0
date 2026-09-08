@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
  * cuentas en el proyecto, el asesor que va a empezar a trabajar una necesita
  * poder decirlo antes de gestionarla, no descubrirlo después.
  *
- * Las cuatro condiciones son las mismas que las del listener, y por las mismas
+ * Las tres condiciones son las mismas que las del listener, y por las mismas
  * razones. La diferencia está en el fallo: aquí se lanza y se muestra.
  */
 final readonly class AutoasignarCaso
@@ -50,7 +50,7 @@ final readonly class AutoasignarCaso
             throw new AutoasignacionNoPermitida('La cuenta no existe en este proyecto.');
         }
 
-        $duenio = $this->duenioActual($casoId);
+        $duenio = $this->duenioActual($proyectoId, $casoId);
 
         if ($duenio !== null) {
             throw new AutoasignacionNoPermitida(
@@ -60,12 +60,9 @@ final readonly class AutoasignarCaso
             );
         }
 
-        $campanaId = $this->campanaUnicaActiva($proyectoId);
-
         return $this->registrar->execute(new RegistrarAsignacionInput(
             publicId: (string) Str::ulid(),
             proyectoId: $proyectoId,
-            campanaId: $campanaId,
             casoId: $casoId,
             usuarioId: $usuarioId,
             fechaAsignacion: $ahora,
@@ -84,46 +81,19 @@ final readonly class AutoasignarCaso
     /**
      * Quién tiene la cuenta, o null si no la ha tenido nadie.
      *
-     * Una asignación cerrada también cuenta: el único `(campana_id, caso_id)`
-     * impide crear otra fila para la misma cuenta en la misma campaña, así que
-     * una cuenta ya trabajada no se vuelve a tomar sola —la devuelve a la
-     * circulación el supervisor, reasignándola—.
+     * Una asignación cerrada también cuenta: el único `(proyecto_id, caso_id)`
+     * impide crear una segunda fila para la misma cuenta, así que una cuenta ya
+     * trabajada no se vuelve a tomar sola —la devuelve a la circulación el
+     * supervisor, reasignándola—.
      */
-    private function duenioActual(int $casoId): ?int
+    private function duenioActual(int $proyectoId, int $casoId): ?int
     {
         $usuarioId = $this->db->table('asignaciones')
+            ->where('proyecto_id', $proyectoId)
             ->where('caso_id', $casoId)
             ->orderByDesc('id')
             ->value('usuario_id');
 
         return $usuarioId === null ? null : (int) $usuarioId;
-    }
-
-    /**
-     * Con ninguna campaña activa no hay dónde colgar la asignación
-     * (`asignaciones.campana_id` es NOT NULL); con varias, elegir por el asesor
-     * sería adivinar, y una cuenta en la campaña equivocada descuadra el reparto.
-     */
-    private function campanaUnicaActiva(int $proyectoId): int
-    {
-        $campanas = $this->db->table('campanas')
-            ->where('proyecto_id', $proyectoId)
-            ->where('estado', 'activa')
-            ->whereNull('eliminada_en')
-            ->pluck('id');
-
-        if ($campanas->count() === 0) {
-            throw new AutoasignacionNoPermitida(
-                'El proyecto no tiene ninguna campaña activa donde colgar la asignación.'
-            );
-        }
-
-        if ($campanas->count() > 1) {
-            throw new AutoasignacionNoPermitida(
-                'El proyecto tiene varias campañas activas: el supervisor tiene que asignar la cuenta a una.'
-            );
-        }
-
-        return (int) $campanas->first();
     }
 }

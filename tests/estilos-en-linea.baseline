@@ -47,7 +47,6 @@
 1 resources/views/modules/asignaciones/bandeja-page.blade.php
 1 resources/views/modules/asignaciones/reasignar-entre-equipos-page.blade.php
 1 resources/views/modules/auditoria/page.blade.php
-13 resources/views/modules/campanas/livewire/campanas-proyecto.blade.php
 24 resources/views/modules/campos_personalizados/admin/lista.blade.php
 6 resources/views/modules/campos_personalizados/livewire/formulario-campos-personalizados.blade.php
 10 resources/views/modules/casos/livewire/crear-caso-individual.blade.php

@@ -12,5 +12,5 @@ interface AsignacionRepository
 
     public function buscarPorId(int $id): Asignacion;
 
-    public function existeParaCampanaCaso(int $campanaId, int $casoId): bool;
+    public function existeParaCaso(int $proyectoId, int $casoId): bool;
 }

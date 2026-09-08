@@ -31,7 +31,6 @@ final class NotificarAsignacionesTest extends TestCase
     {
         $proyecto = $this->crearProyectoCobranza();
         $proyectoId = (int) $proyecto->id;
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_NOT_A');
 
         $cartera = $this->crearCarteraEn($proyecto);
         $estado = $this->crearEstadoCasoEn($proyecto);
@@ -45,7 +44,6 @@ final class NotificarAsignacionesTest extends TestCase
 
         app(AsignarCasosAEquipo::class)->execute(
             proyectoId: $proyectoId,
-            campanaId: $campanaId,
             equipoId: $equipoId,
             limite: 0,
         );
@@ -73,7 +71,6 @@ final class NotificarAsignacionesTest extends TestCase
     {
         $proyecto = $this->crearProyectoCobranza();
         $proyectoId = (int) $proyecto->id;
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_NOT_R');
         $gOri = $this->crearGestor($proyecto);
         $gDest = $this->crearGestor($proyecto);
         $eqO = $this->crearEquipoConMiembros($proyectoId, 'EQ_NOT_RO', [$gOri->id]);
@@ -82,7 +79,7 @@ final class NotificarAsignacionesTest extends TestCase
         $casoId = $this->crearCasoEn($proyecto);
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId, 'campana_id' => $campanaId,
+            'proyecto_id' => $proyectoId,
             'caso_id' => $casoId, 'usuario_id' => $gOri->id,
             'fecha_asignacion' => Carbon::today()->toDateString(),
             'prioridad' => 100, 'estado' => 'pendiente',
@@ -114,7 +111,6 @@ final class NotificarAsignacionesTest extends TestCase
     {
         $proyecto = $this->crearProyectoCobranza();
         $proyectoId = (int) $proyecto->id;
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_AUD');
         $gOri = $this->crearGestor($proyecto);
         $gDest = $this->crearGestor($proyecto);
         $eqO = $this->crearEquipoConMiembros($proyectoId, 'EQ_AUD_O', [$gOri->id]);
@@ -123,7 +119,7 @@ final class NotificarAsignacionesTest extends TestCase
         $casoId = $this->crearCasoEn($proyecto);
         DB::table('asignaciones')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId, 'campana_id' => $campanaId,
+            'proyecto_id' => $proyectoId,
             'caso_id' => $casoId, 'usuario_id' => $gOri->id,
             'fecha_asignacion' => Carbon::today()->toDateString(),
             'prioridad' => 100, 'estado' => 'pendiente',
@@ -145,18 +141,6 @@ final class NotificarAsignacionesTest extends TestCase
             AsignacionModel::class,
             $modelosAuditados['MODELOS_AUDITADOS'],
         );
-    }
-
-    private function crearCampana(int $proyectoId, string $codigo): int
-    {
-        return (int) DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'codigo' => $codigo,
-            'nombre' => $codigo,
-            'fecha_inicio' => Carbon::today()->toDateString(),
-            'estado' => 'activa',
-        ]);
     }
 
     /** @param list<int> $miembroIds */

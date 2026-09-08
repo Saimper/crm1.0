@@ -33,8 +33,6 @@ final class AsignarCasosAEquipoTest extends TestCase
         $proyecto = $this->crearProyectoCobranza();
         $this->crearCasosCobranza($proyecto, 5);
 
-        $campanaId = $this->crearCampana((int) $proyecto->id, 'CAMP_MASIVA');
-
         $g1 = $this->crearGestor($proyecto);
         $g2 = $this->crearGestor($proyecto);
         $g3 = $this->crearGestor($proyecto);
@@ -52,7 +50,6 @@ final class AsignarCasosAEquipoTest extends TestCase
 
         $r = app(AsignarCasosAEquipo::class)->execute(
             proyectoId: (int) $proyecto->id,
-            campanaId: $campanaId,
             equipoId: $equipoId,
             limite: 0,
         );
@@ -66,7 +63,7 @@ final class AsignarCasosAEquipoTest extends TestCase
 
         foreach ($casoIds as $caso) {
             $this->assertDatabaseHas('asignaciones', [
-                'campana_id' => $campanaId,
+                'proyecto_id' => $proyecto->id,
                 'caso_id' => $caso,
                 'estado' => 'pendiente',
             ]);
@@ -78,12 +75,11 @@ final class AsignarCasosAEquipoTest extends TestCase
         $proyecto = $this->crearProyectoCobranza();
         $this->crearCasosCobranza($proyecto, 5);
 
-        $campanaId = $this->crearCampana((int) $proyecto->id, 'CAMP_IDEMP');
         $gestor = $this->crearGestor($proyecto);
         $equipoId = $this->crearEquipoConMiembros((int) $proyecto->id, 'EQ_IDEMP', [$gestor->id]);
 
-        $r1 = app(AsignarCasosAEquipo::class)->execute((int) $proyecto->id, $campanaId, $equipoId, 5);
-        $r2 = app(AsignarCasosAEquipo::class)->execute((int) $proyecto->id, $campanaId, $equipoId, 5);
+        $r1 = app(AsignarCasosAEquipo::class)->execute((int) $proyecto->id, $equipoId, 5);
+        $r2 = app(AsignarCasosAEquipo::class)->execute((int) $proyecto->id, $equipoId, 5);
 
         $this->assertGreaterThan(0, $r1->asignadas);
         $this->assertSame(0, $r2->asignadas);
@@ -93,7 +89,6 @@ final class AsignarCasosAEquipoTest extends TestCase
     public function test_falla_si_equipo_sin_miembros(): void
     {
         $proyecto = $this->crearProyectoCobranza();
-        $campanaId = $this->crearCampana((int) $proyecto->id, 'CAMP_NOMIEM');
         $equipoId = (int) DB::table('equipos')->insertGetId([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyecto->id,
@@ -103,20 +98,7 @@ final class AsignarCasosAEquipoTest extends TestCase
         ]);
 
         $this->expectException(RuntimeException::class);
-        app(AsignarCasosAEquipo::class)->execute((int) $proyecto->id, $campanaId, $equipoId, 0);
-    }
-
-    public function test_falla_si_campana_pertenece_a_otro_proyecto(): void
-    {
-        $proyectoA = $this->crearProyectoCobranza();
-        $proyectoB = $this->crearProyectoCx();
-        $campanaB = $this->crearCampana((int) $proyectoB->id, 'CAMP_CX');
-
-        $gestor = $this->crearGestor($proyectoA);
-        $equipoA = $this->crearEquipoConMiembros((int) $proyectoA->id, 'EQ_A', [$gestor->id]);
-
-        $this->expectException(RuntimeException::class);
-        app(AsignarCasosAEquipo::class)->execute((int) $proyectoA->id, $campanaB, $equipoA, 0);
+        app(AsignarCasosAEquipo::class)->execute((int) $proyecto->id, $equipoId, 0);
     }
 
     public function test_supervisor_accede_ruta_masiva(): void
@@ -147,19 +129,17 @@ final class AsignarCasosAEquipoTest extends TestCase
         $this->activarProyecto($proyecto);
         $this->actingAs($this->crearSupervisor($proyecto));
 
-        $campanaId = $this->crearCampana((int) $proyecto->id, 'CAMP_LW');
         $gestor = $this->crearGestor($proyecto);
         $equipoId = $this->crearEquipoConMiembros((int) $proyecto->id, 'EQ_LW', [$gestor->id]);
 
         Livewire::test(AsignarMasivamente::class)
-            ->set('campanaId', $campanaId)
             ->set('equipoId', $equipoId)
             ->set('limite', 2)
             ->call('asignar')
             ->assertHasNoErrors();
 
         $this->assertSame(2, (int) DB::table('asignaciones')
-            ->where('campana_id', $campanaId)->count());
+            ->where('proyecto_id', $proyecto->id)->count());
     }
 
     /**
@@ -178,18 +158,6 @@ final class AsignarCasosAEquipoTest extends TestCase
                 'persona' => $this->crearPersonaEn($proyecto),
             ]);
         }
-    }
-
-    private function crearCampana(int $proyectoId, string $codigo): int
-    {
-        return (int) DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'codigo' => $codigo,
-            'nombre' => $codigo,
-            'fecha_inicio' => Carbon::today()->toDateString(),
-            'estado' => 'activa',
-        ]);
     }
 
     /** @param list<int> $miembroIds */

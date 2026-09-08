@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'campanas' => 'Campaigns',
     'cambiar_cliente' => 'Switch client',
     // Warning for the `admin.global` group entries: they do not go through the
     // `mandante.activo` middleware, so they step outside the active client.

@@ -14,7 +14,6 @@ final readonly class Asignacion
         public ?int $id,
         public string $publicId,
         public int $proyectoId,
-        public int $campanaId,
         public int $casoId,
         public int $usuarioId,
         public DateTimeImmutable $fechaAsignacion,
@@ -27,7 +26,6 @@ final readonly class Asignacion
     public static function registrar(
         string $publicId,
         int $proyectoId,
-        int $campanaId,
         int $casoId,
         int $usuarioId,
         DateTimeImmutable $fechaAsignacion,
@@ -42,7 +40,6 @@ final readonly class Asignacion
             id: null,
             publicId: $publicId,
             proyectoId: $proyectoId,
-            campanaId: $campanaId,
             casoId: $casoId,
             usuarioId: $usuarioId,
             fechaAsignacion: $fechaAsignacion,
@@ -57,7 +54,6 @@ final readonly class Asignacion
         int $id,
         string $publicId,
         int $proyectoId,
-        int $campanaId,
         int $casoId,
         int $usuarioId,
         DateTimeImmutable $fechaAsignacion,
@@ -66,12 +62,34 @@ final readonly class Asignacion
         ?DateTimeImmutable $cerradaEn,
         DateTimeImmutable $creadaEn,
     ): self {
-        return new self($id, $publicId, $proyectoId, $campanaId, $casoId, $usuarioId, $fechaAsignacion, $prioridad, $estado, $cerradaEn, $creadaEn);
+        return new self(
+            id: $id,
+            publicId: $publicId,
+            proyectoId: $proyectoId,
+            casoId: $casoId,
+            usuarioId: $usuarioId,
+            fechaAsignacion: $fechaAsignacion,
+            prioridad: $prioridad,
+            estado: $estado,
+            cerradaEn: $cerradaEn,
+            creadaEn: $creadaEn,
+        );
     }
 
     public function conId(int $id): self
     {
-        return new self($id, $this->publicId, $this->proyectoId, $this->campanaId, $this->casoId, $this->usuarioId, $this->fechaAsignacion, $this->prioridad, $this->estado, $this->cerradaEn, $this->creadaEn);
+        return new self(
+            id: $id,
+            publicId: $this->publicId,
+            proyectoId: $this->proyectoId,
+            casoId: $this->casoId,
+            usuarioId: $this->usuarioId,
+            fechaAsignacion: $this->fechaAsignacion,
+            prioridad: $this->prioridad,
+            estado: $this->estado,
+            cerradaEn: $this->cerradaEn,
+            creadaEn: $this->creadaEn,
+        );
     }
 
     public function cerrar(DateTimeImmutable $cerradaEn): self
@@ -84,7 +102,6 @@ final readonly class Asignacion
             id: $this->id,
             publicId: $this->publicId,
             proyectoId: $this->proyectoId,
-            campanaId: $this->campanaId,
             casoId: $this->casoId,
             usuarioId: $this->usuarioId,
             fechaAsignacion: $this->fechaAsignacion,

@@ -69,14 +69,6 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'contactos.editar',        'nombre' => 'Editar contactos',                        'grupo' => 'contactos',     'activo' => true],
             ['codigo' => 'contactos.eliminar',      'nombre' => 'Eliminar contactos',                      'grupo' => 'contactos',     'activo' => true],
 
-            // Campañas
-            ['codigo' => 'campanas.ver',            'nombre' => 'Ver campañas',                            'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.crear',          'nombre' => 'Crear campañas',                          'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.editar',         'nombre' => 'Editar campañas',                         'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.eliminar',       'nombre' => 'Eliminar campañas',                       'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.gestionar',      'nombre' => 'Gestionar campañas',                      'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.administrar',    'nombre' => 'Administrar campañas',                    'grupo' => 'campanas',      'activo' => true],
-
             // Asignaciones
             ['codigo' => 'asignaciones.ver_propia', 'nombre' => 'Ver bandeja propia',                      'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.ver_equipo', 'nombre' => 'Ver bandejas del equipo',                 'grupo' => 'asignaciones',  'activo' => true],

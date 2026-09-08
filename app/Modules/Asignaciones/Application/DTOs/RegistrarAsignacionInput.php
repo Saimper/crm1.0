@@ -11,7 +11,6 @@ final readonly class RegistrarAsignacionInput
     public function __construct(
         public string $publicId,
         public int $proyectoId,
-        public int $campanaId,
         public int $casoId,
         public int $usuarioId,
         public DateTimeImmutable $fechaAsignacion,

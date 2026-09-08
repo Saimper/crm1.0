@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'campanas' => 'Campañas',
     'cambiar_cliente' => 'Cambiar de cliente',
     // Aviso para las entradas del grupo `admin.global`: no pasan por el middleware
     // `mandante.activo`, así que salen del cliente en el que se está trabajando.

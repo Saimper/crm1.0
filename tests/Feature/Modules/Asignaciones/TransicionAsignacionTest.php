@@ -14,7 +14,6 @@ use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
 use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Support\EscenarioOperativo;
@@ -89,17 +88,9 @@ final class TransicionAsignacionTest extends TestCase
     /** @param array{proyectoId:int,casoId:int,personaId:int,usuarioId:int,cascada:array<string,int>} $ctx */
     private function registrarAsignacion(array $ctx): int
     {
-        $campanaId = (int) DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $ctx['proyectoId'],
-            'codigo' => 'CAMP_'.strtoupper(Str::random(6)), 'nombre' => 'Camp Test',
-            'estado' => 'activa', 'fecha_inicio' => '2026-04-01',
-            'creada_en' => Carbon::now(), 'actualizada_en' => Carbon::now(),
-        ]);
-
         return $this->app->make(RegistrarAsignacion::class)->execute(new RegistrarAsignacionInput(
             publicId: (string) Str::ulid(),
             proyectoId: $ctx['proyectoId'],
-            campanaId: $campanaId,
             casoId: $ctx['casoId'],
             usuarioId: $ctx['usuarioId'],
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),

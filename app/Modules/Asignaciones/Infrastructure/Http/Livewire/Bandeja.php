@@ -107,7 +107,6 @@ final class Bandeja extends Component
             ->join('carteras as ca', 'ca.id', '=', 'c.cartera_id')
             ->join('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
             ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
-            ->leftJoin('campanas as cm', 'cm.id', '=', 'a.campana_id')
             ->where('a.proyecto_id', $proyectoId)
             ->where('a.usuario_id', $usuarioId)
             ->whereNull('c.eliminada_en');
@@ -139,7 +138,6 @@ final class Bandeja extends Component
                 'ec.nombre as estado_caso_nombre', 'ec.codigo as estado_caso_codigo',
                 'ca.nombre as cartera_nombre',
                 'ru.nombre as resultado_ultimo',
-                'cm.nombre as campana_nombre',
             ])
             ->orderByDesc('a.prioridad')
             ->orderByDesc('c.fecha_ultima_gestion')
@@ -176,7 +174,8 @@ final class Bandeja extends Component
             ->whereNull('c.eliminada_en')
             ->whereNotExists(fn (Builder $q) => $q
                 ->from('asignaciones as asg')
-                ->whereColumn('asg.caso_id', 'c.id'));
+                ->whereColumn('asg.caso_id', 'c.id')
+                ->where('asg.proyecto_id', $proyectoId));
 
         $carteras = $this->usuario()->carterasPermitidas($proyectoId);
 
@@ -218,7 +217,6 @@ final class Bandeja extends Component
                 'ru.nombre as resultado_ultimo',
                 // La tabla es la misma que la de asignaciones; estas cuentas aún
                 // no tienen ninguna, así que las columnas de asignación van vacías.
-                DB::raw('null as campana_nombre'),
             ])
             ->orderByDesc('c.prioridad')
             ->orderByDesc('c.creada_en')

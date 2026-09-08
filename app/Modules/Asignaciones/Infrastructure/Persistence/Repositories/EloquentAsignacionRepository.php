@@ -21,7 +21,6 @@ final class EloquentAsignacionRepository implements AsignacionRepository
 
         $model->public_id = $asignacion->publicId;
         $model->proyecto_id = $asignacion->proyectoId;
-        $model->campana_id = $asignacion->campanaId;
         $model->caso_id = $asignacion->casoId;
         $model->usuario_id = $asignacion->usuarioId;
         $model->fecha_asignacion = $asignacion->fechaAsignacion;
@@ -49,7 +48,6 @@ final class EloquentAsignacionRepository implements AsignacionRepository
             id: (int) $model->id,
             publicId: (string) $model->public_id,
             proyectoId: (int) $model->proyecto_id,
-            campanaId: (int) $model->campana_id,
             casoId: (int) $model->caso_id,
             usuarioId: (int) $model->usuario_id,
             fechaAsignacion: $model->fecha_asignacion instanceof DateTimeImmutable
@@ -64,11 +62,16 @@ final class EloquentAsignacionRepository implements AsignacionRepository
         );
     }
 
-    public function existeParaCampanaCaso(int $campanaId, int $casoId): bool
+    /**
+     * El `sinScopeProyecto()` se compensa con el `where` explícito, que no es
+     * opcional: sin él la pregunta cruzaría proyectos (§13.5). Es el mismo
+     * patrón de `IniciarTrabajoDesdeGestion`.
+     */
+    public function existeParaCaso(int $proyectoId, int $casoId): bool
     {
         return AsignacionModel::query()
             ->sinScopeProyecto()
-            ->where('campana_id', $campanaId)
+            ->where('proyecto_id', $proyectoId)
             ->where('caso_id', $casoId)
             ->exists();
     }

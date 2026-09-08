@@ -52,7 +52,6 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
         '/bandeja/equipo',
         '/asignaciones/masiva',
         '/asignaciones/reasignar',
-        '/campanas',                 // incluye el trans_choice de «sin repartir»
         '/compromisos',
         '/importaciones',
         '/notificaciones',
@@ -96,20 +95,9 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
             'actualizada_en' => Carbon::now(),
         ]);
 
-        $campanaId = DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyecto->id,
-            'codigo' => 'CAMP_'.strtoupper(Str::random(6)),
-            'nombre' => 'Campaña de prueba',
-            'fecha_inicio' => Carbon::today(),
-            'creada_en' => Carbon::now(),
-            'actualizada_en' => Carbon::now(),
-        ]);
-
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyecto->id,
-            'campana_id' => $campanaId,
             'caso_id' => $casoId,
             'usuario_id' => $usuario->id,
             'fecha_asignacion' => Carbon::today(),
@@ -247,25 +235,6 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
             $this->assertIsString($html);
             $this->assertStringContainsString("Asignar {$plural} en batch", $html, "título en {$tipo}");
             $this->assertStringContainsString("Cada {$singular} del proyecto", $html, "descripción en {$tipo}");
-        }
-    }
-
-    /**
-     * La pantalla de campañas es el caso al revés: decía «cuentas» en duro, así
-     * que en soporte mentía. Y su contador es la única cadena pluralizada del
-     * lote, donde el marcador tiene que sobrevivir al corte por `|`.
-     */
-    public function test_campanas_rotula_tambien_su_contador_pluralizado(): void
-    {
-        foreach (self::PALABRA as $tipo => [, $plural]) {
-            $proyecto = $this->crearProyecto($tipo);
-            $supervisor = $this->crearSupervisor($proyecto);
-
-            $html = $this->actingAs($supervisor)->get("/proyectos/{$proyecto->id}/campanas")->assertOk()->getContent();
-
-            $this->assertIsString($html);
-            $this->assertStringContainsString("no se pueden repartir {$plural}", $html, "ayuda del vacío en {$tipo}");
-            $this->assertStringContainsString("No quedan {$plural} sin repartir", $html, "contador en cero en {$tipo}");
         }
     }
 

@@ -107,9 +107,6 @@
                     </x-ui.td>
                     <x-ui.td>
                         <div class="text-xs text-ink-800">{{ $a->cartera_nombre }}</div>
-                        @if($a->campana_nombre)
-                            <div class="text-[10px] text-ink-500">{{ $a->campana_nombre }}</div>
-                        @endif
                     </x-ui.td>
                     <x-ui.td>
                         <x-ui.badge :tone="$tipoTone">

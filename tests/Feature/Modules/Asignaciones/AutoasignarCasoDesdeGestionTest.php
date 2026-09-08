@@ -34,7 +34,7 @@ final class AutoasignarCasoDesdeGestionTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function escenario(bool $permite, string $estadoCampana = 'activa', int $campanas = 1): array
+    private function escenario(bool $permite): array
     {
         $mandante = $this->crearMandante();
         $proyecto = $this->crearProyectoCobranza($mandante);
@@ -54,18 +54,6 @@ final class AutoasignarCasoDesdeGestionTest extends TestCase
             'estado_caso_id' => $estado->id,
             'fecha_ingreso' => '2026-09-01',
         ]);
-
-        for ($i = 0; $i < $campanas; $i++) {
-            DB::table('campanas')->insert([
-                'public_id' => (string) Str::ulid(),
-                'proyecto_id' => $proyecto->id,
-                'codigo' => 'CAMP_'.$i,
-                'nombre' => 'Campaña '.$i,
-                'estado' => $estadoCampana,
-                'fecha_inicio' => '2026-09-01',
-                'creada_por_id' => $gestor->id,
-            ]);
-        }
 
         return compact('proyecto', 'casoId', 'persona', 'gestor');
     }
@@ -134,7 +122,6 @@ final class AutoasignarCasoDesdeGestionTest extends TestCase
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => (int) $ctx['proyecto']->id,
-            'campana_id' => (int) DB::table('campanas')->where('proyecto_id', $ctx['proyecto']->id)->value('id'),
             'caso_id' => $ctx['casoId'],
             'usuario_id' => (int) $otro->id,
             'fecha_asignacion' => '2026-09-01',
@@ -149,31 +136,9 @@ final class AutoasignarCasoDesdeGestionTest extends TestCase
         );
     }
 
-    public function test_sin_campana_activa_no_se_asigna(): void
-    {
-        $ctx = $this->escenario(permite: true, estadoCampana: 'programada');
-
-        $this->gestionar($ctx);
-
-        $this->assertSame(0, $this->asignacionesDe($ctx['casoId']));
-    }
-
-    public function test_con_varias_campanas_activas_no_se_adivina(): void
-    {
-        $ctx = $this->escenario(permite: true, campanas: 2);
-
-        $this->gestionar($ctx);
-
-        $this->assertSame(
-            0,
-            $this->asignacionesDe($ctx['casoId']),
-            'Con dos campañas activas, elegir una sería adivinar y descuadraría el reparto.'
-        );
-    }
-
     public function test_la_gestion_queda_registrada_aunque_no_se_pueda_asignar(): void
     {
-        $ctx = $this->escenario(permite: true, estadoCampana: 'pausada');
+        $ctx = $this->escenario(permite: false);
 
         $this->gestionar($ctx);
 

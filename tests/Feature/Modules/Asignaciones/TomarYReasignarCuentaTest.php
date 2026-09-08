@@ -38,7 +38,7 @@ final class TomarYReasignarCuentaTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function escenario(bool $permite = true, int $campanas = 1): array
+    private function escenario(bool $permite = true): array
     {
         $mandante = $this->crearMandante();
         $proyecto = $this->crearProyectoCobranza($mandante);
@@ -59,18 +59,6 @@ final class TomarYReasignarCuentaTest extends TestCase
             'estado_caso_id' => $estado->id,
             'fecha_ingreso' => '2026-09-01',
         ]);
-
-        for ($i = 0; $i < $campanas; $i++) {
-            DB::table('campanas')->insert([
-                'public_id' => (string) Str::ulid(),
-                'proyecto_id' => $proyecto->id,
-                'codigo' => 'CAMP_'.$i,
-                'nombre' => 'Campaña '.$i,
-                'estado' => 'activa',
-                'fecha_inicio' => '2026-09-01',
-                'creada_por_id' => $gestor->id,
-            ]);
-        }
 
         return compact('proyecto', 'casoId', 'persona', 'gestor', 'supervisor');
     }
@@ -117,18 +105,10 @@ final class TomarYReasignarCuentaTest extends TestCase
         $this->tomar($ctx, (int) $otro->id);
     }
 
-    public function test_con_varias_campanas_activas_no_se_adivina(): void
-    {
-        $ctx = $this->escenario(campanas: 2);
-
-        $this->expectException(AutoasignacionNoPermitida::class);
-        $this->tomar($ctx);
-    }
-
     /**
-     * El único `(campana_id, caso_id)` impide crear una segunda asignación para
-     * la misma cuenta en la misma campaña, así que una cuenta ya trabajada no
-     * vuelve al montón sola: la devuelve el supervisor reasignándola.
+     * El único `(proyecto_id, caso_id)` impide crear una segunda asignación
+     * para la misma cuenta, así que una cuenta ya trabajada no vuelve al montón
+     * sola: la devuelve el supervisor reasignándola.
      */
     public function test_una_cuenta_ya_trabajada_no_se_vuelve_a_tomar(): void
     {

@@ -16,9 +16,9 @@ use Throwable;
  * bandeja de nadie: el asesor registraba una promesa y al día siguiente no tenía
  * forma de saber que le correspondía darle seguimiento.
  *
- * Las condiciones —que el proyecto lo permita, que la cuenta no tenga ya dueño,
- * que haya una única campaña activa— viven en `AutoasignarCaso`, porque son las
- * mismas cuando el asesor toma la cuenta pulsando el botón.
+ * Las condiciones —que el proyecto lo permita y que la cuenta no tenga ya
+ * dueño— viven en `AutoasignarCaso`, porque son las mismas cuando el asesor
+ * toma la cuenta pulsando el botón.
  *
  * Lo único propio de este camino es el silencio: nada de esto puede tumbar el
  * registro de la gestión. La gestión es el hecho de negocio; la asignación es

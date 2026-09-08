@@ -19,16 +19,15 @@ final readonly class RegistrarAsignacion
 
     public function execute(RegistrarAsignacionInput $input): int
     {
-        if ($this->repositorio->existeParaCampanaCaso($input->campanaId, $input->casoId)) {
+        if ($this->repositorio->existeParaCaso($input->proyectoId, $input->casoId)) {
             throw new TransicionAsignacionInvalida(
-                'Ya existe una asignación para la misma campaña y caso.'
+                'Esta cuenta ya tiene una asignación en el proyecto.'
             );
         }
 
         $asignacion = Asignacion::registrar(
             publicId: $input->publicId,
             proyectoId: $input->proyectoId,
-            campanaId: $input->campanaId,
             casoId: $input->casoId,
             usuarioId: $input->usuarioId,
             fechaAsignacion: $input->fechaAsignacion,

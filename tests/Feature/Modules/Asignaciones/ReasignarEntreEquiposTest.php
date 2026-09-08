@@ -32,7 +32,6 @@ final class ReasignarEntreEquiposTest extends TestCase
     {
         $proyecto = $this->crearProyectoCobranza();
         $proyectoId = (int) $proyecto->id;
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_RA');
 
         $gOrigen = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $gDest1 = $this->crearUsuarioConRol($proyecto, 'GESTOR');
@@ -43,7 +42,7 @@ final class ReasignarEntreEquiposTest extends TestCase
 
         $casoIds = $this->crearCasosEn($proyecto, 5);
         foreach ($casoIds as $cid) {
-            $this->asignar($proyectoId, $campanaId, $cid, $gOrigen->id, 'pendiente');
+            $this->asignar($proyectoId, $cid, $gOrigen->id, 'pendiente');
         }
 
         $r = app(ReasignarCasosEntreEquipos::class)->execute(
@@ -60,7 +59,7 @@ final class ReasignarEntreEquiposTest extends TestCase
 
         // Ninguna asignación de la campaña nueva quedó con gOrigen.
         $this->assertSame(0, (int) DB::table('asignaciones')
-            ->where('campana_id', $campanaId)
+            ->where('proyecto_id', $proyectoId)
             ->where('usuario_id', $gOrigen->id)
             ->count());
     }
@@ -69,28 +68,27 @@ final class ReasignarEntreEquiposTest extends TestCase
     {
         $proyecto = $this->crearProyectoCobranza();
         $proyectoId = (int) $proyecto->id;
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_ESTADO');
         $gOri = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $gDest = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $eqOri = $this->crearEquipoConMiembros($proyectoId, 'EQ_EST_O', [$gOri->id]);
         $eqDes = $this->crearEquipoConMiembros($proyectoId, 'EQ_EST_D', [$gDest->id]);
 
         $casoIds = $this->crearCasosEn($proyecto, 3);
-        $this->asignar($proyectoId, $campanaId, $casoIds[0], $gOri->id, 'pendiente');
-        $this->asignar($proyectoId, $campanaId, $casoIds[1], $gOri->id, 'en_trabajo');
-        $this->asignar($proyectoId, $campanaId, $casoIds[2], $gOri->id, 'cerrada');
+        $this->asignar($proyectoId, $casoIds[0], $gOri->id, 'pendiente');
+        $this->asignar($proyectoId, $casoIds[1], $gOri->id, 'en_trabajo');
+        $this->asignar($proyectoId, $casoIds[2], $gOri->id, 'cerrada');
 
         $r = app(ReasignarCasosEntreEquipos::class)->execute($proyectoId, $eqOri, $eqDes, 0);
         $this->assertSame(1, $r->asignadas);
 
         // La pendiente se movió
         $this->assertSame($gDest->id, (int) DB::table('asignaciones')
-            ->where('campana_id', $campanaId)->where('caso_id', $casoIds[0])->value('usuario_id'));
+            ->where('proyecto_id', $proyectoId)->where('caso_id', $casoIds[0])->value('usuario_id'));
         // Las otras dos quedaron con gOri
         $this->assertSame($gOri->id, (int) DB::table('asignaciones')
-            ->where('campana_id', $campanaId)->where('caso_id', $casoIds[1])->value('usuario_id'));
+            ->where('proyecto_id', $proyectoId)->where('caso_id', $casoIds[1])->value('usuario_id'));
         $this->assertSame($gOri->id, (int) DB::table('asignaciones')
-            ->where('campana_id', $campanaId)->where('caso_id', $casoIds[2])->value('usuario_id'));
+            ->where('proyecto_id', $proyectoId)->where('caso_id', $casoIds[2])->value('usuario_id'));
     }
 
     public function test_falla_si_origen_y_destino_iguales(): void
@@ -108,7 +106,6 @@ final class ReasignarEntreEquiposTest extends TestCase
     {
         $proyecto = $this->crearProyectoCobranza();
         $proyectoId = (int) $proyecto->id;
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_NODEST');
         $gOri = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $eqOri = $this->crearEquipoConMiembros($proyectoId, 'EQ_NOD_O', [$gOri->id]);
         $eqDes = (int) DB::table('equipos')->insertGetId([
@@ -118,7 +115,7 @@ final class ReasignarEntreEquiposTest extends TestCase
             'activo' => true,
         ]);
         $casoId = $this->crearCasosEn($proyecto, 1)[0];
-        $this->asignar($proyectoId, $campanaId, $casoId, $gOri->id, 'pendiente');
+        $this->asignar($proyectoId, $casoId, $gOri->id, 'pendiente');
 
         $this->expectException(RuntimeException::class);
         app(ReasignarCasosEntreEquipos::class)->execute($proyectoId, $eqOri, $eqDes, 0);
@@ -145,14 +142,13 @@ final class ReasignarEntreEquiposTest extends TestCase
         $this->activarProyecto($proyecto);
         $this->actingAs($this->crearUsuarioConRol($proyecto, 'SUPERVISOR'));
 
-        $campanaId = $this->crearCampana($proyectoId, 'CAMP_LW_RA');
         $gOri = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $gDes = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $eqO = $this->crearEquipoConMiembros($proyectoId, 'EQ_LW_O', [$gOri->id]);
         $eqD = $this->crearEquipoConMiembros($proyectoId, 'EQ_LW_D', [$gDes->id]);
 
         $casoId = $this->crearCasosEn($proyecto, 1)[0];
-        $this->asignar($proyectoId, $campanaId, $casoId, $gOri->id, 'pendiente');
+        $this->asignar($proyectoId, $casoId, $gOri->id, 'pendiente');
 
         Livewire::test(ReasignarEntreEquipos::class)
             ->set('equipoOrigenId', $eqO)
@@ -161,7 +157,7 @@ final class ReasignarEntreEquiposTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertSame($gDes->id, (int) DB::table('asignaciones')
-            ->where('campana_id', $campanaId)
+            ->where('proyecto_id', $proyectoId)
             ->where('caso_id', $casoId)
             ->value('usuario_id'));
     }
@@ -189,18 +185,6 @@ final class ReasignarEntreEquiposTest extends TestCase
         return $ids;
     }
 
-    private function crearCampana(int $proyectoId, string $codigo): int
-    {
-        return (int) DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'codigo' => $codigo,
-            'nombre' => $codigo,
-            'fecha_inicio' => Carbon::today()->toDateString(),
-            'estado' => 'activa',
-        ]);
-    }
-
     /** @param list<int> $miembroIds */
     private function crearEquipoConMiembros(int $proyectoId, string $codigo, array $miembroIds): int
     {
@@ -224,12 +208,11 @@ final class ReasignarEntreEquiposTest extends TestCase
         return $equipoId;
     }
 
-    private function asignar(int $proyectoId, int $campanaId, int $casoId, int $usuarioId, string $estado): void
+    private function asignar(int $proyectoId, int $casoId, int $usuarioId, string $estado): void
     {
         DB::table('asignaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoId,
-            'campana_id' => $campanaId,
             'caso_id' => $casoId,
             'usuario_id' => $usuarioId,
             'fecha_asignacion' => Carbon::today()->toDateString(),
