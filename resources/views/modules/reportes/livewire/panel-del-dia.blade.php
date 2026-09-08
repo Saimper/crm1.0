@@ -86,20 +86,35 @@
                 <span class="label-xs">{{ __('reportes.panel_dinero') }}</span>
                 <span style="font-size:11px;color:var(--text-tertiary);">{{ __('reportes.panel_dinero_nota') }}</span>
             </div>
-            @if($dinero === null || (float) $dinero->prometido <= 0)
+            @if($dinero === null || ((float) $dinero->prometido <= 0 && (float) $dinero->cumplido <= 0))
                 <div style="font-size:13px;color:var(--text-tertiary);margin-top:10px;">{{ __('reportes.panel_sin_promesas') }}</div>
             @else
                 @php
-                    $pctCumplido = (int) round(((float) $dinero->cumplido) * 100 / max(0.01, (float) $dinero->prometido));
+                    // La barra mide lo RESUELTO en el periodo: de lo que se cerró,
+                    // cuánto se cobró. Antes dividía cobrado entre prometido, que
+                    // son poblaciones distintas —una por fecha de creación y otra
+                    // por fecha de resolución— y podía pasar del 100 %.
+                    $resuelto = (float) $dinero->cumplido + (float) $dinero->roto;
+                    $pctCumplido = $resuelto > 0
+                        ? (int) round(((float) $dinero->cumplido) * 100 / $resuelto)
+                        : null;
                 @endphp
                 <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px;">
                     <span style="font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--success-text);">{{ number_format((float) $dinero->cumplido, 2) }}</span>
-                    <span style="font-size:13px;color:var(--text-tertiary);">/ {{ number_format((float) $dinero->prometido, 2) }} {{ $dinero->moneda }}</span>
+                    <span style="font-size:13px;color:var(--text-tertiary);">{{ $dinero->moneda }} · {{ __('reportes.panel_dinero_cobrado') }}</span>
                 </div>
-                <span style="display:block;height:9px;background:var(--bg-subtle);border-radius:4px;overflow:hidden;margin-top:10px;"
-                      title="{{ $pctCumplido }}%">
-                    <span style="display:block;height:100%;border-radius:4px;background:var(--success);width:{{ $pctCumplido }}%;"></span>
-                </span>
+                <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;font-variant-numeric:tabular-nums;">
+                    {{ __('reportes.panel_dinero_prometido', ['monto' => number_format((float) $dinero->prometido, 2), 'moneda' => $dinero->moneda]) }}
+                </div>
+                @if($pctCumplido !== null)
+                    <span style="display:block;height:9px;background:var(--bg-subtle);border-radius:4px;overflow:hidden;margin-top:10px;"
+                          title="{{ __('reportes.panel_dinero_ratio', ['pct' => $pctCumplido]) }}">
+                        <span style="display:block;height:100%;border-radius:4px;background:var(--success);width:{{ $pctCumplido }}%;"></span>
+                    </span>
+                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:5px;">
+                        {{ __('reportes.panel_dinero_ratio', ['pct' => $pctCumplido]) }}
+                    </div>
+                @endif
             @endif
         </div>
         @endif

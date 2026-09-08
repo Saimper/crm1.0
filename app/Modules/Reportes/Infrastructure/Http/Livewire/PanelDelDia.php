@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -104,16 +105,38 @@ final class PanelDelDia extends Component
         // Dinero. OJO: el sistema NO registra pagos, solo la promesa y su estado,
         // así que esto es «prometido» y «cumplido», no «recuperado». Llamarlo
         // recuperado sería afirmar un cobro que la base no conoce.
-        $dinero = DB::table('compromisos as c')
-            ->join('compromisos_promesa_pago as pp', 'pp.compromiso_id', '=', 'c.id')
-            ->where('c.proyecto_id', $this->proyectoId)
-            ->whereNull('c.eliminada_en')
-            ->where('c.creada_en', '>=', $desde)
-            ->selectRaw('pp.moneda, sum(pp.monto) as prometido, '
-                ."sum(case when c.estado = 'cumplido' then pp.monto else 0 end) as cumplido")
-            ->groupBy('pp.moneda')
-            ->orderByDesc('prometido')
-            ->first();
+        //
+        // Las dos cifras salen de consultas distintas porque son poblaciones
+        // distintas, y meterlas en una sola era el fallo: lo prometido se cuenta
+        // por cuándo NACIÓ la promesa, y lo cumplido por cuándo SE RESOLVIÓ.
+        // Sumando ambas con `c.creada_en >= $desde` sólo entraban las promesas
+        // creadas Y cumplidas dentro del mismo rango, y una promesa creada hoy
+        // casi nunca vence hoy: el importe cumplido daba 0,00 todos los días
+        // mientras la tarjeta de al lado contaba tres promesas cumplidas.
+        // Medido el día que se detectó: el panel decía 0,00 y lo cobrado eran
+        // 3.572,91.
+        $prometido = $this->montoPorMoneda(
+            fn ($q) => $q->where('c.creada_en', '>=', $desde)
+        );
+
+        $cumplido = $this->montoPorMoneda(
+            fn ($q) => $q->where('c.estado', 'cumplido')->where(
+                fn ($w) => $this->resueltoEnRango($w, $desde)
+            )
+        );
+
+        $roto = $this->montoPorMoneda(
+            fn ($q) => $q->where('c.estado', 'roto')->where(
+                fn ($w) => $this->resueltoEnRango($w, $desde)
+            )
+        );
+
+        $dinero = ($prometido === null && $cumplido === null) ? null : (object) [
+            'moneda' => $prometido->moneda ?? $cumplido->moneda ?? 'USD',
+            'prometido' => (float) ($prometido->monto ?? 0),
+            'cumplido' => (float) ($cumplido->monto ?? 0),
+            'roto' => (float) ($roto->monto ?? 0),
+        ];
 
         $porUsuario = DB::table('gestiones as g')
             ->join('users as u', 'u.id', '=', 'g.usuario_id')
@@ -189,6 +212,42 @@ final class PanelDelDia extends Component
         }
 
         return $dias;
+    }
+
+    /**
+     * Importe de promesas de pago del proyecto, con el recorte que le pase quien
+     * llama. Devuelve la moneda con más volumen; el panel no mezcla divisas.
+     *
+     * @param  \Closure(Builder): mixed  $recorte
+     */
+    private function montoPorMoneda(\Closure $recorte): ?object
+    {
+        $q = DB::table('compromisos as c')
+            ->join('compromisos_promesa_pago as pp', 'pp.compromiso_id', '=', 'c.id')
+            ->where('c.proyecto_id', $this->proyectoId)
+            ->whereNull('c.eliminada_en');
+
+        $recorte($q);
+
+        return $q->selectRaw('pp.moneda, sum(pp.monto) as monto')
+            ->groupBy('pp.moneda')
+            ->orderByDesc('monto')
+            ->first();
+    }
+
+    /**
+     * El mismo criterio de «resuelto dentro del rango» que usa el contador de
+     * promesas, para que el importe y el número no cuenten poblaciones distintas.
+     */
+    private function resueltoEnRango(mixed $q, Carbon $desde): void
+    {
+        $q->whereDate('c.fecha_resolucion', '>=', $desde->toDateString())
+            ->orWhere(function ($q2) use ($desde): void {
+                // fecha_resolucion es nullable en filas antiguas; para esas se
+                // cae a cuándo se actualizó, igual que en compromisosResueltos().
+                $q2->whereNull('c.fecha_resolucion')
+                    ->where('c.actualizada_en', '>=', $desde);
+            });
     }
 
     private function compromisosResueltos(string $estado, Carbon $desde): int

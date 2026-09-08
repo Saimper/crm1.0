@@ -34,8 +34,9 @@
             <div class="text-2xl font-semibold text-success-700 mt-1">{{ number_format($cuentasGestionadas) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_effectiveness') }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_contactabilidad') }}</div>
             <div class="text-2xl font-semibold text-brand-700 mt-1">{{ number_format($efectividad, 1) }}%</div>
+            <div class="text-[11px] text-ink-500 mt-1 tabular-nums">{{ __('reportes.kpi_contactabilidad_pie', ['alcanzadas' => number_format($cuentasGestionadas), 'intentadas' => number_format($cuentasIntentadas), 'entidades' => mb_strtolower($rotuloCasos)]) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_total_gestiones') }}</div>
