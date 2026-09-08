@@ -232,7 +232,7 @@ final class VistaDeTrabajo extends Component
                     'cc.numero_prestamo', 'cc.moneda', 'cc.monto_original',
                     'cc.saldo_capital', 'cc.saldo_interes', 'cc.saldo_total',
                     'cc.cuota_mensual', 'cc.cuotas_totales', 'cc.cuotas_pagadas',
-                    'cc.dias_mora', 'cc.fecha_desembolso', 'cc.fecha_vencimiento',
+                    'cc.dias_mora', 'cc.dias_mora_confirmado_en', 'cc.fecha_desembolso', 'cc.fecha_vencimiento',
                     'tm.nombre as tramo_mora_nombre',
                 ])
                 ->first();

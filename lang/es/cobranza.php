@@ -9,6 +9,7 @@ return [
     'cuota_mensual' => 'Cuota mensual',
     'cuotas' => 'Cuotas',
     'dias_mora' => 'Días mora',
+    'dias_mora_confirmado_el' => 'mora confirmada por última vez el :fecha',
     'monto_original' => 'Monto original',
     'desembolso' => 'Desembolso',
     'vencimiento' => 'Vencimiento',

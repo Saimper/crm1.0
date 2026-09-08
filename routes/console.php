@@ -41,9 +41,25 @@ Schedule::command('importaciones:purgar-obsoletas --dias=7')
     ->withoutOverlapping()
     ->name('importaciones-purgar-obsoletas');
 
-// Reclasifica la cartera de cobranza en sus tramos de mora. Idempotente: si
-// nada cambió no escribe nada. Va después de la purga para no competir con ella.
+// Envejece los días de mora hasta el «hoy» de cada cliente y, después,
+// reclasifica la cartera en sus tramos. Cada hora y no a una hora fija: el
+// scheduler corre en UTC y cada mandante tiene su propia medianoche —a las
+// 03:50 UTC en Panamá todavía es ayer, y con una hora fija la mora habría ido
+// un día atrasada durante toda la jornada—. El avance es no-op 23 de las 24
+// veces, porque el ancla de cada cuenta ya es «hoy» del mandante y sólo escribe
+// cuando hay días que sumar; la hora en la que un cliente cruza la medianoche
+// es la única que hace trabajo.
+//
+// El avance va ANTES que los tramos, con quince minutos de margen: los tramos
+// se calculan sobre `dias_mora`, y reclasificar primero dejaría la cartera
+// clasificada con la mora de ayer hasta la hora siguiente. Los dos son
+// idempotentes; si nada cambió no escriben nada.
+Schedule::command('cobranza:avanzar-dias-mora')
+    ->hourlyAt(10)
+    ->withoutOverlapping()
+    ->name('cobranza-avanzar-dias-mora');
+
 Schedule::command('cobranza:asignar-tramos-mora')
-    ->dailyAt('04:00')
+    ->hourlyAt(25)
     ->withoutOverlapping()
     ->name('cobranza-asignar-tramos-mora');

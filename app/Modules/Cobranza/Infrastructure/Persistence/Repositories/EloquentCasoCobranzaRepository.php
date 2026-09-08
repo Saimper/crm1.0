@@ -10,10 +10,17 @@ use App\Modules\Cobranza\Domain\ValueObjects\DiasMora;
 use App\Modules\Cobranza\Domain\ValueObjects\MontoCobranza;
 use App\Modules\Cobranza\Domain\ValueObjects\NumeroPrestamo;
 use App\Modules\Cobranza\Infrastructure\Persistence\Models\CasoCobranzaModel;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use DateTimeImmutable;
+use Illuminate\Support\Facades\DB;
 
 final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
 {
+    /** @var array<int, int> proyecto_id => mandante_id */
+    private array $mandantePorProyecto = [];
+
+    public function __construct(private readonly RelojDelMandante $reloj) {}
+
     public function save(CasoCobranza $caso): CasoCobranza
     {
         $model = CasoCobranzaModel::query()->sinScopeProyecto()->find($caso->casoId)
@@ -38,9 +45,30 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
         $model->fecha_desembolso = $caso->fechaDesembolso;
         $model->fecha_vencimiento = $caso->fechaVencimiento;
 
+        // Quien afirma una mora la ancla al día en que la afirma. Este
+        // repositorio es una FUENTE (alta a mano, edición por dominio), así que
+        // mueve las dos fechas: el ancla que envejece `cobranza:avanzar-dias-mora`
+        // y la confirmación que dice «esto lo dijo alguien, no el reloj». Sólo
+        // cuando el valor cambia —en un alta todo valor es cambio—: volver a
+        // guardar la misma mora no es afirmarla de nuevo, y no debe mover el
+        // ancla hacia hoy sin sumar los días que van del ancla vieja a hoy.
+        // En el calendario del mandante, no del servidor (§RelojDelMandante).
+        if ($model->dias_mora !== null && $model->isDirty('dias_mora')) {
+            $hoy = $this->reloj->hoy($this->mandanteDe($caso->proyectoId));
+            $model->dias_mora_actualizado_en = $hoy;
+            $model->dias_mora_confirmado_en = $hoy;
+        }
+
         $model->save();
 
         return $caso;
+    }
+
+    private function mandanteDe(int $proyectoId): int
+    {
+        return $this->mandantePorProyecto[$proyectoId] ??= (int) DB::table('proyectos')
+            ->where('id', $proyectoId)
+            ->value('mandante_id');
     }
 
     public function buscarPorCasoId(int $casoId): ?CasoCobranza

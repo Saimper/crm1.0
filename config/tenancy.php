@@ -15,10 +15,21 @@ return [
      |
      | En estricto, una consulta sobre un modelo con scope y sin contexto lanza
      | ConsultaSinContextoDeTenant en vez de devolverlo todo. Es lo correcto,
-     | pero encenderlo hoy rompería la aplicación entera: 5 comandos, 4 jobs, 9
-     | listeners, 4 tareas del scheduler y todas las pantallas /admin corren sin
-     | contexto de proyecto. Cada uno tiene que declarar el suyo (o pedir
-     | explícitamente sinScopeProyecto) antes de que esto pueda ponerse en true.
+     | pero encenderlo hoy rompería la aplicación entera: los comandos de
+     | consola de abajo, 4 jobs, 9 listeners, las tareas del scheduler y todas
+     | las pantallas /admin corren sin contexto de proyecto. Cada uno tiene que
+     | declarar el suyo (o pedir explícitamente sinScopeProyecto) antes de que
+     | esto pueda ponerse en true.
+     |
+     | Inventario de comandos sin contexto. Son tareas de plataforma que
+     | recorren todos los proyectos por diseño, y por eso tienen que escribir
+     | sinScopeProyecto() o consultar con DB::table acotando proyecto_id a mano:
+     |   campos:convertir-tipo, campos:recolocar-valores,
+     |   cobranza:asignar-tramos-mora, cobranza:avanzar-dias-mora,
+     |   compromisos:romper-vencidos, contactos:extraer-de-campos,
+     |   importaciones:purgar-obsoletas, importaciones:reparar-encoding,
+     |   importaciones:rescatar-campos-nativos, importaciones:verificar,
+     |   integracion:purgar-sso-consumidos, notificaciones:generar.
      |
      | Se enciende cuando la Fase 3 haya terminado. Mientras tanto:
      |   - en pruebas se enciende por caso, para probar el mecanismo;

@@ -23,6 +23,19 @@ final readonly class DiasMora
      */
     public const MAXIMO_RAZONABLE = 14600;
 
+    /**
+     * A partir de cuántos días sin que una FUENTE confirme la mora hay que avisar.
+     *
+     * El CRM envejece la mora día a día, pero no sabe si la cuenta sigue viva:
+     * no hay importación «foto» que cierre lo que ya no viene en el archivo del
+     * cliente, así que una cuenta pagada o castigada que el cliente dejó de
+     * enviar seguiría sumando días para siempre. Cuarenta y cinco días son un
+     * ciclo de facturación y medio: si en ese plazo no ha llegado ningún archivo
+     * que la afirme, lo raro es que siga abierta. Es una constante de dominio y
+     * no un parámetro de pantalla a propósito (§13.14).
+     */
+    public const DIAS_SIN_CONFIRMAR_AVISO = 45;
+
     public function __construct(public int $dias)
     {
         if ($dias < 0) {

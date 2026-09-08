@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Cobranza\Infrastructure\Providers;
 
 use App\Modules\Cobranza\Application\Console\Commands\AsignarTramosMoraCommand;
+use App\Modules\Cobranza\Application\Console\Commands\AvanzarDiasMoraCommand;
 use App\Modules\Cobranza\Application\Listeners\CrearPromesaDesdeGestion;
 use App\Modules\Cobranza\Domain\Contracts\CasoCobranzaRepository;
 use App\Modules\Cobranza\Domain\Contracts\CompromisoPromesaPagoRepository;
@@ -41,6 +42,7 @@ final class CobranzaServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 AsignarTramosMoraCommand::class,
+                AvanzarDiasMoraCommand::class,
             ]);
         }
     }

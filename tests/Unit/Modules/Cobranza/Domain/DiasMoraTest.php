@@ -51,4 +51,14 @@ final class DiasMoraTest extends TestCase
     {
         $this->assertSame(DiasMora::MAXIMO_RAZONABLE, (new DiasMora(DiasMora::MAXIMO_RAZONABLE))->dias);
     }
+
+    /**
+     * El plazo tras el cual una mora que ninguna fuente confirma merece aviso
+     * es una constante de dominio, no un parámetro de pantalla (§13.14): un
+     * ciclo de facturación y medio sin archivo del cliente.
+     */
+    public function test_el_aviso_de_mora_sin_confirmar_es_de_cuarenta_y_cinco_dias(): void
+    {
+        $this->assertSame(45, DiasMora::DIAS_SIN_CONFIRMAR_AVISO);
+    }
 }
