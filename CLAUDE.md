@@ -42,11 +42,10 @@ Mandante
   └─ Proyecto (tipo: cobranza | cx | venta | servicio)
        ├─ Cartera (N)
        ├─ Persona (N)       — aislada al proyecto
-       ├─ Caso (N)          — via Persona + Cartera
-       │    ├─ Gestion (N)
-       │    ├─ Compromiso (0..N)
-       │    └─ Asignacion (via Campaña)
-       └─ Campaña (N)
+       └─ Caso (N)          — via Persona + Cartera
+            ├─ Gestion (N)
+            ├─ Compromiso (0..N)
+            └─ Asignacion (0..1) — su dueño dentro del proyecto
 ```
 
 **Reglas fijas:**
@@ -62,7 +61,7 @@ Mandante
 
 ### Módulos (`app/Modules/<Modulo>/`)
 
-**Núcleo:** `Tenancy`, `Personas`, `Contactos`, `Casos`, `Gestiones`, `Compromisos`, `Campañas`, `Asignaciones`, `Usuarios`, `Catalogos`, `CamposPersonalizados`, `EntidadesConfigurables`, `Auditoria`, `Importaciones`, `Reportes`, `Notificaciones`, `Integracion`.
+**Núcleo:** `Tenancy`, `Personas`, `Contactos`, `Casos`, `Gestiones`, `Compromisos`, `Asignaciones`, `Usuarios`, `Catalogos`, `CamposPersonalizados`, `EntidadesConfigurables`, `Auditoria`, `Importaciones`, `Reportes`, `Notificaciones`, `Integracion`.
 
 **Especializaciones:** `Cobranza`, `Cx`, `Venta`, `Servicio`.
 
@@ -104,12 +103,12 @@ Solo a través de:
 
 ```
 Mandante (1)──(N) Proyecto
-Proyecto (1)──(N) Cartera, Campaña, Persona, [N:N via upr] Usuario
+Proyecto (1)──(N) Cartera, Persona, [N:N via upr] Usuario
 Persona  (1)──(N) Contacto, Caso
 Cartera  (1)──(N) Caso
 Caso     (1)──(1) Caso<Tipo> (CTI)
 Caso     (1)──(N) Gestion, Compromiso
-Caso     (N)──(N) Campaña via Asignacion
+Caso     (1)──(0..1) Asignacion       — quién responde por la cuenta
 Gestion  (N)──(1) Contacto, Usuario, TipoGestion, Resultado, Canal
 Gestion  (1)──(0..1) Compromiso
 ```
@@ -130,7 +129,12 @@ Toda tabla scoped inicia su índice compuesto con `proyecto_id`. Ejemplos críti
 - `personas`: `(proyecto_id, tipo_identificacion_id, identificacion)` único.
 - `gestiones`: `(proyecto_id, caso_id, creada_en)`, `(proyecto_id, usuario_id, creada_en)`.
 - `compromisos`: `(proyecto_id, fecha_vencimiento, estado)`.
-- `asignaciones`: `(proyecto_id, usuario_id, estado)`, `(campana_id, caso_id)` único.
+- `asignaciones`: `(proyecto_id, usuario_id, estado)`, `(proyecto_id, caso_id)` único
+  (`asignaciones_proyecto_caso_unique`) — una cuenta tiene como mucho un dueño en el
+  proyecto, y la fila cerrada cuenta. El anterior era `(campana_id, caso_id)` y admitía
+  dos dueños vivos de la misma cuenta en campañas distintas, mientras el código ya
+  resolvía el dueño mirando sólo `caso_id`: el esquema no garantizaba lo que la
+  aplicación daba por hecho. Este no relaja, endurece.
 
 ---
 
@@ -167,7 +171,7 @@ Reglas de dominio:
 2. **Gestión × tipo de gestión** — datos capturados al registrar.
 3. **Compromiso × tipo de compromiso** — datos extra del compromiso.
 
-No hay campos personalizados en Persona, Contacto, Campaña, Cartera, Usuario, Proyecto, Mandante.
+No hay campos personalizados en Persona, Contacto, Cartera, Usuario, Proyecto, Mandante.
 
 ### Tipos (cerrado, 10, no extensible)
 `texto_corto`, `texto_largo`, `numero_entero`, `numero_decimal`, `fecha`, `fecha_hora`, `booleano`, `seleccion_unica`, `seleccion_multiple`, `moneda`.
@@ -239,6 +243,7 @@ Pantalla única del gestor: identidad de persona + selector de casos (pestañas)
 - Middleware admin (F39): `admin.global` exclusivo ADMIN_GLOBAL (mandantes, campos-personalizados, entidades-configurables, integracion.secrets). `admin.dual` acepta ADMIN_GLOBAL o ADMIN_MANDANTE (dashboard, proyectos, usuarios, auditoria); cada Livewire aplica scoping por mandante cuando user es mandante (no global).
 - **Roles custom (F33)**: ADMIN_GLOBAL define roles adicionales por proyecto combinando permisos existentes. Se persisten en `roles_custom` + `rol_custom_permiso`. Asignación a usuario en `usuario_proyecto_rol_custom` (tabla simétrica a la base, sin tocar `usuario_proyecto_rol`). Permisos `*.definir` y `roles.gestionar` están vetados (`RolCustom::PERMISOS_VETADOS`).
 - Permisos granulares CRUD: `gestiones.crear`, `campos.editar`, `entidades.definir`, etc. (~70 en total).
+- Un permiso que se retira se **apaga** (`permisos.activo = 0`), nunca se borra. `permisos` cuelga de dos FKs en cascada (`rol_permiso` y `rol_custom_permiso`), así que un `DELETE` se llevaría por delante, en silencio, los roles custom que un cliente hubiera montado sobre él. Las tres rutas de `User::tienePermiso` filtran por `p.activo`, de modo que apagarlo revoca igual y lo saca del selector, pero es reversible con un `UPDATE`. Así se retiraron `reportes.exportar` y los seis `campanas.*`.
 - Scope por cartera opcional: `usuario_proyecto_rol_cartera` (solo aplica a roles base; F33 no introduce cartera-scoping para custom).
 - `User::tienePermiso($codigo, $proyectoId, $carteraId)` es la API de verificación. Evalúa rol base (con cartera-scoping), rol custom (sin cartera-scoping) **y rol mandante F38** (sin cartera-scoping, autoriza si el proyecto pertenece al mandante donde el user tiene rol mandante) en una sola llamada; basta con que cualquiera de los tres lo aporte.
 - Permiso `roles.gestionar`: exclusivo ADMIN_GLOBAL. Vive en la lista vetada para impedir que un rol custom pueda crearse a sí mismo.
@@ -332,11 +337,11 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ---
 
-## 15. Estado actual (2026-05-15)
+## 15. Estado actual (2026-09-08)
 
-**77 migraciones | 21 módulos activos | tests F37c verdes (881 totales — drop columna legacy `proyectos.sso_secret`)**
+**108 migraciones | 20 módulos activos | suite verde (1641 tests — retirada de la entidad Campaña)**
 
-Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion. *(Clientes legacy eliminado en F34C-P2.)*
+Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion. *(Clientes legacy eliminado en F34C-P2; Campañas retirado en F43.)*
 
 **4 proyectos demo** bajo mandante `BPO_DEMO`: COBRANZA_DEMO_2026, SOPORTE_DEMO_2026, VENTA_DEMO_2026, SERVICIO_DEMO_2026.
 
@@ -381,6 +386,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | UI admin reusada para ADMIN_MANDANTE (cierre F38) — sin pantallas nuevas: las admin globales ya existentes filtran por rol en server-side. Middleware nuevo `admin.dual` (alias de `RequiereAdminMandanteOGlobal`) acepta ADMIN_GLOBAL **o** ADMIN_MANDANTE. `routes/web.php` admin split: dashboard / proyectos / usuarios / auditoria → `admin.dual`; mandantes / campos-personalizados / entidades-configurables / integracion.secrets siguen `admin.global` exclusivo. Sidebar (`layouts/app.blade.php`) detecta `$esAdminMandante` (rol-mandante sin ser global) y `$esAdminAlguno`; oculta items vetados al admin_mandante (Mandantes, Campos, Entidades, SSO secrets); cambia título a "Administración (Mandante)" + "Auditoría". `AdminProyectos` Livewire scope: query `WHERE mandante_id IN mandantesPermitidos()`; pre-selecciona mandante propio al crear; `guardContraMandanteAjeno()` defensivo en abrirFormEditar/guardar/desactivar/activar (abort 403). `AdminUsuarios` Livewire scope: usuarios filtrados por `EXISTS pivot upr WHERE proyecto_id IN proyectosDelMandante OR EXISTS pivot umr WHERE mandante_id IN mandantes`; asignaciones limitadas a esos proyectos; dropdown proyectos limitado al mandante; `promoverAdminGlobal`/`revocarAdminGlobal` exigen ADMIN_GLOBAL via `soloAdminGlobal()`; `quitarAsignacion`/`guardarAsignacion` con `guardContraProyectoAjeno()`. `ListadoAuditoria` (modo global): admin_mandante ve solo eventos de proyectos de su mandante. Dashboard tiles: array filtrado por flag `solo_admin_global`; títulos cambian según rol. 0 migraciones, 0 tablas nuevas, 0 pantallas nuevas. 25 tests nuevos (`AdminMandanteAccesoTest` 12 + `AdminProyectosScopeMandanteTest` 7 + `AdminUsuariosScopeMandanteTest` 6). | ✅ F39 |
 | CI/CD GitHub Actions — pipeline roadmap (`setup` → `pint`/`larastan`/`tests` en paralelo → `ci-ok` → `deploy`) con despliegue automático por SSH al VPS en `main` tras CI verde. Larastan montado (nivel 6 + baseline 197 errores), `php artisan test` (PHPUnit) con MySQL efímero + artifact `vite-build`, Pint `--test`. Deps nuevas dev: `larastan/larastan ^3.0`, `laravel/boost ^2.4`. | ✅ F40 |
 | Rediseño de la Vista de Trabajo — captura de gestión separada de los datos del caso, que pasan a LECTURA agrupada y plegable (`grupos_campo` + `campos_personalizados.grupo_campo_id`/`visible_en_gestion`); se editan sólo en «Editar caso», que elimina la segunda superficie de escritura (§13.3) y con ella el borrado silencioso de valores. Cascada canal → tipo → resultado con pivots `canal_proyecto` y `resultado_tipo_gestion`, ambos fail-open. Un único `<x-cp.control>` con los 10 tipos de §7, en vez de seis `@switch` divergentes. Contactos generados desde la importación con rol de columna y VO `ExtractorDeContactos`; `contactos` gana `public_id` y `origen`. Pantalla para `causas_gestion`, que no tenía ninguna. Plantillas de nota por proyecto (`plantillas_nota`). Barra de guardar pegada, atajo Ctrl/⌘+Enter acotado, y `min-width:0` en `.app-header` que quita el scroll horizontal de las 39 pantallas. | ✅ F42 |
+| Retirada de la entidad Campaña — de sus once columnas se leía una (`estado`) y en un solo sitio: elegir dónde colgar una asignación. Sin `cartera_id`, sin meta y sin criterio, no podía agrupar nada, y ni un fichero de `app/Modules/Reportes` la mencionaba. Lo único que sostenía era el único `(campana_id, caso_id)`, que además admitía **dos dueños vivos** de la misma cuenta mientras el código resolvía el dueño mirando sólo `caso_id`. Pasa a `(proyecto_id, caso_id)`. Módulo borrado entero (código, vistas, lang, ruta, sidebar, tabla) y sus seis permisos apagados. Pasarle a alguien una asignación cerrada la **reabre**: es la única puerta de vuelta que le queda a una cuenta ya trabajada, y sustituye al escape viejo —crear una campaña nueva la devolvía al reparto—. El límite por cartera (F22) pasa a comprobarse en el UseCase y no sólo en la lista. 2 migraciones. | ✅ F43 |
 
 ### Módulo Integracion (F28 + F37)
 
@@ -552,9 +558,15 @@ Preparar deps ──────┼─→ Análisis (Larastan)─┼──→ CI
 
 **Notas operativas:**
 - El deploy usa `reset --hard origin/main` (no `pull`) para no atascarse con working trees sucios del VPS (p. ej. `.gitignore` de `storage/` regenerados). Descarta cambios locales en archivos versionados del VPS — correcto para un target de deploy.
-- `migrate --force` corre en cada deploy: una migración destructiva se aplicaría sin revisión manual. Una compuerta manual de migraciones queda como posible mejora.
+- `migrate --force` corre en cada deploy, sin aprobación manual. Lo que sí hay desde F43 son dos compuertas en el script SSH, y las dos importan más que una aprobación:
+
+  **1. El trap ya no levanta el sitio si la base quedó a medias.** El script lleva una variable `FASE`, y el `trap ... EXIT` decide según ella: en `migracion` y `seeders` **deja el mantenimiento puesto** e imprime un runbook con el commit anterior, el respaldo y los pasos; en cualquier otra fase levanta el sitio como siempre. Levantarlo tras una migración rota devuelve a producción código nuevo sobre esquema viejo, que es peor que el 503: MySQL no envuelve el DDL en transacción, así que un `ALTER` muerto a mitad deja la tabla en un estado que ninguna versión del código sabe leer, y el fallo no se ve —el healthcheck sólo mira `/login`—.
+
+  **2. Sin copia no se migra.** Si el push toca `database/migrations/`, se hace `mysqldump` antes. Va **antes del `git reset --hard`** a propósito: ahí el árbol todavía tiene el código viejo, así que si el volcado falla el trap levanta un sitio cuyo código y esquema se corresponden. El volcado no se encadena con `gzip` —la tubería devolvería el estado de `gzip` y un dump cortado pasaría por bueno—: se vuelca a fichero, se comprueba la firma `Dump completed` y se comprime después. Siete copias en `/var/backups/crm`, las viejas se borran solas. El `.env` se lee con `sed` y no con `source`, porque sus valores no son shell.
+
+  Lo que **no** cubren: no son una aprobación humana —una migración destructiva sigue aplicándose sola— y el respaldo no rebobina nada por sí mismo. Y hay migraciones de un solo sentido: la de F43 borra `asignaciones.campana_id`, y esa columna no vuelve.
 - Warning de deprecación de Node 20 en las actions: informativo (afecta el runtime de las actions, no la app). Forzable a Node 24 con `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
-- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F40, con acuerdo previo.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F40, con acuerdo previo. Las dos compuertas se añadieron en F43, también con acuerdo previo.
 
 ### Rediseño de la Vista de Trabajo (F42)
 
@@ -609,6 +621,45 @@ en un móvil de 390 y arrastraba el documento entero. El scroll horizontal de la
   `campos_personalizados` (§7), el override de canales vía pivot (§8), y el
   límite de que «grupo + orden» no es un editor de layouts (§1).
 
+### Retirada de la Campaña (F43)
+
+**No se retiró una agrupación: se retiró un requisito.** La campaña no tenía
+`cartera_id`, ni meta, ni criterio de selección, así que estructuralmente no
+podía agrupar nada, y `app/Modules/Reportes` no la mencionaba en ningún fichero:
+no existía un informe por campaña. De sus once columnas se leía `estado`, en un
+solo sitio, para decidir a qué campaña colgar una asignación —y con cero
+campañas activas la respuesta era que no se trabajase—.
+
+**El único era el problema, no la solución.** `(campana_id, caso_id)` permitía
+dos dueños vivos de la misma cuenta en campañas distintas, mientras
+`AutoasignarCaso::duenioActual`, `VistaDeTrabajo::duenioDelCaso` y
+`Bandeja::consultaPool` resolvían el dueño mirando sólo `caso_id`. El código ya
+daba por hecho lo que el esquema no garantizaba. `(proyecto_id, caso_id)` no
+relaja: endurece.
+
+**Cerrar una asignación necesitaba una salida, y no la tenía.** Con el único por
+campaña había un escape: crear una campaña nueva devolvía al reparto las cuentas
+con asignación cerrada en la vieja. Al retirar la campaña, la fila cerrada pasa a
+ser la única que puede existir para esa cuenta, así que sin sustituto la dejaba
+muerta —ni se toma, ni entra en el reparto, ni sale en el montón—. El sustituto
+es explícito: pasarle a alguien una asignación cerrada la **reabre**
+(`ReasignarAsignacionAUsuario`), vuelve a `pendiente` y se reutiliza la fila,
+porque el único obliga.
+
+**El límite por cartera se comprueba donde se puede saltar.** Las tres pantallas
+que ofrecen «Tomar» filtran la lista, pero quien pulsa manda un id de caso. Las
+carteras permitidas llegan a `AutoasignarCaso` por parámetro —no de `auth()`,
+que en un UseCase está prohibido (§13.10)— y se comprueban ahí. El listener de
+autoasignación no las pasa, y está dicho por qué: por ese camino no entra un id
+elegido por el navegador.
+
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre
+  de F43, con acuerdo previo. Los cambios: §2 y §4 (Campaña sale de la jerarquía
+  y de las relaciones), §4.5 (el único nuevo), §7 (la lista de entidades sin
+  campos personalizados), §10 (los permisos se apagan, no se borran), §15
+  (estado, tabla y esta sección) y las compuertas del deploy en la sección de
+  CI/CD.
+
 ### Decisiones arquitectónicas vigentes
 
 - **CTI para casos y compromisos** — no STI ni JSON genérico. Tipos limpios e indexados.
@@ -618,3 +669,4 @@ en un móvil de 390 y arrastraba el documento entero. El scroll horizontal de la
 - **`causas_mora`/`estados_cobranza` reutilizan tablas genéricas** (`causas_gestion`, `estados_caso`) — evita `gestiones.causa_id` polimórfico.
 - **Entidades configurables ≠ módulos** — datos tipados reutilizando §7, sin fórmulas/triggers/layouts. Módulo = código en `app/Modules/`.
 - **Multi-tenancy 1 instancia = 1 BPO** — no hay tabla `tenants` ni `tenant_id`. Aislamiento es por `proyecto_id`.
+- **Una cuenta, un dueño por proyecto** — la asignación no es una tabla puente entre Caso y otra cosa: es quién responde por la cuenta, y el único `(proyecto_id, caso_id)` lo garantiza. Si algún día el negocio pide tandas de trabajo de verdad —acotadas en el tiempo, con meta y con reportería—, eso es `asignaciones.lote_id` con criterio de selección propio, no resucitar la campaña: lo que se retiró no fue una agrupación, fue un requisito que impedía trabajar cuando nadie lo había configurado.
