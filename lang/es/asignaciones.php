@@ -66,8 +66,7 @@ return [
 
     // Asignar masivamente (livewire)
     'bulk_section_title' => 'Asignar :entidades en batch a un equipo',
-    'bulk_section_desc' => 'Cada :entidad del proyecto sin asignación previa en la campaña se distribuye <strong>round-robin</strong> entre los miembros activos del equipo. Si :un :entidad ya tiene asignación en la misma campaña, se <em>omite</em> automáticamente.',
-    'label_campaign' => 'Campaña',
+    'bulk_section_desc' => 'Cada :entidad del proyecto que no tenga dueño se distribuye <strong>round-robin</strong> entre los miembros activos del equipo. :Un :entidad que ya sea de alguien se <em>respeta</em>: no se le quita a su asesor.',
     'select_placeholder' => 'Selecciona…',
     'cases_unassigned' => ':Entidades sin asignar: :count',
     'label_target_team' => 'Equipo destino',
@@ -96,6 +95,11 @@ return [
     'btn_take' => 'Tomar',
     'taken' => 'Cuenta tomada. Ya está en tu bandeja.',
     'reassign_to' => 'Pasar a…',
+    // Una cuenta con la asignación cerrada no vuelve sola al montón: pasarla
+    // a alguien es lo que la reabre, y la etiqueta tiene que decirlo.
+    'reopen_to' => 'Reabrir para…',
+    'reopen_title' => 'Reabrir esta cuenta y pasarla a otro asesor',
+    'reopen_done' => 'Cuenta reabierta y asignada a :usuario.',
     'reassign_title' => 'Pasar esta cuenta a otro asesor',
     'reassign_done' => 'Cuenta reasignada a :usuario.',
 ];

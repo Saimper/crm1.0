@@ -139,7 +139,13 @@ final class ListadoCasos extends Component
         );
 
         try {
-            $autoasignar->execute($proyectoId, $casoId, $this->usuarioId(), new DateTimeImmutable);
+            $autoasignar->execute(
+                proyectoId: $proyectoId,
+                casoId: $casoId,
+                usuarioId: $this->usuarioId(),
+                ahora: new DateTimeImmutable,
+                carterasPermitidas: $this->usuario()->carterasPermitidas($proyectoId),
+            );
             $this->mensajeAsignacion = __('casos.assign_taken');
         } catch (AutoasignacionNoPermitida $e) {
             $this->addError('asignacion', $e->getMessage());
@@ -275,9 +281,10 @@ final class ListadoCasos extends Component
             'c.id', 'c.public_id', 'c.tipo_caso',
             'p.public_id as persona_public_id', 'p.tipo_persona',
             'p.nombres', 'p.apellidos', 'p.razon_social',
-            // Quién tiene la cuenta. Subconsulta escalar y no join: la cuenta
-            // tiene un dueño vivo, pero puede arrastrar asignaciones cerradas de
-            // reasignaciones anteriores, y el join duplicaría la fila.
+            // Quién tiene la cuenta. Subconsulta escalar y no join porque la
+            // consulta ya trae una fila por caso: un join, aunque hoy el único
+            // `(proyecto_id, caso_id)` garantice que no puede multiplicar,
+            // acopla el número de filas del listado a otra tabla.
             DB::raw('(select u.name from asignaciones asg'
                 .' inner join users u on u.id = asg.usuario_id'
                 .' where asg.caso_id = c.id and asg.proyecto_id = c.proyecto_id'

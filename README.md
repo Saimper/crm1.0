@@ -71,8 +71,7 @@ flowchart TD
   P1 --> Ca1[Caso]:::data
   Ca1 --> G1[Gestión]:::core
   Ca1 --> Co1[Compromiso]:::core
-  P1 --> Cm1[Campaña]:::data
-  Cm1 --> A1[Asignación]:::data
+  Ca1 --> A1[Asignación]:::data
 
   classDef tenant fill:#1e3a8a,stroke:#1e40af,color:#fff,stroke-width:2px
   classDef proj fill:#0ea5e9,stroke:#0284c7,color:#fff
@@ -158,7 +157,6 @@ flowchart LR
     Cs[Casos]
     Ge[Gestiones]
     Cm[Compromisos]
-    Cp[Campañas]
     As[Asignaciones]
     Cat[Catálogos]
   end
@@ -214,7 +212,6 @@ erDiagram
   MANDANTE ||--o{ PROYECTO : "contrata"
   PROYECTO ||--o{ CARTERA : "tiene"
   PROYECTO ||--o{ PERSONA : "aísla"
-  PROYECTO ||--o{ CAMPANA : "ejecuta"
   PERSONA  ||--o{ CONTACTO : "posee"
   PERSONA  ||--o{ CASO : "origina"
   CARTERA  ||--o{ CASO : "agrupa"
@@ -227,8 +224,7 @@ erDiagram
   GESTION  ||--o| COMPROMISO : "puede generar"
   COMPROMISO ||--|| COMPROMISO_PROMESA_PAGO : "CTI"
   COMPROMISO ||--|| COMPROMISO_RESOLUCION_TICKET : "CTI"
-  CAMPANA  ||--o{ ASIGNACION : "distribuye"
-  CASO     ||--o{ ASIGNACION : "se asigna"
+  CASO     ||--o| ASIGNACION : "tiene un dueño"
 
   MANDANTE { bigint id PK }
   PROYECTO { bigint id PK ulid public_id enum tipo }

@@ -21,11 +21,20 @@ use Illuminate\Database\ConnectionInterface;
  *
  * Se permite mover una asignación `en_trabajo` —a diferencia del movimiento por
  * lotes, que respeta lo empezado—: aquí el supervisor está mirando esa fila y
- * decidiendo sobre ella. Una asignación `cerrada` no se toca: ya es historia.
+ * decidiendo sobre ella.
+ *
+ * Y también una `cerrada`, que entonces se REABRE. No es un capricho: desde que
+ * el único es `(proyecto_id, caso_id)`, la fila cerrada es la única que puede
+ * existir para esa cuenta, así que mientras esté ahí la cuenta no la puede
+ * tomar nadie, ni entra en el reparto, ni aparece en el montón de las que no
+ * son de nadie. Sin esta puerta, cerrar una asignación sacaba la cuenta de
+ * circulación para siempre. Antes había un escape —crear una campaña nueva la
+ * devolvía al reparto—; al retirar la campaña había que sustituirlo, no
+ * dejarlo caer.
  */
 final readonly class ReasignarAsignacionAUsuario
 {
-    private const ESTADOS_REASIGNABLES = ['pendiente', 'en_trabajo'];
+    private const ESTADOS_REASIGNABLES = ['pendiente', 'en_trabajo', 'cerrada'];
 
     public function __construct(
         private ConnectionInterface $db,
@@ -44,7 +53,7 @@ final readonly class ReasignarAsignacionAUsuario
         }
 
         if (! in_array($asignacion->estado, self::ESTADOS_REASIGNABLES, true)) {
-            throw new TransicionAsignacionInvalida('Una asignación cerrada ya no se reasigna.');
+            throw new TransicionAsignacionInvalida("No se puede reasignar una asignación en estado {$asignacion->estado}.");
         }
 
         if ((int) $asignacion->usuario_id === $nuevoUsuarioId) {
@@ -55,12 +64,21 @@ final readonly class ReasignarAsignacionAUsuario
             throw new TransicionAsignacionInvalida('El asesor destino no tiene acceso a este proyecto.');
         }
 
-        $this->db->transaction(function () use ($asignacionId, $proyectoId, $nuevoUsuarioId): void {
+        // Reabrir es volver al principio, no continuar: la cuenta llega a la
+        // bandeja del nuevo asesor como pendiente, y el `cerrada_en` de quien la
+        // cerró deja de tener sentido.
+        $cambios = ['usuario_id' => $nuevoUsuarioId];
+        if ($asignacion->estado === 'cerrada') {
+            $cambios['estado'] = 'pendiente';
+            $cambios['cerrada_en'] = null;
+        }
+
+        $this->db->transaction(function () use ($asignacionId, $proyectoId, $cambios): void {
             $this->db->table('asignaciones')
                 ->where('id', $asignacionId)
                 ->where('proyecto_id', $proyectoId)
                 ->whereIn('estado', self::ESTADOS_REASIGNABLES)
-                ->update(['usuario_id' => $nuevoUsuarioId]);
+                ->update($cambios);
         });
 
         $this->notificaciones->registrarAsignacionesRecibidas(

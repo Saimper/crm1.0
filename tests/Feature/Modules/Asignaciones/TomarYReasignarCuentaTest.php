@@ -154,16 +154,39 @@ final class TomarYReasignarCuentaTest extends TestCase
         $this->assertDatabaseHas('asignaciones', ['id' => $asignacionId, 'usuario_id' => (int) $otro->id]);
     }
 
-    public function test_una_cuenta_cerrada_ya_no_se_reasigna(): void
+    /**
+     * Pasarle a alguien una cuenta cerrada la REABRE, y la pantalla lo dice con
+     * otras palabras que una reasignación normal.
+     *
+     * Es la única puerta de vuelta que tiene una cuenta ya trabajada: desde que
+     * el único es `(proyecto_id, caso_id)`, su fila cerrada es la única que
+     * puede existir, así que mientras esté ahí no la toma nadie ni entra en el
+     * reparto. Antes había un escape —crear una campaña nueva la devolvía a la
+     * circulación—; al retirar la campaña, esto es lo que lo sustituye.
+     */
+    public function test_pasar_una_cuenta_cerrada_la_reabre(): void
     {
         $ctx = $this->escenario();
         $asignacionId = $this->tomar($ctx);
-        DB::table('asignaciones')->where('id', $asignacionId)->update(['estado' => 'cerrada']);
+        DB::table('asignaciones')->where('id', $asignacionId)->update([
+            'estado' => 'cerrada',
+            'cerrada_en' => now(),
+        ]);
         $otro = $this->crearGestor($ctx['proyecto']);
 
-        $this->expectException(TransicionAsignacionInvalida::class);
-        $this->app->make(ReasignarAsignacionAUsuario::class)
-            ->execute((int) $ctx['proyecto']->id, $asignacionId, (int) $otro->id);
+        $this->actingAs($ctx['supervisor']);
+        $this->app->instance('tenancy.proyecto_activo', $ctx['proyecto']);
+
+        Livewire::test(BandejaEquipo::class)
+            ->call('reasignar', $asignacionId, (int) $otro->id)
+            ->assertHasNoErrors()
+            ->assertSee(__('asignaciones.reopen_done', ['usuario' => $otro->name]));
+
+        $fila = DB::table('asignaciones')->where('id', $asignacionId)->first();
+
+        $this->assertSame((int) $otro->id, (int) $fila->usuario_id);
+        $this->assertSame('pendiente', (string) $fila->estado);
+        $this->assertNull($fila->cerrada_en);
     }
 
     public function test_no_se_reasigna_a_quien_no_opera_en_el_proyecto(): void

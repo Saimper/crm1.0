@@ -162,23 +162,24 @@
                             </x-ui.td>
                             @if($puedeReasignar)
                                 <x-ui.td align="right">
-                                    @if($a->estado === 'cerrada')
-                                        <span class="text-xs text-ink-400">—</span>
-                                    @else
-                                        {{-- El select vuelve a «Pasar a…» solo: la fila se recarga con
-                                             el nuevo dueño y el desplegable no debe quedar señalando
-                                             a nadie. --}}
-                                        <select wire:change="reasignar({{ $a->id }}, $event.target.value)"
-                                                wire:key="reasignar-{{ $a->id }}-{{ $a->gestor_id }}"
-                                                class="text-xs border-ink-300 rounded"
-                                                title="{{ __('asignaciones.reassign_title') }}">
-                                            <option value="">{{ __('asignaciones.reassign_to') }}</option>
-                                            @foreach($destinatarios as $d)
-                                                @continue((int) $d->id === (int) $a->gestor_id)
-                                                <option value="{{ $d->id }}">{{ $d->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    @endif
+                                    {{-- También en las cerradas, y ahí es lo único que hay: la
+                                         cuenta con una asignación cerrada no vuelve al montón
+                                         sola —el único (proyecto_id, caso_id) lo impide—, así
+                                         que esta es su única puerta de vuelta. Pasarla a alguien
+                                         la reabre. --}}
+                                    {{-- El select vuelve a su etiqueta sola: la fila se recarga con
+                                         el nuevo dueño y el desplegable no debe quedar señalando
+                                         a nadie. --}}
+                                    <select wire:change="reasignar({{ $a->id }}, $event.target.value)"
+                                            wire:key="reasignar-{{ $a->id }}-{{ $a->gestor_id }}"
+                                            class="text-xs border-ink-300 rounded"
+                                            title="{{ $a->estado === 'cerrada' ? __('asignaciones.reopen_title') : __('asignaciones.reassign_title') }}">
+                                        <option value="">{{ $a->estado === 'cerrada' ? __('asignaciones.reopen_to') : __('asignaciones.reassign_to') }}</option>
+                                        @foreach($destinatarios as $d)
+                                            @continue((int) $d->id === (int) $a->gestor_id)
+                                            <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </x-ui.td>
                             @endif
                         </tr>

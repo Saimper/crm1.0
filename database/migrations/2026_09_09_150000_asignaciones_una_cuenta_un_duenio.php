@@ -39,15 +39,30 @@ return new class extends Migration
 
         // La FK primero. `campana_id` no tiene índice propio: el que la
         // respalda es el único, y soltarlo antes que la FK da errno 1553.
-        Schema::table('asignaciones', function (Blueprint $t): void {
-            $t->dropForeign('asignaciones_campana_id_foreign');
-        });
-        Schema::table('asignaciones', function (Blueprint $t): void {
-            $t->dropUnique('asignaciones_campana_caso_unique');
-        });
-        Schema::table('asignaciones', function (Blueprint $t): void {
-            $t->dropIndex('asignaciones_proyecto_id_campana_id_estado_index');
-        });
+        //
+        // Cada paso pregunta si ya está hecho. No es defensa de manual: con el
+        // `lock_wait_timeout` de arriba, basta con que una transacción de la
+        // aplicación tenga la tabla tomada diez segundos para que uno de estos
+        // ALTER muera; el DDL ya aplicado se queda —MySQL no lo envuelve en
+        // transacción— pero la fila de `migrations` no se escribe. Sin estas
+        // guardas, el reintento del siguiente despliegue entra otra vez por
+        // aquí y revienta con errno 1091 sobre algo que ya no existe, y el
+        // deploy se queda en bucle rojo hasta que alguien entre por SSH.
+        if ($this->fkExiste('asignaciones_campana_id_foreign')) {
+            Schema::table('asignaciones', function (Blueprint $t): void {
+                $t->dropForeign('asignaciones_campana_id_foreign');
+            });
+        }
+        if ($this->indiceExiste('asignaciones_campana_caso_unique')) {
+            Schema::table('asignaciones', function (Blueprint $t): void {
+                $t->dropUnique('asignaciones_campana_caso_unique');
+            });
+        }
+        if ($this->indiceExiste('asignaciones_proyecto_id_campana_id_estado_index')) {
+            Schema::table('asignaciones', function (Blueprint $t): void {
+                $t->dropIndex('asignaciones_proyecto_id_campana_id_estado_index');
+            });
+        }
         Schema::table('asignaciones', function (Blueprint $t): void {
             $t->dropColumn('campana_id');
         });
@@ -75,18 +90,26 @@ return new class extends Migration
     /**
      * Nada de DDL hasta que los datos admitan el único nuevo.
      *
-     * El desempate es el MISMO que usa la aplicación para decir quién tiene la
-     * cuenta —`order by id desc limit 1`, en `AutoasignarCaso::duenioActual`,
-     * `VistaDeTrabajo` y `ListadoCasos`—: cualquier otro criterio cambiaría de
-     * dueño cuentas en silencio. Los perdedores se copian antes de borrarse,
-     * porque `asignaciones` no tiene borrado lógico.
+     * Gana la fila VIVA, y sólo entre iguales manda el id más alto —que es el
+     * criterio con el que la aplicación dice quién tiene la cuenta, en
+     * `AutoasignarCaso::duenioActual`, `VistaDeTrabajo` y `ListadoCasos`—.
+     *
+     * El estado va primero por una razón concreta: si una cuenta tiene una
+     * asignación en trabajo en la campaña A y otra cerrada en la B, quedarse
+     * con la del id más alto le quitaría la cuenta al asesor que la está
+     * trabajando y la dejaría con una fila cerrada, que desde este mismo cambio
+     * significa fuera de circulación hasta que un supervisor la reabra.
+     *
+     * Los perdedores se copian antes de borrarse: `asignaciones` no tiene
+     * borrado lógico.
      */
     private function dedupe(): void
     {
         $perdedores = <<<'SQL'
             SELECT id FROM (
                 SELECT id, ROW_NUMBER() OVER (
-                    PARTITION BY proyecto_id, caso_id ORDER BY id DESC
+                    PARTITION BY proyecto_id, caso_id
+                    ORDER BY (estado = 'cerrada') ASC, id DESC
                 ) AS rn FROM asignaciones
             ) AS t WHERE t.rn > 1
         SQL;
@@ -102,15 +125,28 @@ return new class extends Migration
         DB::statement("DELETE FROM asignaciones WHERE id IN ({$perdedores})");
     }
 
-    private function crearUnico(): void
+    private function indiceExiste(string $nombre): bool
     {
-        $existe = DB::table('information_schema.STATISTICS')
+        return DB::table('information_schema.STATISTICS')
             ->whereRaw('TABLE_SCHEMA = DATABASE()')
             ->where('TABLE_NAME', 'asignaciones')
-            ->where('INDEX_NAME', 'asignaciones_proyecto_caso_unique')
+            ->where('INDEX_NAME', $nombre)
             ->exists();
+    }
 
-        if ($existe) {
+    private function fkExiste(string $nombre): bool
+    {
+        return DB::table('information_schema.TABLE_CONSTRAINTS')
+            ->whereRaw('CONSTRAINT_SCHEMA = DATABASE()')
+            ->where('TABLE_NAME', 'asignaciones')
+            ->where('CONSTRAINT_NAME', $nombre)
+            ->where('CONSTRAINT_TYPE', 'FOREIGN KEY')
+            ->exists();
+    }
+
+    private function crearUnico(): void
+    {
+        if ($this->indiceExiste('asignaciones_proyecto_caso_unique')) {
             return;
         }
 

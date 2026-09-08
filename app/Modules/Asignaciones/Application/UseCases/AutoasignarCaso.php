@@ -28,11 +28,19 @@ final readonly class AutoasignarCaso
         private ConnectionInterface $db,
     ) {}
 
+    /**
+     * @param  list<int>|null  $carterasPermitidas  Las carteras a las que el rol
+     *                                              limita al asesor (F22), o null si no le limita a
+     *                                              ninguna. Llega por parámetro y no de `auth()`
+     *                                              porque un UseCase no conoce al usuario logueado
+     *                                              (§13.10).
+     */
     public function execute(
         int $proyectoId,
         int $casoId,
         int $usuarioId,
         DateTimeImmutable $ahora,
+        ?array $carterasPermitidas = null,
     ): int {
         if (! $this->proyectoLoPermite($proyectoId)) {
             throw new AutoasignacionNoPermitida(
@@ -40,14 +48,23 @@ final readonly class AutoasignarCaso
             );
         }
 
-        $casoValido = $this->db->table('casos')
+        $caso = $this->db->table('casos')
             ->where('id', $casoId)
             ->where('proyecto_id', $proyectoId)
             ->whereNull('eliminada_en')
-            ->exists();
+            ->first(['cartera_id']);
 
-        if (! $casoValido) {
+        if ($caso === null) {
             throw new AutoasignacionNoPermitida('La cuenta no existe en este proyecto.');
+        }
+
+        // El límite por cartera del rol (F22) se comprueba aquí y no sólo en la
+        // pantalla: quien pulsa «Tomar» manda un id de caso, y las tres
+        // pantallas que ofrecen el botón filtran la LISTA, no la acción. Sin
+        // esto, un asesor limitado a una cartera se lleva cuentas de otra
+        // repitiendo la petición con otro id.
+        if ($carterasPermitidas !== null && ! in_array((int) $caso->cartera_id, $carterasPermitidas, true)) {
+            throw new AutoasignacionNoPermitida('Esta cuenta es de una cartera que no tienes asignada.');
         }
 
         $duenio = $this->duenioActual($proyectoId, $casoId);
@@ -83,8 +100,10 @@ final readonly class AutoasignarCaso
      *
      * Una asignación cerrada también cuenta: el único `(proyecto_id, caso_id)`
      * impide crear una segunda fila para la misma cuenta, así que una cuenta ya
-     * trabajada no se vuelve a tomar sola —la devuelve a la circulación el
-     * supervisor, reasignándola—.
+     * trabajada no se vuelve a tomar sola. La devuelve a la circulación el
+     * supervisor desde la bandeja del equipo, pasándosela a alguien: eso reabre
+     * la fila cerrada (`ReasignarAsignacionAUsuario`). Es la única puerta de
+     * vuelta que hay, y por eso existe.
      */
     private function duenioActual(int $proyectoId, int $casoId): ?int
     {

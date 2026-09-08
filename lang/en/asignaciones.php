@@ -66,8 +66,7 @@ return [
 
     // Asignar masivamente (livewire)
     'bulk_section_title' => 'Batch-assign :entidades to a team',
-    'bulk_section_desc' => 'Each :entidad in the project without a prior assignment in the campaign is assigned <strong>round-robin</strong> among the team\'s active members. If :un :entidad already has an assignment in the same campaign, it is automatically <em>skipped</em>.',
-    'label_campaign' => 'Campaign',
+    'bulk_section_desc' => 'Each :entidad in the project with no owner is assigned <strong>round-robin</strong> among the team\'s active members. :Un :entidad that already belongs to someone is <em>left alone</em>: it is not taken away from its agent.',
     'select_placeholder' => 'Select…',
     'cases_unassigned' => 'Unassigned :entidades: :count',
     'label_target_team' => 'Target team',
@@ -96,6 +95,9 @@ return [
     'btn_take' => 'Take',
     'taken' => 'Account taken. It is now in your queue.',
     'reassign_to' => 'Move to…',
+    'reopen_to' => 'Reopen for…',
+    'reopen_title' => 'Reopen this account and hand it to another agent',
+    'reopen_done' => 'Account reopened and assigned to :usuario.',
     'reassign_title' => 'Move this account to another agent',
     'reassign_done' => 'Account reassigned to :usuario.',
 ];

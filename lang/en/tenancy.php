@@ -2,7 +2,7 @@
 
 return [
     'autoasignacion' => 'Self-assign on interaction',
-    'autoasignacion_ayuda' => 'When an agent works an unassigned account, it becomes theirs. Requires exactly one active campaign. When off, only the supervisor assigns.',
+    'autoasignacion_ayuda' => 'When an agent works an unassigned account, it becomes theirs. When off, only the supervisor assigns.',
     'accion_editar' => 'Edit details',
     'accion_configurar' => 'Configure project',
     'accion_entrar' => 'Open project',

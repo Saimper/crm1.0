@@ -2,7 +2,7 @@
 
 return [
     'autoasignacion' => 'Auto-asignación al gestionar',
-    'autoasignacion_ayuda' => 'Si el asesor gestiona una cuenta sin dueño, la cuenta pasa a ser suya. Requiere una única campaña activa. Apagado, solo el supervisor reparte.',
+    'autoasignacion_ayuda' => 'Si el asesor gestiona una cuenta sin dueño, la cuenta pasa a ser suya. Apagado, solo el supervisor reparte.',
     'accion_editar' => 'Editar datos',
     'accion_configurar' => 'Configurar proyecto',
     'accion_entrar' => 'Entrar al proyecto',

@@ -33,6 +33,11 @@ final readonly class AutoasignarCasoDesdeGestion
     public function handle(GestionRegistrada $evento): void
     {
         try {
+            // Sin `carterasPermitidas`: por aquí no entra un id elegido por el
+            // navegador, sino una cuenta sobre la que este usuario ACABA de
+            // registrar una gestión, y para llegar a hacerlo tuvo que pasar por
+            // la vista de trabajo, que sí está acotada por cartera. El límite
+            // se comprueba donde se puede saltar, que es el botón «Tomar».
             $this->autoasignar->execute(
                 proyectoId: $evento->proyectoId,
                 casoId: $evento->casoId,

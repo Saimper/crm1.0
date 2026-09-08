@@ -79,7 +79,8 @@ final class BandejaEquipo extends Component
      *
      * Mismo permiso que el reparto por lotes: quien puede mover mil puede mover
      * una. Las reglas —qué estados se mueven, que el destino opere en el
-     * proyecto— viven en el UseCase, no aquí (§13.4).
+     * proyecto, que una cerrada se reabra al pasarla— viven en el UseCase, no
+     * aquí (§13.4).
      */
     public function reasignar(int $asignacionId, ?int $nuevoUsuarioId, ReasignarAsignacionAUsuario $reasignar): void
     {
@@ -95,10 +96,21 @@ final class BandejaEquipo extends Component
             'No tienes permiso para reasignar cuentas en este proyecto.',
         );
 
+        // Se lee ANTES: si estaba cerrada, el UseCase la reabre y después ya no
+        // hay forma de saber que la cuenta acaba de volver a circulación, que es
+        // justo lo que hay que contarle al supervisor.
+        $estabaCerrada = DB::table('asignaciones')
+            ->where('id', $asignacionId)
+            ->where('proyecto_id', $proyectoId)
+            ->value('estado') === 'cerrada';
+
         try {
             $reasignar->execute($proyectoId, $asignacionId, $nuevoUsuarioId);
             $nombre = (string) DB::table('users')->where('id', $nuevoUsuarioId)->value('name');
-            $this->mensajeExito = __('asignaciones.reassign_done', ['usuario' => $nombre]);
+            $this->mensajeExito = __(
+                $estabaCerrada ? 'asignaciones.reopen_done' : 'asignaciones.reassign_done',
+                ['usuario' => $nombre],
+            );
         } catch (TransicionAsignacionInvalida $e) {
             $this->addError('reasignacion', $e->getMessage());
         }

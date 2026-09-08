@@ -61,7 +61,13 @@ final class VistaDeTrabajo extends Component
         );
 
         try {
-            $autoasignar->execute($proyectoId, $casoId, (int) $usuario->id, new DateTimeImmutable);
+            $autoasignar->execute(
+                proyectoId: $proyectoId,
+                casoId: $casoId,
+                usuarioId: (int) $usuario->id,
+                ahora: new DateTimeImmutable,
+                carterasPermitidas: $usuario->carterasPermitidas($proyectoId),
+            );
             $this->mensajeAsignacion = __('casos.assign_taken');
         } catch (AutoasignacionNoPermitida $e) {
             $this->addError('asignacion', $e->getMessage());

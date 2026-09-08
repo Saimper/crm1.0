@@ -11,7 +11,7 @@
 - **Structure:** `Domain` (Entities, VOs, Contracts), `Application` (UseCases, DTOs, Listeners), `Infrastructure` (Models, Controllers, Livewire).
 - **Service Communication:** Use `UseCases` for business logic. Avoid logic in Controllers or Livewire components.
 - **Authoritative Source:** The URL `/proyectos/{proyecto_id}/...` is the source of truth for the active project.
-- **22 Modules:** Tenancy, Usuarios, Personas, Contactos, Casos, Gestiones, Compromisos, Campanas, Asignaciones, Catalogos, Clientes, Cobranza, Cx, Venta, Servicio, CamposPersonalizados, EntidadesConfigurables, Importaciones, Auditoria, Notificaciones, Reportes, Integracion.
+- **21 Modules:** Tenancy, Usuarios, Personas, Contactos, Casos, Gestiones, Compromisos, Asignaciones, Catalogos, Clientes, Cobranza, Cx, Venta, Servicio, CamposPersonalizados, EntidadesConfigurables, Importaciones, Auditoria, Notificaciones, Reportes, Integracion.
 - **DB:** MySQL 8, `utf8mb4_unicode_ci`, real FK constraints.
 
 ## Developer Workflow

@@ -59,7 +59,13 @@ final class Bandeja extends Component
         );
 
         try {
-            $autoasignar->execute($proyectoId, $casoId, (int) auth()->id(), new DateTimeImmutable);
+            $autoasignar->execute(
+                proyectoId: $proyectoId,
+                casoId: $casoId,
+                usuarioId: (int) auth()->id(),
+                ahora: new DateTimeImmutable,
+                carterasPermitidas: $this->usuario()->carterasPermitidas($proyectoId),
+            );
             $this->mensajeExito = __('asignaciones.taken');
         } catch (AutoasignacionNoPermitida $e) {
             $this->addError('asignacion', $e->getMessage());

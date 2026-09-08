@@ -6,8 +6,10 @@ namespace Tests\Feature\Modules\Asignaciones;
 
 use App\Modules\Asignaciones\Application\DTOs\RegistrarAsignacionInput;
 use App\Modules\Asignaciones\Application\UseCases\AsignarCasosAEquipo;
+use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
 use App\Modules\Asignaciones\Application\UseCases\ReasignarAsignacionAUsuario;
 use App\Modules\Asignaciones\Application\UseCases\RegistrarAsignacion;
+use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
 use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
@@ -125,21 +127,95 @@ final class UnaCuentaUnDuenioPorProyectoTest extends TestCase
     }
 
     /**
-     * El único empieza por `proyecto_id`, así que acota, no restringe de más:
-     * dos clientes con una cuenta cada uno conviven sin estorbarse (§12).
+     * El único empieza por `proyecto_id`, y eso es lo que hace que acote sin
+     * abrir nada: un asesor no alcanza la cuenta de otro cliente ni conociendo
+     * su id (§12). Se ataca con el id crudo a propósito, que es lo único que
+     * viaja desde el navegador.
      */
-    public function test_dos_mandantes_pueden_tener_cada_uno_su_asignacion(): void
+    public function test_un_asesor_no_toma_la_cuenta_de_otro_cliente(): void
     {
         $proyectoA = $this->crearProyectoCobranza($this->crearMandante());
         $proyectoB = $this->crearProyectoCobranza($this->crearMandante());
+        DB::table('proyectos')->whereIn('id', [$proyectoA->id, $proyectoB->id])
+            ->update(['permite_autoasignacion' => true]);
 
-        $casoA = $this->crearCaso($proyectoA);
-        $casoB = $this->crearCaso($proyectoB);
+        $casoDeA = $this->crearCaso($proyectoA);
+        $gestorDeB = $this->crearGestor($proyectoB);
 
-        $this->registrar($proyectoA, $casoA, (int) $this->crearGestor($proyectoA)->id);
-        $this->registrar($proyectoB, $casoB, (int) $this->crearGestor($proyectoB)->id);
+        try {
+            app(AutoasignarCaso::class)->execute(
+                proyectoId: (int) $proyectoB->id,
+                casoId: $casoDeA,
+                usuarioId: (int) $gestorDeB->id,
+                ahora: new DateTimeImmutable('2026-09-01'),
+            );
+            $this->fail('Un asesor se llevó la cuenta de otro cliente pasando su id.');
+        } catch (AutoasignacionNoPermitida) {
+            // Lo esperado: para el proyecto B, esa cuenta no existe.
+        }
 
-        $this->assertSame(2, (int) DB::table('asignaciones')->count());
+        $this->assertSame(0, (int) DB::table('asignaciones')->where('caso_id', $casoDeA)->count());
+    }
+
+    /**
+     * La vuelta de una cuenta trabajada.
+     *
+     * Con el único por campaña, cerrar una asignación no sacaba la cuenta de
+     * circulación: una campaña nueva la devolvía al reparto. Ahora la fila
+     * cerrada es la única que puede existir, así que si nadie puede reabrirla
+     * la cuenta queda muerta para siempre —ni la toma nadie, ni entra en el
+     * reparto, ni sale en el montón de las que no son de nadie—.
+     */
+    public function test_el_supervisor_reabre_una_cuenta_cerrada_pasandosela_a_otro(): void
+    {
+        $proyecto = $this->crearProyectoCobranza($this->crearMandante());
+        $casoId = $this->crearCaso($proyecto);
+        $uno = $this->crearGestor($proyecto);
+        $otro = $this->crearGestor($proyecto);
+
+        $asignacionId = $this->registrar($proyecto, $casoId, (int) $uno->id);
+        DB::table('asignaciones')->where('id', $asignacionId)->update([
+            'estado' => 'cerrada',
+            'cerrada_en' => now(),
+        ]);
+
+        app(ReasignarAsignacionAUsuario::class)->execute((int) $proyecto->id, $asignacionId, (int) $otro->id);
+
+        $fila = DB::table('asignaciones')->where('id', $asignacionId)->first();
+
+        $this->assertSame((int) $otro->id, (int) $fila->usuario_id);
+        $this->assertSame('pendiente', (string) $fila->estado, 'Reabrir es volver al principio, no continuar.');
+        $this->assertNull($fila->cerrada_en, 'El cierre de quien la cerró ya no tiene sentido.');
+        $this->assertSame(
+            1,
+            (int) DB::table('asignaciones')->where('caso_id', $casoId)->count(),
+            'Reabrir reutiliza la fila: crear otra chocaría con el único.'
+        );
+    }
+
+    /**
+     * El límite por cartera del rol (F22) se comprueba en el UseCase y no sólo
+     * en la pantalla: quien pulsa «Tomar» manda un id de caso, y las tres
+     * pantallas que ofrecen el botón filtran la LISTA, no la acción.
+     */
+    public function test_no_se_toma_una_cuenta_de_una_cartera_ajena(): void
+    {
+        $proyecto = $this->crearProyectoCobranza($this->crearMandante());
+        DB::table('proyectos')->where('id', $proyecto->id)->update(['permite_autoasignacion' => true]);
+
+        $casoId = $this->crearCaso($proyecto);
+        $carteraDelCaso = (int) DB::table('casos')->where('id', $casoId)->value('cartera_id');
+        $gestor = $this->crearGestor($proyecto);
+
+        $this->expectException(AutoasignacionNoPermitida::class);
+
+        app(AutoasignarCaso::class)->execute(
+            proyectoId: (int) $proyecto->id,
+            casoId: $casoId,
+            usuarioId: (int) $gestor->id,
+            ahora: new DateTimeImmutable('2026-09-01'),
+            carterasPermitidas: [$carteraDelCaso + 999],
+        );
     }
 
     private function crearCaso(stdClass $proyecto): int

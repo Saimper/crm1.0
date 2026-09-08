@@ -36,7 +36,7 @@
                        class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
                 @error('limite')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
             </div>
-            <div class="md:col-span-3 flex justify-end">
+            <div class="md:col-span-2 flex justify-end">
                 <button type="submit"
                         wire:confirm="{{ __('asignaciones.confirm_bulk_assign') }}"
                         class="px-4 py-2 text-sm text-white bg-brand-600 rounded hover:bg-brand-700">
