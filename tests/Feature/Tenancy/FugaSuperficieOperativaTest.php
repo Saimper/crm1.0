@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Modules\Casos\Infrastructure\Http\Livewire\ListadoCasos;
 use App\Modules\Casos\Infrastructure\Persistence\Models\CasoModel;
 use App\Modules\Personas\Infrastructure\Persistence\Models\PersonaModel;
+use App\Modules\Tenancy\Domain\Exceptions\ConsultaSinContextoDeTenant;
+use App\Modules\Tenancy\Domain\Exceptions\EscrituraFueraDelProyectoActivo;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorProyecto;
 use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverProyectoActivo;
 use Database\Seeders\DatabaseSeeder;
@@ -18,7 +20,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
-use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\Support\EscenarioMultiMandante;
@@ -148,22 +149,12 @@ final class FugaSuperficieOperativaTest extends TestCase
     }
 
     /**
-     * ROJO ESPERADO — fallo abierto del middleware en la rama Livewire.
-     *
-     * `ResolverProyectoActivo::handle()`: cuando el request es de Livewire y
-     * el usuario NO tiene acceso al proyecto resuelto, en vez de abortar hace
-     * `return $next($request)` sin bindear nada. Resultado: la petición sigue
-     * viva, autenticada, y con el Global Scope desactivado — que es peor que
-     * un 403, porque a partir de ahí toda consulta Eloquent ve los dos
-     * mandantes.
-     *
-     * La regla que se afirma es la del desenlace, no la del mecanismo: o el
-     * middleware corta, o lo que corre detrás está scoped. Hoy no hace ni una
-     * cosa ni la otra. Cuando la Fase 2 lo cierre (abortando o bindeando),
-     * este test se pone verde solo.
+     * El proyecto sale del parámetro de ruta y de ningún otro sitio. Cuando
+     * había respaldo por `Referer`, quien hacía la petición elegía qué datos
+     * veía; ahora, sin ese parámetro, el middleware corta y el resto del
+     * pipeline no llega a correr.
      */
-    #[Group('fuga-pendiente')]
-    public function test_request_livewire_con_referer_a_un_proyecto_ajeno_no_deberia_dejar_la_consulta_sin_scope(): void
+    public function test_un_request_livewire_con_referer_forjado_no_llega_a_consultar(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
@@ -171,24 +162,21 @@ final class FugaSuperficieOperativaTest extends TestCase
         $request->headers->set('referer', 'http://localhost/proyectos/'.$b['proyecto']->id.'/casos');
         $request->setUserResolver(fn (): User => $a['gestor']);
 
-        try {
-            (new ResolverProyectoActivo)->handle($request, function () use ($b): Response {
-                // Punto exacto de la fuga: aquí adentro corre el resto del
-                // pipeline de Livewire, con el usuario de A autenticado.
-                $ids = $this->idsDe(CasoModel::query()->get());
+        $llegoAlPipeline = false;
 
-                $this->assertNotContains(
-                    (int) $b['casoId'],
-                    $ids,
-                    'FUGA: un request Livewire con Referer forjado corre sin scope y ve los casos del otro mandante.'
-                );
+        try {
+            (new ResolverProyectoActivo)->handle($request, function () use (&$llegoAlPipeline): Response {
+                $llegoAlPipeline = true;
 
                 return new Response('ok');
             });
         } catch (HttpException $e) {
-            // Desenlace alternativo aceptable: el middleware corta la petición.
-            $this->assertSame(403, $e->getStatusCode(), 'Si el middleware corta, debe ser un 403 explícito.');
+            // Da igual con qué código corte —sin proyecto que resolver es un
+            // 404— mientras corte.
+            $this->assertContains($e->getStatusCode(), [403, 404]);
         }
+
+        $this->assertFalse($llegoAlPipeline, 'FUGA: el Referer decidió el proyecto y la petición siguió sin contexto.');
     }
 
     // ---------------------------------------------------------------
@@ -351,15 +339,13 @@ final class FugaSuperficieOperativaTest extends TestCase
     }
 
     /**
-     * ROJO ESPERADO — el scope solo filtra lecturas.
-     *
-     * `ScopeProyectoActivo::apply()` añade el WHERE a los SELECT; el hook
-     * `creating` de `PerteneceAProyecto` solo rellena `proyecto_id` cuando
-     * viene null, y no valida nada cuando viene puesto. Con el proyecto de A
-     * activo se puede insertar una fila directamente en el proyecto de B.
+     * El global scope sólo toca los SELECT, así que esta inserción no pasaba
+     * por él y caía dentro del proyecto de B sin que nada la mirara. La corta
+     * el guardia de escritura del trait, que revienta en vez de corregir el
+     * proyecto en silencio: mover la fila a donde nadie la pidió sería peor
+     * que no escribirla.
      */
-    #[Group('fuga-pendiente')]
-    public function test_con_a_activo_no_deberia_poderse_escribir_un_caso_en_el_proyecto_de_b(): void
+    public function test_con_a_activo_no_se_puede_escribir_un_caso_en_el_proyecto_de_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
@@ -369,7 +355,9 @@ final class FugaSuperficieOperativaTest extends TestCase
             ->where('proyecto_id', $b['proyecto']->id)
             ->value('id');
 
-        $nuevo = CasoModel::query()->create([
+        $this->expectException(EscrituraFueraDelProyectoActivo::class);
+
+        CasoModel::query()->create([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => (int) $b['proyecto']->id,
             'cartera_id' => (int) $b['cartera']->id,
@@ -378,14 +366,6 @@ final class FugaSuperficieOperativaTest extends TestCase
             'estado_caso_id' => $estadoDeB,
             'fecha_ingreso' => '2026-09-02',
         ]);
-
-        $proyectoEscrito = (int) DB::table('casos')->where('id', $nuevo->id)->value('proyecto_id');
-
-        $this->assertNotSame(
-            (int) $b['proyecto']->id,
-            $proyectoEscrito,
-            'FUGA: con el proyecto de A activo se insertó un caso dentro del proyecto de B.'
-        );
     }
 
     // ---------------------------------------------------------------
@@ -393,53 +373,43 @@ final class FugaSuperficieOperativaTest extends TestCase
     // ---------------------------------------------------------------
 
     /**
-     * CARACTERIZACIÓN (verde a propósito).
+     * La garantía que sustituyó al fallo abierto.
      *
-     * Retrata la fuga estructural que la Fase 2 tiene que cerrar: sin binding
-     * de proyecto, `ScopeProyectoActivo::apply()` hace `return` y la consulta
-     * sale desnuda. No hay ningún ataque aquí, es el comportamiento normal de
-     * cualquier código que no venga de una request HTTP con URL de proyecto.
+     * Este test decía lo contrario: retrataba que sin binding de proyecto el
+     * scope hacía `return` y la consulta salía desnuda, con los casos de todos
+     * los clientes dentro. No hacía falta ningún ataque; era el comportamiento
+     * normal de cualquier código que no viniera de una request HTTP con URL de
+     * proyecto — un job, un comando, un listener.
      *
-     * Cuando el scope pase a fallar cerrado, este test debe invertirse.
+     * Cerrado en la Fase 3: ahora lanza, y esta prueba lo sostiene.
      */
-    public function test_caracterizacion_fallo_abierto_sin_binding_el_scope_no_filtra_nada(): void
+    public function test_sin_contexto_de_proyecto_la_consulta_lanza_en_vez_de_devolverlo_todo(): void
     {
-        ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
+        $this->montarDosMandantes();
 
         $this->assertFalse(
             $this->app->bound('tenancy.proyecto_activo'),
             'Punto de partida: nadie ejecutó el middleware, no hay proyecto activo.'
         );
 
-        $ids = $this->idsDe(CasoModel::query()->get());
+        $this->expectException(ConsultaSinContextoDeTenant::class);
 
-        $this->assertContains((int) $a['casoId'], $ids);
-        $this->assertContains(
-            (int) $b['casoId'],
-            $ids,
-            'Si esto falla, el fallo abierto ya se cerró: invertir/borrar este test y quitar el rojo de su gemelo.'
-        );
+        CasoModel::query()->get();
     }
 
     /**
-     * ROJO ESPERADO — el mismo hecho, escrito como la regla que debería regir.
-     *
-     * Sin contexto de tenant una consulta operativa no debería devolver datos
-     * de nadie (fallar cerrado), en vez de devolverlos de todos.
+     * Y el escape sigue existiendo, porque la plataforma lo necesita: los
+     * catorce comandos, los cuatro jobs y las tareas de noche recorren todos
+     * los proyectos por diseño. La diferencia es que ahora hay que escribirlo.
      */
-    #[Group('fuga-pendiente')]
-    public function test_una_consulta_sin_contexto_no_deberia_devolver_casos_de_ningun_mandante(): void
+    public function test_la_consulta_cross_proyecto_sigue_siendo_posible_si_se_declara(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
-        $ids = $this->idsDe(CasoModel::query()->get());
+        $ids = $this->idsDe(CasoModel::query()->sinScopeProyecto()->get());
 
-        $this->assertNotContains(
-            (int) $b['casoId'],
-            $ids,
-            'FUGA ESTRUCTURAL: sin proyecto activo el Global Scope no aplica y la consulta ve todos los mandantes.'
-        );
-        $this->assertNotContains((int) $a['casoId'], $ids);
+        $this->assertContains((int) $a['casoId'], $ids);
+        $this->assertContains((int) $b['casoId'], $ids);
     }
 
     // ---------------------------------------------------------------
@@ -480,33 +450,25 @@ final class FugaSuperficieOperativaTest extends TestCase
     }
 
     /**
-     * ROJO ESPERADO — un job de cola corre en un contenedor sin middleware.
-     *
-     * Se simula el arranque de un worker: hubo contexto (una request lo dejó
-     * bindeado), el proceso lo pierde, y desde ahí toda consulta Eloquent
-     * queda sin scope. Es exactamente el motivo por el que
-     * `EjecutarImportacionJob` y decenas de repositorios llaman a
-     * `->sinScopeProyecto()` a mano: nadie confía en que el scope aplique.
+     * El estado de un worker de cola o de un comando artisan: hubo contexto,
+     * el proceso lo pierde, y desde ahí toda consulta Eloquent queda sin
+     * scope. Antes veía los casos de todos los mandantes; ahora lanza, que es
+     * lo que hace que las decenas de `->sinScopeProyecto()` repartidas por los
+     * repositorios dejen de ser fe y pasen a ser el contrato.
      */
-    #[Group('fuga-pendiente')]
-    public function test_un_job_sin_binding_de_proyecto_no_deberia_ver_los_casos_del_otro_mandante(): void
+    public function test_un_job_sin_binding_de_proyecto_no_ve_los_casos_de_nadie(): void
     {
-        ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
+        ['a' => $a] = $this->montarDosMandantes();
 
         $this->activarProyecto($a['proyecto']);
         $this->assertSame([(int) $a['casoId']], $this->idsDe(CasoModel::query()->get()));
 
-        // Estado de un worker de cola / comando artisan: sin binding.
         $this->app->forgetInstance('tenancy.proyecto_activo');
         $this->assertFalse($this->app->bound('tenancy.proyecto_activo'));
 
-        $ids = $this->idsDe(CasoModel::query()->get());
+        $this->expectException(ConsultaSinContextoDeTenant::class);
 
-        $this->assertNotContains(
-            (int) $b['casoId'],
-            $ids,
-            'FUGA: fuera de HTTP no hay contexto de tenant y el job ve los casos de todos los mandantes.'
-        );
+        CasoModel::query()->get();
     }
 
     // ---------------------------------------------------------------
