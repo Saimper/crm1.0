@@ -40,6 +40,7 @@
                     <option value="creado">{{ __('auditoria.event_created') }}</option>
                     <option value="actualizado">{{ __('auditoria.event_updated') }}</option>
                     <option value="eliminado">{{ __('auditoria.event_deleted') }}</option>
+                    <option value="exportado">{{ __('auditoria.event_exported') }}</option>
                 </select>
             </div>
             <div>
@@ -64,7 +65,11 @@
             @if(! $modoGlobal)
                 @php $pid = (int) app('tenancy.proyecto_activo')->id; @endphp
                 @can('auditoria.exportar')
+                    {{-- El fichero sale del evento más antiguo al más reciente
+                         (por id), al revés que esta tabla: es lo que permite
+                         paginar por clave y que la descarga no se corte. --}}
                     <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
+                       title="{{ __('auditoria.export_order_hint') }}"
                        class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
                         {{ __('auditoria.btn_export_csv') }}
                     </a>
@@ -76,6 +81,7 @@
                      pinta a quien tiene `auditoria.exportar`: verlo en pantalla
                      no es poder sacarlo del sistema. --}}
                 <a href="{{ route('admin.auditoria.exportar', array_merge($mandanteId ? ['mandante_id' => $mandanteId] : [], $qs)) }}"
+                   title="{{ __('auditoria.export_order_hint') }}"
                    class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
                     {{ __('auditoria.btn_export_csv') }}
                 </a>
@@ -114,6 +120,7 @@
                                 'creado'      => 'bg-success-50 text-success-800',
                                 'actualizado' => 'bg-brand-100 text-brand-800',
                                 'eliminado'   => 'bg-danger-50 text-danger-700',
+                                'exportado'   => 'bg-warning-50 text-warning-800',
                                 default       => 'bg-ink-100 text-ink-700',
                             };
                         @endphp

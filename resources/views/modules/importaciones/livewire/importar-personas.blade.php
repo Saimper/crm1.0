@@ -229,19 +229,4 @@
             </table>
         @endif
     </section>
-
-    <section class="rounded-lg border border-brand-200 bg-brand-50 p-4 space-y-3">
-        <div class="text-sm font-semibold text-brand-900">{{ __('importaciones.exports_title') }}</div>
-        @php $pid = app('tenancy.proyecto_activo')->id; @endphp
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
-            <a href="{{ route('proyectos.importaciones.exportar-personas', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_personas') }}</a>
-            <a href="{{ route('proyectos.importaciones.exportar-casos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_casos', ['entidades' => $rotuloCasos]) }}</a>
-            <a href="{{ route('proyectos.importaciones.exportar-gestiones', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_gestiones') }}</a>
-            <a href="{{ route('proyectos.importaciones.exportar-compromisos', ['proyecto_id' => $pid]) }}"
-               class="inline-flex items-center justify-center px-3 py-2 text-white bg-brand-600 rounded hover:bg-brand-700">{{ __('importaciones.export_compromisos') }}</a>
-        </div>
-    </section>
 </div>

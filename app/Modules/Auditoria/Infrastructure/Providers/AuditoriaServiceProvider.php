@@ -6,7 +6,9 @@ namespace App\Modules\Auditoria\Infrastructure\Providers;
 
 use App\Modules\Asignaciones\Infrastructure\Persistence\Models\AsignacionModel;
 use App\Modules\Auditoria\Application\Observers\AuditoriaObserver;
+use App\Modules\Auditoria\Domain\Contracts\RegistroDeExportaciones;
 use App\Modules\Auditoria\Infrastructure\Http\Livewire\ListadoAuditoria;
+use App\Modules\Auditoria\Infrastructure\Persistence\Repositories\RegistroDeExportacionesEloquent;
 use App\Modules\Casos\Infrastructure\Persistence\Models\CasoModel;
 use App\Modules\Cobranza\Infrastructure\Persistence\Models\CasoCobranzaModel;
 use App\Modules\Cobranza\Infrastructure\Persistence\Models\CompromisoPromesaPagoModel;
@@ -41,7 +43,10 @@ final class AuditoriaServiceProvider extends ServiceProvider
         AsignacionModel::class,
     ];
 
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->bind(RegistroDeExportaciones::class, RegistroDeExportacionesEloquent::class);
+    }
 
     public function boot(): void
     {
@@ -51,5 +56,14 @@ final class AuditoriaServiceProvider extends ServiceProvider
         foreach (self::MODELOS_AUDITADOS as $clase) {
             $clase::observe(AuditoriaObserver::class);
         }
+
+        // El memo proyecto→mandante del observer es estático: vive lo que el
+        // proceso, y aquí se le da la vida que de verdad tiene, la de una
+        // petición. Al arrancar (una aplicación nueva en el mismo proceso: la
+        // suite, un reload de Octane) y en cada rebind de `request`.
+        AuditoriaObserver::olvidarMandantes();
+        $this->app->rebinding('request', static function (): void {
+            AuditoriaObserver::olvidarMandantes();
+        });
     }
 }

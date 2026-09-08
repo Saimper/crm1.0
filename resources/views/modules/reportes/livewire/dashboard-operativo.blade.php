@@ -14,15 +14,42 @@
             </h3>
             <div class="text-xs text-ink-500">{{ $proyecto->nombre }} · {{ $proyecto->codigo }}</div>
         </div>
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs flex-wrap justify-end">
             @foreach($rangos as $valor => $label)
                 <button type="button" wire:click="$set('rango', '{{ $valor }}')"
                         class="px-3 py-1.5 rounded border {{ $rango === $valor ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-ink-700 border-ink-300 hover:bg-ink-50' }}">
                     {{ $label }}
                 </button>
             @endforeach
+
+            @can('gestiones.exportar', (int) $proyecto->id)
+                {{-- Descarga con el rango activo: el mismo corte que las cifras de arriba. --}}
+                <a href="{{ $urlExportarGestiones }}"
+                   class="px-3 py-1.5 rounded border bg-white text-ink-700 border-ink-300 hover:bg-ink-50 inline-flex items-center gap-1">
+                    <x-ui.icon name="download" :size="12" />
+                    {{ __('reportes.export_gestiones') }}
+                </a>
+
+                {{-- GET a la misma ruta con dos fechas de calendario del cliente (máximo 92 días). --}}
+                <form method="get" action="{{ $urlExportarPorFechas }}" class="inline-flex items-center gap-1">
+                    <label class="text-ink-500" for="exportar-desde">{{ __('reportes.export_from') }}</label>
+                    <input id="exportar-desde" type="date" name="desde" value="{{ $hoyDelCliente }}" required
+                           class="px-2 py-1 rounded border border-ink-300 bg-white text-ink-700"/>
+                    <label class="text-ink-500" for="exportar-hasta">{{ __('reportes.export_to') }}</label>
+                    <input id="exportar-hasta" type="date" name="hasta" value="{{ $hoyDelCliente }}" required
+                           class="px-2 py-1 rounded border border-ink-300 bg-white text-ink-700"/>
+                    <button type="submit"
+                            class="px-3 py-1.5 rounded border bg-white text-ink-700 border-ink-300 hover:bg-ink-50">
+                        {{ __('reportes.export_range') }}
+                    </button>
+                </form>
+            @endcan
         </div>
     </div>
+
+    @error('exportar')
+        <div class="rounded border border-danger-200 bg-danger-50 px-3 py-2 text-xs text-danger-700">{{ $message }}</div>
+    @enderror
 
     <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="rounded-lg border border-ink-200 bg-white p-4">

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Auditoria\Application\Services;
 
+use App\Modules\Auditoria\Domain\Contracts\RegistroDeExportaciones;
+use App\Support\Csv\RespuestaCsv;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -14,6 +17,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * alcance con `AlcanceAuditoria` y aquí sólo se serializa. Así las dos
  * exportaciones (la del proyecto y la del mandante) comparten formato sin
  * compartir —ni poder saltarse— el recorte.
+ *
+ * EL CSV SALE POR `id` ASCENDENTE, no por `creada_en DESC` como antes. Es la
+ * consecuencia de paginar por clave (RespuestaCsv::desdeConsulta): cada lote es
+ * `id > último LIMIT 500`, una pasada por el índice `(proyecto_id, id)` sin
+ * OFFSET ni filesort. Con el orden anterior se ordenaban las 56.219 filas de la
+ * tabla en cada uno de los ~113 lotes: 20-25 s y un fichero cortado a la mitad
+ * por `max_execution_time`, con el 200 ya enviado. Como `id` crece con el
+ * tiempo, el fichero sigue siendo cronológico: del evento más antiguo al más
+ * reciente.
+ *
+ * Cada descarga deja su huella en la propia auditoría (`exportado`): quién,
+ * con qué filtros y cuántas filas. Sacar el historial completo de lo que se
+ * hizo con los datos de un cliente es, a su vez, algo que ese cliente tiene
+ * derecho a ver.
  */
 final readonly class ExportadorCsvAuditoria
 {
@@ -23,54 +40,80 @@ final readonly class ExportadorCsvAuditoria
         'datos_antes_json', 'datos_despues_json',
     ];
 
+    /** El índice por el que pagina la exportación de un proyecto (migración 2026_09_09_121000). */
+    public const INDICE_PAGINACION = 'auditorias_proyecto_id_idx';
+
+    public function __construct(private RegistroDeExportaciones $registro) {}
+
     /**
-     * @param  Builder  $consulta  Debe seleccionar las columnas de self::CABECERA
-     *                             (más `a.id`, que se usa para paginar el chunk).
+     * La consulta de la exportación de UN proyecto, ya recortada a él.
+     *
+     * Lleva FORCE INDEX y no es un capricho: medido en MySQL 8.4 con 20.000
+     * filas del proyecto, el optimizador elige `auditorias_proyecto_entidad_idx`
+     * por ref y ordena (27 ms por lote; a 56.219 filas, los 20-25 s del
+     * incidente), porque tasa la pasada por `(proyecto_id, id)` con el tamaño
+     * del rango entero —5.623 frente a 1.660— sin descontar el LIMIT. Forzado,
+     * cada lote es un rango `proyecto_id = ? AND id > ?` que se detiene en la
+     * fila 500: 1-5 ms. Está aquí y no en el controller para que el test que
+     * hace EXPLAIN mire exactamente la consulta que se ejecuta.
+     *
+     * Sólo para el proyecto: el recorte por mandante es un OR de tres ramas
+     * (AlcanceAuditoria::aplicarAMandantes) y este índice no le sirve.
      */
-    public function responder(Builder $consulta, string $nombreFichero): StreamedResponse
+    public function consultaDelProyecto(int $proyectoId): Builder
     {
-        // El nombre lleva dentro un código de proyecto o de mandante, que son
-        // datos de la base: no puede acabar en la cabecera sin limpiar.
-        $nombreFichero = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombreFichero) ?? 'auditoria.csv';
+        return DB::table('auditorias as a')
+            ->forceIndex(self::INDICE_PAGINACION)
+            ->leftJoin('users as u', 'u.id', '=', 'a.usuario_id')
+            // El recorte va PRIMERO y no depende de ningún parámetro: los
+            // filtros que se añadan después sólo pueden estrechar esto.
+            ->where('a.proyecto_id', $proyectoId)
+            ->select($this->columnas());
+    }
 
-        return new StreamedResponse(function () use ($consulta): void {
-            $out = fopen('php://output', 'w');
-            if ($out === false) {
-                return;
-            }
-
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, self::CABECERA);
-
-            // chunk() necesita un orden estable y único: por fecha hay empates.
-            $consulta->orderBy('a.id')->chunk(500, function (iterable $filas) use ($out): void {
-                foreach ($filas as $a) {
-                    fputcsv($out, [
-                        (string) $a->public_id,
-                        (string) $a->creada_en,
-                        (string) ($a->usuario_nombre ?? ''),
-                        (string) $a->entidad_tipo,
-                        (string) $a->entidad_id,
-                        (string) $a->evento,
-                        (string) ($a->ip ?? ''),
-                        (string) ($a->user_agent ?? ''),
-                        (string) ($a->cambios ?? ''),
-                        (string) ($a->datos_antes ?? ''),
-                        (string) ($a->datos_despues ?? ''),
-                    ]);
-                }
-            });
-
-            fclose($out);
-        }, 200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$nombreFichero}\"",
-        ]);
+    /**
+     * @param  Builder  $consulta  Debe seleccionar las columnas de columnas(). Se le quita
+     *                             cualquier orden: se pagina por `a.id`.
+     * @param  FiltrosAuditoria  $filtros  Los que ya se aplicaron a la consulta; van a la huella.
+     * @param  int|null  $proyectoId  Nulo en la descarga transversal del mandante.
+     * @param  int|null  $mandanteId  Nulo cuando la descarga abarca más de un cliente.
+     */
+    public function responder(
+        Builder $consulta,
+        string $nombreFichero,
+        FiltrosAuditoria $filtros,
+        ?int $proyectoId,
+        ?int $mandanteId,
+    ): StreamedResponse {
+        return RespuestaCsv::desdeConsulta(
+            $nombreFichero,
+            self::CABECERA,
+            $consulta,
+            'a.id',
+            'id',
+            static fn (object $a): array => [
+                (string) $a->public_id,
+                (string) $a->creada_en,
+                (string) ($a->usuario_nombre ?? ''),
+                (string) $a->entidad_tipo,
+                (string) $a->entidad_id,
+                (string) $a->evento,
+                (string) ($a->ip ?? ''),
+                (string) ($a->user_agent ?? ''),
+                (string) ($a->cambios ?? ''),
+                (string) ($a->datos_antes ?? ''),
+                (string) ($a->datos_despues ?? ''),
+            ],
+            alTerminar: function (int $total, bool $completa = true) use ($filtros, $proyectoId, $mandanteId): void {
+                $this->registro->registrar('auditorias', $filtros->aplicados(), $total, $proyectoId, $mandanteId, completa: $completa);
+            },
+        );
     }
 
     /**
      * Columnas que el CSV necesita. Centralizadas para que las dos
-     * exportaciones no se desincronicen.
+     * exportaciones no se desincronicen. `a.id` no sale en el fichero: es la
+     * clave por la que se pagina.
      *
      * @return list<string>
      */

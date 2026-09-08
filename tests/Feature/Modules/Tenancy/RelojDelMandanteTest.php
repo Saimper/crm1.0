@@ -134,4 +134,96 @@ final class RelojDelMandanteTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_el_rango_preestablecido_de_hoy_es_el_dia_del_cliente_en_utc(): void
+    {
+        $mandante = $this->crearMandante();
+        DB::table('mandantes')->where('id', $mandante->id)->update(['zona_horaria' => 'America/Panama']);
+
+        // 02:00 UTC del 8 = 21:00 del 7 en Panamá: «hoy» es el 7, de 05:00 UTC
+        // del 7 a 04:59:59 UTC del 8.
+        Carbon::setTestNow(Carbon::parse('2026-09-08 02:00:00', 'UTC'));
+
+        $rango = app(RelojDelMandante::class)->rangoPreestablecido('hoy', (int) $mandante->id);
+
+        $this->assertSame('2026-09-07 05:00:00', $rango['desde']->toDateTimeString());
+        $this->assertSame('2026-09-08 04:59:59', $rango['hasta']->toDateTimeString());
+        $this->assertSame('UTC', $rango['desde']->timezoneName);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_ayer_es_el_dia_anterior_completo_del_cliente(): void
+    {
+        $mandante = $this->crearMandante();
+        DB::table('mandantes')->where('id', $mandante->id)->update(['zona_horaria' => 'America/Panama']);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-08 02:00:00', 'UTC'));
+
+        $rango = app(RelojDelMandante::class)->rangoPreestablecido('ayer', (int) $mandante->id);
+
+        $this->assertSame('2026-09-06 05:00:00', $rango['desde']->toDateTimeString());
+        $this->assertSame('2026-09-07 04:59:59', $rango['hasta']->toDateTimeString());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_la_semana_preestablecida_son_los_ultimos_siete_dias_incluido_hoy(): void
+    {
+        $mandante = $this->crearMandante();
+        DB::table('mandantes')->where('id', $mandante->id)->update(['zona_horaria' => 'America/Panama', 'inicio_semana' => 7]);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-08 02:00:00', 'UTC'));
+
+        // Es el rango de Reportes operativos, no la semana natural de
+        // `inicioDe`: del 1 al 7 aunque el cliente empiece la semana en domingo.
+        $rango = app(RelojDelMandante::class)->rangoPreestablecido('semana', (int) $mandante->id);
+
+        $this->assertSame('2026-09-01 05:00:00', $rango['desde']->toDateTimeString());
+        $this->assertSame('2026-09-08 04:59:59', $rango['hasta']->toDateTimeString());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_el_mes_preestablecido_es_el_mes_en_curso_hasta_hoy(): void
+    {
+        $mandante = $this->crearMandante();
+        DB::table('mandantes')->where('id', $mandante->id)->update(['zona_horaria' => 'America/Panama']);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-08 02:00:00', 'UTC'));
+
+        $rango = app(RelojDelMandante::class)->rangoPreestablecido('mes', (int) $mandante->id);
+
+        $this->assertSame('2026-09-01 05:00:00', $rango['desde']->toDateTimeString());
+        $this->assertSame('2026-09-08 04:59:59', $rango['hasta']->toDateTimeString());
+
+        // Y cualquier clave desconocida cuenta como «hoy».
+        $desconocido = app(RelojDelMandante::class)->rangoPreestablecido('trimestre', (int) $mandante->id);
+        $this->assertSame('2026-09-07 05:00:00', $desconocido['desde']->toDateTimeString());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_un_rango_de_fechas_se_corta_en_el_calendario_del_cliente(): void
+    {
+        $mandante = $this->crearMandante();
+        DB::table('mandantes')->where('id', $mandante->id)->update(['zona_horaria' => 'America/Panama']);
+
+        $rango = app(RelojDelMandante::class)->rangoDeFechas('2026-09-07', '2026-09-08', (int) $mandante->id);
+
+        // Del inicio del 7 al final del 8 en Panamá, expresados en UTC.
+        $this->assertSame('2026-09-07 05:00:00', $rango['desde']->toDateTimeString());
+        $this->assertSame('2026-09-09 04:59:59', $rango['hasta']->toDateTimeString());
+        $this->assertSame('UTC', $rango['hasta']->timezoneName);
+    }
+
+    public function test_sin_zona_configurada_un_rango_de_fechas_es_el_de_siempre(): void
+    {
+        $mandante = $this->crearMandante();
+
+        $rango = app(RelojDelMandante::class)->rangoDeFechas('2026-09-07', '2026-09-07', (int) $mandante->id);
+
+        $this->assertSame('2026-09-07 00:00:00', $rango['desde']->toDateTimeString());
+        $this->assertSame('2026-09-07 23:59:59', $rango['hasta']->toDateTimeString());
+    }
 }

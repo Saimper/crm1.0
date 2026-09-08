@@ -47,6 +47,38 @@ final class ListadoCasosTest extends TestCase
         $this->assertSame($totalDb, $c->viewData('totalProyecto'));
     }
 
+    /**
+     * El listado enseña sólo las carteras del rol (F22): la pantalla y la
+     * descarga tienen que decir lo mismo, o el supervisor acotado ve una
+     * cartera en el CSV que no encuentra en su bandeja.
+     */
+    public function test_un_rol_acotado_por_cartera_solo_ve_esas_carteras(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        $permitida = $this->crearCarteraEn($proyecto);
+        $vetada = $this->crearCarteraEn($proyecto);
+
+        $this->crearCasoEn($proyecto, ['cartera' => $permitida, 'estado' => $estado]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'estado' => $estado]);
+
+        $supervisor = $this->crearSupervisor($proyecto);
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $proyecto->id,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
+            'cartera_id' => $permitida->id,
+        ]);
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($supervisor);
+
+        $casos = iterator_to_array(Livewire::test(ListadoCasos::class)->viewData('casos'));
+
+        $this->assertCount(1, $casos);
+        $this->assertSame($permitida->nombre, $casos[0]->col_cartera);
+    }
+
     public function test_filtro_cartera(): void
     {
         $proyecto = $this->crearProyectoCobranza();

@@ -17,6 +17,15 @@ final class RolPermisoSeeder extends Seeder
      *   - GESTOR: ve + crea gestiones/contactos + edita valores de campos + trabaja su bandeja. NO gestiona usuarios/catálogos/equipos/configuración ni define campos/entidades.
      *   - AUDITOR: solo lectura + export de auditoría + reportes.
      *
+     * Exportaciones (ola 04): SUPERVISOR y ADMIN_MANDANTE se llevan las cuatro.
+     * AUDITOR sólo gestiones y compromisos: audita actividad, no se lleva el
+     * padrón (personas) ni la cartera (casos con saldos y campos del cliente).
+     * Ojo, no es «sin datos personales»: el CSV de gestiones lleva identificación,
+     * nombre y notas de cada persona gestionada, igual que la auditoría que ya
+     * podía exportar. Es una decisión de política, coherente con F32 (ejecuta
+     * reportes pero no exporta los custom). Si un cliente quiere que su auditor
+     * extraiga cartera, se lo da con un rol custom (F33). GESTOR ninguna.
+     *
      * @var array<string, list<string>>
      */
     private const MATRIZ = [
@@ -31,13 +40,13 @@ final class RolPermisoSeeder extends Seeder
             // Proyectos del mandante
             'proyectos.crear', 'proyectos.configurar',
             // Gestiones
-            'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar',
+            'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar', 'gestiones.exportar',
             // Compromisos
-            'compromisos.ver', 'compromisos.crear', 'compromisos.resolver', 'compromisos.cancelar', 'compromisos.administrar',
+            'compromisos.ver', 'compromisos.crear', 'compromisos.resolver', 'compromisos.cancelar', 'compromisos.administrar', 'compromisos.exportar',
             // Personas
-            'personas.ver', 'personas.crear', 'personas.editar', 'personas.administrar',
+            'personas.ver', 'personas.crear', 'personas.editar', 'personas.administrar', 'personas.exportar',
             // Casos
-            'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar',
+            'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar', 'casos.exportar',
             // Contactos
             'contactos.ver', 'contactos.crear', 'contactos.editar', 'contactos.eliminar',
             // Campañas
@@ -67,13 +76,13 @@ final class RolPermisoSeeder extends Seeder
         ],
         'SUPERVISOR' => [
             // Gestiones
-            'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar',
+            'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar', 'gestiones.exportar',
             // Compromisos
-            'compromisos.ver', 'compromisos.crear', 'compromisos.resolver', 'compromisos.cancelar', 'compromisos.administrar',
+            'compromisos.ver', 'compromisos.crear', 'compromisos.resolver', 'compromisos.cancelar', 'compromisos.administrar', 'compromisos.exportar',
             // Personas
-            'personas.ver', 'personas.crear', 'personas.editar', 'personas.administrar',
+            'personas.ver', 'personas.crear', 'personas.editar', 'personas.administrar', 'personas.exportar',
             // Casos
-            'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar',
+            'casos.ver', 'casos.crear', 'casos.editar', 'casos.cerrar', 'casos.reabrir', 'casos.administrar', 'casos.exportar',
             // Contactos
             'contactos.ver', 'contactos.crear', 'contactos.editar', 'contactos.eliminar',
             // Campañas
@@ -122,9 +131,10 @@ final class RolPermisoSeeder extends Seeder
             'entidades.ver', 'entidades.crear', 'entidades.editar',
         ],
         'AUDITOR' => [
-            // Solo lectura operativa
-            'gestiones.ver',
-            'compromisos.ver',
+            // Solo lectura operativa. Exporta actividad (gestiones, compromisos,
+            // con identificación y notas), nunca el padrón ni la cartera.
+            'gestiones.ver', 'gestiones.exportar',
+            'compromisos.ver', 'compromisos.exportar',
             'personas.ver',
             'casos.ver',
             'contactos.ver',

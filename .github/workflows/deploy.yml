@@ -280,6 +280,20 @@ jobs:
             composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
             $PHP artisan migrate --force
 
+            # Roles y permisos viven en seeders idempotentes (upsert por codigo),
+            # no en migraciones, y en produccion no los corria nadie: los permisos
+            # de F36/F38 (proyectos.configurar, mandante.administrar,
+            # proyectos.crear) nunca llegaron. Los roles base son inmutables desde
+            # la UI (CLAUDE.md s.10) y estos tres seeders solo ANADEN o actualizan
+            # filas por codigo, asi que correrlos en cada deploy es seguro.
+            # NUNCA UsuariosSeeder ni DatabaseSeeder: UsuarioAdminGlobalSeeder
+            # resetea la contrasena del admin. Barras simples a proposito: el
+            # bloque literal de YAML y las comillas simples del shell las pasan
+            # tal cual, y PHP no resuelve una clase escrita con barras dobles.
+            $PHP artisan db:seed --force --class='Database\Seeders\Usuarios\RolesSeeder'
+            $PHP artisan db:seed --force --class='Database\Seeders\Usuarios\PermisosSeeder'
+            $PHP artisan db:seed --force --class='Database\Seeders\Usuarios\RolPermisoSeeder'
+
             npm ci
             npm run build
 

@@ -35,6 +35,13 @@
             @if($estado !== '' || $vencimiento !== '' || $tipoCompromiso !== '')
                 <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('compromisos.clear_filters') }}</button>
             @endif
+            @can('compromisos.exportar', (int) app('tenancy.proyecto_activo')->id)
+                {{-- Sin wire:navigate: es una descarga, no una pantalla. El href lleva los filtros puestos. --}}
+                <a href="{{ $urlExportar }}" class="btn btn-secondary btn-sm">
+                    <x-ui.icon name="download" :size="13" />
+                    {{ __('compromisos.export_csv') }}
+                </a>
+            @endcan
             <span style="flex:1;"></span>
             <span style="font-size:12px;color:var(--text-tertiary);">{{ __('compromisos.results', ['count' => $compromisos->total()]) }}</span>
         </div>
@@ -69,7 +76,7 @@
                                 'cumplido' => 'success',
                                 'roto' => 'danger',
                                 'cancelado' => 'neutral',
-                                'pendiente' => $c->fecha_vencimiento < now()->format('Y-m-d') ? 'danger' : 'warning',
+                                'pendiente' => $c->fecha_vencimiento < $hoy ? 'danger' : 'warning',
                                 default => 'neutral',
                             };
                             $url = $c->persona_public_id

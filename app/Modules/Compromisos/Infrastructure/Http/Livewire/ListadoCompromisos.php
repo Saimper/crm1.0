@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Compromisos\Infrastructure\Http\Livewire;
 
+use App\Models\User;
+use App\Modules\Compromisos\Application\DTOs\FiltrosListadoCompromisos;
+use App\Modules\Compromisos\Application\Services\ConsultaListadoCompromisos;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -16,6 +20,9 @@ use Livewire\WithPagination;
  *
  * Filtros: estado (pendiente/cumplido/roto/cancelado), vencimiento (vigentes/
  * vencidos/proximos7d), tipo_compromiso. Permiso: compromisos.ver.
+ *
+ * La consulta y los filtros viven en `ConsultaListadoCompromisos`, compartida
+ * con la exportación. El «hoy» de los vencimientos es el del cliente.
  */
 final class ListadoCompromisos extends Component
 {
@@ -56,41 +63,30 @@ final class ListadoCompromisos extends Component
     public function render(): View
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $filtros = FiltrosListadoCompromisos::desde($this->estado, $this->vencimiento, $this->tipoCompromiso);
+        $consulta = app(ConsultaListadoCompromisos::class);
 
-        $q = DB::table('compromisos as c')
-            ->leftJoin('casos as cs', 'cs.id', '=', 'c.caso_id')
-            ->leftJoin('personas as p', 'p.id', '=', 'cs.persona_id')
-            ->leftJoin('users as u', 'u.id', '=', 'c.usuario_id')
-            ->where('c.proyecto_id', $proyectoId)
-            ->whereNull('c.eliminada_en');
+        // En el calendario del cliente: con el servidor en UTC, a las 20:00 en
+        // Panamá «vencido» incluía lo que vence mañana.
+        $hoy = app(RelojDelMandante::class)->hoy();
 
-        if (in_array($this->estado, ['pendiente', 'cumplido', 'roto', 'cancelado'], true)) {
-            $q->where('c.estado', $this->estado);
-        }
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
 
-        $hoy = Carbon::today()->toDateString();
-        match ($this->vencimiento) {
-            'vigentes' => $q->where('c.estado', 'pendiente')->where('c.fecha_vencimiento', '>=', $hoy),
-            'vencidos' => $q->where('c.estado', 'pendiente')->where('c.fecha_vencimiento', '<', $hoy),
-            'proximos7d' => $q->where('c.estado', 'pendiente')
-                ->whereBetween('c.fecha_vencimiento', [$hoy, Carbon::today()->addDays(7)->toDateString()]),
-            default => null,
-        };
+        // El límite por cartera del rol (F22) va antes que cualquier filtro.
+        $base = $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $usuario->carterasPermitidas($proyectoId));
 
-        if (in_array($this->tipoCompromiso, ['promesa_pago', 'resolucion_ticket', 'cierre_venta', 'accion_servicio'], true)) {
-            $q->where('c.tipo_compromiso', $this->tipoCompromiso);
-        }
-
-        $compromisos = $q
+        $compromisos = $consulta
+            ->aplicarFiltros($base, $filtros, $hoy)
             ->select([
-                'c.id', 'c.public_id', 'c.tipo_compromiso', 'c.estado',
-                'c.fecha_vencimiento', 'c.fecha_resolucion', 'c.creada_en',
+                'co.id', 'co.public_id', 'co.tipo_compromiso', 'co.estado',
+                'co.fecha_vencimiento', 'co.fecha_resolucion', 'co.creada_en',
                 'cs.public_id as caso_public_id', 'cs.tipo_caso',
                 'p.public_id as persona_public_id', 'p.tipo_persona',
                 'p.nombres', 'p.apellidos', 'p.razon_social', 'p.identificacion',
                 'u.name as usuario_nombre',
             ])
-            ->orderByDesc('c.fecha_vencimiento')
+            ->orderByDesc('co.fecha_vencimiento')
             ->paginate(25);
 
         $resumen = [
@@ -111,6 +107,8 @@ final class ListadoCompromisos extends Component
         return view('compromisos::livewire.listado-compromisos', [
             'compromisos' => $compromisos,
             'resumen' => $resumen,
+            'hoy' => $hoy,
+            'urlExportar' => route('proyectos.compromisos.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
         ]);
     }
 }

@@ -65,6 +65,7 @@ return [
     'all_wallets' => 'Todas las carteras',
     'all_states' => 'Todos los estados',
     'clear_filters' => 'Limpiar',
+    'export_csv' => 'Exportar CSV',
     'results' => ':count resultados',
 
     // Columnas de tabla

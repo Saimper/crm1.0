@@ -65,6 +65,7 @@ return [
     'all_wallets' => 'All portfolios',
     'all_states' => 'All statuses',
     'clear_filters' => 'Clear',
+    'export_csv' => 'Export CSV',
     'results' => ':count results',
 
     // Table columns

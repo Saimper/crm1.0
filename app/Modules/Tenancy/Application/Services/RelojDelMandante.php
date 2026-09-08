@@ -109,6 +109,58 @@ final class RelojDelMandante
     }
 
     /**
+     * Un rango operativo completo —inicio y fin— por su nombre, en UTC.
+     *
+     * Es la semántica que tenía `DashboardOperativo::rangoActual`, sacada de
+     * ahí para que la exportación de gestiones use EXACTAMENTE el mismo corte
+     * que la pantalla desde la que se pide: «semana» son los últimos siete días
+     * incluido hoy (no la semana natural de `inicioDe`, que arranca el lunes o
+     * el domingo según el cliente) y «mes» es el mes en curso hasta hoy. Si la
+     * pantalla y el CSV calcularan cada uno lo suyo, el supervisor vería 40
+     * gestiones y descargaría 38.
+     *
+     * @param  'hoy'|'ayer'|'semana'|'mes'|string  $clave  Cualquier otra cosa cuenta como «hoy».
+     * @return array{desde: Carbon, hasta: Carbon}
+     */
+    public function rangoPreestablecido(string $clave, ?int $mandanteId = null): array
+    {
+        $ahora = Carbon::now($this->zonaDe($mandanteId ?? $this->mandanteActivoId()));
+
+        [$desde, $hasta] = match ($clave) {
+            'ayer' => [$ahora->copy()->subDay()->startOfDay(), $ahora->copy()->subDay()->endOfDay()],
+            'semana' => [$ahora->copy()->subDays(6)->startOfDay(), $ahora->copy()->endOfDay()],
+            'mes' => [$ahora->copy()->startOfMonth(), $ahora->copy()->endOfDay()],
+            default => [$ahora->copy()->startOfDay(), $ahora->copy()->endOfDay()],
+        };
+
+        return ['desde' => $desde->setTimezone('UTC'), 'hasta' => $hasta->setTimezone('UTC')];
+    }
+
+    /**
+     * Dos fechas de calendario del cliente, como rango de instantes UTC: desde
+     * las 00:00 del primer día hasta las 23:59:59 del último, en su zona.
+     *
+     * Las fechas llegan sin hora («2026-09-07») y son del calendario de quien
+     * opera: para una operación en Panamá el 7 empieza a las 05:00 UTC y
+     * termina a las 04:59:59 UTC del 8. Cortar en UTC dejaría fuera las
+     * gestiones de la tarde del último día y metería las de la madrugada
+     * siguiente.
+     *
+     * @param  string  $desde  'Y-m-d'
+     * @param  string  $hasta  'Y-m-d'
+     * @return array{desde: Carbon, hasta: Carbon}
+     */
+    public function rangoDeFechas(string $desde, string $hasta, ?int $mandanteId = null): array
+    {
+        $zona = $this->zonaDe($mandanteId ?? $this->mandanteActivoId());
+
+        return [
+            'desde' => Carbon::parse($desde, $zona)->startOfDay()->setTimezone('UTC'),
+            'hasta' => Carbon::parse($hasta, $zona)->endOfDay()->setTimezone('UTC'),
+        ];
+    }
+
+    /**
      * La fecha de hoy en el calendario del cliente, como 'Y-m-d'.
      *
      * Es lo que hay que comparar contra las columnas `date` —vencimientos, fecha

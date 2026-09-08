@@ -6,7 +6,6 @@ namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -14,10 +13,21 @@ use Livewire\Component;
 /**
  * Dashboard operativo scoped al proyecto activo. Solo usuarios con `reportes.operativos`.
  * Métricas comunes (§10.1 CLAUDE.md): cuentas intentadas, gestionadas, totales, compromisos vigentes/vencidos.
+ *
+ * El rango lo calcula `RelojDelMandante::rangoPreestablecido`, el mismo que
+ * usa la exportación de gestiones: lo que se ve aquí es lo que se descarga.
  */
 final class DashboardOperativo extends Component
 {
-    /** @var 'hoy'|'ayer'|'semana'|'mes' */
+    /** @var array<string, string> Clave de rango → clave de idioma de su etiqueta. */
+    private const ETIQUETAS = [
+        'hoy' => 'reportes.range_today',
+        'ayer' => 'reportes.range_yesterday',
+        'semana' => 'reportes.range_last7',
+        'mes' => 'reportes.range_current_month',
+    ];
+
+    /** Viene de la URL: puede traer cualquier cosa, no sólo las cuatro claves. */
     #[Url(as: 'rango')]
     public string $rango = 'hoy';
 
@@ -28,7 +38,14 @@ final class DashboardOperativo extends Component
         $proyecto = app('tenancy.proyecto_activo');
         $proyectoId = (int) $proyecto->id;
 
-        $rango = $this->rangoActual();
+        // Cualquier valor fuera del selector cuenta como «hoy», igual que en el
+        // reloj: así la etiqueta y el enlace de exportar dicen lo mismo que la consulta.
+        $rangoClave = isset(self::ETIQUETAS[$this->rango]) ? $this->rango : 'hoy';
+
+        // En la zona del cliente, no en la del servidor: cortar el día en UTC
+        // metía el último tramo del turno de tarde en el día siguiente.
+        $reloj = app(RelojDelMandante::class);
+        $rango = $reloj->rangoPreestablecido($rangoClave);
         $desde = $rango['desde'];
         $hasta = $rango['hasta'];
 
@@ -51,7 +68,7 @@ final class DashboardOperativo extends Component
         $totalGestiones = (clone $gestionesBase)->count();
         $efectividad = $cuentasIntentadas === 0 ? 0.0 : round(($cuentasGestionadas / $cuentasIntentadas) * 100, 1);
 
-        $hoy = app(RelojDelMandante::class)->hoy();
+        $hoy = $reloj->hoy();
         $compromisosVigentes = DB::table('compromisos')
             ->where('proyecto_id', $proyectoId)
             ->where('estado', 'pendiente')
@@ -115,7 +132,7 @@ final class DashboardOperativo extends Component
 
         return view('reportes::livewire.dashboard-operativo', [
             'proyecto' => $proyecto,
-            'etiquetaRango' => $rango['etiqueta'],
+            'etiquetaRango' => __(self::ETIQUETAS[$rangoClave]),
             'cuentasIntentadas' => $cuentasIntentadas,
             'cuentasGestionadas' => $cuentasGestionadas,
             'totalGestiones' => $totalGestiones,
@@ -124,38 +141,9 @@ final class DashboardOperativo extends Component
             'compromisosVencidos' => $compromisosVencidos,
             'ranking' => $ranking,
             'gestiones' => $gestionesDelRango,
+            'urlExportarGestiones' => route('proyectos.gestiones.exportar', ['proyecto_id' => $proyectoId, 'rango' => $rangoClave]),
+            'urlExportarPorFechas' => route('proyectos.gestiones.exportar', ['proyecto_id' => $proyectoId]),
+            'hoyDelCliente' => $hoy,
         ]);
-    }
-
-    /** @return array{desde: Carbon, hasta: Carbon, etiqueta: string} */
-    private function rangoActual(): array
-    {
-        // En la zona del cliente, no en la del servidor: cortar el día en UTC
-        // metía el último tramo del turno de tarde en el día siguiente.
-        $reloj = app(RelojDelMandante::class);
-        $ahora = Carbon::now($reloj->zonaActiva());
-
-        return match ($this->rango) {
-            'ayer' => [
-                'desde' => $ahora->copy()->subDay()->startOfDay()->setTimezone('UTC'),
-                'hasta' => $ahora->copy()->subDay()->endOfDay()->setTimezone('UTC'),
-                'etiqueta' => 'Ayer',
-            ],
-            'semana' => [
-                'desde' => $ahora->copy()->subDays(6)->startOfDay()->setTimezone('UTC'),
-                'hasta' => $ahora->copy()->endOfDay()->setTimezone('UTC'),
-                'etiqueta' => 'Últimos 7 días',
-            ],
-            'mes' => [
-                'desde' => $ahora->copy()->startOfMonth()->setTimezone('UTC'),
-                'hasta' => $ahora->copy()->endOfDay()->setTimezone('UTC'),
-                'etiqueta' => 'Mes en curso',
-            ],
-            default => [
-                'desde' => $ahora->copy()->startOfDay()->setTimezone('UTC'),
-                'hasta' => $ahora->copy()->endOfDay()->setTimezone('UTC'),
-                'etiqueta' => 'Hoy',
-            ],
-        };
     }
 }

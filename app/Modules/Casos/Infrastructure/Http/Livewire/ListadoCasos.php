@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Models\User;
+use App\Modules\Casos\Application\DTOs\FiltrosListadoCasos;
+use App\Modules\Casos\Application\Services\ConsultaListadoCasos;
 use App\Modules\Casos\Application\Services\PreferenciasColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -28,6 +30,9 @@ use stdClass;
  * F41: las columnas visibles las elige el usuario desde el catálogo cerrado
  * `CatalogoColumnasCaso` y se recuerdan por (usuario, proyecto) en
  * `preferencias_columnas`.
+ *
+ * La consulta y los filtros viven en `ConsultaListadoCasos`, compartida con la
+ * exportación: «Exportar CSV» descarga las mismas filas que se ven.
  *
  * Permiso: casos.ver.
  */
@@ -125,8 +130,18 @@ final class ListadoCasos extends Component
         $tipoOperacion = $this->tipoOperacion();
         $columnas = CatalogoColumnasCaso::indexadoPorClave($tipoOperacion);
         $visibles = CatalogoColumnasCaso::sanear($this->columnasVisibles, $tipoOperacion);
+        $filtros = FiltrosListadoCasos::desde($this->busqueda, $this->carteraId, $this->estadoCasoId);
+        $consulta = app(ConsultaListadoCasos::class);
 
-        $casos = $this->consultaBase($proyectoId, $tipoOperacion)
+        // El límite por cartera del rol (F22) va antes que cualquier filtro:
+        // sin él, un supervisor limitado a una cartera veía la del proyecto entero.
+        $base = $consulta->recortarACarteras(
+            $consulta->consultaBase($proyectoId, $tipoOperacion),
+            $this->usuario()->carterasPermitidas($proyectoId),
+        );
+
+        $casos = $consulta
+            ->aplicarFiltros($base, $filtros)
             ->select($this->seleccion($columnas, $visibles))
             ->orderByDesc('c.prioridad')
             ->orderByDesc('c.creada_en')
@@ -139,6 +154,7 @@ final class ListadoCasos extends Component
             'totalProyecto' => $this->totalProyecto($proyectoId),
             'catalogoColumnas' => CatalogoColumnasCaso::paraTipoOperacion($tipoOperacion),
             'columnasVisibles' => $visibles,
+            'urlExportar' => route('proyectos.casos.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
         ]);
     }
 
@@ -165,48 +181,6 @@ final class ListadoCasos extends Component
         }
 
         return $seleccion;
-    }
-
-    private function consultaBase(int $proyectoId, string $tipoOperacion): Builder
-    {
-        $q = DB::table('casos as c')
-            ->join('personas as p', 'p.id', '=', 'c.persona_id')
-            ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
-            ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
-            ->where('c.proyecto_id', $proyectoId)
-            ->whereNull('c.eliminada_en');
-
-        $tablaCti = CatalogoColumnasCaso::tablaCti($tipoOperacion);
-        if ($tablaCti !== null) {
-            $q->leftJoin($tablaCti.' as cti', 'cti.caso_id', '=', 'c.id');
-        }
-
-        return $this->aplicarFiltros($q);
-    }
-
-    private function aplicarFiltros(Builder $q): Builder
-    {
-        $busqueda = trim($this->busqueda);
-
-        if ($busqueda !== '') {
-            $like = '%'.$busqueda.'%';
-            $q->where(function ($w) use ($like): void {
-                $w->where('p.identificacion', 'like', $like)
-                    ->orWhere('p.nombres', 'like', $like)
-                    ->orWhere('p.apellidos', 'like', $like)
-                    ->orWhere('p.razon_social', 'like', $like);
-            });
-        }
-
-        if ($this->carteraId !== '' && ctype_digit($this->carteraId)) {
-            $q->where('c.cartera_id', (int) $this->carteraId);
-        }
-
-        if ($this->estadoCasoId !== '' && ctype_digit($this->estadoCasoId)) {
-            $q->where('c.estado_caso_id', (int) $this->estadoCasoId);
-        }
-
-        return $q;
     }
 
     /**
@@ -272,5 +246,13 @@ final class ListadoCasos extends Component
     private function usuarioId(): int
     {
         return (int) Auth::id();
+    }
+
+    private function usuario(): User
+    {
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario;
     }
 }

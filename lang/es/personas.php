@@ -23,6 +23,7 @@ return [
     'type_physical' => 'Física',
     'type_legal' => 'Jurídica',
     'clear_filters' => 'Limpiar',
+    'export_csv' => 'Exportar CSV',
     'results' => ':count resultados',
 
     // Columnas de tabla

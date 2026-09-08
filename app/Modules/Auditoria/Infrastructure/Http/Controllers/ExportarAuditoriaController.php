@@ -6,6 +6,7 @@ namespace App\Modules\Auditoria\Infrastructure\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Auditoria\Application\Services\ExportadorCsvAuditoria;
+use App\Modules\Auditoria\Application\Services\FiltrosAuditoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -33,38 +34,22 @@ final class ExportarAuditoriaController
         $proyecto = DB::table('proyectos')->where('id', $proyecto_id)->first();
         abort_unless($proyecto !== null, 404);
 
-        $entidadTipo = (string) $request->query('entidad_tipo', '');
-        $usuarioId = $request->query('usuario_id');
-        $evento = (string) $request->query('evento', '');
-        $desde = (string) $request->query('desde', '');
-        $hasta = (string) $request->query('hasta', '');
+        $filtros = FiltrosAuditoria::desdeQueryString($request);
 
         $filename = "auditoria_{$proyecto->codigo}_".now()->format('Ymd_His').'.csv';
 
-        $q = DB::table('auditorias as a')
-            ->leftJoin('users as u', 'u.id', '=', 'a.usuario_id')
-            // El recorte va PRIMERO y no depende de ningún parámetro: los
-            // filtros de abajo sólo pueden estrechar lo que ya está acotado.
-            ->where('a.proyecto_id', $proyecto_id)
-            ->select($this->exportador->columnas())
-            ->orderByDesc('a.creada_en');
+        // El recorte por proyecto va dentro de la consulta y PRIMERO; los
+        // filtros de abajo sólo pueden estrechar lo que ya está acotado.
+        $q = $this->exportador->consultaDelProyecto($proyecto_id);
 
-        if ($entidadTipo !== '') {
-            $q->where('a.entidad_tipo', $entidadTipo);
-        }
-        if ($usuarioId !== null && $usuarioId !== '') {
-            $q->where('a.usuario_id', (int) $usuarioId);
-        }
-        if ($evento !== '') {
-            $q->where('a.evento', $evento);
-        }
-        if ($desde !== '') {
-            $q->where('a.creada_en', '>=', $desde.' 00:00:00');
-        }
-        if ($hasta !== '') {
-            $q->where('a.creada_en', '<=', $hasta.' 23:59:59');
-        }
+        $filtros->aplicar($q, 'a');
 
-        return $this->exportador->responder($q, $filename);
+        return $this->exportador->responder(
+            $q,
+            $filename,
+            $filtros,
+            proyectoId: $proyecto_id,
+            mandanteId: (int) $proyecto->mandante_id,
+        );
     }
 }

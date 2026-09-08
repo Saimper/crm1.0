@@ -59,6 +59,20 @@ final class CatalogoColumnasCaso
         return $limpias !== [] ? $limpias : self::POR_DEFECTO;
     }
 
+    /**
+     * Sólo las columnas de la tabla CTI del tipo de operación, sin las base.
+     *
+     * La exportación de casos las saca TODAS, elija lo que elija el usuario en
+     * pantalla: la hoja que pide el cliente es la cartera completa con saldo y
+     * mora, no las siete columnas que el supervisor tenía visibles ese día.
+     *
+     * @return list<ColumnaCaso>
+     */
+    public static function especificasDe(string $tipoOperacion): array
+    {
+        return self::columnasDelTipo($tipoOperacion);
+    }
+
     /** @return list<ColumnaCaso> */
     private static function columnasBase(): array
     {
@@ -107,7 +121,7 @@ final class CatalogoColumnasCaso
         return [
             new ColumnaCaso('codigo_ticket', 'Ticket', 'cti.codigo_ticket', tipoOperacion: 'cx'),
             new ColumnaCaso('asunto', 'Asunto', 'cti.asunto', tipoOperacion: 'cx'),
-            new ColumnaCaso('fecha_limite_sla', 'Límite SLA', 'cti.fecha_limite_sla', tipoOperacion: 'cx'),
+            new ColumnaCaso('fecha_limite_sla', 'Límite SLA', 'cti.fecha_limite_sla', tipoOperacion: 'cx', instante: true),
         ];
     }
 
@@ -116,7 +130,11 @@ final class CatalogoColumnasCaso
     {
         return [
             new ColumnaCaso('codigo_lead', 'Lead', 'cti.codigo_lead', tipoOperacion: 'venta'),
-            new ColumnaCaso('valor_estimado', 'Valor estimado', 'cti.valor_estimado_monto', numerica: true, tipoOperacion: 'venta'),
+            // La columna de `casos_lead_venta` se llama `valor_estimado`;
+            // `valor_estimado_monto` es el nombre del campo en el CSV de
+            // importación, y aquí reventaba la consulta en cuanto alguien la
+            // mostraba en un proyecto de venta.
+            new ColumnaCaso('valor_estimado', 'Valor estimado', 'cti.valor_estimado', numerica: true, tipoOperacion: 'venta'),
             new ColumnaCaso('origen_lead', 'Origen', 'cti.origen_lead', tipoOperacion: 'venta'),
         ];
     }
@@ -127,7 +145,7 @@ final class CatalogoColumnasCaso
         return [
             new ColumnaCaso('codigo_servicio', 'Servicio', 'cti.codigo_servicio', tipoOperacion: 'servicio'),
             new ColumnaCaso('tecnico_asignado', 'Técnico', 'cti.tecnico_asignado', tipoOperacion: 'servicio'),
-            new ColumnaCaso('fecha_programada', 'Programada', 'cti.fecha_programada', tipoOperacion: 'servicio'),
+            new ColumnaCaso('fecha_programada', 'Programada', 'cti.fecha_programada', tipoOperacion: 'servicio', instante: true),
         ];
     }
 

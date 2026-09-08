@@ -23,6 +23,7 @@ return [
     'type_physical' => 'Individual',
     'type_legal' => 'Company',
     'clear_filters' => 'Clear',
+    'export_csv' => 'Export CSV',
     'results' => ':count results',
 
     // Table columns
