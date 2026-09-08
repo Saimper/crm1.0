@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire;
 
+use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
 use App\Modules\Tenancy\Application\DTOs\RegistrarMandanteInput;
 use App\Modules\Tenancy\Application\UseCases\RegistrarMandante;
 use App\Modules\Tenancy\Domain\Exceptions\CodigoMandanteDuplicado;
@@ -155,11 +156,28 @@ final class AdminMandantes extends Component
         session()->flash('admin-mandantes-ok', 'Mandante guardado.');
     }
 
+    /**
+     * Dar de baja a un cliente le cierra la puerta, y también las que ya tenía
+     * abiertas.
+     *
+     * Las dos entradas del SSO respetan la baja desde siempre —el handshake y
+     * la firma HMAC filtran por `activo`— pero los tokens ya emitidos duran
+     * ocho horas y seguían funcionando: un cliente desactivado a las nueve de
+     * la mañana leía fichas de personas hasta las cinco de la tarde. Por eso el
+     * mandante va en el nombre del token: para poder encontrarlos y borrarlos.
+     */
     public function desactivar(int $id): void
     {
         $this->soloAdminGlobal();
 
-        MandanteModel::query()->where('id', $id)->update(['activo' => false]);
+        DB::transaction(function () use ($id): void {
+            MandanteModel::query()->where('id', $id)->update(['activo' => false]);
+
+            DB::table('personal_access_tokens')
+                ->where('name', EmitirSanctumTokenDesdeJwt::nombreDeToken($id))
+                ->delete();
+        });
+
         session()->flash('admin-mandantes-ok', 'Mandante desactivado.');
     }
 

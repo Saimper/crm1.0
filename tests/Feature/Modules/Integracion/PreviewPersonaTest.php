@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
+use stdClass;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
@@ -33,7 +34,7 @@ final class PreviewPersonaTest extends TestCase
         $usuario = $this->crearGestor($proyecto);
         $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
-        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyecto));
 
         $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
 
@@ -62,7 +63,7 @@ final class PreviewPersonaTest extends TestCase
         $persona = $this->crearPersonaEn($proyectoA);
         $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
-        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyectoA));
 
         $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoB->id}");
 
@@ -85,7 +86,7 @@ final class PreviewPersonaTest extends TestCase
             'activo' => true,
         ]);
 
-        Sanctum::actingAs($sinRol, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+        Sanctum::actingAs($sinRol, $this->habilidadesPara($proyecto));
 
         $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
 
@@ -97,7 +98,7 @@ final class PreviewPersonaTest extends TestCase
         $proyecto = $this->crearProyectoCobranza();
         $usuario = $this->crearGestor($proyecto);
 
-        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyecto));
 
         $response = $this->getJson("/api/integracion/persona?identificacion=99999999NOEXISTE&tipo_identificacion_codigo=CC&proyecto_id={$proyecto->id}");
 
@@ -107,5 +108,55 @@ final class PreviewPersonaTest extends TestCase
     private function codigoTipoIdentificacionDe(int $tipoIdentificacionId): string
     {
         return (string) DB::table('tipos_identificacion')->where('id', $tipoIdentificacionId)->value('codigo');
+    }
+
+    /**
+     * Las habilidades con las que se emite un token de verdad: las dos de la
+     * API más la del mandante dueño del proyecto. Sin la última, la ficha
+     * responde 403 aunque el usuario tenga acceso — que es justo lo que este
+     * token tiene que garantizar.
+     *
+     * @return list<string>
+     */
+    private function habilidadesPara(stdClass $proyecto): array
+    {
+        return [
+            ...EmitirSanctumTokenDesdeJwt::HABILIDADES,
+            EmitirSanctumTokenDesdeJwt::habilidadDeMandante((int) $proyecto->mandante_id),
+        ];
+    }
+
+    /**
+     * Un token del OTRO cliente: mismas habilidades de API, distinto mandante.
+     * Es el caso que la ficha dejaba pasar cuando el mandante sólo iba escrito
+     * en el nombre del token y nadie lo leía.
+     */
+    public function test_un_token_de_otro_mandante_no_alcanza_la_ficha(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
+
+        $ajeno = $this->crearProyectoCobranza($this->crearMandante());
+
+        Sanctum::actingAs($usuario, $this->habilidadesPara($ajeno));
+
+        $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}")
+            ->assertStatus(403);
+    }
+
+    /** Un token anterior a este cambio no lleva mandante, y se le niega. */
+    public function test_un_token_sin_habilidad_de_mandante_no_alcanza_la_ficha(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
+
+        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}")
+            ->assertStatus(403);
     }
 }

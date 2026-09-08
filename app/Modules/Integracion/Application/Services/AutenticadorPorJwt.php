@@ -92,7 +92,7 @@ final class AutenticadorPorJwt
             }
         }
 
-        if ($this->repositorioConsumidos->fueConsumido($payload->jti)) {
+        if ($this->repositorioConsumidos->fueConsumido($payload->jti, (int) $mandante->id)) {
             throw JwtTokenYaConsumido::crear();
         }
 

@@ -27,4 +27,13 @@
 # SELECT, así que con un proyecto activo se podía insertar dentro de otro sin
 # más que decir su id—. Los cuatro tests que documentaban esas fugas dejan de
 # estar en el grupo: ya no describen un agujero, describen la garantía.
-16
+#
+# 2026-09-08 · 16 -> 11. Fase 3, el SSO. El PAT del wrapper lleva ahora su
+# mandante como habilidad y la ficha de persona lo comprueba —antes sólo miraba
+# el acceso al proyecto, así que un asesor que trabaja para dos clientes leía
+# fichas del segundo con el token del primero—; el espacio anti-replay de `jti`
+# pasa a ser de cada cliente, porque el identificador lo elige el wrapper y uno
+# podía agotarle los accesos al otro; y dar de baja a un mandante revoca sus
+# tokens y además se comprueba en cada petición, que la baja puede llegar por
+# un camino que no sea el botón. Los ocho tests del fichero salen del grupo.
+11

@@ -27,6 +27,31 @@ final class EmitirSanctumTokenDesdeJwt
      */
     public const HABILIDADES = ['integracion:persona', 'auth:logout'];
 
+    /**
+     * La habilidad que ata el token a su cliente.
+     *
+     * El mandante iba sólo en el NOMBRE del token, y un nombre no lo lee nadie
+     * al autorizar: la ficha de persona comprobaba «¿este usuario tiene acceso
+     * al proyecto?», que es una pregunta del mundo proyecto, y un usuario que
+     * trabaja para dos clientes la contestaba que sí con el token del otro.
+     * Como habilidad sí se comprueba, y `tokenCan()` es el mecanismo que
+     * Sanctum ya trae.
+     */
+    public static function habilidadDeMandante(int $mandanteId): string
+    {
+        return 'mandante:'.$mandanteId;
+    }
+
+    /**
+     * El nombre con el que se guarda el token. Lo compone una sola función
+     * porque lo escribe la emisión y lo lee la baja del mandante, y el día que
+     * dejen de coincidir la baja no revoca nada y no se entera nadie.
+     */
+    public static function nombreDeToken(int $mandanteId): string
+    {
+        return sprintf('%s:mandante:%d', self::NOMBRE_TOKEN_SANCTUM, $mandanteId);
+    }
+
     public function __construct(
         private readonly AutenticadorPorJwt $autenticador,
     ) {}
@@ -40,12 +65,12 @@ final class EmitirSanctumTokenDesdeJwt
         // permite localizar —ni revocar— los tokens que se le entregaron. Es la
         // pieza que hace posible cerrarlos, y evita una migración para lo que
         // cabe en un campo de texto que ya existe.
-        $nombre = sprintf('%s:mandante:%d', self::NOMBRE_TOKEN_SANCTUM, $resultado->payload->mandanteId);
+        $nombre = self::nombreDeToken($resultado->payload->mandanteId);
 
         $token = $resultado->usuario
             ->createToken(
                 $nombre,
-                self::HABILIDADES,
+                [...self::HABILIDADES, self::habilidadDeMandante($resultado->payload->mandanteId)],
                 now()->addMinutes((int) config('integracion.pat_ttl_minutos', 480)),
             )
             ->plainTextToken;
