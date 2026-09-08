@@ -10,6 +10,7 @@ use App\Modules\Compromisos\Domain\ValueObjects\EstadoCompromiso;
 use App\Modules\Compromisos\Domain\ValueObjects\TipoCompromiso;
 use App\Modules\Compromisos\Infrastructure\Persistence\Models\CompromisoModel;
 use DateTimeImmutable;
+use Illuminate\Support\Carbon;
 use RuntimeException;
 
 final class EloquentCompromisoRepository implements CompromisoRepository
@@ -67,6 +68,17 @@ final class EloquentCompromisoRepository implements CompromisoRepository
         );
     }
 
+    /**
+     * Vigente es «pendiente Y sin vencer» (§6), no sólo pendiente.
+     *
+     * Faltaba la fecha, y era la única de las siete consultas del sistema que
+     * la omitía —el listado, los reportes, el panel del día, las notificaciones
+     * y el preview de integración sí la aplican—. Como ésta es la que alimenta
+     * `casos.tiene_compromiso_vigente`, era la definición equivocada la que
+     * llegaba a la Vista de Trabajo: 49 de 83 casos mostraban el recuadro verde
+     * de «compromiso vigente» sobre promesas vencidas semanas atrás, que es
+     * justo la cartera que había que estar persiguiendo.
+     */
     public function existenVigentesParaCaso(int $casoId): bool
     {
         return CompromisoModel::query()
@@ -74,6 +86,7 @@ final class EloquentCompromisoRepository implements CompromisoRepository
             ->where('caso_id', $casoId)
             ->where('estado', EstadoCompromiso::PENDIENTE->value)
             ->whereNull('eliminada_en')
+            ->whereDate('fecha_vencimiento', '>=', Carbon::today()->toDateString())
             ->exists();
     }
 }

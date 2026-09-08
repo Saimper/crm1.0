@@ -12,6 +12,7 @@ use App\Modules\Compromisos\Domain\Exceptions\TransicionCompromisoInvalida;
 use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Support\EscenarioOperativo;
@@ -109,7 +110,7 @@ final class ResolverCompromisoTest extends TestCase
             'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyecto->id,
             'caso_id' => $casoId, 'usuario_id' => $usuario->id,
             'tipo_compromiso' => 'promesa_pago', 'estado' => 'pendiente',
-            'fecha_vencimiento' => '2026-04-25',
+            'fecha_vencimiento' => Carbon::today()->addDays(8)->toDateString(),
         ]);
 
         return [$casoId, $compromisoId];
@@ -124,7 +125,7 @@ final class ResolverCompromisoTest extends TestCase
             'caso_id' => $casoId,
             'usuario_id' => DB::table('compromisos')->where('caso_id', $casoId)->value('usuario_id'),
             'tipo_compromiso' => 'promesa_pago', 'estado' => 'pendiente',
-            'fecha_vencimiento' => '2026-05-05',
+            'fecha_vencimiento' => Carbon::today()->addDays(18)->toDateString(),
         ]);
     }
 }

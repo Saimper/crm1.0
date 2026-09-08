@@ -10,6 +10,7 @@ use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -53,7 +54,7 @@ final class NuevaGestionComponentTest extends TestCase
             ->set('resultadoId', $cascada['resultado_id'])
             ->set('causaId', $cascada['causa_id'])
             ->set('promesaMonto', '750.50')
-            ->set('promesaFecha', '2026-04-25')
+            ->set('promesaFecha', Carbon::today()->addDays(10)->toDateString())
             ->set('promesaTipoPagoId', $tipoPagoId)
             ->set('notas', 'Promesa registrada desde el componente.')
             ->call('guardar')

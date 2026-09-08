@@ -45,6 +45,16 @@ final readonly class CrearPromesaDesdeGestion
         $datos = $evento->datosCompromiso;
         $ahora = new DateTimeImmutable;
 
+        // El VO traía esta regla desde el principio y no la invocaba nadie: se
+        // podía registrar una promesa con vencimiento ya pasado, y la pantalla la
+        // pintaba acto seguido como «compromiso vigente».
+        //
+        // Se valida contra la fecha DE LA GESTIÓN y no contra hoy: una promesa a
+        // quince días tomada hace dos meses tiene el vencimiento en el pasado
+        // visto desde ahora, y era perfectamente válida cuando se tomó. Con
+        // `hoy` como referencia, cargar un histórico sería imposible.
+        $datos->fechaVencimiento->validarNoPasada($evento->creadaEn);
+
         $compromiso = Compromiso::crear(
             publicId: (string) Str::ulid(),
             proyectoId: $evento->proyectoId,

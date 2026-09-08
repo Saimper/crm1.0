@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Compromisos\Infrastructure\Providers;
 
+use App\Modules\Compromisos\Application\Console\Commands\RomperCompromisosVencidosCommand;
 use App\Modules\Compromisos\Domain\Contracts\CompromisoRepository;
 use App\Modules\Compromisos\Infrastructure\Http\Livewire\EditarCompromiso;
 use App\Modules\Compromisos\Infrastructure\Http\Livewire\ListadoCompromisos;
@@ -24,5 +25,11 @@ final class CompromisosServiceProvider extends ServiceProvider
 
         Livewire::component('compromisos.listado-compromisos', ListadoCompromisos::class);
         Livewire::component('compromisos.editar-compromiso', EditarCompromiso::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                RomperCompromisosVencidosCommand::class,
+            ]);
+        }
     }
 }

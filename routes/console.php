@@ -8,6 +8,16 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Cierra el ciclo del compromiso (§6): lo que venció ayer y sigue pendiente pasa
+// a roto. Sin periodo de gracia, por decisión de negocio. Va ANTES de las
+// notificaciones del día a propósito: así el gestor abre la jornada con el aviso
+// de «compromiso roto, hay que llamar» ya generado, en vez de con el de «vencido
+// sin resolver», que describía un estado que ahora dura horas y no meses.
+Schedule::command('compromisos:romper-vencidos')
+    ->dailyAt('07:45')
+    ->withoutOverlapping()
+    ->name('compromisos-romper-vencidos');
+
 // Notificaciones: diario 08:00 (compromisos) y hourly en horario laboral (SLA CX).
 Schedule::command('notificaciones:generar --umbral=3 --horas-sla=8')
     ->dailyAt('08:00')
