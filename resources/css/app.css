@@ -721,7 +721,11 @@
            en un móvil de 390. La pista se ensanchaba y arrastraba el documento
            entero: el scroll horizontal de todas las pantallas salía de aquí. */
         min-width: 0;
-        overflow: hidden;
+        /* Nada de `overflow: hidden` aquí: recortaba los desplegables que
+           cuelgan de la cabecera (menú de usuario, notificaciones) a los 56px
+           de alto de la banda, y con ellos el botón de cerrar sesión. El
+           recorte horizontal que hacía falta lo hace `.breadcrumb`, que es el
+           único item elástico y ya se trunca con ellipsis. */
     }
     .app-sidebar {
         grid-area: sidebar;
