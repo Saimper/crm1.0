@@ -77,7 +77,7 @@ final class ListaContactos extends Component
             throw ValidationException::withMessages(['valor' => $e->getMessage()]);
         }
 
-        $this->emitirWritebackFicha(['contacto' => $this->construirGrupoContacto()]);
+        $this->emitirWritebackFicha(['contacto' => $this->construirGrupoContacto()], $this->personaPublicId);
 
         $this->mensajeExito = 'Contacto agregado.';
         $this->reset(['valor', 'etiqueta', 'esPrincipal']);
@@ -157,7 +157,7 @@ final class ListaContactos extends Component
                 ]);
         });
 
-        $this->emitirWritebackFicha(['contacto' => $this->construirGrupoContacto()]);
+        $this->emitirWritebackFicha(['contacto' => $this->construirGrupoContacto()], $this->personaPublicId);
 
         $this->mensajeExito = 'Contacto actualizado.';
         $this->editandoId = null;

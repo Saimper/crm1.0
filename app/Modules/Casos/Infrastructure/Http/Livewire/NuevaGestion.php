@@ -266,7 +266,7 @@ final class NuevaGestion extends Component
                         $carteraId,
                         array_keys($valores),
                     ),
-                ]);
+                ], $this->personaPublicIdDelCaso());
             }
         } catch (Throwable $e) {
             Log::warning('lead-writeback: fallo al serializar/emitir', [
@@ -473,5 +473,16 @@ final class NuevaGestion extends Component
             ->orderByDesc('es_principal')
             ->orderBy('tipo')
             ->get();
+    }
+
+    /**
+     * El writeback se ancla a la persona que abrió la llamada; el componente
+     * sólo conoce el id interno, así que se resuelve el público al emitir.
+     */
+    private function personaPublicIdDelCaso(): ?string
+    {
+        $publicId = DB::table('personas')->where('id', $this->personaId)->value('public_id');
+
+        return is_string($publicId) && $publicId !== '' ? $publicId : null;
     }
 }

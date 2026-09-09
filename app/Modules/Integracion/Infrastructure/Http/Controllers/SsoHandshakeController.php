@@ -39,8 +39,25 @@ final class SsoHandshakeController
             throw new HttpException(400, 'Token requerido.');
         }
 
+        $output = $this->consumirOAbortar($jwt);
+
+        Auth::loginUsingId($output->usuarioId);
+        $request->session()->regenerate();
+
+        // El CRM solo entra por handshake cuando el wrapper lo embebe en su
+        // iframe. Marcamos la sesión como embebida para que el nav oculte el
+        // logout/perfil (la sesión la gestiona la app principal).
+        $request->session()->put('crm_embedded', true);
+
+        $this->recordarContextoDeLlamada($request, $output);
+
+        return redirect()->to($this->resolverDestino($output));
+    }
+
+    private function consumirOAbortar(string $jwt): ConsumirJwtHandshakeOutput
+    {
         try {
-            $output = $this->consumirJwtHandshake->execute(new ConsumirJwtHandshakeInput($jwt));
+            return $this->consumirJwtHandshake->execute(new ConsumirJwtHandshakeInput($jwt));
         } catch (JwtMalFormado|JwtClaimsIncompletos|WrapperRoleNoPermitido $e) {
             Log::warning('handshake jwt: payload inválido', ['error' => $e->getMessage()]);
             throw new HttpException(400, $e->getMessage());
@@ -66,19 +83,20 @@ final class SsoHandshakeController
             // quien tenga un sso_secret.
             throw new HttpException(403, 'Acceso no permitido para esta identidad.');
         }
+    }
 
-        Auth::loginUsingId($output->usuarioId);
-        $request->session()->regenerate();
-
-        // El CRM solo entra por handshake cuando el wrapper lo embebe en su
-        // iframe. Marcamos la sesión como embebida para que el nav oculte el
-        // logout/perfil (la sesión la gestiona la app principal).
-        $request->session()->put('crm_embedded', true);
-
-        // Writeback CRM→ViciDial: si el wrapper adjuntó un sync_ref (hay lead activo),
-        // lo persistimos junto al mandante_id del MISMO handshake (claim JWT). El webhook
-        // de writeback usa ese mandante_id como X-Mandante-Id para que coincida con el
-        // tenant que emitió el sync_ref (el wrapper falla 401/403 si no coincide).
+    /**
+     * Writeback CRM→ViciDial: si el wrapper adjuntó un sync_ref (hay lead activo),
+     * lo persistimos junto al mandante_id del MISMO handshake (claim JWT). El webhook
+     * de writeback usa ese mandante_id como X-Mandante-Id para que coincida con el
+     * tenant que emitió el sync_ref (el wrapper falla 401/403 si no coincide).
+     *
+     * La persona que abrió el handshake queda anclada aparte: el writeback sólo
+     * debe escribir en el lead lo que se edite en ESA ficha, no en cualquier otra a
+     * la que el gestor navegue durante la misma sesión.
+     */
+    private function recordarContextoDeLlamada(Request $request, ConsumirJwtHandshakeOutput $output): void
+    {
         if ($output->syncRef !== null) {
             $request->session()->put('crm_sync_ref', $output->syncRef);
             $request->session()->put('crm_mandante_id', $output->mandanteId);
@@ -86,7 +104,11 @@ final class SsoHandshakeController
             $request->session()->forget(['crm_sync_ref', 'crm_mandante_id']);
         }
 
-        return redirect()->to($this->resolverDestino($output));
+        if ($output->personaPublicId !== null) {
+            $request->session()->put('crm_persona_public_id', $output->personaPublicId);
+        } else {
+            $request->session()->forget('crm_persona_public_id');
+        }
     }
 
     private function resolverDestino(ConsumirJwtHandshakeOutput $output): string
@@ -102,13 +124,32 @@ final class SsoHandshakeController
 
         if ($output->personaPublicId !== null) {
             $url = "/proyectos/{$output->proyectoId}/trabajo/{$output->personaPublicId}";
-            if ($output->casoPublicId !== null) {
-                $url .= "/{$output->casoPublicId}";
-            }
 
-            return $url;
+            return $output->casoPublicId !== null ? "{$url}/{$output->casoPublicId}" : $url;
         }
 
-        return "/proyectos/{$output->proyectoId}/bandeja";
+        return $this->destinoSinFicha($output);
+    }
+
+    /**
+     * Sin ficha, la bandeja. Si el wrapper mandó una identificación y no
+     * resolvió, la bandeja la recibe para avisar y ofrecer crear la persona
+     * con los datos de la llamada, en vez de aterrizar en silencio.
+     */
+    private function destinoSinFicha(ConsumirJwtHandshakeOutput $output): string
+    {
+        $bandeja = "/proyectos/{$output->proyectoId}/bandeja";
+
+        if ($output->identificacionNoResuelta === null) {
+            return $bandeja;
+        }
+
+        $query = array_filter([
+            'sin_persona' => $output->identificacionNoResuelta,
+            'tipo' => $output->tipoIdentificacionCodigo,
+            'ambigua' => $output->identificacionAmbigua ? '1' : null,
+        ], static fn (?string $v): bool => $v !== null);
+
+        return $bandeja.'?'.http_build_query($query);
     }
 }

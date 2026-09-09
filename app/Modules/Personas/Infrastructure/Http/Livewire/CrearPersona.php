@@ -28,6 +28,26 @@ final class CrearPersona extends Component
 
     public string $apellidos = '';
 
+    /**
+     * La bandeja enlaza aquí cuando el handshake del wrapper trajo una
+     * identificación que no existe en el proyecto: el gestor llega con la
+     * cédula y el tipo ya puestos y sólo escribe el nombre. Sólo se lee en la
+     * carga inicial; después manda el formulario.
+     */
+    public function mount(): void
+    {
+        $identificacion = trim((string) request()->query('identificacion', ''));
+        if ($identificacion !== '' && mb_strlen($identificacion) <= 50) {
+            $this->identificacion = $identificacion;
+        }
+
+        $tipo = strtoupper(trim((string) request()->query('tipo', '')));
+        if ($tipo !== '' && preg_match('/^[A-Z0-9_]{1,10}$/', $tipo) === 1) {
+            $tipoId = DB::table('tipos_identificacion')->where('codigo', $tipo)->where('activo', true)->value('id');
+            $this->tipoIdentificacionId = is_numeric($tipoId) ? (int) $tipoId : null;
+        }
+    }
+
     public function guardar(RegistrarPersona $useCase): void
     {
         $proyecto = app('tenancy.proyecto_activo');

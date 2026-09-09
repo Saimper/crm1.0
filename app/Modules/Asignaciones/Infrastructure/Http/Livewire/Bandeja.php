@@ -13,6 +13,7 @@ use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -31,6 +32,37 @@ final class Bandeja extends Component
     public string $busqueda = '';
 
     public ?string $mensajeExito = null;
+
+    /**
+     * Aterrizaje del screen-pop: el handshake del wrapper trajo una
+     * identificación que no resolvió a ninguna persona del proyecto (o a más
+     * de una). Es un aviso de la carga inicial, no un filtro de la bandeja.
+     *
+     * @var array{identificacion: string, tipo: ?string, ambigua: bool}|null
+     */
+    #[Locked]
+    public ?array $avisoSinPersona = null;
+
+    #[Locked]
+    public bool $puedeCrearPersona = false;
+
+    public function mount(): void
+    {
+        $identificacion = trim((string) request()->query('sin_persona', ''));
+        if ($identificacion === '' || preg_match('/^[\p{L}\p{N}.\-_ ]{1,50}$/u', $identificacion) !== 1) {
+            return;
+        }
+
+        $tipo = strtoupper(trim((string) request()->query('tipo', '')));
+        $this->avisoSinPersona = [
+            'identificacion' => $identificacion,
+            'tipo' => preg_match('/^[A-Z0-9_]{1,10}$/', $tipo) === 1 ? $tipo : null,
+            'ambigua' => (string) request()->query('ambigua', '') === '1',
+        ];
+
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $this->puedeCrearPersona = $this->usuario()->tienePermiso('personas.crear', $proyectoId);
+    }
 
     public function updatedEstadoFiltro(): void
     {

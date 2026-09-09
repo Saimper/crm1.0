@@ -68,9 +68,6 @@ final readonly class PayloadJwt
 
         $name = isset($claims->name) ? (string) $claims->name : $email;
         $redirectPath = isset($claims->redirect_path) ? (string) $claims->redirect_path : null;
-        $identificacion = isset($claims->identificacion) ? (string) $claims->identificacion : null;
-        $tipoIdentificacionCodigo = isset($claims->tipo_identificacion_codigo) ? (string) $claims->tipo_identificacion_codigo : null;
-        $numeroPrestamo = isset($claims->numero_prestamo) ? (string) $claims->numero_prestamo : null;
         $syncRef = isset($claims->sync_ref) ? (string) $claims->sync_ref : null;
 
         return new self(
@@ -82,12 +79,29 @@ final readonly class PayloadJwt
             expiraEn: (new DateTimeImmutable)->setTimestamp($exp),
             wrapperRole: $wrapperRole,
             redirectPath: $redirectPath,
-            identificacion: $identificacion,
-            tipoIdentificacionCodigo: $tipoIdentificacionCodigo,
-            numeroPrestamo: $numeroPrestamo,
+            identificacion: self::claveDeFicha($claims, 'identificacion'),
+            tipoIdentificacionCodigo: self::claveDeFicha($claims, 'tipo_identificacion_codigo'),
+            numeroPrestamo: self::claveDeFicha($claims, 'numero_prestamo'),
             iss: $iss,
             aud: $aud,
             syncRef: $syncRef,
         );
+    }
+
+    /**
+     * Las claves con las que se localiza la ficha llegan tal cual las tiene el
+     * lead en ViciDial (vendor_lead_code cargado a mano, con espacios de más).
+     * Se comparan contra columnas que el CRM guarda recortadas, así que aquí se
+     * recortan también; una clave vacía no es una clave, es ausencia de clave.
+     */
+    private static function claveDeFicha(object $claims, string $claim): ?string
+    {
+        if (! isset($claims->{$claim})) {
+            return null;
+        }
+
+        $valor = trim((string) $claims->{$claim});
+
+        return $valor === '' ? null : $valor;
     }
 }

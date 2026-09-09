@@ -155,7 +155,7 @@ final class EditarCaso extends Component
                         (int) $this->carteraId,
                         array_keys($valores),
                     ),
-                ]);
+                ], $this->personaPublicId);
             }
         } catch (Throwable $e) {
             Log::warning('lead-writeback: fallo al serializar/emitir', [
