@@ -510,11 +510,14 @@ final class FugaAdminProyectosTest extends TestCase
     {
         ['a' => $a] = $this->montarDosMandantes();
 
-        // Segundo proyecto del mismo mandante: garantiza que el selector no
-        // auto-redirija por tener un único proyecto accesible (SelectorProyecto::mount).
+        // Keep two active projects after archiving so this exercises the list,
+        // rather than the valid single-project redirect.
         $otro = $this->crearProyectoCobranza($a['mandante']);
         $this->darAccesoAProyecto($a['supervisor'], $otro, 'SUPERVISOR');
         $this->darAccesoAProyecto($a['gestor'], $otro, 'GESTOR');
+        $third = $this->crearProyectoCobranza($a['mandante']);
+        $this->darAccesoAProyecto($a['supervisor'], $third, 'SUPERVISOR');
+        $this->darAccesoAProyecto($a['gestor'], $third, 'GESTOR');
 
         $this->assertTrue(
             method_exists(AdminProyectos::class, 'archivar'),

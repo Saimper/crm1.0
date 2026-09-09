@@ -18,11 +18,11 @@
 
     @error('general')<div class="mt-2 text-xs text-danger-700 bg-danger-50 border border-danger-200 rounded px-2 py-1">{{ $message }}</div>@enderror
 
-    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div class="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
         <div>
-            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_channel') }}</label>
-            <select wire:model.live="canalId"
-                    class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
+            <label for="gestion-channel" class="block text-xs font-medium text-ink-700">{{ __('casos.field_channel') }}</label>
+            <select wire:model.live="canalId" id="gestion-channel"
+                    class="select mt-1">
                 <option value="">—</option>
                 @foreach($canales as $c)
                     <option value="{{ $c->id }}">{{ $c->nombre }}</option>
@@ -32,9 +32,9 @@
         </div>
 
         <div>
-            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_gestion_type') }}</label>
-            <select wire:model.live="tipoGestionId"
-                    class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
+            <label for="gestion-type" class="block text-xs font-medium text-ink-700">{{ __('casos.field_gestion_type') }}</label>
+            <select wire:model.live="tipoGestionId" id="gestion-type"
+                    class="select mt-1">
                 <option value="">—</option>
                 @foreach($tiposGestion as $t)
                     <option value="{{ $t->id }}">{{ $t->nombre }}</option>
@@ -44,10 +44,10 @@
         </div>
 
         <div>
-            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_result') }}</label>
+            <label for="gestion-result" class="block text-xs font-medium text-ink-700">{{ __('casos.field_result') }}</label>
             {{-- Deshabilitado hasta que haya tipo: la lista depende de él. --}}
-            <select wire:model.live="resultadoId" @disabled($tipoGestionId === null)
-                    class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500 disabled:bg-ink-50 disabled:text-ink-400">
+            <select wire:model.live="resultadoId" id="gestion-result" @disabled($tipoGestionId === null)
+                    class="select mt-1">
                 <option value="">{{ $tipoGestionId === null ? __('casos.pick_type_first') : '—' }}</option>
                 @foreach($resultados as $r)
                     <option value="{{ $r->id }}">{{ $r->nombre }}</option>
@@ -57,9 +57,9 @@
         </div>
 
         <div>
-            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_contact_used') }}</label>
-            <select wire:model="contactoId"
-                    class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
+            <label for="gestion-contact" class="block text-xs font-medium text-ink-700">{{ __('casos.field_contact_used') }}</label>
+            <select wire:model="contactoId" id="gestion-contact"
+                    class="select mt-1">
                 <option value="">—</option>
                 @foreach($contactos as $co)
                     <option value="{{ $co->id }}">{{ ucfirst($co->tipo) }} · {{ $co->valor }}</option>
@@ -69,9 +69,9 @@
 
         @if(! $esContactoEfectivo && $resultadoId)
             <div>
-                <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_no_contact_reason') }}</label>
-                <select wire:model="motivoNoContactoId"
-                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
+                <label for="gestion-reason" class="block text-xs font-medium text-ink-700">{{ __('casos.field_no_contact_reason') }}</label>
+                <select wire:model="motivoNoContactoId" id="gestion-reason"
+                        class="select mt-1">
                     <option value="">—</option>
                     @foreach($motivos as $m)
                         <option value="{{ $m->id }}">{{ $m->nombre }}</option>
@@ -82,11 +82,11 @@
 
         @if($requiereCausa)
             <div>
-                <label class="block text-xs font-medium text-ink-700">
+                <label for="gestion-cause" class="block text-xs font-medium text-ink-700">
                     {{ __('casos.field_cause') }} <span class="text-danger-600">*</span>
                 </label>
-                <select wire:model="causaId"
-                        class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500">
+                <select wire:model="causaId" id="gestion-cause"
+                        class="select mt-1">
                     <option value="">—</option>
                     @foreach($causas as $ca)
                         <option value="{{ $ca->id }}">{{ $ca->nombre }}</option>
@@ -97,9 +97,9 @@
         @endif
 
         <div>
-            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_duration') }}</label>
-            <input type="number" min="0" step="1" wire:model="duracionSegundos"
-                   class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
+            <label for="gestion-duration" class="block text-xs font-medium text-ink-700">{{ __('casos.field_duration') }}</label>
+            <input type="number" min="0" step="1" wire:model="duracionSegundos" id="gestion-duration"
+                   class="input mt-1"/>
         </div>
     </div>
 
@@ -115,7 +115,7 @@
             },
          }">
         <div class="flex items-baseline justify-between">
-            <label class="block text-xs font-medium text-ink-700">{{ __('casos.field_notes') }}</label>
+            <label for="gestion-notes" class="block text-xs font-medium text-ink-700">{{ __('casos.field_notes') }}</label>
             <span class="text-[10px]" :class="restantes < 0 ? 'text-danger-600' : 'text-ink-400'" x-text="restantes"></span>
         </div>
 
@@ -130,7 +130,7 @@
             </div>
         @endif
 
-        <textarea wire:model="notas" x-ref="notas" rows="3" maxlength="2000"
+        <textarea wire:model="notas" id="gestion-notes" x-ref="notas" rows="3" maxlength="2000"
                   x-init="crecer($el)" x-on:input="crecer($el)"
                   class="mt-1 block w-full resize-none text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"
                   placeholder="{{ __('casos.notes_placeholder') }}"></textarea>
@@ -143,7 +143,7 @@
             <h4 class="text-xs font-semibold uppercase tracking-wider mb-2 text-ink-600" style="letter-spacing:0.06em;">
                 {{ __('casos.custom_fields_title') }}
             </h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
                 @foreach($camposGestion as $campo)
                     <div>
                         <label class="block text-xs font-medium text-ink-700">
@@ -162,7 +162,7 @@
     @if($requiereCompromiso && $tipoCaso === 'cobranza')
         <div class="mt-3 rounded-md border border-warning-200 bg-warning-50 p-3">
             <div class="text-xs font-semibold uppercase tracking-wider text-warning-700">{{ __('casos.promise_title') }}</div>
-            <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
                 <div>
                     <label class="block text-xs font-medium text-warning-700">
                         {{ __('casos.promise_amount') }} <span class="text-danger-600">*</span>
@@ -196,7 +196,7 @@
     @if($requiereCompromiso && $tipoCaso === 'lead_venta')
         <div class="mt-3 rounded-md border border-success-200 bg-success-50 p-3">
             <div class="text-xs font-semibold uppercase tracking-wider text-success-800">{{ __('casos.close_title') }}</div>
-            <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
                 <div>
                     <label class="block text-xs font-medium text-success-700">
                         {{ __('casos.close_amount') }} <span class="text-danger-600">*</span>
@@ -230,7 +230,7 @@
     @if($requiereCompromiso && $tipoCaso === 'servicio')
         <div class="mt-3 rounded-md border border-brand-200 bg-brand-50 p-3">
             <div class="text-xs font-semibold uppercase tracking-wider text-brand-800">{{ __('casos.service_action_title') }}</div>
-            <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-brand-900">
                         {{ __('casos.service_action_desc') }} <span class="text-danger-600">*</span>
@@ -271,7 +271,7 @@
     @if($requiereCompromiso && $tipoCaso === 'ticket_cx')
         <div class="mt-3 rounded-md border border-brand-100 bg-brand-50 p-3">
             <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ __('casos.resolution_title') }}</div>
-            <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium text-brand-900">
                         {{ __('casos.resolution_action') }} <span class="text-danger-600">*</span>

@@ -57,7 +57,7 @@ return [
     'field_company_readonly' => 'Company Name (not editable)',
 
     // Global search
-    'search_global_button' => 'Search person, :entidad, interaction…',
+    'search_global_button' => 'Search person or :entidad…',
     'search_global_ph' => 'Search by ID or person name in the active project...',
     'search_select_project' => 'Select an active project to search.',
     'search_min_chars' => 'Type at least 3 characters to search in project :proyecto.',

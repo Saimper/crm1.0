@@ -53,7 +53,7 @@
         {{-- Col izquierda: identidad + selector casos + datos caso --}}
         <div class="vt-col-left">
             <x-ui.card>
-                <div class="flex items-start justify-between gap-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
                     <div class="min-w-0">
                         <div class="label-xs">
                             {{ $persona->tipo_identificacion_codigo ?? 'ID' }}
@@ -77,11 +77,13 @@
                                 <span>{{ __('common.edit') }}</span>
                             </a>
                         @endcan
+                        @can('contactos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.personas.contactos', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
                            wire:navigate class="btn btn-ghost btn-sm">
                             <x-ui.icon name="phone" :size="14" />
                             <span>{{ __('casos.contacts_button') }}</span>
                         </a>
+                        @endcan
                     </div>
                 </div>
 

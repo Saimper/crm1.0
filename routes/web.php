@@ -12,7 +12,7 @@ use App\Modules\Reportes\Infrastructure\Http\Controllers\ExportarReporteControll
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin');
+Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::view('dashboard', 'dashboard')->name('dashboard');

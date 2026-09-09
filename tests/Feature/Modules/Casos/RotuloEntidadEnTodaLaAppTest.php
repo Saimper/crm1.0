@@ -202,7 +202,7 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
             $html = $this->actingAs($supervisor)->get("/proyectos/{$proyecto->id}/personas")->assertOk()->getContent();
 
             $this->assertIsString($html);
-            $this->assertStringContainsString("Buscar persona, {$singular}, gestión", $html, "buscador global en {$tipo}");
+            $this->assertStringContainsString("Buscar persona o {$singular}", $html, "buscador global en {$tipo}");
             $this->assertStringContainsString('>'.ucfirst($plural).'<', $html, "columna de conteo en {$tipo}");
         }
     }

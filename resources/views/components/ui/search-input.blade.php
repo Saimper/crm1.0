@@ -9,5 +9,5 @@
 --}}
 <div class="search-field" style="width: {{ $width }};">
     <span class="search-field-icon"><x-ui.icon name="search" :size="13" /></span>
-    <input type="text" {{ $attributes->merge(['class' => 'input']) }} />
+    <input type="search" {{ $attributes->merge(['class' => 'input', 'aria-label' => $attributes->get('placeholder', __('common.search'))]) }} />
 </div>

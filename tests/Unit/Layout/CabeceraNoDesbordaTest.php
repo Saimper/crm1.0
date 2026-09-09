@@ -52,7 +52,7 @@ final class CabeceraNoDesbordaTest extends TestCase
     {
         $nav = (string) file_get_contents(__DIR__.'/../../../resources/views/livewire/layout/navigation.blade.php');
 
-        $this->assertStringContainsString('hidden md:block', $nav);
+        $this->assertStringContainsString('hidden lg:block', $nav);
     }
 
     private function css(): string

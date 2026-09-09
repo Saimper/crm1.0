@@ -8,6 +8,7 @@ use App\Modules\Usuarios\Infrastructure\Persistence\Models\RolModel;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
@@ -127,14 +128,22 @@ final class User extends Authenticatable
     /** @return array<int, int>  IDs de proyectos donde el usuario tiene asignación activa. */
     public function proyectosAsignados(): array
     {
-        return DB::table('usuario_proyecto_rol as upr')
+        $base = DB::table('usuario_proyecto_rol as upr')
             ->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
             ->where('upr.usuario_id', $this->id)
             ->where('upr.activo', true)
             ->where('p.activo', true)
             ->whereNull('p.eliminada_en')
-            ->distinct()
-            ->pluck('upr.proyecto_id')
+            ->select('upr.proyecto_id');
+
+        $custom = $this->queryProjectsWithCustomRole()
+            ->join('proyectos as p', 'p.id', '=', 'uprc.proyecto_id')
+            ->where('p.activo', true)
+            ->whereNull('p.eliminada_en')
+            ->select('uprc.proyecto_id');
+
+        return $base->union($custom)
+            ->pluck('proyecto_id')
             ->map(fn (mixed $v): int => (int) $v)
             ->all();
     }
@@ -155,6 +164,10 @@ final class User extends Authenticatable
             return true;
         }
 
+        if ($this->queryProjectsWithCustomRole()->where('uprc.proyecto_id', $proyectoId)->exists()) {
+            return true;
+        }
+
         // F38: rol mandante autoriza cross-proyecto del mandante.
         return DB::table('usuario_mandante_rol as umr')
             ->join('proyectos as p', 'p.mandante_id', '=', 'umr.mandante_id')
@@ -162,6 +175,17 @@ final class User extends Authenticatable
             ->where('umr.activo', true)
             ->where('p.id', $proyectoId)
             ->exists();
+    }
+
+    private function queryProjectsWithCustomRole(): Builder
+    {
+        return DB::table('usuario_proyecto_rol_custom as uprc')
+            ->join('roles_custom as rc', 'rc.id', '=', 'uprc.rol_custom_id')
+            ->whereColumn('rc.proyecto_id', 'uprc.proyecto_id')
+            ->where('uprc.usuario_id', $this->id)
+            ->where('uprc.activo', true)
+            ->where('rc.activo', true)
+            ->whereNull('rc.eliminada_en');
     }
 
     /** @return array<int, int>  IDs de mandantes donde el usuario tiene rol mandante activo. */

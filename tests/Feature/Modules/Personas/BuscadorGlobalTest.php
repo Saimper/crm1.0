@@ -107,4 +107,34 @@ final class BuscadorGlobalTest extends TestCase
 
         return $valores;
     }
+
+    public function test_search_does_not_expose_records_without_permission_to_open_them(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearPersonaEn($proyecto, '7600000001');
+        $this->activarProyecto($proyecto);
+        $user = $this->crearGestor($proyecto);
+        DB::table('permisos')->where('codigo', 'casos.ver')->update(['activo' => false]);
+
+        $this->actingAs($user);
+        $result = Livewire::test(BuscadorGlobal::class)->set('query', '76000000');
+
+        $this->assertCount(0, $result->viewData('personas'));
+        $this->assertCount(0, $result->viewData('casos'));
+    }
+
+    public function test_search_excludes_cases_of_archived_people(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto, '7700000001');
+        $this->crearCasoEn($proyecto, ['persona' => $persona]);
+        DB::table('personas')->where('id', $persona->id)->update(['eliminada_en' => now()]);
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        $result = Livewire::test(BuscadorGlobal::class)->set('query', '77000000');
+
+        $this->assertCount(0, $result->viewData('personas'));
+        $this->assertCount(0, $result->viewData('casos'));
+    }
 }

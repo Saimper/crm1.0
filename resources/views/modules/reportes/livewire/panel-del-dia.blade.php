@@ -1,4 +1,4 @@
-<div class="flex flex-col" style="gap:14px;">
+<div class="flex flex-col gap-3.5">
 
     {{-- Filtro de periodo: una sola fila encima de todo, como manda el patrón. --}}
     <div class="gap-3 flex items-baseline justify-between flex-wrap">
@@ -6,14 +6,11 @@
             <div class="font-semibold text-[15px] text-ink">{{ __('reportes.panel_titulo') }}</div>
             <div class="text-sm text-ink-500">{{ $etiquetaRango }}</div>
         </div>
-        <div style="display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <div class="inline-flex border border-surface-border rounded-lg p-1 gap-1 bg-surface-0" role="group" aria-label="{{ __('reportes.panel_titulo') }}">
             @foreach(['hoy','semana','mes'] as $r)
                 <button type="button" wire:click="cambiarRango('{{ $r }}')"
-                        class="text-sm"
-                        style="padding:5px 12px;border:0;cursor:pointer;
-                               background:{{ $rango === $r ? 'var(--primary-soft)' : 'transparent' }};
-                               color:{{ $rango === $r ? 'var(--primary)' : 'var(--text-secondary)' }};
-                               font-weight:{{ $rango === $r ? '600' : '400' }};">
+                        aria-pressed="{{ $rango === $r ? 'true' : 'false' }}"
+                        @class(['btn btn-sm', 'bg-brand-50 text-brand-700 font-semibold' => $rango === $r, 'btn-ghost' => $rango !== $r])>
                     {{ __('reportes.panel_rango_'.$r) }}
                 </button>
             @endforeach
@@ -37,7 +34,7 @@
             ];
         @endphp
         @foreach($tiles as $t)
-            <div class="card" style="padding:14px;">
+            <div class="kpi-card">
                 <div class="flex items-center" style="gap:6px;">
                     @if($t['punto'])
                         <span style="width:7px;height:7px;border-radius:50%;background:{{ $t['punto'] }};flex-shrink:0;"></span>

@@ -9,7 +9,8 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body x-data="{ sidebarOpen: false }">
+<body x-data="{ sidebarOpen: false }" @keydown.escape.window="if (sidebarOpen) { sidebarOpen = false; $refs.menuToggle.focus() }" x-on:livewire:navigating.window="sidebarOpen = false" @resize.window.debounce.150ms="if (window.innerWidth >= 768) sidebarOpen = false">
+    <a href="#main-content" class="skip-link">{{ __('nav.skip_content') }}</a>
     @php
         /** @var \App\Models\User|null $authUser */
         $authUser       = auth()->user();
@@ -77,7 +78,7 @@
         // Visibilidad por grupo del sidebar — un grupo se oculta entero si el usuario
         // no tiene ningún permiso de sus items. Evita títulos sueltos sin contenido.
         $puedeCambiarProyecto = $proyectoActivo && (
-            $esAdmin || count($authUser?->proyectosAsignados() ?? []) > 1
+            $esAdminAlguno || count($authUser?->proyectosAsignados() ?? []) > 1
         );
         $verGrupoReportes = $proyectoActivo && $authUser && (
             $authUser->tienePermiso('reportes.operativos', $proyectoActivo->id)
@@ -97,13 +98,14 @@
     <div class="app" :class="{ 'sidebar-open': sidebarOpen }">
 
         {{-- Logo --}}
-        <a href="{{ route('dashboard') }}" wire:navigate class="app-logo" style="text-decoration:none;color:inherit;">
-            <span style="font-weight:600;font-size:14px;letter-spacing:-0.01em;">CRM</span>
+        <a href="{{ route('dashboard') }}" wire:navigate class="app-logo">
+            <span class="brand-mark"><x-ui.icon name="layers" :size="18" /></span>
+            <span class="font-semibold text-md tracking-tight">Núcleo <span class="text-ink-500 font-normal">CRM</span></span>
         </a>
 
         {{-- Header --}}
         <header class="app-header">
-            <button type="button" class="icon-btn md:hidden" @click="sidebarOpen = !sidebarOpen" aria-label="{{ __('nav.menu') }}">
+            <button type="button" x-ref="menuToggle" class="icon-btn md:hidden" @click="sidebarOpen = !sidebarOpen; if (sidebarOpen) $nextTick(() => $refs.menuClose.focus())" :aria-expanded="sidebarOpen" aria-controls="primary-navigation" aria-label="{{ __('nav.menu') }}">
                 <x-ui.icon name="layers" :size="16" />
             </button>
 
@@ -125,28 +127,33 @@
             </div>
 
             @if($proyectoActivo)
-                <livewire:personas.buscador-global />
-                <livewire:notificaciones.badge-notificaciones />
+                @can('casos.ver', $proyectoActivo->id)
+                    <livewire:personas.buscador-global />
+                @endcan
+                @can('notificaciones.ver', $proyectoActivo->id)
+                    <livewire:notificaciones.badge-notificaciones />
+                @endcan
             @endif
 
             <livewire:layout.navigation />
         </header>
 
         {{-- Sidebar --}}
-        <nav class="app-sidebar" :class="{ 'open': sidebarOpen }" @click.outside="sidebarOpen = false">
+        <div x-show="sidebarOpen" x-cloak class="sidebar-backdrop" @click="sidebarOpen = false; $refs.menuToggle.focus()" aria-hidden="true"></div>
+        <nav id="primary-navigation" x-trap.inert.noscroll="sidebarOpen" aria-label="{{ __('nav.menu') }}" class="app-sidebar" :class="{ 'open': sidebarOpen }" @click="if ($event.target.closest('a')) sidebarOpen = false">
+            <div class="flex items-center justify-between px-4 pb-4 md:hidden">
+                <span class="font-semibold text-md">Núcleo CRM</span>
+                <button type="button" x-ref="menuClose" class="icon-btn" @click="sidebarOpen = false; $refs.menuToggle.focus()" aria-label="{{ __('nav.close_menu') }}">
+                    <x-ui.icon name="x" :size="18" />
+                </button>
+            </div>
 
             @if($proyectoActivo)
-                <div style="padding:0 12px 12px;">
-                    <div class="card card-pad" style="padding:10px;background:var(--bg-subtle);">
-                        <div class="label-xs" style="margin-bottom:4px;">{{ __('nav.active_project') }}</div>
-                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-                            <span class="font-mono" style="font-size:11px;color:var(--text-tertiary);">
-                                {{ $proyectoActivo->codigo ?? str_pad((string) $proyectoActivo->id, 4, '0', STR_PAD_LEFT) }}
-                            </span>
-                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text);font-weight:600;">
-                                {{ $proyectoActivo->nombre }}
-                            </span>
-                        </div>
+                <div class="px-3 pb-3">
+                    <div class="card bg-surface-100 p-3">
+                        <div class="label-xs mb-2">{{ __('nav.active_project') }}</div>
+                        <div class="font-semibold text-base text-ink break-words" title="{{ $proyectoActivo->nombre }}">{{ $proyectoActivo->nombre }}</div>
+                        <div class="font-mono text-xs text-ink-500 truncate mt-1 mb-3" title="{{ $proyectoActivo->codigo }}">{{ $proyectoActivo->codigo }}</div>
                         @if($puedeCambiarProyecto)
                             <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm"
                                style="width:100%;justify-content:center;text-decoration:none;"
@@ -162,6 +169,11 @@
             @if($proyectoActivo)
                 <div class="sb-group">
                     <div class="sb-group-title">{{ __('nav.group_operation') }}</div>
+                    <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                       class="sb-item @if($rid('proyectos.dashboard')) active @endif">
+                        <x-ui.icon name="bar-chart" :size="15" />
+                        <span>{{ __('nav.project_overview') }}</span>
+                    </a>
                     @can('asignaciones.ver_propia', $proyectoActivo->id)
                         <a href="{{ route('proyectos.bandeja', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja')) active @endif">
@@ -171,21 +183,21 @@
                     @endcan
                     @can('personas.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.personas.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.personas.lista', 'proyectos.personas.crear')) active @endif">
+                           class="sb-item @if($rid('proyectos.personas.*')) active @endif">
                             <x-ui.icon name="user" :size="15" />
                             <span>{{ __('nav.people') }}</span>
                         </a>
                     @endcan
                     @can('casos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.casos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.casos.lista')) active @endif">
+                           class="sb-item @if($rid('proyectos.casos.*', 'proyectos.trabajo')) active @endif">
                             <x-ui.icon name="folder" :size="15" />
                             <span>{{ \Illuminate\Support\Str::ucfirst($rotuloCasos) }}</span>
                         </a>
                     @endcan
                     @can('compromisos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.compromisos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.compromisos.lista')) active @endif">
+                           class="sb-item @if($rid('proyectos.compromisos.*')) active @endif">
                             <x-ui.icon name="tag" :size="15" />
                             <span>{{ __('nav.commitments') }}</span>
                         </a>
@@ -453,7 +465,7 @@
         </nav>
 
         {{-- Main --}}
-        <main class="app-main">
+        <main id="main-content" tabindex="-1" class="app-main">
             @isset($header)
                 {{ $header }}
             @endisset

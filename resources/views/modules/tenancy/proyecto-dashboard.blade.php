@@ -103,10 +103,9 @@
                         @foreach($visibles as $c)
                             <a href="{{ route($c['route'], ['proyecto_id' => $proyecto->id]) }}"
                                wire:navigate
-                               class="card card-pad proyecto-action-tile"
-                               style="text-decoration:none;color:inherit;display:block;transition:border-color 120ms var(--ease), background 120ms var(--ease);">
+                               class="card card-pad proyecto-action-tile">
                                 <div class="flex items-start gap-3">
-                                    <div class="flex-shrink-0 flex items-center text-brand-700" style="height:40px;width:40px;border-radius:8px;background:var(--primary-soft);justify-content:center;border:1px solid var(--primary-soft-border);">
+                                    <div class="shrink-0 flex items-center justify-center text-brand-700 h-10 w-10 rounded-lg bg-brand-50 border border-brand-100">
                                         <x-ui.icon :name="$c['icon']" :size="18" />
                                     </div>
                                     <div class="min-w-0">
@@ -122,7 +121,4 @@
         @endforeach
 
     </div>
-    <style>
-        .proyecto-action-tile:hover { border-color: var(--primary-soft-border); background: var(--bg-subtle); }
-    </style>
 </x-app-layout>

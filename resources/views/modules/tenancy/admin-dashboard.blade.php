@@ -121,14 +121,13 @@
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             @foreach($tiles as $t)
                 @if(\Illuminate\Support\Facades\Route::has($t['route']))
                     <a href="{{ route($t['route']) }}" wire:navigate
-                       class="card card-pad admin-tile"
-                       style="text-decoration:none;color:inherit;display:block;transition:border-color 120ms var(--ease),background 120ms var(--ease);">
+                       class="card card-pad admin-tile">
                         <div class="flex items-start gap-3">
-                            <div class="flex-shrink-0 flex items-center text-brand-700" style="height:40px;width:40px;border-radius:8px;background:var(--primary-soft);justify-content:center;border:1px solid var(--primary-soft-border);">
+                            <div class="shrink-0 flex items-center justify-center text-brand-700 h-10 w-10 rounded-lg bg-brand-50 border border-brand-100">
                                 <x-ui.icon :name="$t['icon']" :size="18" />
                             </div>
                             <div class="min-w-0">
@@ -155,9 +154,5 @@
                 @endif
             @endforeach
         </div>
-
-        <style>
-            .admin-tile:hover { border-color: var(--primary-soft-border); background: var(--bg-subtle); }
-        </style>
     </div>
 </x-app-layout>

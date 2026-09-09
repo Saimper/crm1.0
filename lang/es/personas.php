@@ -57,7 +57,7 @@ return [
     'field_company_readonly' => 'Razón social (no editable)',
 
     // Buscador global
-    'search_global_button' => 'Buscar persona, :entidad, gestión…',
+    'search_global_button' => 'Buscar persona o :entidad…',
     'search_global_ph' => 'Buscar identificación o nombre de persona en el proyecto activo...',
     'search_select_project' => 'Selecciona un proyecto activo para buscar.',
     'search_min_chars' => 'Escribe al menos 3 caracteres para buscar en el proyecto :proyecto.',

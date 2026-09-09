@@ -6,7 +6,7 @@
 
     <button type="button"
             x-on:click="open = true; $nextTick(() => $refs.searchInput?.focus())"
-            class="search-global">
+            class="search-global" aria-label="{{ __('personas.search_global_button', ['entidad' => $rotuloCaso]) }}" :aria-expanded="open" aria-haspopup="dialog">
         <x-ui.icon name="search" :size="14" />
         <span class="flex-1 min-w-0" style="text-align:left;">{{ __('personas.search_global_button', ['entidad' => $rotuloCaso]) }}</span>
         <span class="kbd">Ctrl</span>
@@ -14,7 +14,7 @@
     </button>
 
     <div x-show="open" x-cloak class="scrim" x-on:click.self="open = false">
-        <div class="modal-card" style="max-width:640px;padding:0;overflow:hidden;" x-on:click.stop>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-label="{{ __('personas.search_global_button', ['entidad' => $rotuloCaso]) }}" x-trap.inert.noscroll="open" style="max-width:640px;padding:0;overflow:hidden;" x-on:click.stop>
 
             <div class="toolbar">
                 <x-ui.icon name="search" :size="16" class="text-ink-500" />
@@ -22,8 +22,12 @@
                        type="text"
                        wire:model.live.debounce.300ms="query"
                        placeholder="{{ __('personas.search_global_ph') }}"
+                       aria-label="{{ __('personas.search_global_ph') }}"
                        class="flex-1 min-w-0 text-md"
                        style="border:0;outline:none;background:transparent;color:var(--text);">
+                <button type="button" class="icon-btn" x-on:click="open = false" aria-label="{{ __('nav.close_search') }}">
+                    <x-ui.icon name="x" :size="16" />
+                </button>
             </div>
 
             {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo

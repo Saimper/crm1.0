@@ -355,7 +355,9 @@ php artisan migrate --seed
 composer dev
 ```
 
-`composer dev` levanta server, queue listener, vite y pail concurrentemente.
+`composer dev` starts the server, the default queue listener, a dedicated `imports` listener, Vite and Pail concurrently. Restart it after updating the development scripts.
+
+Scheduled tasks require a separate `php artisan schedule:work` process locally. This runs the configured business transitions and retention jobs; use the appropriate environment.
 
 Para procesar importaciones en background:
 

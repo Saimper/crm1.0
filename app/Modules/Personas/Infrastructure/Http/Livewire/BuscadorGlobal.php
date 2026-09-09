@@ -42,7 +42,10 @@ final class BuscadorGlobal extends Component
         $personas = collect();
         $casos = collect();
 
-        if ($proyectoActivo !== null && mb_strlen($texto) >= 3) {
+        $puedeBuscar = $proyectoActivo !== null
+            && Auth::user()?->tienePermiso('casos.ver', (int) $proyectoActivo->id) === true;
+
+        if ($puedeBuscar && mb_strlen($texto) >= 3) {
             $proyectoId = (int) $proyectoActivo->id;
             $like = "%{$texto}%";
 
@@ -83,6 +86,7 @@ final class BuscadorGlobal extends Component
                 ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
                 ->where('c.proyecto_id', $proyectoId)
                 ->whereNull('c.eliminada_en')
+                ->whereNull('p.eliminada_en')
                 ->when($carteras !== null, fn ($q) => $q->whereIn('c.cartera_id', $carteras ?? []))
                 ->where(function ($w) use ($like): void {
                     $w->where('p.identificacion', 'like', $like)
