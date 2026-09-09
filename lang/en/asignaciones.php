@@ -100,4 +100,10 @@ return [
     'reopen_done' => 'Account reopened and assigned to :usuario.',
     'reassign_title' => 'Move this account to another agent',
     'reassign_done' => 'Account reassigned to :usuario.',
+
+    // Aterrizaje del screen-pop (handshake SSO sin persona resuelta)
+    'sso_sin_persona_title' => 'The caller is not in this project',
+    'sso_sin_persona_body' => 'ViciDial sent the ID :identificacion and no person in the project has it.',
+    'sso_ambigua_body' => 'The ID :identificacion belongs to more than one person in the project; search with Ctrl+K to pick the right one.',
+    'sso_crear_persona' => 'Create person with this ID',
 ];

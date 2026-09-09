@@ -127,7 +127,7 @@ final class EditarPersona extends Component
             $this->emitirWritebackFicha(['persona' => [
                 'nombres' => $this->nombres,
                 'apellidos' => $this->apellidos,
-            ]]);
+            ]], $this->personaPublicId);
         }
 
         session()->flash('persona_editada', 'Persona actualizada.');

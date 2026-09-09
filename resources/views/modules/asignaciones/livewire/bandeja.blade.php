@@ -10,6 +10,18 @@
         <x-ui.alert tone="danger">{{ $message }}</x-ui.alert>
     @enderror
 
+    @if($avisoSinPersona)
+        <x-ui.alert tone="warning" :title="__('asignaciones.sso_sin_persona_title')">
+            {{ __($avisoSinPersona['ambigua'] ? 'asignaciones.sso_ambigua_body' : 'asignaciones.sso_sin_persona_body', ['identificacion' => $avisoSinPersona['identificacion']]) }}
+            @if($puedeCrearPersona && ! $avisoSinPersona['ambigua'])
+                <x-slot:actions>
+                    <a href="{{ route('proyectos.personas.crear', ['proyecto_id' => $proyectoActivo->id, 'identificacion' => $avisoSinPersona['identificacion'], 'tipo' => $avisoSinPersona['tipo']]) }}"
+                       wire:navigate class="btn btn-primary btn-sm">{{ __('asignaciones.sso_crear_persona') }}</a>
+                </x-slot:actions>
+            @endif
+        </x-ui.alert>
+    @endif
+
     <x-ui.card padding="p-4">
         <div class="flex flex-wrap items-center gap-2">
             @php

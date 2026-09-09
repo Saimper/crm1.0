@@ -559,6 +559,116 @@ final class HandshakeJwtTest extends TestCase
             ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja");
     }
 
+    public function test_identificacion_no_encontrada_cae_a_bandeja_con_aviso(): void
+    {
+        $jwt = $this->firmarParaAgente([
+            'identificacion' => '99999999',
+            'tipo_identificacion_codigo' => 'CED',
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja?sin_persona=99999999&tipo=CED")
+            ->assertSessionMissing('crm_persona_public_id');
+    }
+
+    public function test_identificacion_con_espacios_se_recorta_antes_de_buscar(): void
+    {
+        $persona = $this->crearPersonaEn($this->proyecto, '55566677');
+
+        $jwt = $this->firmarParaAgente(['identificacion' => '  55566677 ']);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/proyectos/{$this->proyectoId}/trabajo/{$persona->public_id}")
+            ->assertSessionHas('crm_persona_public_id', $persona->public_id);
+    }
+
+    public function test_identificacion_repetida_en_dos_tipos_no_abre_ninguna_ficha(): void
+    {
+        $this->crearPersonaEn($this->proyecto, '44455566');
+        $this->crearPersonaConTipo($this->proyecto, '44455566', 'PAS');
+
+        $jwt = $this->firmarParaAgente(['identificacion' => '44455566']);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja?sin_persona=44455566&ambigua=1")
+            ->assertSessionMissing('crm_persona_public_id');
+    }
+
+    public function test_identificacion_repetida_se_desambigua_con_el_tipo(): void
+    {
+        $this->crearPersonaEn($this->proyecto, '44455566');
+        $pasaporte = $this->crearPersonaConTipo($this->proyecto, '44455566', 'PAS');
+
+        $jwt = $this->firmarParaAgente([
+            'identificacion' => '44455566',
+            'tipo_identificacion_codigo' => 'PAS',
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/proyectos/{$this->proyectoId}/trabajo/{$pasaporte->public_id}");
+    }
+
+    public function test_numero_prestamo_inexistente_cae_a_la_identificacion(): void
+    {
+        $persona = $this->crearPersonaEn($this->proyecto, '66677788');
+
+        $jwt = $this->firmarParaAgente([
+            'numero_prestamo' => 'NO-EXISTE-'.Str::random(8),
+            'identificacion' => '66677788',
+        ]);
+
+        $this->get("/integracion/handshake?token={$jwt}")
+            ->assertRedirect("/proyectos/{$this->proyectoId}/trabajo/{$persona->public_id}");
+    }
+
+    public function test_persona_anclada_se_limpia_en_un_handshake_sin_ficha(): void
+    {
+        $persona = $this->crearPersonaEn($this->proyecto, '77788899');
+
+        $this->get('/integracion/handshake?token='.$this->firmarParaAgente(['identificacion' => '77788899']))
+            ->assertSessionHas('crm_persona_public_id', $persona->public_id);
+
+        $this->get('/integracion/handshake?token='.$this->firmarParaAgente())
+            ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja")
+            ->assertSessionMissing('crm_persona_public_id');
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function firmarParaAgente(array $extra = []): string
+    {
+        return $this->firmar(array_merge([
+            'sub' => 'agente.pop@wrapper.io',
+            'name' => 'Agente Pop',
+            'wrapper_role' => 'agent',
+            'mandante_id' => (int) $this->mandante->id,
+            'proyecto_id' => $this->proyectoId,
+            'jti' => Str::uuid()->toString(),
+            'iat' => time(),
+            'exp' => time() + 60,
+        ], $extra));
+    }
+
+    private function crearPersonaConTipo(\stdClass $proyecto, string $identificacion, string $tipoCodigo): \stdClass
+    {
+        $tipoId = (int) DB::table('tipos_identificacion')->where('codigo', $tipoCodigo)->value('id');
+
+        $id = DB::table('personas')->insertGetId([
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyecto->id,
+            'tipo_persona' => 'fisica',
+            'tipo_identificacion_id' => $tipoId,
+            'identificacion' => $identificacion,
+            'nombres' => 'Homónima',
+            'apellidos' => 'Con Pasaporte',
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        return DB::table('personas')->find($id);
+    }
+
     /**
      * @param  array<string, mixed>  $claims
      */

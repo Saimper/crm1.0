@@ -102,4 +102,10 @@ return [
     'reopen_done' => 'Cuenta reabierta y asignada a :usuario.',
     'reassign_title' => 'Pasar esta cuenta a otro asesor',
     'reassign_done' => 'Cuenta reasignada a :usuario.',
+
+    // Aterrizaje del screen-pop (handshake SSO sin persona resuelta)
+    'sso_sin_persona_title' => 'La persona de la llamada no está en este proyecto',
+    'sso_sin_persona_body' => 'ViciDial envió la identificación :identificacion y ninguna persona del proyecto la tiene.',
+    'sso_ambigua_body' => 'La identificación :identificacion existe en más de una persona del proyecto; búscala con Ctrl+K para elegir la correcta.',
+    'sso_crear_persona' => 'Crear persona con esta identificación',
 ];

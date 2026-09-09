@@ -297,6 +297,65 @@ final class LeadWritebackFichaTest extends TestCase
         });
     }
 
+    public function test_no_emite_si_la_ficha_editada_no_es_la_de_la_llamada(): void
+    {
+        Queue::fake();
+
+        $mandante = $this->crearMandanteConWebhook();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $personaDeLaLlamada = $this->crearPersonaEn($proyecto);
+        $otraPersona = $this->crearPersonaEn($proyecto);
+        $this->enContextoIframe($proyecto, $mandante, 'sync-anclado');
+        session(['crm_persona_public_id' => $personaDeLaLlamada->public_id]);
+
+        Livewire::test(EditarPersona::class, ['persona' => $otraPersona->public_id])
+            ->set('nombres', 'Otra')
+            ->set('apellidos', 'Persona')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        Queue::assertNotPushed(EmitirWebhookLeadWriteback::class);
+    }
+
+    public function test_emite_cuando_la_ficha_editada_es_la_de_la_llamada(): void
+    {
+        Queue::fake();
+
+        $mandante = $this->crearMandanteConWebhook();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->enContextoIframe($proyecto, $mandante, 'sync-anclado');
+        session(['crm_persona_public_id' => $persona->public_id]);
+
+        Livewire::test(EditarPersona::class, ['persona' => $persona->public_id])
+            ->set('nombres', 'Misma')
+            ->set('apellidos', 'Persona')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        Queue::assertPushed(EmitirWebhookLeadWriteback::class, fn (EmitirWebhookLeadWriteback $job): bool => $job->cuerpo['sync_ref'] === 'sync-anclado');
+    }
+
+    public function test_sin_persona_anclada_emite_sobre_cualquier_ficha(): void
+    {
+        Queue::fake();
+
+        $mandante = $this->crearMandanteConWebhook();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $persona = $this->crearPersonaEn($proyecto);
+        $this->enContextoIframe($proyecto, $mandante, 'sync-libre');
+        session()->forget('crm_persona_public_id');
+
+        Livewire::test(ListaContactos::class, ['persona' => $persona->public_id])
+            ->set('tipo', 'telefono')
+            ->set('valor', '+593 0990001122')
+            ->set('esPrincipal', true)
+            ->call('agregar')
+            ->assertHasNoErrors();
+
+        Queue::assertPushed(EmitirWebhookLeadWriteback::class);
+    }
+
     private function crearMandanteConWebhook(?string $codigo = null): stdClass
     {
         $mandante = $this->crearMandante($codigo);
