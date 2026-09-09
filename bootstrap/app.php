@@ -3,6 +3,7 @@
 use App\Exceptions\PayloadLivewireInvalido;
 use App\Http\Middleware\RechazarUsuarioDesactivado;
 use App\Http\Middleware\SetLocale;
+use App\Modules\Integracion\Infrastructure\Http\Middleware\CspFrameAncestors;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
             // Va en el grupo web y no en las rutas: dar de baja a alguien tiene
             // que echarlo de donde esté, no sólo impedirle volver a entrar.
             RechazarUsuarioDesactivado::class,
+            // El CRM vive dentro del iframe del wrapper (screen-pop): todas las
+            // páginas, no sólo el 302 del handshake, declaran quién puede
+            // embeberlas. Sin WRAPPER_DOMAIN el middleware no emite nada.
+            CspFrameAncestors::class,
         ]);
 
         // Sanctum trae las clases pero no registra los alias: sin esto,

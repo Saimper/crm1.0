@@ -451,7 +451,7 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 - Fase 2 pendiente: búsqueda por teléfono normalizado, alta persona+contacto+caso desde la llamada, tipo de identificación por mapeo campaña→proyecto, selector de caso. Fase 3 opcional: iframe vivo con `postMessage`.
 
 **Notas operacionales:**
-- Middleware `CspFrameAncestors`: agrega `frame-ancestors 'self' <WRAPPER_DOMAIN>` cuando env seteado. Sólo aplica al 302 del handshake; `WRAPPER_DOMAIN` debe ser el origen real del wrapper (`https://app.viciconnect.net`) antes de extenderlo al grupo web.
+- Middleware `CspFrameAncestors`: agrega `frame-ancestors 'self' <WRAPPER_DOMAIN>` cuando env seteado. Desde 2026-09-09 va en el grupo `web` (`bootstrap/app.php`): toda página del CRM, no sólo el 302 del handshake, declara quién puede embeberla. `WRAPPER_DOMAIN` debe ser el origen real del wrapper (`https://app.viciconnect.net`); un valor equivocado deja el iframe en blanco sin error en el wrapper.
 - `SESSION_SAME_SITE=none` (nombre real que lee `config/session.php`) necesario en producción si el CRM opera dentro de iframe cross-origin (requiere HTTPS).
 - Rol nuevo `ADMIN_MANDANTE` y tabla `usuario_mandante_rol` quedan diferidos a F38 (modelo permisos cross-proyecto del mandante). Mientras, `admin_tenant` → `SUPERVISOR` por mapeo provisional.
 - **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F37, con acuerdo previo, y el 2026-09-09 para documentar el screen-pop fase 1, con acuerdo previo.

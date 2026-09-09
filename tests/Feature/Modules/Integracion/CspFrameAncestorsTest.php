@@ -41,4 +41,31 @@ final class CspFrameAncestorsTest extends TestCase
         $csp = $response->headers->get('Content-Security-Policy');
         $this->assertNull($csp, 'NO se espera Content-Security-Policy sin WRAPPER_DOMAIN');
     }
+
+    /**
+     * El screen-pop navega dentro del iframe por páginas normales del CRM, no
+     * sólo por el 302 del handshake: todas deben declarar quién las embebe.
+     */
+    public function test_con_wrapper_domain_toda_pagina_web_declara_frame_ancestors(): void
+    {
+        Config::set('integracion.wrapper_domain', 'https://wrapper.example.com');
+
+        $response = $this->get('/login');
+
+        $response->assertOk();
+        $this->assertSame(
+            "frame-ancestors 'self' https://wrapper.example.com",
+            (string) $response->headers->get('Content-Security-Policy'),
+        );
+        $this->assertNull($response->headers->get('X-Frame-Options'));
+    }
+
+    public function test_sin_wrapper_domain_las_paginas_web_no_llevan_csp(): void
+    {
+        Config::set('integracion.wrapper_domain', null);
+
+        $this->get('/login')
+            ->assertOk()
+            ->assertHeaderMissing('Content-Security-Policy');
+    }
 }
