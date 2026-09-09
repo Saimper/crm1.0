@@ -259,7 +259,13 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || '22' }}
-          script_stop: true
+          # Sin `script_stop`: drone-ssh lo implementa insertando, tras CADA
+          # linea del script, un chequeo `DRONE_SSH_PREV_COMMAND_EXIT_CODE=$? ;
+          # if [ ... ]; then exit ...; fi;`. Un `if` o un `for` sobreviven a esa
+          # inyeccion; un `case ... in` no (queda un `;` donde bash espera un
+          # patron) y el deploy muere con "syntax error near unexpected token"
+          # antes de tocar el VPS. El `set -e` de la primera linea ya corta al
+          # primer fallo y el trap de abajo decide como se sale.
           script: |
             set -e
             export PATH="/opt/php82/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
