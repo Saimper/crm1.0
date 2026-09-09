@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 
 use App\Models\User;
+use App\Modules\Auditoria\Domain\Contracts\RegistroDeAccionesAdministrativas;
 use App\Modules\Usuarios\Application\RolesCustom\UseCases\AsignarRolCustomAUsuario;
 use App\Modules\Usuarios\Application\RolesCustom\UseCases\RevocarRolCustomDeUsuario;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -17,6 +20,9 @@ use Livewire\Component;
  * desde Fase 33, también roles custom del proyecto.
  *
  * Protecciones:
+ *   - `usuarios.gestionar` exigido en cada método que escribe, no sólo en la
+ *     ruta: cada acción de Livewire es un POST aparte que no vuelve a pasar por
+ *     el middleware, y esta pantalla reparte roles.
  *   - No mostrar ni modificar usuarios con rol ADMIN_GLOBAL.
  *   - No permitir auto-revocarse.
  *   - Validar que el usuario existe antes de asignar.
@@ -24,10 +30,21 @@ use Livewire\Component;
  */
 final class GestionUsuariosProyecto extends Component
 {
+    use AutorizaEnProyectoActivo;
+
     public bool $formAsignarVisible = false;
 
     public string $buscarEmail = '';
 
+    /**
+     * `#[Locked]` porque este id lo fija el servidor en `buscarUsuario()`, que es
+     * donde viven las dos negativas que importan: no se gestiona a un
+     * ADMIN_GLOBAL y no se trae por correo a alguien de otro mandante. Sin el
+     * candado, un `$wire.set('usuarioBuscadoId', N)` desde la consola llegaba a
+     * `asignar()` sin haber pasado por ninguna de las dos, y el pivot que se
+     * creaba es el que el SSO usa como prueba de identidad.
+     */
+    #[Locked]
     public ?int $usuarioBuscadoId = null;
 
     public string $usuarioBuscadoNombre = '';
@@ -65,6 +82,11 @@ final class GestionUsuariosProyecto extends Component
 
     public function buscarUsuario(): void
     {
+        // Resolver un correo a un nombre y un id es el paso previo a repartir un
+        // rol, y contesta si esa cuenta existe en el CRM. Mismo permiso que
+        // asignar: quien no puede asignar no tiene por qué enumerar.
+        $this->autorizarEn('usuarios.gestionar');
+
         $email = strtolower(trim($this->buscarEmail));
         if ($email === '') {
             $this->addError('buscarEmail', 'Ingresa un correo.');
@@ -108,6 +130,12 @@ final class GestionUsuariosProyecto extends Component
 
     public function asignar(AsignarRolCustomAUsuario $asignarCustom): void
     {
+        // `usuarios.gestionar` es el permiso de la ruta y el que nombra esta
+        // función en el reparto: lo tienen SUPERVISOR, ADMIN_MANDANTE y
+        // ADMIN_GLOBAL. El AUDITOR se queda en `usuarios.ver` y el GESTOR no
+        // tiene ninguno del grupo.
+        $this->autorizarEn('usuarios.gestionar');
+
         $this->validate([
             'usuarioBuscadoId' => ['required', 'integer', 'exists:users,id'],
             'rolAsignarValor' => ['required', 'string', 'regex:/^(base|custom):\d+$/'],
@@ -167,7 +195,23 @@ final class GestionUsuariosProyecto extends Component
                 );
                 DB::table('usuario_proyecto_rol_cartera')->insert($filas);
             }
+
+            $this->bitacora()->alta(
+                'usuario_proyecto_rol',
+                $usuarioId,
+                [
+                    'usuario_id' => $usuarioId,
+                    'rol_codigo' => (string) $rol->codigo,
+                    'carteras' => $this->codigosDeCartera($carterasValidas),
+                ],
+                $proyectoId,
+            );
         } else {
+            // Un rol custom es del proyecto que lo define. El permiso es por
+            // proyecto, así que sin esta comprobación un supervisor arrastraría
+            // el suyo para colgarle a alguien el rol de otro mandante.
+            $this->exigirDelProyecto('roles_custom', $rolId);
+
             try {
                 $asignarCustom->execute($rolId, $usuarioId, $proyectoId);
             } catch (\Throwable $e) {
@@ -175,6 +219,16 @@ final class GestionUsuariosProyecto extends Component
 
                 return;
             }
+
+            $this->bitacora()->alta(
+                'usuario_proyecto_rol_custom',
+                $usuarioId,
+                [
+                    'usuario_id' => $usuarioId,
+                    'rol_custom_codigo' => (string) DB::table('roles_custom')->where('id', $rolId)->value('codigo'),
+                ],
+                $proyectoId,
+            );
         }
 
         $this->cerrarFormAsignar();
@@ -183,26 +237,63 @@ final class GestionUsuariosProyecto extends Component
 
     public function quitar(int $usuarioId, int $rolId): void
     {
+        // Los dos argumentos llegan del cliente. El DELETE ya filtra por el
+        // proyecto activo, así que la fuga posible no es de fila sino de
+        // permiso: revocar roles es gestionar usuarios, no verlos.
+        $this->autorizarEn('usuarios.gestionar');
+
         if (! $this->validarPuedeQuitar($usuarioId)) {
             return;
         }
 
-        DB::table('usuario_proyecto_rol')
+        $proyectoId = $this->proyectoActivoId();
+
+        $borradas = DB::table('usuario_proyecto_rol')
             ->where('usuario_id', $usuarioId)
-            ->where('proyecto_id', $this->proyectoActivoId())
+            ->where('proyecto_id', $proyectoId)
             ->where('rol_id', $rolId)
             ->delete();
+
+        // Sólo si de verdad quitó algo: un clic sobre un rol que ya no estaba no
+        // es un evento, y un registro lleno de bajas que no ocurrieron es peor
+        // que no tenerlo.
+        if ($borradas > 0) {
+            $this->bitacora()->baja(
+                'usuario_proyecto_rol',
+                $usuarioId,
+                [
+                    'usuario_id' => $usuarioId,
+                    'rol_codigo' => (string) DB::table('roles')->where('id', $rolId)->value('codigo'),
+                ],
+                $proyectoId,
+            );
+        }
 
         session()->flash('gestion-usuarios-ok', 'Rol removido.');
     }
 
     public function quitarCustom(int $usuarioId, int $rolCustomId, RevocarRolCustomDeUsuario $revocar): void
     {
+        $this->autorizarEn('usuarios.gestionar');
+        $this->exigirDelProyecto('roles_custom', $rolCustomId);
+
         if (! $this->validarPuedeQuitar($usuarioId)) {
             return;
         }
 
-        $revocar->execute($rolCustomId, $usuarioId, $this->proyectoActivoId());
+        $proyectoId = $this->proyectoActivoId();
+        $revocar->execute($rolCustomId, $usuarioId, $proyectoId);
+
+        $this->bitacora()->baja(
+            'usuario_proyecto_rol_custom',
+            $usuarioId,
+            [
+                'usuario_id' => $usuarioId,
+                'rol_custom_codigo' => (string) DB::table('roles_custom')->where('id', $rolCustomId)->value('codigo'),
+            ],
+            $proyectoId,
+        );
+
         session()->flash('gestion-usuarios-ok', 'Rol custom removido.');
     }
 
@@ -370,8 +461,35 @@ final class GestionUsuariosProyecto extends Component
             ->exists();
     }
 
-    private function proyectoActivoId(): int
+    /**
+     * Quién anota lo que pasa por aquí.
+     *
+     * Esta pantalla es la que el supervisor usa a diario para dar y quitar
+     * accesos a la cartera de un cliente, y era la única de las tres que
+     * escriben pivotes de acceso que no dejaba constancia de nada.
+     */
+    private function bitacora(): RegistroDeAccionesAdministrativas
     {
-        return (int) app('tenancy.proyecto_activo')->id;
+        return app(RegistroDeAccionesAdministrativas::class);
+    }
+
+    /**
+     * Los códigos de las carteras a las que queda acotado el rol, que es lo que
+     * una persona reconoce; los ids no dicen nada en un registro que se lee
+     * meses después.
+     *
+     * @param  list<int>  $ids
+     * @return list<string>
+     */
+    private function codigosDeCartera(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        /** @var list<string> $codigos */
+        $codigos = DB::table('carteras')->whereIn('id', $ids)->orderBy('codigo')->pluck('codigo')->all();
+
+        return $codigos;
     }
 }

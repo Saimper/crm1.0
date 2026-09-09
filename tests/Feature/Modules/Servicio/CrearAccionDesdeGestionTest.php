@@ -15,20 +15,25 @@ use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
 use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
 use App\Modules\Servicio\Domain\ValueObjects\DescripcionAccion;
 use App\Modules\Servicio\Domain\ValueObjects\FechaProgramada;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class CrearAccionDesdeGestionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registrar_gestion_con_agenda_crea_compromiso_y_accion(): void
@@ -41,9 +46,9 @@ final class CrearAccionDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'COORDINACION', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'AGENDADO', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -53,7 +58,7 @@ final class CrearAccionDesdeGestionTest extends TestCase
             datosCompromiso: new DatosAccionServicio(
                 descripcion: new DescripcionAccion('Instalación de equipos en domicilio del cliente'),
                 fechaProgramada: new FechaProgramada(new DateTimeImmutable('2026-04-25 10:00:00')),
-                tipoAccionServicioId: $this->idProyecto('tipos_accion_servicio', 'INSTALACION', $ctx['proyectoId']),
+                tipoAccionServicioId: $ctx['tipoAccionServicioId'],
                 tecnicoAsignado: 'Carlos Peña',
             ),
         ));
@@ -115,7 +120,7 @@ final class CrearAccionDesdeGestionTest extends TestCase
         $this->assertDatabaseHas('compromisos', ['id' => $compromisoId, 'estado' => 'cancelado']);
     }
 
-    /** @param array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} $ctx */
+    /** @param array<string, int> $ctx */
     private function registrarAccion(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
@@ -124,9 +129,9 @@ final class CrearAccionDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'COORDINACION', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'AGENDADO', $ctx['proyectoId']),
+            canalId: $ctx['canalId'],
+            tipoGestionId: $ctx['tipoGestionId'],
+            resultadoId: $ctx['resultadoId'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -140,30 +145,32 @@ final class CrearAccionDesdeGestionTest extends TestCase
         ));
     }
 
-    /** @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} */
+    /**
+     * Escenario mínimo de un proyecto de servicio: cartera, persona, estado,
+     * gestor y la cascada canal → tipo → resultado con `requiere_compromiso`,
+     * que es lo que dispara al listener `CrearAccionDesdeGestion`.
+     *
+     * @return array<string, int>
+     */
     private function contexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'RESIDENCIAL')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'PENDIENTE')->value('id');
+        $proyecto = $this->crearProyectoServicio();
+        $cartera = $this->crearCarteraEn($proyecto, 'RESIDENCIAL');
+        $persona = $this->crearPersonaEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'PENDIENTE');
+        $usuario = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
-        ]);
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Tester', 'apellidos' => 'Servicio',
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'codigo_tipo' => 'COORDINACION',
+            'codigo_resultado' => 'AGENDADO',
         ]);
 
         $out = $this->app->make(RegistrarCasoServicio::class)->execute(new RegistrarCasoServicioInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estadoId,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-20'),
             prioridad: 100,
             codigoServicio: 'SVC-CROSS-'.Str::random(4),
@@ -176,20 +183,28 @@ final class CrearAccionDesdeGestionTest extends TestCase
         ));
 
         return [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'casoId' => $out->casoId,
-            'personaId' => $personaId,
-            'usuarioId' => $usuarioId,
+            'personaId' => (int) $persona->id,
+            'usuarioId' => (int) $usuario->id,
+            'canalId' => $cascada['canal_id'],
+            'tipoGestionId' => $cascada['tipo_gestion_id'],
+            'resultadoId' => $cascada['resultado_id'],
+            'tipoAccionServicioId' => $this->crearTipoAccionServicioEn($proyecto, 'INSTALACION'),
         ];
     }
 
-    private function idGlobal(string $tabla, string $codigo): int
+    /** No hay helper en EscenarioOperativo para los catálogos de servicio (§8). */
+    private function crearTipoAccionServicioEn(stdClass $proyecto, string $codigo): int
     {
-        return (int) DB::table($tabla)->where('codigo', $codigo)->value('id');
-    }
-
-    private function idProyecto(string $tabla, string $codigo, int $proyectoId): int
-    {
-        return (int) DB::table($tabla)->where('proyecto_id', $proyectoId)->where('codigo', $codigo)->value('id');
+        return (int) DB::table('tipos_accion_servicio')->insertGetId([
+            'proyecto_id' => $proyecto->id,
+            'codigo' => $codigo,
+            'nombre' => 'Tipo acción '.$codigo,
+            'activo' => true,
+            'orden' => 10,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
     }
 }

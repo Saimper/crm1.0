@@ -9,7 +9,7 @@
         <div>
             <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('asignaciones.reassign_section_title') }}</h3>
             <p class="text-xs text-ink-500 mt-1">
-                {!! __('asignaciones.reassign_section_desc') !!}
+                {!! __('asignaciones.reassign_section_desc', ['entidad' => $rotuloCaso]) !!}
             </p>
         </div>
 
@@ -72,7 +72,7 @@
                     <thead class="bg-ink-50 text-xs uppercase tracking-wider text-ink-600">
                         <tr>
                             <th class="px-3 py-2 text-left">{{ __('asignaciones.col_new_agent') }}</th>
-                            <th class="px-3 py-2 text-right">{{ __('asignaciones.col_cases_received_r') }}</th>
+                            <th class="px-3 py-2 text-right">{{ __('asignaciones.col_cases_received_r', ['entidades' => $rotuloCasos]) }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-ink-100">

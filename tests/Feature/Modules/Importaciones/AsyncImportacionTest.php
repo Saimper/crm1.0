@@ -5,36 +5,48 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Importaciones;
 
 use App\Models\User;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
 use App\Modules\Importaciones\Application\UseCases\ConsultarProgresoImportacion;
+use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionDinamica;
 use App\Modules\Importaciones\Application\UseCases\EncolarImportacion;
+use App\Modules\Importaciones\Application\UseCases\PrepararImportacionDinamica;
+use App\Modules\Importaciones\Application\UseCases\PrepararImportacionInput;
+use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionEnCursoNoEditable;
+use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
+use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AsyncImportacionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_encolar_dispatches_job_y_marca_procesando(): void
     {
         Queue::fake();
 
-        [$proyectoId, $usuarioId] = $this->contextoProyectoCobranza();
-        $importacionId = $this->crearImportacionPreparada($proyectoId, $usuarioId);
+        [$proyecto, $usuario] = $this->contextoProyectoCobranza();
+        $importacionId = $this->crearImportacionPreparada($proyecto, $usuario);
 
         app(EncolarImportacion::class)->execute($importacionId, ModoImportacion::MERGE);
 
@@ -50,8 +62,8 @@ final class AsyncImportacionTest extends TestCase
     {
         Queue::fake();
 
-        [$proyectoId, $usuarioId] = $this->contextoProyectoCobranza();
-        $importacionId = $this->crearImportacionPreparada($proyectoId, $usuarioId);
+        [$proyecto, $usuario] = $this->contextoProyectoCobranza();
+        $importacionId = $this->crearImportacionPreparada($proyecto, $usuario);
 
         app(EncolarImportacion::class)->execute($importacionId, ModoImportacion::MERGE);
 
@@ -61,14 +73,14 @@ final class AsyncImportacionTest extends TestCase
 
     public function test_consultar_progreso_devuelve_dto_con_porcentaje(): void
     {
-        [$proyectoId, $usuarioId] = $this->contextoProyectoCobranza();
+        [$proyecto, $usuario] = $this->contextoProyectoCobranza();
         $importacionId = (int) DB::table('importaciones')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'tipo_entidad' => 'persona',
             'modo' => 'merge',
             'estado' => EstadoImportacion::PROCESANDO->value,
-            'usuario_id' => $usuarioId,
+            'usuario_id' => $usuario->id,
             'nombre_archivo' => 'p.csv',
             'total_filas' => 100,
             'procesadas' => 30,
@@ -85,40 +97,19 @@ final class AsyncImportacionTest extends TestCase
 
     public function test_idempotencia_job_re_encolado_no_duplica_filas(): void
     {
-        [$proyectoId, $usuarioId] = $this->contextoProyectoCobranza();
-        $this->crearPersona($proyectoId, '7700000099');
+        [$proyecto, $usuario] = $this->contextoProyectoCobranza();
+        $this->crearPersonaEn($proyecto, '7700000099');
 
-        $importacionId = (int) DB::table('importaciones')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_entidad' => 'persona',
-            'modo' => 'merge',
-            'estado' => EstadoImportacion::PREPARADA->value,
-            'usuario_id' => $usuarioId,
-            'nombre_archivo' => 'idem.csv',
-            'total_filas' => 1,
-        ]);
-        DB::table('importacion_filas')->insert([
-            'importacion_id' => $importacionId,
-            'proyecto_id' => $proyectoId,
-            'numero_fila' => 1,
-            'estado' => 'pendiente',
-            'payload' => json_encode([
-                'tipo_persona' => 'fisica',
-                'tipo_identificacion_codigo' => 'CED',
-                'identificacion' => '7700000099',
-                'nombres' => 'Idem',
-            ]),
+        $importacionId = $this->crearImportacionPreparada($proyecto, $usuario, [
+            ['identificacion' => '7700000099', 'nombre' => 'Idem'],
         ]);
 
-        $job1 = new EjecutarImportacionJob($importacionId, 'merge');
-        $job1->handle();
+        $this->ejecutarJob($importacionId);
 
         $personasAntes = (int) DB::table('personas')->where('identificacion', '7700000099')->count();
         $this->assertSame(1, $personasAntes);
 
-        $job2 = new EjecutarImportacionJob($importacionId, 'merge');
-        $job2->handle();
+        $this->ejecutarJob($importacionId);
 
         $personasDespues = (int) DB::table('personas')->where('identificacion', '7700000099')->count();
         $this->assertSame(1, $personasDespues, 'Job re-ejecutado no debe duplicar filas');
@@ -129,14 +120,18 @@ final class AsyncImportacionTest extends TestCase
 
     public function test_dos_importaciones_distintas_avanzan_independientes(): void
     {
-        [$proyectoCobId, $usuarioId] = $this->contextoProyectoCobranza();
-        $proyectoCxId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        [$proyectoCob, $usuario] = $this->contextoProyectoCobranza();
+        $proyectoCx = $this->crearProyectoCx();
 
-        $impA = $this->crearImportacionPersonasConFila($proyectoCobId, $usuarioId, '8800000001', 'Proyecto A');
-        $impB = $this->crearImportacionPersonasConFila($proyectoCxId, $usuarioId, '8800000002', 'Proyecto B');
+        $impA = $this->crearImportacionPreparada($proyectoCob, $usuario, [
+            ['identificacion' => '8800000001', 'nombre' => 'Proyecto A'],
+        ]);
+        $impB = $this->crearImportacionPreparada($proyectoCx, $usuario, [
+            ['identificacion' => '8800000002', 'nombre' => 'Proyecto B'],
+        ]);
 
-        (new EjecutarImportacionJob($impA, 'merge'))->handle();
-        (new EjecutarImportacionJob($impB, 'merge'))->handle();
+        $this->ejecutarJob($impA);
+        $this->ejecutarJob($impB);
 
         $a = DB::table('importaciones')->where('id', $impA)->first();
         $b = DB::table('importaciones')->where('id', $impB)->first();
@@ -146,14 +141,47 @@ final class AsyncImportacionTest extends TestCase
         $this->assertSame(1, (int) $a->procesadas);
         $this->assertSame(1, (int) $b->procesadas);
 
-        $this->assertDatabaseHas('personas', ['identificacion' => '8800000001', 'proyecto_id' => $proyectoCobId]);
-        $this->assertDatabaseHas('personas', ['identificacion' => '8800000002', 'proyecto_id' => $proyectoCxId]);
+        $this->assertDatabaseHas('personas', ['identificacion' => '8800000001', 'proyecto_id' => $proyectoCob->id]);
+        $this->assertDatabaseHas('personas', ['identificacion' => '8800000002', 'proyecto_id' => $proyectoCx->id]);
+
+        // Y el caso del tipo, no sólo la persona: el motor elige la tabla CTI
+        // por el target del esquema, y un fallo ahí dejaría la importación en
+        // «completada» con la persona creada y el ticket en ninguna parte.
+        $this->assertDatabaseHas('casos_ticket_cx', ['codigo_ticket' => 'EXP-8800000002']);
+    }
+
+    /**
+     * Venta y servicio por el mismo camino.
+     *
+     * Cobranza y CX ya tenían quien los mirase; los otros dos tipos vivían de
+     * los tests del importador de columnas fijas, que se retiró. Sin esto, un
+     * cambio en el `match` del target los rompería en silencio hasta que un
+     * cliente de venta subiera su archivo.
+     */
+    public function test_los_cuatro_tipos_de_proyecto_crean_su_caso(): void
+    {
+        [, $usuario] = $this->contextoProyectoCobranza();
+
+        $venta = $this->crearProyectoVenta();
+        $servicio = $this->crearProyectoServicio();
+
+        $this->ejecutarJob($this->crearImportacionPreparada($venta, $usuario, [
+            ['identificacion' => '8800000003', 'nombre' => 'Lead de venta'],
+        ]));
+        $this->ejecutarJob($this->crearImportacionPreparada($servicio, $usuario, [
+            ['identificacion' => '8800000004', 'nombre' => 'Orden de servicio'],
+        ]));
+
+        $this->assertDatabaseHas('casos_lead_venta', ['codigo_lead' => 'EXP-8800000003']);
+        $this->assertDatabaseHas('casos_servicio', ['codigo_servicio' => 'EXP-8800000004']);
     }
 
     public function test_cancelacion_marca_estado_y_evita_procesamiento(): void
     {
-        [$proyectoId, $usuarioId] = $this->contextoProyectoCobranza();
-        $importacionId = $this->crearImportacionPersonasConFila($proyectoId, $usuarioId, '9999000001', 'Cancelable');
+        [$proyecto, $usuario] = $this->contextoProyectoCobranza();
+        $importacionId = $this->crearImportacionPreparada($proyecto, $usuario, [
+            ['identificacion' => '9999000001', 'nombre' => 'Cancelable'],
+        ]);
 
         DB::table('importaciones')->where('id', $importacionId)->update([
             'estado' => EstadoImportacion::PROCESANDO->value,
@@ -164,85 +192,117 @@ final class AsyncImportacionTest extends TestCase
         $i = DB::table('importaciones')->where('id', $importacionId)->first();
         $this->assertSame('cancelada', $i->estado);
 
-        (new EjecutarImportacionJob($importacionId, 'merge'))->handle();
+        $this->ejecutarJob($importacionId);
 
         $personas = (int) DB::table('personas')->where('identificacion', '9999000001')->count();
         $this->assertSame(0, $personas, 'Job cancelado no debe insertar');
     }
 
+    /**
+     * @return array{0: stdClass, 1: User}
+     */
     private function contextoProyectoCobranza(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $usuario = $this->crearSupervisor($proyecto);
+        $this->actingAs($usuario);
 
-        $rolId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        $u = User::query()->create([
-            'name' => 'Sup',
-            'email' => 'sup.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-        $this->actingAs($u);
-
-        return [$proyectoId, (int) $u->id];
+        return [$proyecto, $usuario];
     }
 
-    private function crearPersona(int $proyectoId, string $identificacion): void
+    /**
+     * Una importación en estado `preparada` (lo único que `EncolarImportacion`
+     * admite), con su esquema dinámico ya persistido.
+     *
+     * El target es el caso del tipo del proyecto y no `persona`: el ejecutor
+     * dinámico sólo sabe crear casos, y una persona nueva nace como efecto de
+     * crear el caso. Cada fila trae identificación (identificador de persona),
+     * nombre y el código de expediente que hace único al caso.
+     *
+     * @param  list<array{identificacion: string, nombre: string}>  $filas
+     */
+    private function crearImportacionPreparada(stdClass $proyecto, User $usuario, array $filas = []): int
     {
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        DB::table('personas')->insert([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => $identificacion,
-            'nombres' => 'Pre',
-        ]);
-    }
+        $cartera = $this->crearCarteraEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO_'.strtoupper(Str::random(4)));
 
-    private function crearImportacionPreparada(int $proyectoId, int $usuarioId): int
-    {
-        return (int) DB::table('importaciones')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_entidad' => 'persona',
-            'modo' => 'merge',
-            'estado' => EstadoImportacion::PREPARADA->value,
-            'usuario_id' => $usuarioId,
-            'nombre_archivo' => 'p.csv',
-            'total_filas' => 0,
-        ]);
-    }
+        $target = $this->targetDe($proyecto);
 
-    private function crearImportacionPersonasConFila(int $proyectoId, int $usuarioId, string $identificacion, string $nombre): int
-    {
         $importacionId = (int) DB::table('importaciones')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_entidad' => 'persona',
+            'proyecto_id' => $proyecto->id,
+            'tipo_entidad' => $target->tipoEntidadDb(),
             'modo' => 'merge',
-            'estado' => EstadoImportacion::PREPARADA->value,
-            'usuario_id' => $usuarioId,
+            'estado' => EstadoImportacion::PENDIENTE->value,
+            'usuario_id' => $usuario->id,
             'nombre_archivo' => 'p.csv',
-            'total_filas' => 1,
-        ]);
-        DB::table('importacion_filas')->insert([
-            'importacion_id' => $importacionId,
-            'proyecto_id' => $proyectoId,
-            'numero_fila' => 1,
-            'estado' => 'pendiente',
-            'payload' => json_encode([
-                'tipo_persona' => 'fisica',
-                'tipo_identificacion_codigo' => 'CED',
-                'identificacion' => $identificacion,
-                'nombres' => $nombre,
-            ]),
+            'total_filas' => count($filas),
         ]);
 
+        foreach (array_values($filas) as $indice => $fila) {
+            DB::table('importacion_filas')->insert([
+                'importacion_id' => $importacionId,
+                'proyecto_id' => $proyecto->id,
+                'numero_fila' => $indice + 1,
+                'estado' => 'pendiente',
+                'payload' => json_encode([
+                    'identificacion' => $fila['identificacion'],
+                    'nombres' => $fila['nombre'],
+                    'expediente' => 'EXP-'.$fila['identificacion'],
+                    'id_cpelegido' => 'EXP-'.$fila['identificacion'],
+                ], JSON_THROW_ON_ERROR),
+            ]);
+        }
+
+        app(PrepararImportacionDinamica::class)->execute(new PrepararImportacionInput(
+            importacionId: $importacionId,
+            esquema: new EsquemaImportacion(
+                target: $target,
+                proyectoId: (int) $proyecto->id,
+                carteraId: (int) $cartera->id,
+                modo: ModoImportacion::MERGE,
+                columnas: [
+                    new ColumnaExcel(
+                        nombreOriginal: 'cedula',
+                        tipoInferido: TipoCampo::TEXTO_CORTO,
+                        campoSistemaMapeado: 'identificacion',
+                        esIdentificadorPersona: true,
+                        accion: AccionColumna::MAPEAR_SISTEMA,
+                    ),
+                    new ColumnaExcel(
+                        nombreOriginal: 'expediente',
+                        tipoInferido: TipoCampo::TEXTO_CORTO,
+                        esIdentificadorCaso: true,
+                        accion: AccionColumna::CREAR_CP,
+                    ),
+                    new ColumnaExcel(
+                        nombreOriginal: 'nombres',
+                        tipoInferido: TipoCampo::TEXTO_CORTO,
+                        accion: AccionColumna::CREAR_CP,
+                    ),
+                ],
+            ),
+            usuarioId: (int) $usuario->id,
+            tienePermisoCampos: true,
+        ));
+
         return $importacionId;
+    }
+
+    private function targetDe(stdClass $proyecto): TargetImportacion
+    {
+        return match ($proyecto->tipo_operacion) {
+            'cx' => TargetImportacion::CASO_TICKET_CX,
+            'venta' => TargetImportacion::CASO_LEAD_VENTA,
+            'servicio' => TargetImportacion::CASO_SERVICIO,
+            default => TargetImportacion::CASO_COBRANZA,
+        };
+    }
+
+    /** El job resuelve su ejecutor por inyección, no lo construye. */
+    private function ejecutarJob(int $importacionId): void
+    {
+        (new EjecutarImportacionJob($importacionId))
+            ->handle(app(EjecutarImportacionDinamica::class), app(DescriptorDeFalloImportacion::class));
     }
 }

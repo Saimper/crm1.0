@@ -1,6 +1,12 @@
 <?php
 
 return [
+    'saving' => 'Saving…',
+    'copy' => 'copy',
+    'copied' => 'copied',
+    'add' => 'Add',
+    'move_up' => 'Move up',
+    'move_down' => 'Move down',
     'save' => 'Save',
     'saved' => 'Saved.',
     'cancel' => 'Cancel',
@@ -17,4 +23,7 @@ return [
     'password_current' => 'Current password',
     'password_new' => 'New password',
     'password_confirm' => 'Confirm password',
+    'loading' => 'Loading…',
+    'pagination' => 'Pagination',
+    'pagination_range' => ':desde to :hasta of :total',
 ];

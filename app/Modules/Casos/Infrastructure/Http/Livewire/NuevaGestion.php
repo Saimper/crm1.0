@@ -28,6 +28,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Throwable;
 
@@ -97,14 +98,6 @@ final class NuevaGestion extends Component
      */
     public array $valoresCamposGestion = [];
 
-    /**
-     * Valores de campos personalizados ámbito `caso × cartera`.
-     * Se cargan al montar el componente y se persisten al guardar la gestión.
-     *
-     * @var array<string, mixed>
-     */
-    public array $valoresCamposCaso = [];
-
     public function mount(int $casoId, int $personaId, string $tipoCaso): void
     {
         $this->casoId = $casoId;
@@ -112,9 +105,17 @@ final class NuevaGestion extends Component
         $this->tipoCaso = $tipoCaso;
     }
 
+    /**
+     * Al cambiar el tipo cambia la lista de resultados admitidos, así que el
+     * resultado elegido puede dejar de ser válido. Se limpia en vez de
+     * arrastrarlo, y con él todo lo que cuelga: motivo, causa y los campos
+     * personalizados del ámbito gestión, que también cambian con el tipo.
+     */
     public function updatedTipoGestionId(mixed $value): void
     {
-        // Reset de valores capturados — los campos cambian con el tipo seleccionado.
+        $this->resultadoId = null;
+        $this->motivoNoContactoId = null;
+        $this->causaId = null;
         $this->valoresCamposGestion = [];
     }
 
@@ -122,10 +123,21 @@ final class NuevaGestion extends Component
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
 
+        // La única puerta hasta ahora era `can:casos.ver` en la ruta, que el
+        // AUDITOR tiene: podía registrar gestiones. El permiso de escritura
+        // existe desde F22 y nadie lo comprobaba en el camino de escritura.
+        if (auth()->user()?->tienePermiso('gestiones.crear', $proyectoId) !== true) {
+            abort(403, 'No tienes permiso para registrar gestiones en este proyecto.');
+        }
+
         $reglas = [
-            'canalId' => ['required', 'integer'],
+            'canalId' => ['required', 'integer', Rule::exists('canal_proyecto', 'canal_id')
+                ->where('proyecto_id', $proyectoId)
+                ->where('activo', true)],
             'tipoGestionId' => ['required', 'integer'],
-            'resultadoId' => ['required', 'integer'],
+            'resultadoId' => ['required', 'integer', Rule::exists('resultados', 'id')
+                ->where('proyecto_id', $proyectoId)
+                ->where('activo', true)],
             'notas' => ['nullable', 'string', 'max:2000'],
         ];
 
@@ -220,16 +232,12 @@ final class NuevaGestion extends Component
                 valoresPorCodigo: $this->valoresCamposGestion,
             );
 
-            // Persistir valores de campos personalizados ámbito `caso × cartera`
-            // cuando el usuario modificó algún valor durante la gestión.
-            $carteraId = (int) DB::table('casos')->where('id', $this->casoId)->value('cartera_id');
-            $servicioCampos->guardarValores(
-                proyectoId: $proyectoId,
-                ambito: AmbitoCampo::CASO,
-                ambitoId: $carteraId,
-                entidadId: $this->casoId,
-                valoresPorCodigo: $this->valoresCamposCaso,
-            );
+            // Los campos del caso NO se escriben desde aquí. Se leen en la
+            // Vista de Trabajo y se editan en «Editar caso», que es la pantalla
+            // dueña del dato. Tenerlos también en este formulario era una
+            // segunda superficie de escritura sobre lo mismo (§13.3), y era por
+            // donde se borraban: el componente enviaba los 34 campos en cada
+            // gestión, incluidos los que no sabía leer.
         } catch (Throwable $e) {
             $this->addError('general', $e->getMessage());
 
@@ -291,14 +299,8 @@ final class NuevaGestion extends Component
             ? $servicioCampos->campos($proyectoId, AmbitoCampo::GESTION, (int) $this->tipoGestionId)
             : collect();
 
-        $carteraId = (int) DB::table('casos')->where('id', $this->casoId)->value('cartera_id');
-        $camposCaso = $servicioCampos->campos($proyectoId, AmbitoCampo::CASO, $carteraId);
-        if ($this->valoresCamposCaso === [] && $camposCaso->isNotEmpty()) {
-            $this->valoresCamposCaso = $this->cargarValoresCamposCaso($proyectoId, $carteraId);
-        }
-
         return view('casos::livewire.nueva-gestion', [
-            'canales' => $this->canales(),
+            'canales' => $this->canales($proyectoId),
             'tiposGestion' => $this->tiposGestion($proyectoId),
             'resultados' => $this->resultados($proyectoId),
             'motivos' => $this->motivos($proyectoId),
@@ -312,42 +314,8 @@ final class NuevaGestion extends Component
             'requiereCompromiso' => $resultadoActual ? (bool) $resultadoActual->requiere_compromiso : false,
             'esContactoEfectivo' => $resultadoActual ? (bool) $resultadoActual->es_contacto_efectivo : false,
             'camposGestion' => $camposGestion,
-            'camposCaso' => $camposCaso,
+            'plantillasNota' => $this->plantillasNota($proyectoId),
         ]);
-    }
-
-    private function cargarValoresCamposCaso(int $proyectoId, int $carteraId): array
-    {
-        $filas = DB::table('valores_campo_personalizado as v')
-            ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
-            ->where('v.entidad_id', $this->casoId)
-            ->where('c.proyecto_id', $proyectoId)
-            ->where('c.ambito', AmbitoCampo::CASO->value)
-            ->where('c.ambito_id', $carteraId)
-            ->select(['c.codigo', 'c.tipo', 'v.*'])
-            ->get();
-
-        $valores = [];
-        foreach ($filas as $f) {
-            $valores[(string) $f->codigo] = $this->leerValorCampo($f, (string) $f->tipo);
-        }
-
-        return $valores;
-    }
-
-    private function leerValorCampo(object $fila, string $tipo): mixed
-    {
-        return match ($tipo) {
-            'texto_corto' => $fila->valor_texto_corto,
-            'texto_largo' => $fila->valor_texto_largo,
-            'numero_entero' => $fila->valor_numero_entero === null ? null : (int) $fila->valor_numero_entero,
-            'numero_decimal' => $fila->valor_numero_decimal,
-            'fecha' => $fila->valor_fecha,
-            'fecha_hora' => $fila->valor_fecha_hora,
-            'booleano' => $fila->valor_booleano === null ? null : (bool) $fila->valor_booleano,
-            'moneda' => $fila->valor_moneda_monto,
-            default => null,
-        };
     }
 
     private function resultadoSeleccionado(int $proyectoId): ?object
@@ -362,9 +330,29 @@ final class NuevaGestion extends Component
             ->first();
     }
 
-    private function canales(): Collection
+    /**
+     * Los canales que este proyecto usa, con el nombre que les da y en su orden.
+     *
+     * `canales` sigue siendo el catálogo global; `canal_proyecto` dice qué hace
+     * cada proyecto con él. La etiqueta del proyecto gana sobre la global
+     * cuando existe.
+     */
+    private function canales(int $proyectoId): Collection
     {
-        return DB::table('canales')->where('activo', true)->orderBy('orden')->get();
+        return DB::table('canal_proyecto as cp')
+            ->join('canales as c', 'c.id', '=', 'cp.canal_id')
+            ->where('cp.proyecto_id', $proyectoId)
+            ->where('cp.activo', true)
+            ->where('c.activo', true)
+            ->orderBy('cp.orden')
+            ->orderBy('c.id')
+            ->get([
+                'c.id',
+                'c.codigo',
+                DB::raw('COALESCE(cp.etiqueta, c.nombre) as nombre'),
+                'cp.requiere_duracion',
+                'cp.permite_adjunto',
+            ]);
     }
 
     private function tiposGestion(int $proyectoId): Collection
@@ -374,11 +362,64 @@ final class NuevaGestion extends Component
             ->orderBy('orden')->get();
     }
 
+    /**
+     * Los resultados que admite el tipo de gestión elegido.
+     *
+     * Sin tipo elegido no hay lista: el selector sale deshabilitado en vez de
+     * ofrecer los nueve resultados del proyecto, que era lo que hacía que
+     * «Promesa de pago fraccionado» apareciera bajo «No contactado».
+     *
+     * Arranque en abierto POR TIPO: un tipo sin ninguna combinación declarada
+     * admite todos. Con la regla al revés, los proyectos que no lo tienen
+     * configurado —hoy, todos— se quedarían sin poder registrar una gestión.
+     */
     private function resultados(int $proyectoId): Collection
     {
-        return DB::table('resultados')
-            ->where('proyecto_id', $proyectoId)->where('activo', true)
-            ->orderBy('orden')->get();
+        if ($this->tipoGestionId === null) {
+            return collect();
+        }
+
+        $declarados = DB::table('resultado_tipo_gestion')
+            ->where('proyecto_id', $proyectoId)
+            ->where('tipo_gestion_id', (int) $this->tipoGestionId)
+            ->count();
+
+        $query = DB::table('resultados as r')
+            ->where('r.proyecto_id', $proyectoId)
+            ->where('r.activo', true);
+
+        if ($declarados > 0) {
+            $query->join('resultado_tipo_gestion as rtg', function ($join): void {
+                $join->on('rtg.resultado_id', '=', 'r.id')
+                    ->where('rtg.tipo_gestion_id', (int) $this->tipoGestionId);
+            })->orderBy('rtg.orden');
+        }
+
+        return $query->orderBy('r.orden')->get(['r.*']);
+    }
+
+    /**
+     * Frases hechas para las notas: las generales del proyecto más las del
+     * resultado elegido, que son las que de verdad ahorran escribir.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    private function plantillasNota(int $proyectoId): Collection
+    {
+        return DB::table('plantillas_nota')
+            ->where('proyecto_id', $proyectoId)
+            ->where('activo', true)
+            ->where(function ($q): void {
+                $q->whereNull('resultado_id');
+
+                if ($this->resultadoId !== null) {
+                    $q->orWhere('resultado_id', (int) $this->resultadoId);
+                }
+            })
+            ->orderByRaw('resultado_id is null')
+            ->orderBy('orden')
+            ->orderBy('id')
+            ->get(['id', 'etiqueta', 'texto']);
     }
 
     private function motivos(int $proyectoId): Collection

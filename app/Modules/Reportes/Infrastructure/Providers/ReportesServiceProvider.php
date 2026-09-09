@@ -9,6 +9,7 @@ use App\Modules\Reportes\Infrastructure\Http\Livewire\ConstructorReporte;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\DashboardAnalitico;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\DashboardOperativo;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\ListadoReportesCustom;
+use App\Modules\Reportes\Infrastructure\Http\Livewire\PanelDelDia;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\ReporteEquipos;
 use App\Modules\Reportes\Infrastructure\Persistence\Repositories\RepositorioDefinicionReporteEloquent;
 use Illuminate\Support\Facades\View;
@@ -26,6 +27,7 @@ final class ReportesServiceProvider extends ServiceProvider
     {
         View::addNamespace('reportes', resource_path('views/modules/reportes'));
         Livewire::component('reportes.dashboard-operativo', DashboardOperativo::class);
+        Livewire::component('reportes.panel-del-dia', PanelDelDia::class);
         Livewire::component('reportes.dashboard-analitico', DashboardAnalitico::class);
         Livewire::component('reportes.reporte-equipos', ReporteEquipos::class);
         Livewire::component('reportes.constructor-reporte', ConstructorReporte::class);

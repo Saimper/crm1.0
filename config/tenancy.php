@@ -13,19 +13,31 @@ return [
      | resolución del proyecto fallara para acabar consultando sobre todos los
      | clientes.
      |
-     | En estricto, una consulta sobre un modelo con scope y sin contexto lanza
-     | ConsultaSinContextoDeTenant en vez de devolverlo todo. Es lo correcto,
-     | pero encenderlo hoy rompería la aplicación entera: 5 comandos, 4 jobs, 9
-     | listeners, 4 tareas del scheduler y todas las pantallas /admin corren sin
-     | contexto de proyecto. Cada uno tiene que declarar el suyo (o pedir
-     | explícitamente sinScopeProyecto) antes de que esto pueda ponerse en true.
+     | ENCENDIDO desde la Fase 3. Una consulta sobre un modelo con scope y sin
+     | contexto lanza ConsultaSinContextoDeTenant en vez de devolver las filas
+     | de todos los clientes. Antes fallaba abierto, que es como decir que el
+     | aislamiento no era una propiedad del modelo sino de haber pasado por un
+     | middleware HTTP concreto.
      |
-     | Se enciende cuando la Fase 3 haya terminado. Mientras tanto:
-     |   - en pruebas se enciende por caso, para probar el mecanismo;
-     |   - `avisar_sin_contexto` permite medir el alcance real en un entorno de
-     |     preproducción antes de dar el paso, sin romper nada.
+     | Se pudo encender porque la superficie que corre sin contexto ya declara
+     | lo suyo: los CATORCE comandos de consola (dos más de los que decía este
+     | inventario: `importaciones:purgar-payloads` y
+     | `importaciones:purgar-subidas-temporales`), los 4 jobs y los 13 listeners
+     | consultan con `DB::table` —que el scope nunca ha tocado— o escriben
+     | `sinScopeProyecto()` a mano. Las pantallas /admin, igual.
+     |
+     | Lo que este interruptor NO hace, y conviene no confundirlo: cierra las
+     | LECTURAS. Las escrituras las cierra el guardia de `PerteneceAProyecto`,
+     | que es otra cosa y vive en otro sitio — con un proyecto activo, ninguna
+     | escritura puede caer en otro; sin contexto, la plataforma escribe donde
+     | necesita.
+     |
+     | Apagarlo con TENANCY_SCOPE_ESTRICTO=false devuelve el fallo abierto. Es
+     | una salida de emergencia, no una opción de configuración: si hace falta
+     | usarla, lo que hay debajo es un sitio que consulta sin declarar contexto
+     | y el log del guardia dice cuál.
      */
-    'scope_estricto' => (bool) env('TENANCY_SCOPE_ESTRICTO', false),
+    'scope_estricto' => (bool) env('TENANCY_SCOPE_ESTRICTO', true),
 
     /*
      | Deja constancia en el log de cada consulta que corre sin contexto de
@@ -34,5 +46,20 @@ return [
      | abierto. Ruidoso a propósito: enciéndelo un rato, no de continuo.
      */
     'avisar_sin_contexto' => (bool) env('TENANCY_AVISAR_SIN_CONTEXTO', false),
+
+    /*
+     | Valores de la plataforma cuando un mandante no declara los suyos, y
+     | cuando no hay mandante activo (comandos, jobs, pantallas cross-cliente).
+     |
+     | UTC y USD reproducen lo que el sistema hacía antes de que la
+     | configuración regional existiera, así que estrenarla no mueve ningún
+     | número: sólo lo mueve el cliente que ajusta el suyo.
+     |
+     | OJO: esto NO es `app.timezone`, que sigue y debe seguir en UTC. Lo que
+     | hay guardado son instantes UTC; cambiar el huso de la aplicación haría
+     | que Eloquent los reinterpretara como hora local al hidratarlos.
+     */
+    'zona_horaria_por_defecto' => env('TENANCY_ZONA_HORARIA', 'UTC'),
+    'moneda_por_defecto' => env('TENANCY_MONEDA', 'USD'),
 
 ];

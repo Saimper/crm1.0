@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Personas\Infrastructure\Http\Livewire;
 
+use App\Models\User;
+use App\Modules\Personas\Application\DTOs\FiltrosListadoPersonas;
+use App\Modules\Personas\Application\Services\ConsultaListadoPersonas;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -15,6 +18,9 @@ use Livewire\WithPagination;
  *
  * Filtros: búsqueda libre (identificación/nombre/razón) y tipo_persona (fisica/juridica/—).
  * Permiso: personas.ver. ADMIN_GLOBAL pasa por Gate::before.
+ *
+ * La consulta y los filtros viven en `ConsultaListadoPersonas`, compartida con
+ * la exportación: el botón «Exportar CSV» descarga exactamente lo que se ve.
  */
 final class ListadoPersonas extends Component
 {
@@ -46,55 +52,45 @@ final class ListadoPersonas extends Component
     public function render(): View
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
-        $busqueda = trim($this->busqueda);
+        $filtros = FiltrosListadoPersonas::desde($this->busqueda, $this->tipoPersona);
+        $consulta = app(ConsultaListadoPersonas::class);
 
-        $q = DB::table('personas as p')
-            ->leftJoin('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
-            ->leftJoin('casos as c', function ($join): void {
-                $join->on('c.persona_id', '=', 'p.id')->whereNull('c.eliminada_en');
-            })
-            ->where('p.proyecto_id', $proyectoId)
-            ->whereNull('p.eliminada_en');
+        $carteras = $this->usuario()->carterasPermitidas($proyectoId);
 
-        if ($busqueda !== '') {
-            $like = '%'.$busqueda.'%';
-            $q->where(function ($w) use ($like): void {
-                $w->where('p.identificacion', 'like', $like)
-                    ->orWhere('p.nombres', 'like', $like)
-                    ->orWhere('p.apellidos', 'like', $like)
-                    ->orWhere('p.razon_social', 'like', $like);
-            });
-        }
-
-        if (in_array($this->tipoPersona, ['fisica', 'juridica'], true)) {
-            $q->where('p.tipo_persona', $this->tipoPersona);
-        }
-
-        $personas = $q
+        $personas = $consulta
+            ->aplicarFiltros(
+                $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $carteras),
+                $filtros,
+            )
             ->select([
                 'p.id', 'p.public_id', 'p.tipo_persona',
                 'p.identificacion', 'p.nombres', 'p.apellidos', 'p.razon_social',
                 'p.fecha_nacimiento', 'p.creada_en',
                 'ti.codigo as tipo_identificacion_codigo',
-                DB::raw('count(c.id) as total_casos'),
-            ])
-            ->groupBy([
-                'p.id', 'p.public_id', 'p.tipo_persona',
-                'p.identificacion', 'p.nombres', 'p.apellidos', 'p.razon_social',
-                'p.fecha_nacimiento', 'p.creada_en',
-                'ti.codigo',
+                $consulta->totalCasos($carteras),
             ])
             ->orderByDesc('p.creada_en')
             ->paginate(25);
 
-        $totalProyecto = (int) DB::table('personas')
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
+        // El mismo recorte que la lista: si la cabecera dijera «1.200 personas
+        // registradas» y debajo se vieran 300, el número de arriba estaría
+        // contando lo que este usuario no puede mirar.
+        $totalProyecto = $consulta
+            ->recortarACarteras($consulta->consultaBase($proyectoId), $carteras)
             ->count();
 
         return view('personas::livewire.listado-personas', [
             'personas' => $personas,
             'totalProyecto' => $totalProyecto,
+            'urlExportar' => route('proyectos.personas.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
         ]);
+    }
+
+    private function usuario(): User
+    {
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario;
     }
 }

@@ -13,14 +13,14 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Asigna casos sin asignación activa en una campaña a los miembros de un equipo
- * usando distribución round-robin. Respeta el unique (campana_id, caso_id) de la tabla.
+ * Reparte entre los miembros de un equipo las cuentas del proyecto que no tienen
+ * dueño, en round-robin. Se apoya en el único `(proyecto_id, caso_id)`: una
+ * cuenta, un dueño.
  *
  * Entradas:
  *   - proyectoId: scope obligatorio.
- *   - campanaId:  la campaña a la que pertenecerán las nuevas asignaciones.
  *   - equipoId:   equipo activo con al menos un miembro activo.
- *   - limite:     máximo de casos a asignar (0 = todos los elegibles).
+ *   - limite:     máximo de cuentas a repartir (0 = todas las elegibles).
  *
  * Reglas:
  *   - No se tocan asignaciones existentes (idempotente).
@@ -36,7 +36,6 @@ final readonly class AsignarCasosAEquipo
 
     public function execute(
         int $proyectoId,
-        int $campanaId,
         int $equipoId,
         int $limite = 0,
     ): AsignacionMasivaResultado {
@@ -52,14 +51,6 @@ final readonly class AsignarCasosAEquipo
             throw new RuntimeException('El equipo no tiene miembros activos.');
         }
 
-        $campanaValida = DB::table('campanas')
-            ->where('id', $campanaId)
-            ->where('proyecto_id', $proyectoId)
-            ->exists();
-        if (! $campanaValida) {
-            throw new RuntimeException('La campaña no pertenece al proyecto activo.');
-        }
-
         $equipoValido = DB::table('equipos')
             ->where('id', $equipoId)
             ->where('proyecto_id', $proyectoId)
@@ -70,14 +61,13 @@ final readonly class AsignarCasosAEquipo
         }
 
         $casosQ = DB::table('casos as c')
-            ->leftJoin('asignaciones as a', function ($join) use ($campanaId) {
-                $join->on('a.caso_id', '=', 'c.id')
-                    ->where('a.campana_id', '=', $campanaId);
-            })
+            ->whereNotExists(fn ($q) => $q->select(DB::raw(1))
+                ->from('asignaciones as a')
+                ->whereColumn('a.caso_id', 'c.id')
+                ->where('a.proyecto_id', $proyectoId))
             ->where('c.proyecto_id', $proyectoId)
             ->whereNull('c.cerrado_en')
             ->whereNull('c.eliminada_en')
-            ->whereNull('a.id')
             ->select(['c.id'])
             ->orderBy('c.id');
 
@@ -98,7 +88,7 @@ final readonly class AsignarCasosAEquipo
 
         $this->db->transaction(function () use (
             &$asignadas, &$omitidas, &$distribucion,
-            $casos, $miembros, $proyectoId, $campanaId, $ahora,
+            $casos, $miembros, $proyectoId, $ahora,
         ): void {
             $idx = 0;
             $total = count($miembros);
@@ -109,7 +99,6 @@ final readonly class AsignarCasosAEquipo
                 $inserted = DB::table('asignaciones')->insertOrIgnore([
                     'public_id' => (string) Str::ulid(),
                     'proyecto_id' => $proyectoId,
-                    'campana_id' => $campanaId,
                     'caso_id' => $casoId,
                     'usuario_id' => $usuarioId,
                     'fecha_asignacion' => $ahora->format('Y-m-d'),

@@ -1,6 +1,6 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between">
-        <div style="font-size:12px;color:var(--text-tertiary);">
+        <div class="text-sm text-ink-500">
             {{ __('usuarios.matrix_read_hint') }}
         </div>
         <div class="flex items-center gap-2">
@@ -14,8 +14,12 @@
         </div>
     </div>
 
-    <div class="card" style="overflow-x:auto;">
-        <table class="table-compact" style="font-size:12px;">
+    <div class="card scroll-x">
+        {{-- Pegada al borde superior de la tarjeta, como en el resto de listados:
+             suelta entre dos bloques parecía un separador. --}}
+        <x-ui.cargando />
+
+        <table class="table-compact text-sm">
             <thead>
                 <tr>
                     <th style="position:sticky;left:0;background:var(--bg-elev);min-width:280px;">{{ __('usuarios.col_permission') }}</th>
@@ -35,16 +39,16 @@
                 @foreach($permisos as $p)
                     <tr>
                         <td style="position:sticky;left:0;background:var(--bg-elev);">
-                            <div class="font-mono" style="color:var(--text-tertiary);font-size:11px;">{{ $p->grupo }}</div>
-                            <div style="font-weight:600;">{{ $p->codigo }}</div>
-                            <div style="color:var(--text-secondary);font-size:11px;">{{ $p->nombre }}</div>
+                            <div class="font-mono text-ink-500 text-xs">{{ $p->grupo }}</div>
+                            <div class="font-semibold">{{ $p->codigo }}</div>
+                            <div class="text-ink-600 text-xs">{{ $p->nombre }}</div>
                         </td>
                         @foreach($rolesBase as $r)
                             <td style="text-align:center;">
                                 @if(in_array((int) $p->id, $rolPermisoBase->get($r->id, []), true))
                                     <x-ui.icon name="check" :size="14" />
                                 @else
-                                    <span style="color:var(--text-tertiary);">·</span>
+                                    <span class="text-ink-500">·</span>
                                 @endif
                             </td>
                         @endforeach
@@ -53,7 +57,7 @@
                                 @if(in_array((int) $p->id, $rolPermisoCustom->get($rc->id, []), true))
                                     <x-ui.icon name="check" :size="14" />
                                 @else
-                                    <span style="color:var(--text-tertiary);">·</span>
+                                    <span class="text-ink-500">·</span>
                                 @endif
                             </td>
                         @endforeach

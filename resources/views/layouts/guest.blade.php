@@ -9,15 +9,16 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body style="background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
-    <div style="width:100%;max-width:420px;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;">
-            <a href="/" wire:navigate style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:inherit;">
-                <span style="font-weight:600;font-size:16px;letter-spacing:-0.01em;">CRM</span>
+<body class="bg-surface min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-[420px]">
+        <div class="flex items-center justify-center gap-2 mb-6">
+            <a href="/" wire:navigate class="inline-flex items-center gap-3">
+                <span class="brand-mark"><x-ui.icon name="layers" :size="18" /></span>
+                <span class="font-semibold text-xl tracking-tight">Núcleo <span class="text-ink-500 font-normal">CRM</span></span>
             </a>
         </div>
 
-        <div class="card card-pad" style="box-shadow:0 4px 16px rgba(16,24,40,0.06);">
+        <div class="card p-6 sm:p-8 shadow-sm">
             {{ $slot }}
         </div>
     </div>

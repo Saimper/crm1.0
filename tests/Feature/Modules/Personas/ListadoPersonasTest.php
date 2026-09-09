@@ -71,6 +71,48 @@ final class ListadoPersonasTest extends TestCase
         }
     }
 
+    /**
+     * Un rol acotado por cartera (F22) ve la lista recortada, y también los dos
+     * números que la acompañan: el subtítulo del padrón y la columna «casos».
+     * Si el subtítulo dijera 3 y debajo se viera 1, estaría contando lo que ese
+     * usuario no puede mirar; y la columna delataría cuántos casos más tiene
+     * esa persona en carteras que no puede abrir.
+     */
+    public function test_un_rol_acotado_por_cartera_recorta_la_lista_y_sus_numeros(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $permitida = $this->crearCarteraEn($proyecto);
+        $vetada = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+
+        $dentro = $this->crearPersonaEn($proyecto, '7600000001');
+        $fuera = $this->crearPersonaEn($proyecto, '7600000002');
+        $this->crearPersonaEn($proyecto, '7600000003');
+
+        $this->crearCasoEn($proyecto, ['cartera' => $permitida, 'estado' => $estado, 'persona' => $dentro]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'estado' => $estado, 'persona' => $dentro]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'estado' => $estado, 'persona' => $fuera]);
+
+        $supervisor = $this->crearSupervisor($proyecto);
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $proyecto->id,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
+            'cartera_id' => $permitida->id,
+        ]);
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($supervisor);
+
+        $c = Livewire::test(ListadoPersonas::class);
+        $personas = iterator_to_array($c->viewData('personas'));
+
+        $this->assertCount(1, $personas);
+        $this->assertSame('7600000001', (string) $personas[0]->identificacion);
+        $this->assertSame(1, (int) $personas[0]->total_casos, 'El caso de la cartera vetada no se cuenta.');
+        $this->assertSame(1, $c->viewData('totalProyecto'));
+    }
+
     public function test_gestor_accede_pantalla(): void
     {
         $proyecto = $this->crearProyectoCobranza();

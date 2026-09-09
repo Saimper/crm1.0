@@ -14,9 +14,16 @@ use OpenSpout\Reader\XLSX\Reader;
  * - Cabeceras duplicadas se renombran sufijando "_2", "_3", ... (mismo criterio que LectorCsv).
  * - Celdas DateTime se formatean a 'Y-m-d H:i:s' o 'Y-m-d' si es medianoche, para alinear
  *   con el contrato canónico (procesadores parsean strings vía DateTimeImmutable).
+ * - Un XLSX es UTF-8 por dentro, así que aquí no hay conversión de charset;
+ *   pero la doble codificación viene del texto que alguien pegó en la hoja, y
+ *   eso sí se repara celda a celda igual que en el CSV.
  */
 final readonly class LectorXlsx
 {
+    public function __construct(
+        private NormalizadorEncoding $normalizador = new NormalizadorEncoding,
+    ) {}
+
     /** @return list<string> */
     public function leerHeaders(string $path): array
     {
@@ -25,7 +32,10 @@ final readonly class LectorXlsx
             return [];
         }
 
-        $cabeceras = array_map(static fn (mixed $c): string => trim((string) self::valorACadena($c)), $primeraFila);
+        $cabeceras = array_map(
+            fn (mixed $c): string => $this->normalizador->limpiarCelda(trim(self::valorACadena($c))),
+            $primeraFila,
+        );
 
         return $this->desambiguarDuplicados($cabeceras);
     }
@@ -48,7 +58,10 @@ final readonly class LectorXlsx
 
                         continue;
                     }
-                    $valores = array_map(static fn (mixed $v): string => self::valorACadena($v), $row->toArray());
+                    $valores = array_map(
+                        fn (mixed $v): string => $this->normalizador->limpiarCelda(self::valorACadena($v)),
+                        $row->toArray(),
+                    );
                     if (array_filter($valores, static fn (string $s): bool => $s !== '') === []) {
                         continue;
                     }

@@ -42,11 +42,10 @@ Mandante
   └─ Proyecto (tipo: cobranza | cx | venta | servicio)
        ├─ Cartera (N)
        ├─ Persona (N)       — aislada al proyecto
-       ├─ Caso (N)          — via Persona + Cartera
-       │    ├─ Gestion (N)
-       │    ├─ Compromiso (0..N)
-       │    └─ Asignacion (via Campaña)
-       └─ Campaña (N)
+       └─ Caso (N)          — via Persona + Cartera
+            ├─ Gestion (N)
+            ├─ Compromiso (0..N)
+            └─ Asignacion (0..1) — su dueño dentro del proyecto
 ```
 
 **Reglas fijas:**
@@ -62,7 +61,7 @@ Mandante
 
 ### Módulos (`app/Modules/<Modulo>/`)
 
-**Núcleo:** `Tenancy`, `Personas`, `Contactos`, `Casos`, `Gestiones`, `Compromisos`, `Campañas`, `Asignaciones`, `Usuarios`, `Catalogos`, `CamposPersonalizados`, `EntidadesConfigurables`, `Auditoria`, `Importaciones`, `Reportes`, `Notificaciones`, `Integracion`.
+**Núcleo:** `Tenancy`, `Personas`, `Contactos`, `Casos`, `Gestiones`, `Compromisos`, `Asignaciones`, `Usuarios`, `Catalogos`, `CamposPersonalizados`, `EntidadesConfigurables`, `Auditoria`, `Importaciones`, `Reportes`, `Notificaciones`, `Integracion`.
 
 **Especializaciones:** `Cobranza`, `Cx`, `Venta`, `Servicio`.
 
@@ -104,12 +103,12 @@ Solo a través de:
 
 ```
 Mandante (1)──(N) Proyecto
-Proyecto (1)──(N) Cartera, Campaña, Persona, [N:N via upr] Usuario
+Proyecto (1)──(N) Cartera, Persona, [N:N via upr] Usuario
 Persona  (1)──(N) Contacto, Caso
 Cartera  (1)──(N) Caso
 Caso     (1)──(1) Caso<Tipo> (CTI)
 Caso     (1)──(N) Gestion, Compromiso
-Caso     (N)──(N) Campaña via Asignacion
+Caso     (1)──(0..1) Asignacion       — quién responde por la cuenta
 Gestion  (N)──(1) Contacto, Usuario, TipoGestion, Resultado, Canal
 Gestion  (1)──(0..1) Compromiso
 ```
@@ -130,7 +129,12 @@ Toda tabla scoped inicia su índice compuesto con `proyecto_id`. Ejemplos críti
 - `personas`: `(proyecto_id, tipo_identificacion_id, identificacion)` único.
 - `gestiones`: `(proyecto_id, caso_id, creada_en)`, `(proyecto_id, usuario_id, creada_en)`.
 - `compromisos`: `(proyecto_id, fecha_vencimiento, estado)`.
-- `asignaciones`: `(proyecto_id, usuario_id, estado)`, `(campana_id, caso_id)` único.
+- `asignaciones`: `(proyecto_id, usuario_id, estado)`, `(proyecto_id, caso_id)` único
+  (`asignaciones_proyecto_caso_unique`) — una cuenta tiene como mucho un dueño en el
+  proyecto, y la fila cerrada cuenta. El anterior era `(campana_id, caso_id)` y admitía
+  dos dueños vivos de la misma cuenta en campañas distintas, mientras el código ya
+  resolvía el dueño mirando sólo `caso_id`: el esquema no garantizaba lo que la
+  aplicación daba por hecho. Este no relaja, endurece.
 
 ---
 
@@ -167,13 +171,14 @@ Reglas de dominio:
 2. **Gestión × tipo de gestión** — datos capturados al registrar.
 3. **Compromiso × tipo de compromiso** — datos extra del compromiso.
 
-No hay campos personalizados en Persona, Contacto, Campaña, Cartera, Usuario, Proyecto, Mandante.
+No hay campos personalizados en Persona, Contacto, Cartera, Usuario, Proyecto, Mandante.
 
 ### Tipos (cerrado, 10, no extensible)
 `texto_corto`, `texto_largo`, `numero_entero`, `numero_decimal`, `fecha`, `fecha_hora`, `booleano`, `seleccion_unica`, `seleccion_multiple`, `moneda`.
 
 ### Almacenamiento
-- `campos_personalizados`: definición (proyecto_id, ambito, ambito_id, codigo único, tipo, obligatorio, reglas JSON).
+- `campos_personalizados`: definición (proyecto_id, ambito, ambito_id, codigo único, tipo, obligatorio, reglas JSON) y presentación (etiqueta, descripcion, activo, orden, `grupo_campo_id`, `visible_en_gestion`).
+- `grupos_campo` (F42): catálogo por proyecto con el que se agrupan los campos en pantalla. Sólo nombre y orden. **No es un editor de layouts** (§1): el acordeón lo dibuja el desarrollador y el administrador únicamente dice a qué grupo pertenece cada campo. Si alguna vez aparece un editor de secciones con títulos, iconos o anchos, se cruzó la línea.
 - `valores_campo_personalizado`: una fila por `(campo_id, entidad_id)`. Solo la columna del tipo correspondiente llena.
 
 ### Validaciones
@@ -205,9 +210,19 @@ Tablas lógicas de datos estructurados que ADMIN_GLOBAL define por proyecto/cart
 
 **Globales:** `tipos_identificacion`, `canales`, `paises`, `monedas`, `roles_base`, `permisos_base`.
 
-**Por proyecto (todo lo que varía por mandante/operación):** `resultados`, `subresultados`, `tipos_gestion`, `causas_gestion`, `motivos_no_contacto`, `estados_caso`, `carteras`, `scripts`, más los específicos por tipo: `tramos_mora`/`tipos_pago` (cobranza), `categorias_ticket`/`prioridades_ticket`/`niveles_sla`/`niveles_escalamiento` (cx), `productos_venta`/`etapas_embudo` (venta), `tipos_accion_servicio`/`estados_tecnicos` (servicio).
+**Por proyecto (todo lo que varía por mandante/operación):** `resultados`, `subresultados`, `tipos_gestion`, `causas_gestion`, `motivos_no_contacto`, `estados_caso`, `carteras`, `scripts`, `grupos_campo`, `plantillas_nota`, y los pivots `canal_proyecto` y `resultado_tipo_gestion`, más los específicos por tipo: `tramos_mora`/`tipos_pago` (cobranza), `categorias_ticket`/`prioridades_ticket`/`niveles_sla`/`niveles_escalamiento` (cx), `productos_venta`/`etapas_embudo` (venta), `tipos_accion_servicio`/`estados_tecnicos` (servicio).
 
 > Si un catálogo necesita override por proyecto, no era global. Bajarlo a por-proyecto.
+
+**Excepción acordada (F42) — `canales`.** Sigue siendo global, y `canal_proyecto`
+declara qué hace cada proyecto con él: cuáles usa, en qué orden, con qué nombre y
+si el canal pide duración o admite adjunto. Es un override, y por eso se anota
+aquí. Se resolvió con un pivot y no bajando la tabla porque `gestiones.canal_id`
+apunta al catálogo global: duplicar las filas por proyecto habría reescrito la FK
+de las gestiones ya registradas, y un `proyecto_id` nullable choca con el global
+scope, que aplica igualdad estricta y excluye los NULL. Los catálogos nuevos que
+necesiten override siguen naciendo por-proyecto: esto no es un patrón a copiar,
+es una deuda con nombre.
 
 ---
 
@@ -222,12 +237,15 @@ Pantalla única del gestor: identidad de persona + selector de casos (pestañas)
 ## 10. Scope y permisos
 
 - Global Scope Eloquent agrega `WHERE proyecto_id = {activo}` automáticamente.
-- Desactivar solo con `sinScopeProyecto()` en reportes consolidados de ADMIN_GLOBAL.
+- **Falla CERRADO** (Fase 3). Sin proyecto activo, una consulta sobre un modelo con scope lanza `ConsultaSinContextoDeTenant` en vez de devolver las filas de todos los clientes. Antes fallaba abierto, y eso significaba que el aislamiento no era una propiedad del modelo sino de haber pasado por el middleware `proyecto.activo`: la misma consulta que en una pantalla devolvía un proyecto, en un job devolvía todos los mandantes. El interruptor es `tenancy.scope_estricto`, encendido por defecto; apagarlo es una salida de emergencia, no una opción.
+- Desactivar solo con `sinScopeProyecto()` en reportes consolidados de ADMIN_GLOBAL y en las tareas de plataforma (los comandos, los jobs, el planificador), que recorren todos los proyectos por diseño.
+- **El scope cierra las LECTURAS; las escrituras las cierra otro guardia**, y confundirlos era el agujero. El global scope sólo toca los SELECT: `$modelo->save()` y `$modelo->delete()` sobre una instancia no pasan por él, así que con el proyecto de A activo se podía insertar una fila dentro del de B sin más que decir su id. Lo corta `PerteneceAProyecto` en los hooks del modelo, y revienta (`EscrituraFueraDelProyectoActivo`) en vez de corregir el `proyecto_id` en silencio: mover la fila a donde nadie la pidió sería peor que no escribirla. Sin contexto NO se prohíbe escribir — la plataforma escribe cross-proyecto por diseño.
 - Roles base por proyecto: `SUPERVISOR`, `GESTOR`, `AUDITOR`. Inmutables desde UI.
 - Rol base mandante-scoped: `ADMIN_MANDANTE` (F38). Vive en `usuario_mandante_rol`, autoriza cross-proyecto del mandante. Permisos vetados igual que SUPERVISOR (no define campos ni entidades ni gestiona roles custom).
 - Middleware admin (F39): `admin.global` exclusivo ADMIN_GLOBAL (mandantes, campos-personalizados, entidades-configurables, integracion.secrets). `admin.dual` acepta ADMIN_GLOBAL o ADMIN_MANDANTE (dashboard, proyectos, usuarios, auditoria); cada Livewire aplica scoping por mandante cuando user es mandante (no global).
 - **Roles custom (F33)**: ADMIN_GLOBAL define roles adicionales por proyecto combinando permisos existentes. Se persisten en `roles_custom` + `rol_custom_permiso`. Asignación a usuario en `usuario_proyecto_rol_custom` (tabla simétrica a la base, sin tocar `usuario_proyecto_rol`). Permisos `*.definir` y `roles.gestionar` están vetados (`RolCustom::PERMISOS_VETADOS`).
-- Permisos granulares CRUD: `gestiones.crear`, `campos.editar`, `entidades.definir`, etc. (~70 en total).
+- Permisos granulares CRUD: `gestiones.crear`, `campos.editar`, `entidades.definir`, etc. (80 activos). Uno que no gobierna nada es peor que no tenerlo: aparece en el selector de roles custom y en la matriz, así que un administrador se lo asigna a alguien creyendo que le da —o le quita— algo. `PermisosSinConsumidorTest` vigila la lista de los que hoy no comprueba nadie (`tests/permisos-huerfanos.baseline`): puede menguar, nunca crecer.
+- Un permiso que se retira se **apaga** (`permisos.activo = 0`), nunca se borra. `permisos` cuelga de dos FKs en cascada (`rol_permiso` y `rol_custom_permiso`), así que un `DELETE` se llevaría por delante, en silencio, los roles custom que un cliente hubiera montado sobre él. Las tres rutas de `User::tienePermiso` filtran por `p.activo`, de modo que apagarlo revoca igual y lo saca del selector, pero es reversible con un `UPDATE`. Así se retiraron `reportes.exportar` y los seis `campanas.*`.
 - Scope por cartera opcional: `usuario_proyecto_rol_cartera` (solo aplica a roles base; F33 no introduce cartera-scoping para custom).
 - `User::tienePermiso($codigo, $proyectoId, $carteraId)` es la API de verificación. Evalúa rol base (con cartera-scoping), rol custom (sin cartera-scoping) **y rol mandante F38** (sin cartera-scoping, autoriza si el proyecto pertenece al mandante donde el user tiene rol mandante) en una sola llamada; basta con que cualquiera de los tres lo aporte.
 - Permiso `roles.gestionar`: exclusivo ADMIN_GLOBAL. Vive en la lista vetada para impedir que un rol custom pueda crearse a sí mismo.
@@ -321,11 +339,11 @@ Migraciones en `database/migrations/` con prefijo del módulo.
 
 ---
 
-## 15. Estado actual (2026-05-15)
+## 15. Estado actual (2026-09-08)
 
-**77 migraciones | 21 módulos activos | tests F37c verdes (881 totales — drop columna legacy `proyectos.sso_secret`)**
+**108 migraciones | 20 módulos activos | suite verde (1646 tests) | 0 fugas de aislamiento**
 
-Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Campañas, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion. *(Clientes legacy eliminado en F34C-P2.)*
+Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Gestiones, Asignaciones, CamposPersonalizados, Cobranza, Cx, Venta, Servicio, Reportes, Importaciones, Catalogos, Auditoria, Notificaciones, EntidadesConfigurables, Integracion. *(Clientes legacy eliminado en F34C-P2; Campañas retirado en F43.)*
 
 **4 proyectos demo** bajo mandante `BPO_DEMO`: COBRANZA_DEMO_2026, SOPORTE_DEMO_2026, VENTA_DEMO_2026, SERVICIO_DEMO_2026.
 
@@ -369,6 +387,11 @@ Módulos activos: Tenancy, Usuarios, Casos, Compromisos, Personas, Contactos, Ge
 | Drop columna legacy `proyectos.sso_secret` (cleanup F37) — eliminada migración F37 dejó la columna por compat transitoria; F37c la dropea ahora que wrapper migró completo a `mandantes.sso_secret`. Borra excepción huérfana `ProyectoSsoNoConfigurado` y catches en `SsoHandshakeController` + `EmitirSanctumTokenController`. Limpia hook `ProyectoModel::booted()` que generaba secret automático. Limpia `EscenarioOperativo::crearProyecto` helper de tests. 1 migración drop. 0 tests nuevos (suite igual). | ✅ F37c |
 | UI admin reusada para ADMIN_MANDANTE (cierre F38) — sin pantallas nuevas: las admin globales ya existentes filtran por rol en server-side. Middleware nuevo `admin.dual` (alias de `RequiereAdminMandanteOGlobal`) acepta ADMIN_GLOBAL **o** ADMIN_MANDANTE. `routes/web.php` admin split: dashboard / proyectos / usuarios / auditoria → `admin.dual`; mandantes / campos-personalizados / entidades-configurables / integracion.secrets siguen `admin.global` exclusivo. Sidebar (`layouts/app.blade.php`) detecta `$esAdminMandante` (rol-mandante sin ser global) y `$esAdminAlguno`; oculta items vetados al admin_mandante (Mandantes, Campos, Entidades, SSO secrets); cambia título a "Administración (Mandante)" + "Auditoría". `AdminProyectos` Livewire scope: query `WHERE mandante_id IN mandantesPermitidos()`; pre-selecciona mandante propio al crear; `guardContraMandanteAjeno()` defensivo en abrirFormEditar/guardar/desactivar/activar (abort 403). `AdminUsuarios` Livewire scope: usuarios filtrados por `EXISTS pivot upr WHERE proyecto_id IN proyectosDelMandante OR EXISTS pivot umr WHERE mandante_id IN mandantes`; asignaciones limitadas a esos proyectos; dropdown proyectos limitado al mandante; `promoverAdminGlobal`/`revocarAdminGlobal` exigen ADMIN_GLOBAL via `soloAdminGlobal()`; `quitarAsignacion`/`guardarAsignacion` con `guardContraProyectoAjeno()`. `ListadoAuditoria` (modo global): admin_mandante ve solo eventos de proyectos de su mandante. Dashboard tiles: array filtrado por flag `solo_admin_global`; títulos cambian según rol. 0 migraciones, 0 tablas nuevas, 0 pantallas nuevas. 25 tests nuevos (`AdminMandanteAccesoTest` 12 + `AdminProyectosScopeMandanteTest` 7 + `AdminUsuariosScopeMandanteTest` 6). | ✅ F39 |
 | CI/CD GitHub Actions — pipeline roadmap (`setup` → `pint`/`larastan`/`tests` en paralelo → `ci-ok` → `deploy`) con despliegue automático por SSH al VPS en `main` tras CI verde. Larastan montado (nivel 6 + baseline 197 errores), `php artisan test` (PHPUnit) con MySQL efímero + artifact `vite-build`, Pint `--test`. Deps nuevas dev: `larastan/larastan ^3.0`, `laravel/boost ^2.4`. | ✅ F40 |
+| Rediseño de la Vista de Trabajo — captura de gestión separada de los datos del caso, que pasan a LECTURA agrupada y plegable (`grupos_campo` + `campos_personalizados.grupo_campo_id`/`visible_en_gestion`); se editan sólo en «Editar caso», que elimina la segunda superficie de escritura (§13.3) y con ella el borrado silencioso de valores. Cascada canal → tipo → resultado con pivots `canal_proyecto` y `resultado_tipo_gestion`, ambos fail-open. Un único `<x-cp.control>` con los 10 tipos de §7, en vez de seis `@switch` divergentes. Contactos generados desde la importación con rol de columna y VO `ExtractorDeContactos`; `contactos` gana `public_id` y `origen`. Pantalla para `causas_gestion`, que no tenía ninguna. Plantillas de nota por proyecto (`plantillas_nota`). Barra de guardar pegada, atajo Ctrl/⌘+Enter acotado, y `min-width:0` en `.app-header` que quita el scroll horizontal de las 39 pantallas. | ✅ F42 |
+| Retirada de la entidad Campaña — de sus once columnas se leía una (`estado`) y en un solo sitio: elegir dónde colgar una asignación. Sin `cartera_id`, sin meta y sin criterio, no podía agrupar nada, y ni un fichero de `app/Modules/Reportes` la mencionaba. Lo único que sostenía era el único `(campana_id, caso_id)`, que además admitía **dos dueños vivos** de la misma cuenta mientras el código resolvía el dueño mirando sólo `caso_id`. Pasa a `(proyecto_id, caso_id)`. Módulo borrado entero (código, vistas, lang, ruta, sidebar, tabla) y sus seis permisos apagados. Pasarle a alguien una asignación cerrada la **reabre**: es la única puerta de vuelta que le queda a una cuenta ya trabajada, y sustituye al escape viejo —crear una campaña nueva la devolvía al reparto—. El límite por cartera (F22) pasa a comprobarse en el UseCase y no sólo en la lista. 2 migraciones. | ✅ F43 |
+| Ola 04 — control del supervisor. Las cuatro pantallas de listado ganan descarga con los MISMOS filtros que la pantalla, permiso propio (`personas.exportar` y sus tres hermanos, que no se heredan de «ver») y huella de auditoría en el evento nuevo `exportado`, que se escribe también si la descarga se corta a la mitad (`completa: false`). `RespuestaCsv` pagina por clave —`cursor()` no acota memoria con PDO en modo buffered, que es el de esta aplicación— y neutraliza celdas Y cabeceras que Excel evaluaría como fórmula. `dias_mora` deja de ser la foto del día de la carga: `cobranza:avanzar-dias-mora` corre CADA HORA (Panamá y Madrid cambian de día con seis horas de diferencia) y hay dos anclas distintas a propósito, `dias_mora_actualizado_en` (lo mueve el cron) y `dias_mora_confirmado_en` (sólo una fuente). El asistente de importación respeta el modo elegido —venía del JSON del paso 2 y corría siempre `upsert`—, redacta el SQL con datos personales que guardaba en claro, y deja descargar las filas rechazadas para corregirlas y resubirlas. 4 migraciones. | ✅ Ola 04 |
+| Ola 05 — el sistema de diseño se usa. `[x-cloak]`, que faltaba y hacía que el buscador global y el menú de usuario se pintaran ABIERTOS en cada carga. Componentes nuevos (`toolbar`, `search-input`, `cargando`, `skeleton`, `th` ordenable) y clases `.popover` y `.card-footer` —que no es una cabecera puesta abajo: la cabecera es flex y dejaba la paginación encogida a la izquierda—. La paginación pasa a los tokens: era lo único pintado con los grises de fábrica de Tailwind. Diez componentes con cero usos retirados, con `ComponentesQueExistenTest` de guardia. 67 vistas migradas; estilos en línea 1.342 → 763, con trinquete (`EstilosEnLineaTest`). Y dos cambios de estructura en la vista de trabajo: el último resultado y la última gestión, que se cargaban y no se pintaban, y el filtro de «efectivas» en el historial. | ✅ Ola 05 |
+| Fase 3 — aislamiento cerrado: **0 fugas de 23**. El scope pasa a fallar cerrado y las escrituras ganan su propio guardia (§10). El SSO se ata a su cliente: el PAT lleva el mandante como habilidad y la ficha lo comprueba —antes un asesor que trabaja para dos clientes leía las fichas del segundo con el token del primero—, el anti-replay de `jti` pasa a ser por mandante (lo elige el wrapper: uno podía agotarle los accesos a otro) y dar de baja a un cliente revoca sus tokens y se comprueba en cada petición. Administrar cuentas y accesos deja rastro (`RegistroDeAccionesAdministrativas`), el listado de auditoría se acota al cliente de quien mira, y `archivar()` saca un proyecto de los cuatro caminos por los que se alcanzaba: listado, selector, URL y API. El grupo `fuga-pendiente` se queda vacío y `phpunit.xml` deja de excluirlo: esos tests describen ahora garantías. 3 migraciones. | ✅ Fase 3 |
 
 ### Módulo Integracion (F28 + F37)
 
@@ -540,9 +563,249 @@ Preparar deps ──────┼─→ Análisis (Larastan)─┼──→ CI
 
 **Notas operativas:**
 - El deploy usa `reset --hard origin/main` (no `pull`) para no atascarse con working trees sucios del VPS (p. ej. `.gitignore` de `storage/` regenerados). Descarta cambios locales en archivos versionados del VPS — correcto para un target de deploy.
-- `migrate --force` corre en cada deploy: una migración destructiva se aplicaría sin revisión manual. Una compuerta manual de migraciones queda como posible mejora.
+- `migrate --force` corre en cada deploy, sin aprobación manual. Lo que sí hay desde F43 son dos compuertas en el script SSH, y las dos importan más que una aprobación:
+
+  **1. El trap ya no levanta el sitio si la base quedó a medias.** El script lleva una variable `FASE`, y el `trap ... EXIT` decide según ella: en `migracion` y `seeders` **deja el mantenimiento puesto** e imprime un runbook con el commit anterior, el respaldo y los pasos; en cualquier otra fase levanta el sitio como siempre. Levantarlo tras una migración rota devuelve a producción código nuevo sobre esquema viejo, que es peor que el 503: MySQL no envuelve el DDL en transacción, así que un `ALTER` muerto a mitad deja la tabla en un estado que ninguna versión del código sabe leer, y el fallo no se ve —el healthcheck sólo mira `/login`—.
+
+  **2. Sin copia no se migra.** Si el push toca `database/migrations/`, se hace `mysqldump` antes. Va **antes del `git reset --hard`** a propósito: ahí el árbol todavía tiene el código viejo, así que si el volcado falla el trap levanta un sitio cuyo código y esquema se corresponden. El volcado no se encadena con `gzip` —la tubería devolvería el estado de `gzip` y un dump cortado pasaría por bueno—: se vuelca a fichero, se comprueba la firma `Dump completed` y se comprime después. Siete copias en `/var/backups/crm`, las viejas se borran solas. El `.env` se lee con `sed` y no con `source`, porque sus valores no son shell.
+
+  Lo que **no** cubren: no son una aprobación humana —una migración destructiva sigue aplicándose sola— y el respaldo no rebobina nada por sí mismo. Y hay migraciones de un solo sentido: la de F43 borra `asignaciones.campana_id`, y esa columna no vuelve.
 - Warning de deprecación de Node 20 en las actions: informativo (afecta el runtime de las actions, no la app). Forzable a Node 24 con `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`.
-- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F40, con acuerdo previo.
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre de F40, con acuerdo previo. Las dos compuertas se añadieron en F43, también con acuerdo previo.
+
+### Rediseño de la Vista de Trabajo (F42)
+
+**Los datos del caso se leen aquí y se editan en «Editar caso».** El formulario de
+gestión captura la gestión: canal, tipo, resultado, contacto, duración, notas y
+lo que cuelgue del resultado. Los campos personalizados del caso salen agrupados
+y plegados, en modo lectura. No es sólo jerarquía: tenerlos editables en las dos
+pantallas era una segunda superficie de escritura sobre el mismo dato (§13.3) y
+era por donde se borraban valores —el componente enviaba los 34 campos en cada
+gestión, incluidos los que no sabía leer—.
+
+**`ServicioCamposPersonalizados::guardarValores` no vacía por defecto.** Un `null`
+entrante significa «no lo sé», no «bórralo». Quien es dueño del formulario
+completo pasa `permitirVaciar: true`. Nació de un incidente: tres filas de
+producción quedaron en blanco así, con 22.623 valores a una gestión de distancia.
+
+**El tipo de un campo con valores no se cambia desde la UI.** La pantalla
+actualiza la definición y no mueve los valores, así que el lector pasa a mirar una
+columna vacía. Se corta en el dominio y se remite a los comandos:
+`campos:convertir-tipo` cuando hay que cambiar el tipo declarado,
+`campos:recolocar-valores` cuando el tipo ya es el bueno y los valores están
+atrás.
+
+**Los dos pivots arrancan EN ABIERTO, y por fila, no por proyecto.** Un tipo de
+gestión sin combinaciones declaradas en `resultado_tipo_gestion` admite todos los
+resultados; un proyecto sin filas en `canal_proyecto` los recibe todos al crearse.
+Con la regla al revés, los proyectos que no lo tengan configurado se quedan sin
+poder gestionar el día del despliegue.
+
+**La matriz tipo × resultado es una lista blanca, no un motor de reglas.** Es de
+la misma clase que `requiere_compromiso` y `requiere_causa`, que ya son banderas
+por proyecto. La línea a no cruzar: «si el resultado es X entonces el campo Y es
+obligatorio» sería §13.14 y hay que negarlo.
+
+**Máscara en la presentación, valor crudo en el modelo.** `<x-cp.control>` usa
+controles nativos: `type="date"` pinta en el formato del usuario y bindea ISO, y
+el símbolo de la divisa va fuera del input. Un picker que bindease `05/12/2026` lo
+leería `strtotime` como 12 de mayo y lo guardaría mal sin dar error.
+
+**Las reglas de contacto viven en el dominio de Contactos.** Partir una celda,
+descartar `000000`, quitar el prefijo 507 y decidir qué es un móvil panameño es
+regla de negocio (§13.4): está en `ExtractorDeContactos`, no en el job de
+importación, que sólo orquesta y da de alta por un contrato (§3, §13.6).
+
+**`.app-header` lleva `min-width: 0`.** Es item de una pista `1fr` del grid, cuyo
+mínimo automático es el min-content de sus items; sin esa declaración pedía 458px
+en un móvil de 390 y arrastraba el documento entero. El scroll horizontal de las
+39 pantallas salía de ahí.
+
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre
+  de F42, con acuerdo previo. Los tres puntos acordados: las columnas nuevas de
+  `campos_personalizados` (§7), el override de canales vía pivot (§8), y el
+  límite de que «grupo + orden» no es un editor de layouts (§1).
+
+### Retirada de la Campaña (F43)
+
+**No se retiró una agrupación: se retiró un requisito.** La campaña no tenía
+`cartera_id`, ni meta, ni criterio de selección, así que estructuralmente no
+podía agrupar nada, y `app/Modules/Reportes` no la mencionaba en ningún fichero:
+no existía un informe por campaña. De sus once columnas se leía `estado`, en un
+solo sitio, para decidir a qué campaña colgar una asignación —y con cero
+campañas activas la respuesta era que no se trabajase—.
+
+**El único era el problema, no la solución.** `(campana_id, caso_id)` permitía
+dos dueños vivos de la misma cuenta en campañas distintas, mientras
+`AutoasignarCaso::duenioActual`, `VistaDeTrabajo::duenioDelCaso` y
+`Bandeja::consultaPool` resolvían el dueño mirando sólo `caso_id`. El código ya
+daba por hecho lo que el esquema no garantizaba. `(proyecto_id, caso_id)` no
+relaja: endurece.
+
+**Cerrar una asignación necesitaba una salida, y no la tenía.** Con el único por
+campaña había un escape: crear una campaña nueva devolvía al reparto las cuentas
+con asignación cerrada en la vieja. Al retirar la campaña, la fila cerrada pasa a
+ser la única que puede existir para esa cuenta, así que sin sustituto la dejaba
+muerta —ni se toma, ni entra en el reparto, ni sale en el montón—. El sustituto
+es explícito: pasarle a alguien una asignación cerrada la **reabre**
+(`ReasignarAsignacionAUsuario`), vuelve a `pendiente` y se reutiliza la fila,
+porque el único obliga.
+
+**El límite por cartera se comprueba donde se puede saltar.** Las tres pantallas
+que ofrecen «Tomar» filtran la lista, pero quien pulsa manda un id de caso. Las
+carteras permitidas llegan a `AutoasignarCaso` por parámetro —no de `auth()`,
+que en un UseCase está prohibido (§13.10)— y se comprueban ahí. El listener de
+autoasignación no las pasa, y está dicho por qué: por ese camino no entra un id
+elegido por el navegador.
+
+- **Restricción §13.16 vigente**: este archivo se modificó como parte del cierre
+  de F43, con acuerdo previo. Los cambios: §2 y §4 (Campaña sale de la jerarquía
+  y de las relaciones), §4.5 (el único nuevo), §7 (la lista de entidades sin
+  campos personalizados), §10 (los permisos se apagan, no se borran), §15
+  (estado, tabla y esta sección) y las compuertas del deploy en la sección de
+  CI/CD.
+
+### Descargas y mora (ola 04)
+
+**El permiso de exportar es propio, no se hereda de «ver».** Mirar una lista en
+pantalla y llevársela en un fichero no son la misma capacidad. El AUDITOR se
+lleva actividad (gestiones, compromisos) y no el padrón ni la cartera, con el
+mismo criterio que F32. No es «sin datos personales» —el CSV de gestiones lleva
+identificación, nombre y notas—: es política, y si un cliente quiere que su
+auditor extraiga cartera, se le da con un rol custom (F33).
+
+**Toda descarga deja huella**, también la que se corta a la mitad. Evento
+`exportado` con quién, qué tabla, con qué filtros y cuántas filas, escrito desde
+un `finally` con `ignore_user_abort`: quien canceló al 90 % ya se llevó el 90 %.
+
+**El recorte por cartera del rol se aplica aunque no venga filtro.**
+`User::carterasPermitidas()` devuelve la lista o `null` («sin límite»). Omitir
+`?cartera=` no puede ser la forma de llevarse las que la pantalla esconde. Vale
+para los listados, las descargas, el constructor de reportes y el buscador
+global: son cuatro puertas al mismo dato.
+
+**Se pagina por clave, nunca con `cursor()` ni con OFFSET.** Con PDO en modo
+buffered —el de esta aplicación— `cursor()` descarga el resultado entero y sólo
+difiere la hidratación. Lo que no cabe en ese molde (el DSL de F32, donde el
+orden lo elige quien define el reporte) sale por `mysql_streaming`, una conexión
+sin buffer. Los `flush()` y el `set_time_limit(0)` son parte del contrato: sin
+ellos salían CSV truncados con pinta de completos.
+
+**Las celdas y las cabeceras se neutralizan.** Una que empieza por `= + - @` la
+evalúa Excel al abrir; las notas de una gestión y los nombres de columna de un
+archivo subido los escribió otra persona. El lector de importaciones deshace esa
+comilla al volver a subir el archivo corregido.
+
+**Dos fechas para la mora, y no son la misma.** `dias_mora_actualizado_en` es el
+día al que corresponde la cifra y lo mueve el cron; `dias_mora_confirmado_en` es
+la última vez que una FUENTE la afirmó y el cron no lo toca. El avance corre
+CADA HORA y no una vez por noche: Panamá y Madrid cambian de día con seis horas
+de diferencia, y una sola pasada en la hora del servidor deja a uno con la mora
+de ayer. Va 25 minutos antes que la asignación de tramos, que se calcula sobre
+la mora del día.
+
+**El modo de importación vive en la columna, no en el esquema.** El JSON se
+persiste al terminar el paso 2, cuando el modo aún es el de por defecto; el
+supervisor lo elige en el paso 3. Leerlo del JSON hacía que todo corriera como
+`upsert`.
+
+**Un error de base de datos no se guarda tal cual.** Trae el INSERT con cédulas
+y nombres dentro, y esa columna se pinta en pantalla y viaja en el CSV de filas
+rechazadas. Lista blanca de mensajes aptos (los del dominio) y, del resto, sólo
+SQLSTATE más una referencia con la que buscar el detalle en el log.
+
+**«ÃÑ» no se mapea nunca.** Es la secuencia donde É, Ñ y Ú colapsaron aguas
+arriba: acertaría tres de cada cinco y corrompería en silencio RUBÉN y NÚÑEZ. Un
+apellido mal codificado se ve; uno cambiado por otro, no.
+
+**El archivo del cliente caduca a los 30 días** (`IMPORTS_RETENCION_PAYLOAD_DIAS`).
+`importacion_filas.payload` es la fila cruda que subió el supervisor y no la
+borraba nadie. Después, la descarga de rechazadas de esa importación responde
+410 y la pantalla deja de ofrecerla.
+
+### Sistema de diseño (ola 05)
+
+**Existía y casi no se usaba.** 1.342 atributos `style` en 98 vistas, casi todos
+ya con su token dentro: no estaban mal pintados, es que repetían la misma
+decisión en noventa y ocho ficheros y no se podía cambiar en un sitio.
+
+**Un vocabulario, no tres.** Las UTILIDADES son las de Tailwind, que ya está
+configurado con estos mismos tokens (`text-sm` = 12px, `text-ink-500` =
+`var(--text-tertiary)`); `app.css` guarda los tokens y los componentes
+(`.btn`, `.card`, `.toolbar`, `.popover`, `.card-footer`); y
+`resources/views/components/ui` guarda lo que además lleva markup. Escribir una
+tercera capa de utilidades propias fue un error que hubo que deshacer a mitad de
+la ola, y una de aquellas clases (`.grow`) pisaba la de Tailwind con otro
+significado.
+
+**Un `style` en línea sólo se admite para lo que es de una vez**: un ancho
+concreto, una plantilla de rejilla que no se repite. Lo que aparezca dos veces
+es una clase. Lo vigila `EstilosEnLineaTest` sobre
+`tests/estilos-en-linea.baseline`: el recuento de cada vista puede bajar y nunca
+subir, y se actualiza con `bin/estilos-en-linea.sh --actualizar`.
+
+**`[x-cloak]` es obligatorio.** Alpine oculta con `x-show` DESPUÉS de arrancar;
+sin esa regla, lo que tenía que estar cerrado se pinta abierto. El buscador
+global tapaba la pantalla en cada carga.
+
+**Una pantalla que consulta enseña que está consultando.** `<x-ui.cargando />`
+bajo la barra de filtros, y la lista anterior se queda visible: vaciarla
+mientras llega la nueva hace creer que el filtro no encontró nada.
+
+**Las cabeceras que ordenan mandan una CLAVE, no una columna.** Viaja al
+servidor y allí se busca en el catálogo de columnas, que es una lista cerrada;
+lo que entra en el `ORDER BY` es la expresión que declara el catálogo. Y siempre
+con desempate por PK: sin él, dos filas con el mismo valor se turnan entre
+páginas y una se repite mientras otra no sale.
+
+**Si un componente no se usa, se retira.** Diez tenían cero usos y cinco de
+ellos duplicaban una clase CSS que sí se usaba. `ComponentesQueExistenTest`
+comprueba que ninguna vista llame a uno que no existe: eso no falla al
+desplegar, falla la primera vez que alguien abre esa pantalla.
+
+### Aislamiento cerrado (Fase 3)
+
+**Cero fugas, de 23.** `tests/fugas-pendientes.baseline` guarda el recuento y el
+orden en que se cerraron. El grupo `fuga-pendiente` está VACÍO y `phpunit.xml`
+ya no lo excluye: aquellos tests fallaban a propósito para documentar agujeros;
+ahora describen las garantías que los tapan y corren con el resto.
+
+**El scope falla cerrado y la escritura tiene su propio guardia** (§10).
+
+**El token del wrapper sabe de qué cliente es.** El mandante viaja como
+habilidad (`mandante:N`), no sólo escrito en el nombre del token —un nombre no
+lo lee nadie al autorizar—, y la ficha de persona comprueba que el proyecto sea
+de ese cliente y que el cliente siga activo. El comodín no vale: `tokenCan()`
+dice que sí a cualquier cosa cuando el token se emitió con `['*']`.
+
+**El anti-replay del SSO es por mandante.** El `jti` lo elige el wrapper, así
+que con la clave global bastaba con numerar los tokens desde el 1 para dejar sin
+entrar al siguiente cliente que usara ese número. La clave es
+`(mandante_id, jti)`.
+
+**Dar de baja a un cliente cierra también lo que ya tenía abierto.** Se revocan
+sus tokens al desactivarlo Y se comprueba en cada petición, porque la baja puede
+llegar por un camino que no sea ese botón.
+
+**Administrar cuentas y accesos deja rastro.** `RegistroDeAccionesAdministrativas`
+enumera lo que guarda en vez de fotografiar la fila —en `users` eso significaría
+copiar el hash de la contraseña a un registro inmutable— y cubre las tres
+pantallas que escriben pivotes de acceso, incluida la que el supervisor usa a
+diario. Una baja sólo se anota si de verdad quitó algo.
+
+**Archivar no es desactivar.** `desactivar()` pausa un proyecto y lo deja
+visible en la administración; `archivar()` lo retira de los cuatro caminos por
+los que se alcanzaba —listado, selector, URL y API— con borrado lógico, sin
+tocar una fila de la operación que cuelga de él.
+
+**Y una lección del arnés, que costó meses:** las cuatro últimas fugas llevaban
+en rojo desde antes por una avería del ayudante de tests —`idsDe()` no sabía
+leer un paginador y reventaba antes de llegar a su aserción—, no por el código
+que decían vigilar. Una red de seguridad que se mira sólo por el número puede
+estar mintiendo en las dos direcciones.
+
+- **Restricción §13.16 vigente**: este archivo se modificó al cerrar las olas 04
+  y 05 y la Fase 3, con acuerdo explícito.
 
 ### Decisiones arquitectónicas vigentes
 
@@ -553,3 +816,5 @@ Preparar deps ──────┼─→ Análisis (Larastan)─┼──→ CI
 - **`causas_mora`/`estados_cobranza` reutilizan tablas genéricas** (`causas_gestion`, `estados_caso`) — evita `gestiones.causa_id` polimórfico.
 - **Entidades configurables ≠ módulos** — datos tipados reutilizando §7, sin fórmulas/triggers/layouts. Módulo = código en `app/Modules/`.
 - **Multi-tenancy 1 instancia = 1 BPO** — no hay tabla `tenants` ni `tenant_id`. Aislamiento es por `proyecto_id`.
+- **El aislamiento es una propiedad del modelo, no del middleware** (Fase 3) — el scope falla cerrado, así que una consulta sin contexto lanza en vez de devolver los datos de todos. Quien necesite mirar cross-proyecto lo escribe. La contrapartida es que toda tarea de plataforma tiene que declarar su contexto o su escape, y eso es exactamente lo que se quería: que se vea.
+- **Una cuenta, un dueño por proyecto** — la asignación no es una tabla puente entre Caso y otra cosa: es quién responde por la cuenta, y el único `(proyecto_id, caso_id)` lo garantiza. Si algún día el negocio pide tandas de trabajo de verdad —acotadas en el tiempo, con meta y con reportería—, eso es `asignaciones.lote_id` con criterio de selección propio, no resucitar la campaña: lo que se retiró no fue una agrupación, fue un requisito que impedía trabajar cuando nadie lo había configurado.

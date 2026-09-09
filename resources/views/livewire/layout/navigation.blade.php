@@ -50,19 +50,25 @@ new class extends Component
     $embebido = session()->has('crm_embedded');
 @endphp
 
-<div x-data="{ open: false }" class="relative" style="display:flex;align-items:center;gap:8px;padding-left:8px;margin-left:4px;border-left:1px solid var(--border);">
-    <button type="button" @click="open = !open"
-            style="display:flex;align-items:center;gap:8px;background:transparent;border:0;cursor:pointer;padding:0;">
+<div x-data="{ open: false }" class="relative flex shrink-0 items-center gap-2 pl-2 ml-1 border-l border-surface-border" @keydown.escape.window="if (open) { open = false; $refs.userToggle.focus() }">
+    <button type="button" x-ref="userToggle" @click="open = !open" :aria-expanded="open" aria-controls="user-menu" aria-label="{{ __('nav.user_menu') }}"
+            class="flex items-center gap-2 bg-transparent border-0 p-0">
         <div class="avatar">{{ $iniciales }}</div>
-        <div style="line-height:1.15;text-align:left;">
-            <div style="font-size:12px;font-weight:500;color:var(--text);">{{ $user?->name }}</div>
+        {{-- En móvil queda el avatar: el nombre completo más el rol pedían 192px
+             de los 390 disponibles, el 38% de la cabecera. --}}
+        <div class="hidden lg:block leading-tight text-left max-w-[180px]">
+            <div class="text-sm font-medium text-ink truncate" title="{{ $user?->name }}">{{ $user?->name }}</div>
             <div style="font-size:11px;color:var(--text-tertiary);">{{ $rol }}</div>
         </div>
         <x-ui.icon name="chevron-down" :size="14" style="color:var(--text-tertiary);" />
     </button>
 
-    <div x-show="open" @click.outside="open = false" x-transition x-cloak
-         style="position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:var(--bg-elev);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,0.10);padding:6px;z-index:120;">
+    <div id="user-menu" x-show="open" @click.outside="open = false" x-transition x-cloak
+         class="popover popover-right min-w-[220px] max-w-[calc(100vw-24px)] p-1.5 z-[120]">
+        <div class="px-3 py-2 mb-1 border-b border-surface-border">
+            <div class="text-base font-semibold text-ink break-words">{{ $user?->name }}</div>
+            <div class="text-xs text-ink-500 break-all">{{ $user?->email }}</div>
+        </div>
         @if($embebido)
             <button type="button" disabled
                     title="{{ __('nav.profile_disabled_embedded') }}"

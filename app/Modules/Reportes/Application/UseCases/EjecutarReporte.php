@@ -8,6 +8,7 @@ use App\Modules\Reportes\Application\DTOs\ResultadoEjecucionReporte;
 use App\Modules\Reportes\Application\Servicios\ServicioCamposPersonalizadosReporte;
 use App\Modules\Reportes\Domain\Constructor\Catalogo\CatalogoCamposReporte;
 use App\Modules\Reportes\Domain\Constructor\Entities\DefinicionReporte;
+use App\Modules\Reportes\Domain\Constructor\Enums\EntidadRaiz;
 use App\Modules\Reportes\Domain\Constructor\Enums\OperadorFiltro;
 use App\Modules\Reportes\Domain\Constructor\ValueObjects\CampoDisponible;
 use Illuminate\Database\Query\Builder;
@@ -22,6 +23,15 @@ use Illuminate\Support\Facades\DB;
  * - Soft delete eliminada_en IS NULL aplicado a entidades históricas.
  * - SELECT/WHERE/GROUP/ORDER usan SOLO expresiones de CampoDisponible::$sql (whitelist).
  * - Los valores de filtro siempre van por bindings parametrizados.
+ *
+ * La previsualización lleva LIMIT y sale por la conexión de siempre. La
+ * descarga no lleva ninguno, y va por `mysql_streaming`, que tiene el buffer de
+ * PDO apagado: `cursor()` sobre una conexión con buffer se trae el resultado
+ * entero a memoria antes de dar la primera fila —difiere la hidratación, no la
+ * descarga—, y un reporte de gestiones de un año son cientos de MB de notas.
+ * No se pagina por clave como en `RespuestaCsv` porque aquí el orden lo elige
+ * quien define el reporte, y una paginación por `id > último` tendría que
+ * reescribírselo.
  */
 final class EjecutarReporte
 {
@@ -29,7 +39,10 @@ final class EjecutarReporte
         private readonly ServicioCamposPersonalizadosReporte $servicioCp,
     ) {}
 
-    public function execute(DefinicionReporte $def, ?int $limite = null): ResultadoEjecucionReporte
+    /**
+     * @param  list<int>|null  $carterasPermitidas  Carteras del rol (F22); `null` si no está acotado.
+     */
+    public function execute(DefinicionReporte $def, ?int $limite = null, ?array $carterasPermitidas = null): ResultadoEjecucionReporte
     {
         $catalogo = new CatalogoCamposReporte(
             $def->entidad,
@@ -54,7 +67,7 @@ final class EjecutarReporte
         }
 
         $tabla = $def->entidad->tablaBase();
-        $q = DB::table($tabla);
+        $q = DB::connection($limite === null ? config('database.conexion_sin_buffer') : null)->table($tabla);
 
         foreach ($catalogo->joinsPara($joinKeys) as $j) {
             $q->leftJoin($j['tabla'].' as '.$j['alias'], $j['col_a'], '=', $j['col_b']);
@@ -76,6 +89,8 @@ final class EjecutarReporte
         if (in_array($tabla, ['casos', 'gestiones', 'compromisos', 'personas'], true)) {
             $q->whereNull($tabla.'.eliminada_en');
         }
+
+        $this->recortarACarteras($q, $def->entidad, $carterasPermitidas);
 
         $cabeceras = [];
         $selectExprs = [];
@@ -118,6 +133,45 @@ final class EjecutarReporte
         })();
 
         return new ResultadoEjecucionReporte($cabeceras, $generator);
+    }
+
+    /**
+     * El recorte por cartera del rol (F22), justo detrás del de proyecto.
+     *
+     * Un reporte es una consulta que el usuario compone, así que sin esto el
+     * constructor era la puerta de atrás a las carteras que la bandeja y las
+     * descargas le esconden: se elige `personas` como entidad raíz y sale el
+     * padrón completo, sin tope de filas.
+     *
+     * Cada entidad llega a la cartera por su propio camino, y ninguna se
+     * escribe con SQL del usuario: es la misma lista blanca de siempre.
+     *
+     * @param  list<int>|null  $carteras
+     */
+    private function recortarACarteras(Builder $q, EntidadRaiz $entidad, ?array $carteras): void
+    {
+        if ($carteras === null) {
+            return;
+        }
+
+        match ($entidad) {
+            EntidadRaiz::CASOS => $q->whereIn('casos.cartera_id', $carteras),
+            EntidadRaiz::GESTIONES, EntidadRaiz::COMPROMISOS => $q->whereExists(
+                fn (Builder $sub) => $sub->select(DB::raw('1'))
+                    ->from('casos as cr')
+                    ->whereColumn('cr.id', $entidad->tablaBase().'.caso_id')
+                    ->whereIn('cr.cartera_id', $carteras),
+            ),
+            // Una persona no pertenece a una cartera; sus casos sí. Mismo
+            // criterio que el listado y la descarga del padrón.
+            EntidadRaiz::PERSONAS => $q->whereExists(
+                fn (Builder $sub) => $sub->select(DB::raw('1'))
+                    ->from('casos as cr')
+                    ->whereColumn('cr.persona_id', 'personas.id')
+                    ->whereNull('cr.eliminada_en')
+                    ->whereIn('cr.cartera_id', $carteras),
+            ),
+        };
     }
 
     /**

@@ -1,10 +1,13 @@
 <?php
 
 use App\Exceptions\PayloadLivewireInvalido;
+use App\Http\Middleware\RechazarUsuarioDesactivado;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Laravel\Sanctum\Http\Middleware\CheckAbilities;
+use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +19,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             SetLocale::class,
+            // Va en el grupo web y no en las rutas: dar de baja a alguien tiene
+            // que echarlo de donde esté, no sólo impedirle volver a entrar.
+            RechazarUsuarioDesactivado::class,
+        ]);
+
+        // Sanctum trae las clases pero no registra los alias: sin esto,
+        // `ability:` en una ruta revienta al resolverse, no al arrancar.
+        $middleware->alias([
+            'abilities' => CheckAbilities::class,
+            'ability' => CheckForAnyAbility::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

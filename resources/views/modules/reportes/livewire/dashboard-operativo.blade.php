@@ -1,16 +1,4 @@
 @php
-    $labelIntentadas = match ($proyecto->tipo_operacion ?? '') {
-        'cx' => __('reportes.label_intentadas_cx'),
-        'venta' => __('reportes.label_intentadas_venta'),
-        'servicio' => __('reportes.label_intentadas_servicio'),
-        default => __('reportes.label_intentadas_cobranza'),
-    };
-    $labelGestionadas = match ($proyecto->tipo_operacion ?? '') {
-        'cx' => __('reportes.label_gestionadas_cx'),
-        'venta' => __('reportes.label_gestionadas_venta'),
-        'servicio' => __('reportes.label_gestionadas_servicio'),
-        default => __('reportes.label_gestionadas_cobranza'),
-    };
     $rangos = [
         'hoy'    => __('reportes.range_today'),
         'ayer'   => __('reportes.range_yesterday'),
@@ -26,28 +14,56 @@
             </h3>
             <div class="text-xs text-ink-500">{{ $proyecto->nombre }} · {{ $proyecto->codigo }}</div>
         </div>
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2 text-xs flex-wrap justify-end">
             @foreach($rangos as $valor => $label)
                 <button type="button" wire:click="$set('rango', '{{ $valor }}')"
                         class="px-3 py-1.5 rounded border {{ $rango === $valor ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-ink-700 border-ink-300 hover:bg-ink-50' }}">
                     {{ $label }}
                 </button>
             @endforeach
+
+            @can('gestiones.exportar', (int) $proyecto->id)
+                {{-- Descarga con el rango activo: el mismo corte que las cifras de arriba. --}}
+                <a href="{{ $urlExportarGestiones }}"
+                   class="px-3 py-1.5 rounded border bg-white text-ink-700 border-ink-300 hover:bg-ink-50 inline-flex items-center gap-1">
+                    <x-ui.icon name="download" :size="12" />
+                    {{ __('reportes.export_gestiones') }}
+                </a>
+
+                {{-- GET a la misma ruta con dos fechas de calendario del cliente (máximo 92 días). --}}
+                <form method="get" action="{{ $urlExportarPorFechas }}" class="inline-flex items-center gap-1">
+                    <label class="text-ink-500" for="exportar-desde">{{ __('reportes.export_from') }}</label>
+                    <input id="exportar-desde" type="date" name="desde" value="{{ $hoyDelCliente }}" required
+                           class="px-2 py-1 rounded border border-ink-300 bg-white text-ink-700"/>
+                    <label class="text-ink-500" for="exportar-hasta">{{ __('reportes.export_to') }}</label>
+                    <input id="exportar-hasta" type="date" name="hasta" value="{{ $hoyDelCliente }}" required
+                           class="px-2 py-1 rounded border border-ink-300 bg-white text-ink-700"/>
+                    <button type="submit"
+                            class="px-3 py-1.5 rounded border bg-white text-ink-700 border-ink-300 hover:bg-ink-50">
+                        {{ __('reportes.export_range') }}
+                    </button>
+                </form>
+            @endcan
         </div>
     </div>
 
+    @error('exportar')
+        <div class="rounded border border-danger-200 bg-danger-50 px-3 py-2 text-xs text-danger-700">{{ $message }}</div>
+    @enderror
+
     <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="rounded-lg border border-ink-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ $labelIntentadas }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.label_intentadas', ['entidades' => $rotuloCasos]) }}</div>
             <div class="text-2xl font-semibold text-ink-900 mt-1">{{ number_format($cuentasIntentadas) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ $labelGestionadas }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.label_gestionadas', ['entidades' => $rotuloCasos]) }}</div>
             <div class="text-2xl font-semibold text-success-700 mt-1">{{ number_format($cuentasGestionadas) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
-            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_effectiveness') }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_contactabilidad') }}</div>
             <div class="text-2xl font-semibold text-brand-700 mt-1">{{ number_format($efectividad, 1) }}%</div>
+            <div class="text-[11px] text-ink-500 mt-1 tabular-nums">{{ __('reportes.kpi_contactabilidad_pie', ['alcanzadas' => number_format($cuentasGestionadas), 'intentadas' => number_format($cuentasIntentadas), 'entidades' => mb_strtolower($rotuloCasos)]) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_total_gestiones') }}</div>
@@ -75,8 +91,8 @@
                     <tr>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_agent') }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_gestiones') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted') }}</th>
-                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed') }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_attempted', ['entidades' => $rotuloCasos]) }}</th>
+                        <th class="px-3 py-2 text-right">{{ __('reportes.col_managed', ['entidades' => $rotuloCasos]) }}</th>
                         <th class="px-3 py-2 text-right">{{ __('reportes.col_effectiveness') }}</th>
                     </tr>
                 </thead>
@@ -110,7 +126,7 @@
                     <tr>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_date') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_person') }}</th>
-                        <th class="px-3 py-2 text-left">{{ __('reportes.col_case_type') }}</th>
+                        <th class="px-3 py-2 text-left">{{ __('reportes.col_case_type', ['entidad' => $rotuloCaso]) }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_result_col') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_channel') }}</th>
                         <th class="px-3 py-2 text-left">{{ __('reportes.col_user') }}</th>
@@ -124,7 +140,7 @@
                                 : trim((string) ($g->nombres ?? '').' '.(string) ($g->apellidos ?? ''));
                         @endphp
                         <tr>
-                            <td class="px-3 py-2 text-xs">{{ \Illuminate\Support\Carbon::parse($g->creada_en)->format('d/m H:i') }}</td>
+                            <td class="px-3 py-2 text-xs">{{ hora_local($g->creada_en, 'd/m H:i') }}</td>
                             <td class="px-3 py-2">
                                 <div class="text-ink-900">{{ $nombre !== '' ? $nombre : '—' }}</div>
                                 <div class="text-[10px] text-ink-500 font-mono">{{ $g->identificacion }}</div>

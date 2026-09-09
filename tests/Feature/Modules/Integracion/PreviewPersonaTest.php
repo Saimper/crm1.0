@@ -5,31 +5,38 @@ declare(strict_types=1);
 namespace Tests\Feature\Modules\Integracion;
 
 use App\Models\User;
+use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\Sanctum;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class PreviewPersonaTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_con_sanctum_auth_y_persona_existente_devuelve_200_con_json(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $usuario = $this->crearGestorEnProyecto($proyectoId);
-        $persona = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
-        $response = $this->actingAs($usuario, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoId}");
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyecto));
+
+        $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -48,16 +55,17 @@ final class PreviewPersonaTest extends TestCase
 
     public function test_persona_en_otro_proyecto_devuelve_404(): void
     {
-        $proyectoA = $this->proyectoCobranzaId();
-        $proyectoB = $this->proyectoServicioId();
-        $usuario = $this->crearGestorEnProyecto($proyectoA);
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoServicio();
+        $usuario = $this->crearGestor($proyectoA);
 
         // Persona del proyecto A buscada con proyecto_id del proyecto B
-        $persona = DB::table('personas')->where('proyecto_id', $proyectoA)->first();
-        $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
+        $persona = $this->crearPersonaEn($proyectoA);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
-        $response = $this->actingAs($usuario, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoB}");
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyectoA));
+
+        $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoB->id}");
 
         // El usuario no tiene acceso al proyecto B, entonces 403
         $response->assertStatus(403);
@@ -65,9 +73,9 @@ final class PreviewPersonaTest extends TestCase
 
     public function test_usuario_sin_rol_en_proyecto_devuelve_403(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $persona = DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $tiCodigo = DB::table('tipos_identificacion')->where('id', $persona->tipo_identificacion_id)->value('codigo');
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
 
         // Usuario sin rol en ningún proyecto
         /** @var User $sinRol */
@@ -78,48 +86,98 @@ final class PreviewPersonaTest extends TestCase
             'activo' => true,
         ]);
 
-        $response = $this->actingAs($sinRol, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyectoId}");
+        Sanctum::actingAs($sinRol, $this->habilidadesPara($proyecto));
+
+        $response = $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}");
 
         $response->assertStatus(403);
     }
 
     public function test_persona_inexistente_devuelve_404(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $usuario = $this->crearGestorEnProyecto($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $usuario = $this->crearGestor($proyecto);
 
-        $response = $this->actingAs($usuario, 'sanctum')
-            ->getJson("/api/integracion/persona?identificacion=99999999NOEXISTE&tipo_identificacion_codigo=CC&proyecto_id={$proyectoId}");
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyecto));
+
+        $response = $this->getJson("/api/integracion/persona?identificacion=99999999NOEXISTE&tipo_identificacion_codigo=CC&proyecto_id={$proyecto->id}");
 
         $response->assertStatus(404);
     }
 
-    private function proyectoCobranzaId(): int
+    private function codigoTipoIdentificacionDe(int $tipoIdentificacionId): string
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        return (string) DB::table('tipos_identificacion')->where('id', $tipoIdentificacionId)->value('codigo');
     }
 
-    private function proyectoServicioId(): int
+    /**
+     * Un proyecto archivado deja de existir para todo el mundo, también para el
+     * wrapper. Se cerraron sus tres caminos de dentro —listado, selector y
+     * URL— y esta puerta se quedaba abierta.
+     */
+    public function test_un_proyecto_archivado_no_entrega_fichas_por_la_api(): void
     {
-        return (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
+        $url = "/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}";
+
+        Sanctum::actingAs($usuario, $this->habilidadesPara($proyecto));
+        $this->getJson($url)->assertStatus(200);
+
+        DB::table('proyectos')->where('id', $proyecto->id)->update(['eliminada_en' => now()]);
+
+        $this->getJson($url)->assertStatus(403);
     }
 
-    private function crearGestorEnProyecto(int $proyectoId): User
+    /**
+     * Las habilidades con las que se emite un token de verdad: las dos de la
+     * API más la del mandante dueño del proyecto. Sin la última, la ficha
+     * responde 403 aunque el usuario tenga acceso — que es justo lo que este
+     * token tiene que garantizar.
+     *
+     * @return list<string>
+     */
+    private function habilidadesPara(stdClass $proyecto): array
     {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => 'Gestor Preview',
-            'email' => 'prev.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
+        return [
+            ...EmitirSanctumTokenDesdeJwt::HABILIDADES,
+            EmitirSanctumTokenDesdeJwt::habilidadDeMandante((int) $proyecto->mandante_id),
+        ];
+    }
 
-        return $u;
+    /**
+     * Un token del OTRO cliente: mismas habilidades de API, distinto mandante.
+     * Es el caso que la ficha dejaba pasar cuando el mandante sólo iba escrito
+     * en el nombre del token y nadie lo leía.
+     */
+    public function test_un_token_de_otro_mandante_no_alcanza_la_ficha(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
+
+        $ajeno = $this->crearProyectoCobranza($this->crearMandante());
+
+        Sanctum::actingAs($usuario, $this->habilidadesPara($ajeno));
+
+        $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}")
+            ->assertStatus(403);
+    }
+
+    /** Un token anterior a este cambio no lleva mandante, y se le niega. */
+    public function test_un_token_sin_habilidad_de_mandante_no_alcanza_la_ficha(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
+        $tiCodigo = $this->codigoTipoIdentificacionDe($persona->tipo_identificacion_id);
+
+        Sanctum::actingAs($usuario, EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $this->getJson("/api/integracion/persona?identificacion={$persona->identificacion}&tipo_identificacion_codigo={$tiCodigo}&proyecto_id={$proyecto->id}")
+            ->assertStatus(403);
     }
 }

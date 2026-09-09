@@ -1,6 +1,13 @@
 <?php
 
 return [
+    'col_rol_contacto' => 'Genera contactos',
+    'rol_contacto' => [
+        'ninguno' => '—',
+        'telefono' => 'Teléfonos',
+        'correo' => 'Correos',
+        'referencia' => 'Referencias (nombre y número)',
+    ],
     // Página
     'title' => 'Importaciones',
     'back_to_project' => '← Volver al proyecto',
@@ -30,14 +37,14 @@ return [
     'col_action' => 'Acción',
     'col_identifier' => 'Identificador',
     'identifier_persona' => 'Persona',
-    'identifier_caso' => 'Caso',
+    'identifier_caso' => ':Entidad',
     'action_create_cp' => 'Crear campo personalizado',
     'action_ignore' => 'Ignorar',
     'mapped_to_system' => ':count mapeadas al sistema',
     'new_as_cp' => ':count nuevas como CP',
     'ignored' => ':count ignoradas',
     'warn_no_persona_id' => '⚠ Sin identificador de persona',
-    'warn_no_case_id' => '⚠ Sin identificador de caso',
+    'warn_no_case_id' => '⚠ Sin identificador de :entidad',
     'btn_discard' => 'Descartar',
     'btn_validate_continue' => 'Validar y continuar',
 
@@ -61,15 +68,16 @@ return [
     'label_updated' => 'Actualizadas',
     'label_duplicated' => 'Duplicadas',
     'label_invalid' => 'Inválidas',
-    'label_processed' => 'Procesadas',
-    'label_valid' => 'Válidas',
     'label_progress' => 'Progreso',
+    'label_file' => 'Archivo',
+    'label_started' => 'Iniciado',
+    'label_finished' => 'Terminado',
+    'btn_download_rejected' => 'Descargar filas rechazadas (:count)',
     'error_prefix' => 'Error: :message',
     'cp_created_notice' => '✓ :count campos personalizados creados durante la importación.',
     'btn_cancel_import' => 'Cancelar',
     'confirm_cancel' => '¿Cancelar la importación en curso?',
     'btn_new_import' => 'Nueva importación',
-    'btn_close' => 'Cerrar',
 
     // Historial general
     'history_title' => 'Historial de importaciones (:count)',
@@ -85,47 +93,13 @@ return [
     'col_duplicated' => 'Duplicadas',
     'col_invalid' => 'Inválidas',
     'col_status' => 'Estado',
-    'col_processed' => 'Procesadas',
-
-    // Exportaciones
-    'exports_title' => 'Exportaciones CSV del proyecto',
-    'export_personas' => 'Personas',
-    'export_casos' => 'Casos',
-    'export_gestiones' => 'Gestiones',
-    'export_compromisos' => 'Compromisos',
+    'col_actions' => 'Acciones',
+    'link_download_rejected' => 'Rechazadas (:count)',
 
     // Importar casos
-    'import_cases_title' => 'Importar :tipo',
-    'import_cases_subtitle' => 'Tipo de operación del proyecto: :tipo. Solo casos de este tipo.',
-    'required_columns' => 'Columnas obligatorias:',
-    'csv_file_label' => 'Archivo CSV',
-    'upload_and_validate' => 'Subir y validar',
-    'col_identification' => 'Identificación',
-    'col_code' => 'Código',
-    'col_detail' => 'Detalle',
-    'col_row_action' => 'Acción',
-    'col_row_num' => '#',
-    'col_row_status' => 'Estado',
-    'filter_rows_label' => 'Filtrar filas:',
-    'filter_all' => 'Todas',
-    'filter_pending' => 'Pendientes',
-    'filter_processed' => 'Procesadas',
-    'filter_duplicated' => 'Duplicadas',
-    'filter_invalid' => 'Inválidas',
-    'filter_omitted' => 'Omitidas',
-    'change_mode_label' => 'Cambiar modo antes de procesar',
-    'btn_process_background' => 'Procesar en segundo plano',
-    'confirm_process' => '¿Confirmar importación con modo :mode? El proceso correrá en segundo plano.',
-    'btn_cancel_active' => 'Cancelar importación',
     'link_view' => 'Ver',
-    'history_cases_title' => 'Historial de importaciones de casos (:count)',
-    'history_cases_empty' => 'Aún no hay importaciones de casos en este proyecto.',
 
     // Importar personas
-    'import_personas_title' => 'Importar personas',
-    'import_personas_subtitle' => 'Columnas esperadas: tipo_persona, tipo_identificacion_codigo, identificacion, nombres, apellidos, razon_social, fecha_nacimiento.',
-    'mode_hint' => 'Aplica cuando una persona ya existe en el proyecto (mismo tipo + identificación). Para nuevas personas, los tres modos insertan igual.',
-    'col_name_razon' => 'Nombre / Razón',
 
     // fila-mapeo partial
     'required_badge' => 'requerido',
@@ -143,14 +117,4 @@ return [
     'tipo_seleccion_unica' => 'Selección',
     'tipo_moneda' => 'Moneda',
 
-    // Opciones de modo inline (importar-casos e importar-personas)
-    'mode_merge_casos' => 'merge — rellena solo campos vacíos en casos existentes',
-    'mode_skip_casos' => 'skip_duplicados — ignora casos existentes (continúa)',
-    'mode_overwrite_casos' => 'overwrite — pisa todos los campos en casos existentes',
-    'mode_merge_personas' => 'merge — rellena solo campos vacíos en registros existentes',
-    'mode_skip_personas' => 'skip_duplicados — ignora existentes (continúa el batch)',
-    'mode_overwrite_personas' => 'overwrite — pisa todos los campos en registros existentes',
-    'mode_merge_short' => 'merge — rellena solo campos vacíos',
-    'mode_skip_short' => 'skip_duplicados — ignora existentes',
-    'mode_overwrite_short' => 'overwrite — pisa todos los campos',
 ];

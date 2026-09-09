@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Casos;
 
-use App\Models\User;
 use App\Modules\Casos\Infrastructure\Http\Livewire\ListadoCasos;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -18,44 +17,152 @@ use Tests\TestCase;
  */
 final class ListadoCasosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_ve_casos_del_proyecto(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+
+        foreach (range(1, 3) as $i) {
+            $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'estado' => $estado]);
+        }
+
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
-        $totalDb = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->count();
+        $totalDb = (int) DB::table('casos')->where('proyecto_id', $proyecto->id)->count();
         $this->assertGreaterThan(0, $totalDb);
 
         $c = Livewire::test(ListadoCasos::class);
         $this->assertSame($totalDb, $c->viewData('totalProyecto'));
     }
 
-    public function test_filtro_cartera(): void
+    /**
+     * El listado enseña sólo las carteras del rol (F22): la pantalla y la
+     * descarga tienen que decir lo mismo, o el supervisor acotado ve una
+     * cartera en el CSV que no encuentra en su bandeja.
+     */
+    public function test_un_rol_acotado_por_cartera_solo_ve_esas_carteras(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        $permitida = $this->crearCarteraEn($proyecto);
+        $vetada = $this->crearCarteraEn($proyecto);
+
+        $this->crearCasoEn($proyecto, ['cartera' => $permitida, 'estado' => $estado]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'estado' => $estado]);
+
+        $supervisor = $this->crearSupervisor($proyecto);
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $proyecto->id,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
+            'cartera_id' => $permitida->id,
+        ]);
+
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
-        $carteraId = (int) DB::table('carteras')
-            ->where('proyecto_id', $proyectoId)
-            ->value('id');
+        $casos = iterator_to_array(Livewire::test(ListadoCasos::class)->viewData('casos'));
+
+        $this->assertCount(1, $casos);
+        $this->assertSame($permitida->nombre, $casos[0]->col_cartera);
+    }
+
+    /**
+     * Las cabeceras ordenan, y la clave que llega del cliente se contrasta
+     * contra el catálogo de columnas: nunca entra tal cual en el ORDER BY.
+     */
+    public function test_las_cabeceras_ordenan_y_el_segundo_clic_da_la_vuelta(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+
+        foreach (['2200000003', '2200000001', '2200000002'] as $identificacion) {
+            $this->crearCasoEn($proyecto, [
+                'cartera' => $cartera,
+                'estado' => $estado,
+                'persona' => $this->crearPersonaEn($proyecto, $identificacion),
+            ]);
+        }
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        $c = Livewire::test(ListadoCasos::class)->call('ordenarPor', 'identificacion');
+
+        $this->assertSame('identificacion', $c->get('orden'));
+        $this->assertSame('asc', $c->get('direccion'));
+        $this->assertSame(
+            ['2200000001', '2200000002', '2200000003'],
+            array_map(static fn (object $f): string => (string) $f->col_identificacion, iterator_to_array($c->viewData('casos'))),
+        );
+
+        $c->call('ordenarPor', 'identificacion');
+
+        $this->assertSame('desc', $c->get('direccion'));
+        $this->assertSame(
+            ['2200000003', '2200000002', '2200000001'],
+            array_map(static fn (object $f): string => (string) $f->col_identificacion, iterator_to_array($c->viewData('casos'))),
+        );
+    }
+
+    public function test_una_clave_de_orden_inventada_no_llega_a_la_consulta(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearCasoEn($proyecto, ['cartera' => $this->crearCarteraEn($proyecto), 'estado' => $this->crearEstadoCasoEn($proyecto)]);
+
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
+
+        // Ni por el método ni por la URL, que es la puerta que nadie filtra.
+        $c = Livewire::test(ListadoCasos::class)
+            ->call('ordenarPor', '(select 1)')
+            ->assertOk();
+        $this->assertSame('', $c->get('orden'), 'La clave no está en el catálogo: no se guarda.');
+
+        Livewire::withUrlParams(['orden' => 'casos.id; drop table casos', 'dir' => 'desc'])
+            ->test(ListadoCasos::class)
+            ->assertOk();
+
+        $this->assertSame(1, DB::table('casos')->where('proyecto_id', $proyecto->id)->count());
+    }
+
+    public function test_filtro_cartera(): void
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $estado = $this->crearEstadoCasoEn($proyecto);
+        $carteraA = $this->crearCarteraEn($proyecto);
+        $carteraB = $this->crearCarteraEn($proyecto);
+
+        foreach (range(1, 2) as $i) {
+            $this->crearCasoEn($proyecto, ['cartera' => $carteraA, 'estado' => $estado]);
+        }
+        $this->crearCasoEn($proyecto, ['cartera' => $carteraB, 'estado' => $estado]);
+
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
+        $this->actingAs($supervisor);
+
+        $carteraId = (int) $carteraA->id;
         $this->assertGreaterThan(0, $carteraId);
 
         $countCartera = (int) DB::table('casos')
-            ->where('proyecto_id', $proyectoId)
+            ->where('proyecto_id', $proyecto->id)
             ->where('cartera_id', $carteraId)
             ->count();
+        $this->assertSame(2, $countCartera);
 
         $c = Livewire::test(ListadoCasos::class)
             ->set('carteraId', (string) $carteraId);
@@ -64,21 +171,28 @@ final class ListadoCasosTest extends TestCase
 
     public function test_no_filtra_casos_de_otro_proyecto(): void
     {
-        $proyectoA = $this->proyectoCobranza();
-        $proyectoB = $this->proyectoCx();
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
-        $supervisor = $this->crearConRol($proyectoA, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoA);
+        foreach (range(1, 2) as $i) {
+            $this->crearCasoEn($proyectoA);
+        }
+        foreach (range(1, 2) as $i) {
+            $this->crearCasoEn($proyectoB);
+        }
+
+        $supervisor = $this->crearSupervisor($proyectoA);
+        $this->activarProyecto($proyectoA);
         $this->actingAs($supervisor);
 
-        $totalA = (int) DB::table('casos')->where('proyecto_id', $proyectoA)->count();
+        $totalA = (int) DB::table('casos')->where('proyecto_id', $proyectoA->id)->count();
         $this->assertGreaterThan(0, $totalA);
-        $this->assertGreaterThan(0, (int) DB::table('casos')->where('proyecto_id', $proyectoB)->count());
+        $this->assertGreaterThan(0, (int) DB::table('casos')->where('proyecto_id', $proyectoB->id)->count());
 
         $c = Livewire::test(ListadoCasos::class);
         $this->assertSame($totalA, $c->viewData('totalProyecto'));
 
-        $idsB = DB::table('casos')->where('proyecto_id', $proyectoB)->pluck('id')->all();
+        $idsB = DB::table('casos')->where('proyecto_id', $proyectoB->id)->pluck('id')->all();
         foreach ($c->viewData('casos') as $caso) {
             $this->assertNotContains($caso->id, $idsB);
         }
@@ -86,44 +200,12 @@ final class ListadoCasosTest extends TestCase
 
     public function test_gestor_accede_pantalla(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $this->crearCasoEn($proyecto);
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.casos.lista', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.casos.lista', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
-    }
-
-    private function proyectoCobranza(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function proyectoCx(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.lc.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

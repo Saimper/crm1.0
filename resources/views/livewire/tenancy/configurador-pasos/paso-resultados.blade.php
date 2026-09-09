@@ -6,22 +6,21 @@
         <div class="alert alert-warning" style="margin-bottom:14px;">{{ session('paso-resultados-error') }}</div>
     @endif
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/>
-            </div>
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.resultados.n_resultados', ['n' => $resultados->count()]) }}</span>
-            <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
-                <x-ui.icon name="plus" :size="14" />
-                <span>{{ __('configurador.resultados.nuevo') }}</span>
-            </button>
-        </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('configurador.resultados.n_resultados', ['n' => $resultados->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda"
+                               placeholder="{{ __('common.search') }}…" />
+            <x-slot:acciones>
+                <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
+                    <x-ui.icon name="plus" :size="14" />
+                    <span>{{ __('configurador.resultados.nuevo') }}</span>
+                </button>
+            </x-slot:acciones>
+        </x-ui.toolbar>
+
+        {{-- La tabla de antes sigue en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($resultados->isEmpty())
             <div class="empty">
@@ -46,37 +45,37 @@
                 <tbody>
                     @foreach($resultados as $r)
                         <tr wire:key="paso-resultado-{{ $r->id }}" wire:click="abrirFormEditar({{ $r->id }})">
-                            <td><span class="font-mono" style="font-size:12px;">{{ $r->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $r->nombre }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $r->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $r->nombre }}</span></td>
                             <td>
                                 @if($r->requiere_compromiso)
                                     <span class="badge badge-warning">{{ __('configurador.resultados.si') }}</span>
                                 @else
-                                    <span style="font-size:12px;color:var(--text-muted);">—</span>
+                                    <span class="text-sm text-ink-400">—</span>
                                 @endif
                             </td>
                             <td>
                                 @if($r->requiere_causa)
                                     <span class="badge badge-warning">{{ __('configurador.resultados.si') }}</span>
                                 @else
-                                    <span style="font-size:12px;color:var(--text-muted);">—</span>
+                                    <span class="text-sm text-ink-400">—</span>
                                 @endif
                             </td>
                             <td>
                                 @if($r->es_contacto_efectivo)
                                     <span class="badge badge-success">{{ __('configurador.resultados.si') }}</span>
                                 @else
-                                    <span style="font-size:12px;color:var(--text-muted);">—</span>
+                                    <span class="text-sm text-ink-400">—</span>
                                 @endif
                             </td>
                             <td class="num">{{ $r->orden }}</td>
                             <td>
-                                <span style="display:inline-flex;align-items:center;gap:6px;">
+                                <span class="inline-flex items-center gap-1.5">
                                     <span class="dot dot-{{ $r->activo ? 'success' : 'neutral' }}"></span>
                                     {{ $r->activo ? __('configurador.activo') : __('configurador.inactivo') }}
                                 </span>
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -88,7 +87,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="paso-resultado-scrim"></div>
         <div class="drawer" wire:key="paso-resultado-drawer">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('configurador.resultados.drawer_nuevo') : __('configurador.resultados.drawer_editar') }}
                 </div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}">
@@ -96,7 +95,7 @@
                 </button>
             </div>
             <div class="drawer-body">
-                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                <div class="grid grid-cols-[1fr] gap-3.5">
                     <div>
                         <label class="field-label">{{ __('configurador.campo_codigo') }}</label>
                         <input type="text" wire:model="form.codigo" placeholder="CONTACTO_EFECTIVO" maxlength="50"
@@ -116,19 +115,19 @@
                         @error('form.descripcion')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
 
-                    <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--border);padding-top:12px;">
+                    <div class="flex flex-col gap-2" style="border-top:1px solid var(--border);padding-top:12px;">
                         <div class="label-xs" style="margin-bottom:4px;">{{ __('configurador.resultados.banderas') }}</div>
-                        <label style="display:flex;align-items:center;gap:8px;">
+                        <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.es_contacto_efectivo"/>
-                            <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.resultados.es_contacto_efectivo') }}</span>
+                            <span class="text-base text-ink-600">{{ __('configurador.resultados.es_contacto_efectivo') }}</span>
                         </label>
-                        <label style="display:flex;align-items:center;gap:8px;">
+                        <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.requiere_compromiso"/>
-                            <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.resultados.requiere_compromiso') }}</span>
+                            <span class="text-base text-ink-600">{{ __('configurador.resultados.requiere_compromiso') }}</span>
                         </label>
-                        <label style="display:flex;align-items:center;gap:8px;">
+                        <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.requiere_causa"/>
-                            <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.resultados.requiere_causa') }}</span>
+                            <span class="text-base text-ink-600">{{ __('configurador.resultados.requiere_causa') }}</span>
                         </label>
                     </div>
 
@@ -142,14 +141,14 @@
                                     <option value="{{ $estado->id }}">{{ $estado->nombre }}</option>
                                 @endforeach
                             </select>
-                            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                            <div class="text-sm text-ink-600" style="margin-top:4px;">
                                 {{ __('configurador.resultados.estado_cierre_ayuda') }}
                             </div>
                             @error('form.estado_caso_cierre_id')<div class="field-error">{{ $message }}</div>@enderror
                         </div>
                     @endif
 
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    <div class="grid grid-cols-[1fr_1fr] gap-3.5">
                         <div>
                             <label class="field-label">{{ __('configurador.campo_orden') }}</label>
                             <input type="number" min="0" wire:model="form.orden"
@@ -158,9 +157,9 @@
                         </div>
                         <div>
                             <label class="field-label">{{ __('configurador.campo_estado') }}</label>
-                            <label style="display:flex;align-items:center;gap:8px;padding-top:8px;">
+                            <label class="flex items-center gap-2" style="padding-top:8px;">
                                 <input type="checkbox" wire:model="form.activo"/>
-                                <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.activo') }}</span>
+                                <span class="text-base text-ink-600">{{ __('configurador.activo') }}</span>
                             </label>
                         </div>
                     </div>
@@ -181,4 +180,100 @@
             </div>
         </div>
     @endif
+    {{-- Qué resultados admite cada tipo de gestión. Sin esto el selector de la
+         Vista de Trabajo ofrecía los nueve resultados del proyecto sin importar
+         el tipo, y «Promesa de pago fraccionado» aparecía bajo «No contactado».
+         Un tipo sin ninguna casilla marcada admite todos: es el arranque, y es
+         por tipo y no por proyecto para que nadie se quede sin poder gestionar
+         el día que esto se despliegue. --}}
+    @if($tiposGestion->isNotEmpty() && $resultados->isNotEmpty())
+        <div class="card" style="margin-top:14px;">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+                <strong class="text-base">{{ __('configurador.matriz.titulo') }}</strong>
+                <div class="text-sm text-ink-500" style="margin-top:2px;">{{ __('configurador.matriz.ayuda') }}</div>
+            </div>
+            <div class="scroll-x">
+                <table class="table table-compact">
+                    <thead>
+                        <tr>
+                            <th>{{ __('configurador.matriz.col_resultado') }}</th>
+                            @foreach($tiposGestion as $tipo)
+                                <th style="text-align:center;white-space:nowrap;">{{ $tipo->nombre }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($resultados as $resultado)
+                            <tr wire:key="matriz-{{ $resultado->id }}">
+                                <td>
+                                    <span class="font-medium">{{ $resultado->nombre }}</span>
+                                    @unless($resultado->activo)
+                                        <span class="badge badge-neutral">{{ __('configurador.inactivo') }}</span>
+                                    @endunless
+                                </td>
+                                @foreach($tiposGestion as $tipo)
+                                    <td class="text-center">
+                                        <input type="checkbox"
+                                               @checked($combinaciones->has($tipo->id.'-'.$resultado->id))
+                                               wire:click="alternarCombinacion({{ $tipo->id }}, {{ $resultado->id }})"
+                                               aria-label="{{ $tipo->nombre }} · {{ $resultado->nombre }}"/>
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+    {{-- Frases hechas para el campo de notas. Con resultado, salen sólo bajo ese
+         resultado; sin él, salen siempre. Es texto que se pega en el textarea y
+         el gestor edita después: no ejecuta nada ni rellena otros campos. --}}
+    <div class="card" style="padding:12px 16px;margin-top:14px;">
+        <div class="flex items-center flex-wrap gap-2.5">
+            <strong class="text-base">{{ __('configurador.plantillas.titulo') }}</strong>
+            <span class="text-sm text-ink-500">{{ __('configurador.plantillas.ayuda') }}</span>
+        </div>
+
+        @if($plantillas->isNotEmpty())
+            <div class="flex flex-col gap-1" style="margin-top:10px;">
+                @foreach($plantillas as $p)
+                    <div class="flex items-center gap-2 text-sm">
+                        <span class="badge">{{ $p->etiqueta }}</span>
+                        <span class="text-ink-600 flex-1 min-w-0 truncate">{{ $p->texto }}</span>
+                        @if($p->resultado_nombre)
+                            <span class="badge badge-neutral">{{ $p->resultado_nombre }}</span>
+                        @endif
+                        <button type="button" wire:click="eliminarPlantilla({{ $p->id }})"
+                                class="btn btn-ghost btn-sm" style="color:var(--danger-text);">×</button>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        <div style="display:grid;grid-template-columns:170px 1fr 200px auto;gap:8px;align-items:end;margin-top:10px;">
+            <div>
+                <label class="field-label">{{ __('configurador.plantillas.etiqueta') }}</label>
+                <input type="text" wire:model="plantilla.etiqueta" class="input" style="height:30px;"
+                       placeholder="{{ __('configurador.plantillas.etiqueta_ph') }}"/>
+            </div>
+            <div>
+                <label class="field-label">{{ __('configurador.plantillas.texto') }}</label>
+                <input type="text" wire:model="plantilla.texto" class="input" style="height:30px;"
+                       placeholder="{{ __('configurador.plantillas.texto_ph') }}"/>
+            </div>
+            <div>
+                <label class="field-label">{{ __('configurador.plantillas.resultado') }}</label>
+                <select wire:model="plantilla.resultado_id" class="input" style="height:30px;">
+                    <option value="">{{ __('configurador.plantillas.siempre') }}</option>
+                    @foreach($resultados as $r)
+                        <option value="{{ $r->id }}">{{ $r->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="button" wire:click="crearPlantilla" class="btn btn-ghost btn-sm">{{ __('common.add') }}</button>
+        </div>
+        @error('plantilla.etiqueta')<div class="field-error">{{ $message }}</div>@enderror
+        @error('plantilla.texto')<div class="field-error">{{ $message }}</div>@enderror
+    </div>
 </div>

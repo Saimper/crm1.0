@@ -96,8 +96,27 @@ final class AuditoriaObserver
      *      `mandante.activo`; si no hay contexto, se deja NULL en vez de
      *      adivinar: un dueño inventado es peor que ninguno.
      */
-    /** @var array<int, int|null> proyecto_id => mandante_id, por petición. */
+    /**
+     * proyecto_id => mandante_id, por petición.
+     *
+     * Es estático porque el dispatcher instancia un observer nuevo en cada
+     * evento, y un memo de instancia no ahorraría nada. Pero un estático vive
+     * lo que el proceso PHP, no lo que la petición: AuditoriaServiceProvider
+     * lo vacía al arrancar la aplicación y al rebindear `request`. Sin eso,
+     * en la suite —donde una misma ejecución levanta cientos de aplicaciones y
+     * `RefreshDatabase` vuelve a migrar de cero cuando un test deja la conexión
+     * sin transacción— los ids de proyecto se repiten y el memo los atribuía a
+     * mandantes que ya no existían: FK rota al auditar una persona.
+     *
+     * @var array<int, int|null>
+     */
     private static array $mandantePorProyecto = [];
+
+    /** Tira el memo proyecto→mandante. Lo llama el provider en cada arranque y petición. */
+    public static function olvidarMandantes(): void
+    {
+        self::$mandantePorProyecto = [];
+    }
 
     private function mandanteIdDesdeModelo(Model $model, ?int $proyectoId): ?int
     {

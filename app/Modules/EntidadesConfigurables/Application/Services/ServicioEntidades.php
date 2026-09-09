@@ -174,6 +174,7 @@ final readonly class ServicioEntidades
                 ambitoId: (int) $entidad->id,
                 entidadId: (int) $registro->id,
                 valoresPorCodigo: $valoresPorCodigo,
+                permitirVaciar: true,
             );
 
             return (int) $registro->id;
@@ -202,6 +203,8 @@ final readonly class ServicioEntidades
                 ambitoId: $entidadId,
                 entidadId: $registroId,
                 valoresPorCodigo: $valoresPorCodigo,
+                // El gestor de registros edita la ficha entera.
+                permitirVaciar: true,
             );
         });
     }

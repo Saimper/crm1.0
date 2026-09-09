@@ -1,6 +1,34 @@
 <?php
 
 return [
+    'plantillas' => [
+        'titulo' => 'Plantillas de nota',
+        'ayuda' => 'Frases hechas que el gestor pega en las notas con un clic y edita después.',
+        'etiqueta' => 'Etiqueta',
+        'etiqueta_ph' => 'Pide llamada',
+        'texto' => 'Texto',
+        'texto_ph' => 'El titular pide que se le llame después de las 6.',
+        'resultado' => 'Sólo con el resultado',
+        'siempre' => '— Siempre —',
+    ],
+    'causas' => [
+        'titulo' => 'Causas de gestión',
+        'ayuda' => 'Por qué salió así. Los resultados marcados como «requiere causa» piden una de estas.',
+        'nueva' => 'Nombre de la causa…',
+        'confirm_eliminar' => '¿Eliminar esta causa? Sólo si ninguna gestión la usa.',
+    ],
+    'matriz' => [
+        'titulo' => 'Qué resultados admite cada tipo de gestión',
+        'ayuda' => 'Un tipo sin ninguna casilla marcada admite todos los resultados. Marca casillas para acotarlo.',
+        'col_resultado' => 'Resultado',
+    ],
+    'canales' => [
+        'titulo' => 'Canales',
+        'ayuda' => 'Por dónde se hace la gestión. El catálogo es común a todos los clientes; aquí eliges cuáles usa este proyecto, en qué orden y con qué nombre.',
+        'col_nombre' => 'Nombre en este proyecto',
+        'col_duracion' => 'Pide duración',
+        'col_adjunto' => 'Admite adjunto',
+    ],
 
     // Wizard / configurador principal
     'titulo_editar' => 'Editar configuración',
@@ -117,6 +145,16 @@ return [
 
     // Paso: campos personalizados
     'campos' => [
+        'grupos_titulo' => 'Grupos',
+        'grupos_ayuda' => 'Ordenan los campos en la vista de trabajo. Sólo un nombre y un orden.',
+        'grupos_nuevo' => 'Nombre del grupo…',
+        'grupos_confirm_eliminar' => '¿Eliminar este grupo? Sólo si no tiene campos dentro.',
+        'grupo' => 'Grupo',
+        'grupo_ninguno' => '— Sin grupo —',
+        'col_grupo' => 'Grupo',
+        'oculto' => 'Oculto',
+        'visible_en_gestion' => 'Se ve en la vista de trabajo',
+        'visible_en_gestion_ayuda' => 'Apagado, el campo sigue existiendo y se edita desde la ficha, pero no aparece al registrar una gestión.',
         'info_opcional' => 'Paso opcional. Los campos personalizados extienden el modelo de datos del proyecto sin migrar schema. Puedes completarlo después desde el panel de administración.',
         'n_campos' => ':n campos',
         'nuevo' => 'Nuevo campo',

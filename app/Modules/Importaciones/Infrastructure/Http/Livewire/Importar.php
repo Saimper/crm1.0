@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Infrastructure\Http\Livewire;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\Services\LectorCsv;
 use App\Modules\Importaciones\Application\Services\LectorXlsx;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
@@ -18,6 +19,7 @@ use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionEnCursoNoEditable;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoEncontrada;
@@ -26,11 +28,12 @@ use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionModel;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -46,6 +49,7 @@ use Livewire\WithFileUploads;
  */
 final class Importar extends Component
 {
+    use AutorizaEnProyectoActivo;
     use WithFileUploads;
 
     public int $paso = 1;
@@ -60,13 +64,31 @@ final class Importar extends Component
 
     public bool $archivoListo = false;
 
-    /** @var list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}> */
+    /**
+     * Las tres últimas claves son opcionales a propósito: llegaron después, y
+     * una sesión de Livewire abierta durante un despliegue puede traer todavía
+     * el array sin ellas.
+     *
+     * @var list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string, es_identificador_caso?: bool, etiqueta_personalizada?: ?string, rol_contacto?: string}>
+     */
     public array $columnas = [];
 
     public ?string $columnaIdentificadorNombre = null;
 
     public ?string $columnaCasoIdentificadorNombre = null;
 
+    /**
+     * `#[Locked]` porque lo fija el propio wizard al preparar la importación y
+     * nada de la vista lo bindea: sin esto, un `$wire.set('importacionId', N)`
+     * desde la consola apuntaba `ejecutar()` y `cancelar()` a la importación de
+     * cualquier proyecto, porque los dos casos de uso la buscan con
+     * `sinScopeProyecto()`.
+     *
+     * `carteraId` no puede llevarlo —es un `wire:model.live` de la vista, el
+     * usuario la elige—, así que ahí la guarda es de pertenencia: se comprueba
+     * contra el proyecto activo antes de usarla.
+     */
+    #[Locked]
     public ?int $importacionId = null;
 
     public ?array $resultadoDryRun = null;
@@ -84,7 +106,7 @@ final class Importar extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+        $this->autorizarEn('importaciones.crear');
 
         $disponibles = $this->targetsDisponibles();
         if (count($disponibles) === 1) {
@@ -106,7 +128,7 @@ final class Importar extends Component
 
     public function subirArchivo(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+        $this->autorizarEn('importaciones.crear');
 
         if (! $this->archivoListo || ! ($this->archivo instanceof UploadedFile)) {
             $this->addError('archivo', 'El archivo aún no terminó de cargarse. Espera un momento e intenta de nuevo.');
@@ -127,6 +149,8 @@ final class Importar extends Component
             return;
         }
 
+        $this->exigirCarteraDelProyecto();
+
         $this->validate([
             'archivo' => ['required', 'file', 'mimes:csv,txt,xlsx,xlsm', 'max:16384'],
         ], [
@@ -139,7 +163,7 @@ final class Importar extends Component
         try {
             [$headers, $muestra] = $this->leerArchivo($file);
         } catch (\Throwable $e) {
-            $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
+            $this->addError('archivo', 'No se pudo leer el archivo: '.$this->motivoParaPantalla($e));
 
             return;
         }
@@ -222,6 +246,31 @@ final class Importar extends Component
         }
     }
 
+    /**
+     * Marca que una columna, además de lo que se haga con ella, genere contactos
+     * de la persona.
+     *
+     * Es ortogonal a la acción: una columna de teléfonos suele guardarse también
+     * como campo personalizado para que siga viéndose en la ficha. Lo que cambia
+     * es que ahora, además, sus valores se parten y se dan de alta en
+     * `contactos`, que es de donde sale el selector «Contacto usado».
+     */
+    public function marcarRolContacto(string $nombreOriginal, string $rol): void
+    {
+        $rolEnum = RolContacto::tryFrom($rol);
+
+        if ($rolEnum === null) {
+            return;
+        }
+
+        foreach ($this->columnas as $i => $col) {
+            if ($col['nombre_original'] === $nombreOriginal) {
+                $this->columnas[$i]['rol_contacto'] = $rolEnum->value;
+                break;
+            }
+        }
+    }
+
     public function actualizarEtiquetaPersonalizada(string $nombreOriginal, string $etiqueta): void
     {
         foreach ($this->columnas as $i => $col) {
@@ -234,27 +283,52 @@ final class Importar extends Component
 
     public function confirmarMapeo(): void
     {
+        // Fuera del try: el catch de abajo es un `\Throwable` que convierte
+        // cualquier fallo en un mensaje de formulario, y se tragaría el 403 del
+        // permiso y el 404 de la pertenencia dejando pasar el commit como si
+        // sólo hubiera habido un error de mapeo.
+        $this->autorizarEn('importaciones.crear');
+        $this->exigirCarteraDelProyecto();
+
         try {
             $this->confirmarMapeoInterno();
         } catch (\Throwable $e) {
-            Log::error('[importar] confirmarMapeo failed', [
-                'msg' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->addError('columnas', 'Error interno: '.$e->getMessage());
+            // Un fallo de base de datos al preparar pintaba el INSERT con los
+            // datos del archivo en el formulario. El descriptor resume, y es él
+            // quien deja el detalle en el log bajo la referencia.
+            $this->addError('columnas', $this->motivoParaPantalla($e));
         }
+    }
+
+    /**
+     * Abre el paso 4 de una importación pasada del historial.
+     *
+     * `importacionId` es `#[Locked]` para que el cliente no lo reapunte, pero
+     * asignarlo desde el servidor —tras comprobar permiso y pertenencia— es
+     * exactamente para lo que existe el candado.
+     */
+    public function verImportacion(int $id): void
+    {
+        $this->autorizarEn('importaciones.crear');
+        $this->exigirDelProyecto('importaciones', $id);
+
+        $this->reset(['resultadoDryRun', 'filtroFilas', 'advertencias']);
+        $this->importacionId = $id;
+        $this->paso = 4;
     }
 
     private function confirmarMapeoInterno(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.crear') === true, 403);
+        $this->autorizarEn('importaciones.crear');
 
         $target = $this->target();
         if ($target === null) {
             return;
         }
+
+        // La cartera llega del cliente. Sin esta comprobación se creaban casos
+        // del proyecto activo colgados de la cartera de otro proyecto.
+        $this->exigirCarteraDelProyecto();
 
         $columnas = $this->deserializarColumnas();
 
@@ -292,7 +366,7 @@ final class Importar extends Component
         try {
             $esquema->validar();
         } catch (\DomainException $e) {
-            $this->addError('columnas', $e->getMessage());
+            $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
         }
@@ -311,7 +385,7 @@ final class Importar extends Component
         try {
             [$headers, , $totalFilas, $filas] = $this->leerArchivo($file, leerTodas: true);
         } catch (\Throwable $e) {
-            $this->addError('archivo', 'No se pudo leer el archivo: '.$e->getMessage());
+            $this->addError('archivo', 'No se pudo leer el archivo: '.$this->motivoParaPantalla($e));
 
             return;
         }
@@ -367,7 +441,7 @@ final class Importar extends Component
                 'camposReutilizados' => $resultado->camposReutilizados,
             ];
         } catch (ImportacionSinPermisoCamposException $e) {
-            $this->addError('columnas', $e->getMessage());
+            $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
         }
@@ -383,11 +457,14 @@ final class Importar extends Component
      */
     public function ejecutar(EncolarImportacion $encolar): void
     {
-        abort_unless(auth()->user()?->tienePermiso('importaciones.procesar') === true, 403);
+        $this->autorizarEn('importaciones.procesar');
 
         if ($this->importacionId === null) {
             return;
         }
+
+        // `EncolarImportacion` busca la fila sin scope de proyecto.
+        $this->exigirDelProyecto('importaciones', $this->importacionId);
 
         $modo = ModoImportacion::tryFrom($this->modo);
         if ($modo === null) {
@@ -399,7 +476,7 @@ final class Importar extends Component
         try {
             $encolar->execute($this->importacionId, $modo);
         } catch (ImportacionEnCursoNoEditable|ImportacionNoEncontrada $e) {
-            $this->addError('columnas', $e->getMessage());
+            $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
         }
@@ -407,11 +484,23 @@ final class Importar extends Component
         $this->paso = 4;
     }
 
+    /**
+     * Cancelar es la otra cara de procesar: detiene un lote en curso, así que
+     * exige `importaciones.procesar` —no hay permiso propio de cancelación— y
+     * que el lote sea del proyecto activo, porque `CancelarImportacion` lo
+     * busca con `sinScopeProyecto()`.
+     */
     public function cancelar(CancelarImportacion $cancelarUC): void
     {
-        if ($this->importacionId !== null) {
-            $cancelarUC->execute($this->importacionId);
+        $this->autorizarEn('importaciones.procesar');
+
+        if ($this->importacionId === null) {
+            return;
         }
+
+        $this->exigirDelProyecto('importaciones', $this->importacionId);
+
+        $cancelarUC->execute($this->importacionId);
     }
 
     public function cerrar(): void
@@ -440,10 +529,19 @@ final class Importar extends Component
         $preview = collect();
 
         if ($this->importacionId !== null) {
-            $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
-            $importacionActual = DB::table('importaciones')->where('id', $this->importacionId)->first();
+            // El progreso y las filas se leen sin scope de proyecto en el caso
+            // de uso, así que la pertenencia se comprueba aquí antes de mirar.
+            $this->exigirDelProyecto('importaciones', $this->importacionId);
 
-            $q = DB::table('importacion_filas')->where('importacion_id', $this->importacionId);
+            $progreso = app(ConsultarProgresoImportacion::class)->execute($this->importacionId);
+            $importacionActual = DB::table('importaciones')
+                ->where('id', $this->importacionId)
+                ->where('proyecto_id', $proyectoId)
+                ->first();
+
+            $q = DB::table('importacion_filas')
+                ->where('importacion_id', $this->importacionId)
+                ->where('proyecto_id', $proyectoId);
             if ($this->filtroFilas !== 'todas') {
                 $q->where('estado', $this->filtroFilas);
             }
@@ -457,7 +555,7 @@ final class Importar extends Component
                 'i.id', 'i.public_id', 'i.estado', 'i.modo', 'i.nombre_archivo', 'i.tipo_entidad',
                 'i.total_filas', 'i.procesadas', 'i.insertadas', 'i.actualizadas',
                 'i.validas', 'i.invalidas', 'i.omitidas', 'i.duplicadas',
-                'i.creada_en', 'u.name as usuario_nombre',
+                'i.creada_en', 'i.error_global', 'i.payload_purgado_en', 'u.name as usuario_nombre',
             ])
             ->orderByDesc('i.creada_en')
             ->limit(30)
@@ -475,7 +573,23 @@ final class Importar extends Component
             'preview' => $preview,
             'historial' => $historial,
             'tipoOperacion' => $tipoOperacion,
+            'proyectoId' => $proyectoId,
         ]);
+    }
+
+    /**
+     * Lo que se le dice al usuario cuando algo falla en el wizard.
+     *
+     * Siempre a través del descriptor: los cinco `catch` de este componente
+     * pintaban `getMessage()` en el formulario, y un fallo de base de datos al
+     * preparar enseñaba el INSERT con los datos del archivo en pantalla.
+     */
+    private function motivoParaPantalla(\Throwable $e): string
+    {
+        return app(DescriptorDeFalloImportacion::class)->describir($e, [
+            'importacion_id' => $this->importacionId,
+            'proyecto_id' => $this->proyectoId(),
+        ])->motivo;
     }
 
     /**
@@ -532,7 +646,7 @@ final class Importar extends Component
         $payload = [];
 
         foreach ($columnas as $columna) {
-            if ($columna->accion === AccionColumna::IGNORAR) {
+            if (! $columna->debePersistirse()) {
                 continue;
             }
 
@@ -546,11 +660,7 @@ final class Importar extends Component
                 continue;
             }
 
-            if ($columna->accion === AccionColumna::MAPEAR_SISTEMA && $columna->campoSistemaMapeado !== null) {
-                $payload[$columna->campoSistemaMapeado] = $valor;
-            } else {
-                $payload[$columna->codigoSugerido()] = $valor;
-            }
+            $payload[$columna->clavePayload()] = $valor;
 
             if ($columna->esIdentificadorCaso) {
                 $payload['id_cpelegido'] = $valor;
@@ -562,7 +672,7 @@ final class Importar extends Component
 
     /**
      * @param  list<ColumnaExcel>  $columnas
-     * @return list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, accion: string}>
+     * @return list<array{nombre_original: string, tipo_inferido: string, campo_sistema_mapeado: ?string, es_identificador_persona: bool, es_identificador_caso: bool, accion: string, etiqueta_personalizada: ?string, rol_contacto: string}>
      */
     private function serializarColumnas(array $columnas): array
     {
@@ -577,6 +687,7 @@ final class Importar extends Component
                 'es_identificador_caso' => $col->esIdentificadorCaso,
                 'accion' => $col->accion->value,
                 'etiqueta_personalizada' => $col->etiquetaPersonalizada,
+                'rol_contacto' => $col->rolContacto->value,
             ];
         }
 
@@ -595,10 +706,11 @@ final class Importar extends Component
                 nombreOriginal: $col['nombre_original'],
                 tipoInferido: TipoCampo::from($col['tipo_inferido']),
                 campoSistemaMapeado: $col['campo_sistema_mapeado'] ?: null,
-                esIdentificadorPersona: (bool) ($col['es_identificador_persona'] ?? false),
+                esIdentificadorPersona: (bool) $col['es_identificador_persona'],
                 esIdentificadorCaso: (bool) ($col['es_identificador_caso'] ?? false),
                 accion: AccionColumna::from($col['accion']),
                 etiquetaPersonalizada: $col['etiqueta_personalizada'] ?? null,
+                rolContacto: RolContacto::from($col['rol_contacto'] ?? RolContacto::NINGUNO->value),
             );
         }
 
@@ -607,7 +719,18 @@ final class Importar extends Component
 
     private function proyectoId(): int
     {
-        return (int) app('tenancy.proyecto_activo')->id;
+        return $this->proyectoActivoId();
+    }
+
+    /**
+     * La cartera es lo único que el cliente elige y que después viaja al
+     * esquema como id: si no es del proyecto activo, 404.
+     */
+    private function exigirCarteraDelProyecto(): void
+    {
+        if ($this->carteraId !== null) {
+            $this->exigirDelProyecto('carteras', $this->carteraId);
+        }
     }
 
     /** @return list<TargetImportacion> */

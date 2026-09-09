@@ -23,12 +23,16 @@ Route::post('/integracion/sanctum-token', EmitirSanctumTokenController::class)
     ->middleware('throttle:10,1')
     ->name('api.integracion.sanctum-token');
 
+// Cada endpoint exige la habilidad que le corresponde, no un token cualquiera.
+// Los PAT emitidos antes de acotar las habilidades llevan `['*']`, que Sanctum
+// interpreta como «todas», así que este cambio no invalida ninguno en circulación.
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/auth/logout', SsoLogoutController::class)
+        ->middleware('ability:auth:logout')
         ->name('api.sso.logout');
 
     Route::get('/integracion/persona', PreviewPersonaController::class)
-        ->middleware('throttle:60,1')
+        ->middleware(['ability:integracion:persona', 'throttle:60,1'])
         ->name('api.integracion.persona');
 });
 

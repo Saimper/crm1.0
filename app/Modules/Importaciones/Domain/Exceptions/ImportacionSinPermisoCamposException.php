@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Domain\Exceptions;
 
-class ImportacionSinPermisoCamposException extends \DomainException
+class ImportacionSinPermisoCamposException extends \DomainException implements MensajeAptoParaPantalla
 {
     public function __construct(string $accion, int $proyectoId)
     {

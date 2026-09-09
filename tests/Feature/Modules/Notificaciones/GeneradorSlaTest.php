@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Notificaciones;
 
-use App\Models\User;
 use App\Modules\Notificaciones\Application\Services\GeneradorNotificaciones;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class GeneradorSlaTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_sla_en_riesgo_se_crea_si_fecha_limite_dentro_de_umbral(): void
@@ -29,26 +31,22 @@ final class GeneradorSlaTest extends TestCase
         $ahora = Carbon::create(2026, 4, 18, 10, 0, 0);
         Carbon::setTestNow($ahora);
 
-        $proyectoId = $this->proyectoCxId();
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
-
-        $casoId = (int) DB::table('casos')
-            ->where('proyecto_id', $proyectoId)
-            ->where('tipo_caso', 'ticket_cx')
-            ->value('id');
+        $proyecto = $this->crearProyectoCx();
+        $gestor = $this->crearGestor($proyecto);
+        $casoId = $this->crearCasoEn($proyecto);
 
         // Compromiso CX con SLA a 3 horas — dentro de umbral de 4h
-        $compId = $this->crearCompromisoCx($proyectoId, $casoId, $gestor->id, $ahora->copy()->addHours(3));
+        $compId = $this->crearCompromisoCx($proyecto, $casoId, (int) $gestor->id, $ahora->copy()->addHours(3));
 
         // Otro compromiso CX con SLA a 10 horas — fuera de umbral
-        $lejanoId = $this->crearCompromisoCx($proyectoId, $casoId, $gestor->id, $ahora->copy()->addHours(10));
+        $lejanoId = $this->crearCompromisoCx($proyecto, $casoId, (int) $gestor->id, $ahora->copy()->addHours(10));
 
         app(GeneradorNotificaciones::class)->ejecutar(umbralDias: 0, umbralHorasSla: 4);
 
         $this->assertSame(1, (int) DB::table('notificaciones')
             ->where('tipo', 'sla_en_riesgo')->count());
         $this->assertDatabaseHas('notificaciones', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'destinatario_usuario_id' => $gestor->id,
             'tipo' => 'sla_en_riesgo',
             'entidad_id' => $compId,
@@ -66,10 +64,10 @@ final class GeneradorSlaTest extends TestCase
         $ahora = Carbon::create(2026, 4, 18, 10, 0, 0);
         Carbon::setTestNow($ahora);
 
-        $proyectoId = $this->proyectoCxId();
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'ticket_cx')->value('id');
-        $this->crearCompromisoCx($proyectoId, $casoId, $gestor->id, $ahora->copy()->addHours(2));
+        $proyecto = $this->crearProyectoCx();
+        $gestor = $this->crearGestor($proyecto);
+        $casoId = $this->crearCasoEn($proyecto);
+        $this->crearCompromisoCx($proyecto, $casoId, (int) $gestor->id, $ahora->copy()->addHours(2));
 
         Artisan::call('notificaciones:generar', ['--horas-sla' => 4]);
         $this->assertSame(1, (int) DB::table('notificaciones')->where('tipo', 'sla_en_riesgo')->count());
@@ -82,10 +80,10 @@ final class GeneradorSlaTest extends TestCase
         $ahora = Carbon::create(2026, 4, 18, 10, 0, 0);
         Carbon::setTestNow($ahora);
 
-        $proyectoId = $this->proyectoCxId();
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'ticket_cx')->value('id');
-        $this->crearCompromisoCx($proyectoId, $casoId, $gestor->id, $ahora->copy()->addHours(2));
+        $proyecto = $this->crearProyectoCx();
+        $gestor = $this->crearGestor($proyecto);
+        $casoId = $this->crearCasoEn($proyecto);
+        $this->crearCompromisoCx($proyecto, $casoId, (int) $gestor->id, $ahora->copy()->addHours(2));
 
         $generador = app(GeneradorNotificaciones::class);
         $generador->ejecutar(umbralDias: 0, umbralHorasSla: 4);
@@ -106,16 +104,11 @@ final class GeneradorSlaTest extends TestCase
         $this->assertStringContainsString('horas-sla', $output);
     }
 
-    private function proyectoCxId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-    }
-
-    private function crearCompromisoCx(int $proyectoId, int $casoId, int $usuarioId, Carbon $fechaLimite): int
+    private function crearCompromisoCx(stdClass $proyecto, int $casoId, int $usuarioId, Carbon $fechaLimite): int
     {
         $compId = (int) DB::table('compromisos')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'caso_id' => $casoId,
             'gestion_origen_id' => null,
             'tipo_compromiso' => 'resolucion_ticket',
@@ -126,30 +119,12 @@ final class GeneradorSlaTest extends TestCase
 
         DB::table('compromisos_resolucion_ticket')->insert([
             'compromiso_id' => $compId,
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'nivel_escalamiento_id' => null,
             'accion_comprometida' => 'Resolver ticket de prueba',
             'fecha_limite_sla' => $fechaLimite->toDateTimeString(),
         ]);
 
         return $compId;
-    }
-
-    private function crearUsuarioConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

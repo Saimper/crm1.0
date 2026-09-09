@@ -61,15 +61,13 @@ final class SelectorProyecto extends Component
      */
     private function resolverProyectosIdsAccesibles(int $usuarioId): array
     {
-        $idsProyecto = DB::table('usuario_proyecto_rol as upr')
-            ->where('upr.usuario_id', $usuarioId)
-            ->where('upr.activo', true)
+        $idsProyecto = DB::table('proyectos as p')
+            ->whereIn('p.id', auth()->user()?->proyectosAsignados() ?? [])
             ->when(
                 $this->mandanteId !== null,
-                fn ($q) => $q->join('proyectos as p', 'p.id', '=', 'upr.proyecto_id')
-                    ->where('p.mandante_id', $this->mandanteId),
+                fn ($q) => $q->where('p.mandante_id', $this->mandanteId),
             )
-            ->pluck('upr.proyecto_id')
+            ->pluck('p.id')
             ->map(fn (mixed $v): int => (int) $v)
             ->all();
 
@@ -87,7 +85,16 @@ final class SelectorProyecto extends Component
             ->map(fn (mixed $v): int => (int) $v)
             ->all();
 
-        return array_values(array_unique([...$idsProyecto, ...$idsMandante]));
+        return DB::table('proyectos as p')
+            ->join('mandantes as m', 'm.id', '=', 'p.mandante_id')
+            ->whereIn('p.id', array_unique([...$idsProyecto, ...$idsMandante]))
+            ->where('p.activo', true)
+            ->whereNull('p.eliminada_en')
+            ->where('m.activo', true)
+            ->whereNull('m.eliminada_en')
+            ->pluck('p.id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
     }
 
     public function render(): View
@@ -99,6 +106,7 @@ final class SelectorProyecto extends Component
             ->join('mandantes as m', 'm.id', '=', 'p.mandante_id')
             ->whereNull('p.eliminada_en')
             ->where('p.activo', true)
+            ->where('m.activo', true)
             ->whereNull('m.eliminada_en')
             ->select([
                 'p.id',

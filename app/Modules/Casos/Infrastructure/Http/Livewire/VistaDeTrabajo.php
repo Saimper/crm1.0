@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
+use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
+use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,9 +34,59 @@ final class VistaDeTrabajo extends Component
         $this->casoPublicIdSeleccionado = $caso;
     }
 
+    public string $mensajeAsignacion = '';
+
+    /**
+     * Enseñar sólo lo que llegó a ser una conversación.
+     *
+     * Un caso con treinta intentos y dos contactos cuenta su historia en esos
+     * dos: el resto es ruido cuando lo que se busca es qué se habló la última
+     * vez. No se persiste en la URL porque es una lente momentánea, no un sitio
+     * al que volver.
+     */
+    public bool $soloEfectivas = false;
+
+    public function alternarSoloEfectivas(): void
+    {
+        $this->soloEfectivas = ! $this->soloEfectivas;
+    }
+
     public function seleccionarCaso(string $publicId): void
     {
         $this->casoPublicIdSeleccionado = $publicId;
+        $this->mensajeAsignacion = '';
+    }
+
+    /**
+     * El asesor toma la cuenta que tiene delante.
+     *
+     * Es la otra mitad de `AutoasignarCasoDesdeGestion`: aquel la asigna al
+     * registrar la gestión, este deja decirlo antes —el asesor que va a llamar
+     * quiere que la cuenta esté en su bandeja mientras la trabaja, no después—.
+     */
+    public function tomarCuenta(int $casoId, AutoasignarCaso $autoasignar): void
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $usuario = auth()->user();
+
+        abort_unless(
+            $usuario?->tienePermiso('asignaciones.autoasignarse', $proyectoId) === true,
+            403,
+            'No tienes permiso para tomar cuentas en este proyecto.',
+        );
+
+        try {
+            $autoasignar->execute(
+                proyectoId: $proyectoId,
+                casoId: $casoId,
+                usuarioId: (int) $usuario->id,
+                ahora: new DateTimeImmutable,
+                carterasPermitidas: $usuario->carterasPermitidas($proyectoId),
+            );
+            $this->mensajeAsignacion = __('casos.assign_taken');
+        } catch (AutoasignacionNoPermitida $e) {
+            $this->addError('asignacion', $e->getMessage());
+        }
     }
 
     #[On('gestion-registrada')]
@@ -104,16 +159,22 @@ final class VistaDeTrabajo extends Component
                 ->where('g.proyecto_id', $proyectoId)
                 ->where('g.caso_id', $casoActivo->id)
                 ->whereNull('g.eliminada_en')
+                ->when($this->soloEfectivas, fn ($q) => $q->where('r.es_contacto_efectivo', true))
                 ->select([
                     'g.id', 'g.public_id', 'g.creada_en', 'g.notas', 'g.duracion_segundos',
                     'r.nombre as resultado_nombre', 'r.codigo as resultado_codigo',
+                    'r.es_contacto_efectivo',
                     'tg.nombre as tipo_gestion_nombre',
                     'cn.nombre as canal_nombre',
                     'u.name as usuario_nombre',
                     'mnc.nombre as motivo_no_contacto_nombre',
                     'cg.nombre as causa_nombre',
                 ])
+                // Desempate por clave: dos gestiones del mismo segundo —una
+                // llamada y su nota, lo normal— se turnaban entre renders, y con
+                // el límite de 30 una podía entrar y salir de la lista.
                 ->orderByDesc('g.creada_en')
+                ->orderByDesc('g.id')
                 ->limit(30)
                 ->get();
 
@@ -230,7 +291,7 @@ final class VistaDeTrabajo extends Component
                     'cc.numero_prestamo', 'cc.moneda', 'cc.monto_original',
                     'cc.saldo_capital', 'cc.saldo_interes', 'cc.saldo_total',
                     'cc.cuota_mensual', 'cc.cuotas_totales', 'cc.cuotas_pagadas',
-                    'cc.dias_mora', 'cc.fecha_desembolso', 'cc.fecha_vencimiento',
+                    'cc.dias_mora', 'cc.dias_mora_confirmado_en', 'cc.fecha_desembolso', 'cc.fecha_vencimiento',
                     'tm.nombre as tramo_mora_nombre',
                 ])
                 ->first();
@@ -312,6 +373,76 @@ final class VistaDeTrabajo extends Component
             'compromisoActivo' => $compromisoActivo,
             'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,
+            'gruposCamposCaso' => $casoActivo === null ? [] : $this->camposDelCasoPorGrupo($casoActivo),
+            'duenioCaso' => $casoActivo === null ? null : $this->duenioDelCaso($proyectoId, (int) $casoActivo->id),
+            'puedeTomar' => $casoActivo !== null
+                && auth()->user()?->tienePermiso('asignaciones.autoasignarse', $proyectoId) === true
+                && app(AutoasignarCaso::class)->proyectoLoPermite($proyectoId),
         ]);
+    }
+
+    /**
+     * Nombre de quien tiene la cuenta, o null si no la ha tenido nadie.
+     *
+     * También cuenta la asignación cerrada: mientras exista, la cuenta no se
+     * puede volver a tomar (único `(proyecto_id, caso_id)`).
+     */
+    private function duenioDelCaso(int $proyectoId, int $casoId): ?string
+    {
+        $nombre = DB::table('asignaciones as a')
+            ->join('users as u', 'u.id', '=', 'a.usuario_id')
+            ->where('a.proyecto_id', $proyectoId)
+            ->where('a.caso_id', $casoId)
+            ->orderByDesc('a.id')
+            ->value('u.name');
+
+        return $nombre === null ? null : (string) $nombre;
+    }
+
+    /**
+     * Los campos personalizados del caso, en lectura y repartidos por grupo.
+     *
+     * Se leen aquí y se editan en «Editar caso». Estaban además como 34 inputs
+     * dentro del formulario de gestión, que era una segunda superficie de
+     * escritura sobre el mismo dato (§13.3) y por donde se borraban valores.
+     *
+     * El valor se formatea aquí, en una sola consulta para todo el caso: la
+     * alternativa era que la vista resolviera opciones y monedas campo a campo.
+     *
+     * @return list<array{nombre: string, campos: list<array{campo: object, valor: string|null}>}>
+     */
+    private function camposDelCasoPorGrupo(object $casoActivo): array
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        $campos = app(ServicioCamposPersonalizados::class)
+            ->campos($proyectoId, AmbitoCampo::CASO, (int) $casoActivo->cartera_id)
+            ->filter(fn (object $c): bool => (bool) $c->visible_en_gestion);
+
+        if ($campos->isEmpty()) {
+            return [];
+        }
+
+        $valores = app(ServicioCamposPersonalizados::class)->valoresSerializadosParaWriteback(
+            $proyectoId,
+            AmbitoCampo::CASO,
+            (int) $casoActivo->cartera_id,
+            (int) $casoActivo->id,
+        );
+
+        $grupos = [];
+        foreach ($campos as $campo) {
+            $nombre = (string) ($campo->grupo_nombre ?? __('casos.fields_ungrouped'));
+            $grupos[$nombre][] = [
+                'campo' => $campo,
+                'valor' => $valores[(string) $campo->codigo] ?? null,
+            ];
+        }
+
+        return array_map(
+            fn (string $nombre, array $campos): array => ['nombre' => $nombre, 'campos' => $campos],
+            array_keys($grupos),
+            $grupos,
+        );
     }
 }

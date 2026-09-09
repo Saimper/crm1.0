@@ -5,15 +5,27 @@ declare(strict_types=1);
 namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 
 use App\Support\Codigo\GeneradorCodigo;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
  * CRUD de equipos y gestión de miembros por proyecto.
- * Permiso: usuarios.gestionar (SUPERVISOR + ADMIN_GLOBAL via Gate::before).
+ *
+ * La ruta pide `usuarios.gestionar`, pero eso sólo protege la PÁGINA: cada
+ * acción es un POST aparte a /livewire/update que no vuelve a pasar por el
+ * middleware. Por eso cada método que escribe exige aquí el permiso de equipos
+ * que le toca —`equipos.crear`/`equipos.editar` para el alta y la edición,
+ * `equipos.administrar` para lo que quita (desactivar un equipo, sacar a un
+ * miembro)— y comprueba además que el equipo sea del proyecto activo.
+ *
+ * `equipos.eliminar` existe en el catálogo de permisos pero el seeder no se lo
+ * da a ningún rol, así que exigirlo dejaría la desactivación sin operador
+ * posible: se usa `equipos.administrar`, que es el que SUPERVISOR sí tiene.
  *
  * Defensas:
  *   - No admitir usuarios con rol ADMIN_GLOBAL como miembro.
@@ -22,8 +34,20 @@ use Livewire\Component;
  */
 final class AdminEquiposProyecto extends Component
 {
+    use AutorizaEnProyectoActivo;
+
     public bool $formEquipoVisible = false;
 
+    /**
+     * `#[Locked]` en los tres ids: los fija el servidor al abrir el formulario,
+     * al abrir el panel de miembros y al buscar por email. Sin esto, un
+     * `$wire.set('usuarioBuscadoId', N)` desde la consola metía en el equipo a
+     * cualquier usuario, saltándose los filtros de `buscarUsuario()` (ni
+     * ADMIN_GLOBAL ni "sin rol en el proyecto"), y un
+     * `$wire.set('equipoEditandoId', N)` reapuntaba el guardado al equipo de
+     * otro mandante.
+     */
+    #[Locked]
     public ?int $equipoEditandoId = null;
 
     public string $formCodigo = '';
@@ -34,30 +58,28 @@ final class AdminEquiposProyecto extends Component
 
     public bool $formActivo = true;
 
+    #[Locked]
     public ?int $gestionandoEquipoId = null;
 
     public string $buscarEmail = '';
 
+    #[Locked]
     public ?int $usuarioBuscadoId = null;
 
     public string $usuarioBuscadoNombre = '';
 
     public function abrirFormCrear(): void
     {
+        $this->autorizarEn('equipos.crear');
+
         $this->resetForm();
         $this->formEquipoVisible = true;
     }
 
     public function abrirFormEditar(int $equipoId): void
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
-        $row = DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)
-            ->where('id', $equipoId)
-            ->first();
-        if ($row === null) {
-            return;
-        }
+        $this->autorizarEn('equipos.editar');
+        $row = $this->filaDelProyecto('equipos', $equipoId);
 
         $this->equipoEditandoId = (int) $row->id;
         $this->formCodigo = (string) $row->codigo;
@@ -74,6 +96,13 @@ final class AdminEquiposProyecto extends Component
 
     public function guardarEquipo(): void
     {
+        // Alta y edición son permisos distintos, y el seeder los reparte por
+        // separado: se exige el que corresponde al camino que se va a tomar.
+        $this->autorizarEn($this->equipoEditandoId === null ? 'equipos.crear' : 'equipos.editar');
+        if ($this->equipoEditandoId !== null) {
+            $this->exigirDelProyecto('equipos', $this->equipoEditandoId);
+        }
+
         $this->validate([
             'formCodigo' => GeneradorCodigo::reglaValidacion(50),
             'formNombre' => ['required', 'string', 'max:150'],
@@ -120,6 +149,7 @@ final class AdminEquiposProyecto extends Component
             ]));
         } else {
             DB::table('equipos')
+                ->where('proyecto_id', $proyectoId)
                 ->where('id', $this->equipoEditandoId)
                 ->update($payload);
         }
@@ -129,24 +159,33 @@ final class AdminEquiposProyecto extends Component
 
     public function desactivar(int $equipoId): void
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        // Sacar un equipo de circulación no es editarlo: arrastra sus miembros
+        // y sus asignaciones. Va con `equipos.administrar`.
+        $this->autorizarEn('equipos.administrar');
+        $this->exigirDelProyecto('equipos', $equipoId);
+
         DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)
+            ->where('proyecto_id', $this->proyectoActivoId())
             ->where('id', $equipoId)
             ->update(['activo' => false]);
     }
 
     public function activar(int $equipoId): void
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $this->autorizarEn('equipos.administrar');
+        $this->exigirDelProyecto('equipos', $equipoId);
+
         DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)
+            ->where('proyecto_id', $this->proyectoActivoId())
             ->where('id', $equipoId)
             ->update(['activo' => true]);
     }
 
     public function gestionarMiembros(int $equipoId): void
     {
+        $this->autorizarEn('equipos.ver');
+        $this->exigirDelProyecto('equipos', $equipoId);
+
         $this->gestionandoEquipoId = $equipoId;
         $this->buscarEmail = '';
         $this->usuarioBuscadoId = null;
@@ -164,11 +203,15 @@ final class AdminEquiposProyecto extends Component
 
     public function buscarUsuario(): void
     {
+        // Es el primer paso de agregar un miembro y, de paso, un oráculo de
+        // "existe este email": se exige el mismo permiso que el alta.
+        $this->autorizarEn('equipos.editar');
+
         $this->validate([
             'buscarEmail' => ['required', 'email'],
         ]);
 
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $proyectoId = $this->proyectoActivoId();
         $email = strtolower(trim($this->buscarEmail));
 
         $user = DB::table('users')->where('email', $email)->first();
@@ -210,7 +253,10 @@ final class AdminEquiposProyecto extends Component
             return;
         }
 
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $this->autorizarEn('equipos.editar');
+        $this->exigirDelProyecto('equipos', $this->gestionandoEquipoId);
+
+        $proyectoId = $this->proyectoActivoId();
 
         DB::table('equipo_usuario')->insertOrIgnore([
             'equipo_id' => $this->gestionandoEquipoId,
@@ -230,7 +276,13 @@ final class AdminEquiposProyecto extends Component
         if ($this->gestionandoEquipoId === null) {
             return;
         }
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        // Quitar es la mitad destructiva de la pareja: `equipos.administrar`,
+        // no `equipos.editar`.
+        $this->autorizarEn('equipos.administrar');
+        $this->exigirDelProyecto('equipos', $this->gestionandoEquipoId);
+
+        $proyectoId = $this->proyectoActivoId();
 
         DB::table('equipo_usuario')
             ->where('proyecto_id', $proyectoId)

@@ -3,12 +3,12 @@
     {{-- Compromiso vigente alert (full-width arriba) --}}
     @if($compromisoActivo)
         <x-ui.alert tone="success" style="margin-bottom:16px;">
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="flex items-center flex-wrap gap-3">
                 <div>
-                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;color:var(--success-text);">
+                    <div class="text-xs uppercase-spaced font-semibold text-success-700">
                         {{ __('casos.active_commitment') }}
                     </div>
-                    <div style="font-size:14px;color:var(--text);font-weight:500;">
+                    <div class="text-md font-medium text-ink">
                         {{ __('casos.expires', ['date' => \Illuminate\Support\Carbon::parse($compromisoActivo->fecha_vencimiento)->format('d/m/Y')]) }}
                         @if(isset($compromisoActivo->promesa) && $compromisoActivo->promesa)
                             · <span class="font-mono">{{ $compromisoActivo->promesa->moneda }} {{ number_format((float) $compromisoActivo->promesa->monto, 2, '.', ',') }}</span>
@@ -28,7 +28,7 @@
                 <div class="alert-actions">
                     @can('compromisos.crear', $proyectoActivo->id)
                         <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
-                           wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                           wire:navigate class="btn btn-ghost btn-sm">
                             <x-ui.icon name="edit" :size="13" />
                             <span>{{ __('common.edit') }}</span>
                         </a>
@@ -53,35 +53,37 @@
         {{-- Col izquierda: identidad + selector casos + datos caso --}}
         <div class="vt-col-left">
             <x-ui.card>
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-                    <div style="min-width:0;">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div class="min-w-0">
                         <div class="label-xs">
                             {{ $persona->tipo_identificacion_codigo ?? 'ID' }}
                             · <span class="font-mono">{{ $persona->identificacion }}</span>
                         </div>
-                        <h2 style="font-size:18px;font-weight:600;color:var(--text);margin-top:4px;line-height:1.25;">
+                        <h2 class="font-semibold text-ink" style="font-size:18px;margin-top:4px;line-height:1.25;">
                             {{ $nombrePersona !== '' ? $nombrePersona : '—' }}
                         </h2>
-                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">
+                        <div class="text-xs text-ink-500" style="margin-top:4px;">
                             {{ ucfirst($persona->tipo_persona) }}
                             @if($persona->tipo_persona === 'fisica' && $persona->fecha_nacimiento)
                                 · {{ __('casos.born_abbrev') }} {{ \Illuminate\Support\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y') }}
                             @endif
                         </div>
                     </div>
-                    <div style="display:flex;gap:6px;">
+                    <div class="flex" style="gap:6px;">
                         @can('personas.editar', $proyectoActivo->id)
                             <a href="{{ route('proyectos.personas.editar', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                               wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                               wire:navigate class="btn btn-ghost btn-sm">
                                 <x-ui.icon name="edit" :size="14" />
                                 <span>{{ __('common.edit') }}</span>
                             </a>
                         @endcan
+                        @can('contactos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.personas.contactos', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                           wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                           wire:navigate class="btn btn-ghost btn-sm">
                             <x-ui.icon name="phone" :size="14" />
                             <span>{{ __('casos.contacts_button') }}</span>
                         </a>
+                        @endcan
                     </div>
                 </div>
 
@@ -89,31 +91,31 @@
                     <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;">
                         @foreach($contactos as $c)
                             <div style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;">
-                                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-                                    <span style="font-size:11px;font-weight:500;color:var(--text);">{{ ucfirst($c->tipo) }}</span>
+                                <div class="flex items-center justify-between" style="gap:6px;">
+                                    <span class="text-xs font-medium text-ink">{{ ucfirst($c->tipo) }}</span>
                                     @if($c->es_principal)
-                                        <span style="font-size:9px;text-transform:uppercase;color:var(--primary);font-weight:600;">{{ __('contactos.badge_principal') }}</span>
+                                        <span class="font-semibold text-brand-500" style="font-size:9px;text-transform:uppercase;">{{ __('contactos.badge_principal') }}</span>
                                     @endif
                                 </div>
-                                <div style="font-size:12px;color:var(--text-secondary);word-break:break-all;">{{ $c->valor }}</div>
+                                <div class="text-sm text-ink-600" style="word-break:break-all;">{{ $c->valor }}</div>
                             </div>
                         @endforeach
                     </div>
                 @endif
             </x-ui.card>
 
-            <x-ui.card :title="__('casos.cases_count', ['count' => $casos->count()])" style="margin-top:12px;">
+            <x-ui.card :title="__('casos.cases_count', ['count' => $casos->count(), 'entidades' => $rotuloCasos])" style="margin-top:12px;">
                 @can('casos.crear', $proyectoActivo->id)
                     <a href="{{ route('proyectos.casos.crear', ['proyecto_id' => $proyectoActivo->id, 'persona' => $persona->public_id]) }}"
-                       wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;text-decoration:none;">
+                       wire:navigate class="btn btn-primary btn-sm" style="margin-bottom:8px;">
                         <x-ui.icon name="plus" :size="13" />
-                        <span>{{ __('casos.new_case') }}</span>
+                        <span>{{ __('casos.new_case', ['entidad' => $rotuloCaso]) }}</span>
                     </a>
                 @endcan
                 @if($casos->isEmpty())
-                    <x-ui.empty-state :title="__('casos.no_open_cases')" :message="__('casos.no_open_cases_desc')" />
+                    <x-ui.empty-state :title="__('casos.no_open_cases', ['entidades' => $rotuloCasos])" :message="__('casos.no_open_cases_desc', ['entidades' => $rotuloCasos])" />
                 @else
-                    <div style="display:flex;flex-direction:column;gap:6px;margin:-4px -4px 0;">
+                    <div class="flex flex-col" style="gap:6px;margin:-4px -4px 0;">
                         @foreach($casos as $c)
                             @php
                                 $activo = $casoActivo && $c->public_id === $casoActivo->public_id;
@@ -126,18 +128,31 @@
                                 };
                             @endphp
                             <button type="button" wire:click="seleccionarCaso('{{ $c->public_id }}')"
-                                    style="text-align:left;padding:10px 8px;border-radius:6px;background:{{ $activo ? 'var(--primary-soft)' : 'transparent' }};border:1px solid {{ $activo ? 'var(--primary-soft-border)' : 'transparent' }};display:flex;align-items:center;gap:10px;cursor:pointer;width:100%;">
+                                    class="flex items-center"
+                                    style="text-align:left;padding:10px 8px;border-radius:6px;background:{{ $activo ? 'var(--primary-soft)' : 'transparent' }};border:1px solid {{ $activo ? 'var(--primary-soft-border)' : 'transparent' }};gap:10px;cursor:pointer;width:100%;">
                                 <x-ui.badge :tone="$tipoTone">{{ ucfirst(str_replace('_', ' ', $c->tipo_caso)) }}</x-ui.badge>
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-size:13px;font-weight:500;color:var(--text);">{{ $c->cartera_nombre }}</div>
-                                    <div style="font-size:11px;color:var(--text-tertiary);">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-base font-medium text-ink">{{ $c->cartera_nombre }}</div>
+                                    <div class="text-xs text-ink-500">
                                         {{ $c->estado_caso_nombre }}
                                         @if($c->tiene_compromiso_vigente)
-                                            · <span style="color:var(--success);font-weight:500;">{{ __('casos.active_commitment_label') }}</span>
+                                            · <span class="font-medium text-success-500">{{ __('casos.active_commitment_label') }}</span>
+                                        @endif
+                                    </div>
+                                    {{-- En qué punto está el caso. La consulta traía las dos
+                                         cosas desde siempre y ninguna vista las pintaba: para
+                                         saber si a esta persona se la llamó ayer y qué dijo,
+                                         había que bajar al historial. --}}
+                                    <div class="text-xs text-ink-400">
+                                        @if($c->fecha_ultima_gestion)
+                                            {{ $c->resultado_ultimo_nombre ?? __('casos.last_outcome_none') }}
+                                            · {{ hora_local($c->fecha_ultima_gestion, 'd/m/Y') }}
+                                        @else
+                                            {{ __('casos.last_outcome_never') }}
                                         @endif
                                     </div>
                                 </div>
-                                <div style="font-size:11px;color:var(--text-tertiary);text-align:right;">
+                                <div class="text-xs text-ink-500 text-right">
                                     {{ __('casos.prio_label', ['value' => $c->prioridad]) }}
                                 </div>
                             </button>
@@ -147,6 +162,33 @@
             </x-ui.card>
 
             @if($casoActivo)
+                {{-- Quién responde por esta cuenta. Si no es de nadie y el proyecto
+                     lo permite, el asesor la toma antes de empezar a trabajarla:
+                     así aparece en su bandeja mientras la gestiona, y no al
+                     terminar. --}}
+                @if($puedeTomar || $duenioCaso)
+                    <div class="flex items-center justify-between gap-2 mt-3">
+                        <div class="text-sm text-ink-500">
+                            {{ __('casos.assign_owner') }}:
+                            <strong class="text-ink">{{ $duenioCaso ?? __('casos.assign_unowned') }}</strong>
+                        </div>
+                        @if($puedeTomar && ! $duenioCaso)
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                    wire:click="tomarCuenta({{ (int) $casoActivo->id }})"
+                                    wire:loading.attr="disabled" wire:target="tomarCuenta">
+                                {{ __('casos.assign_take') }}
+                            </button>
+                        @endif
+                    </div>
+                @endif
+
+                @if($mensajeAsignacion !== '')
+                    <x-ui.alert tone="success" class="mt-2">{{ $mensajeAsignacion }}</x-ui.alert>
+                @endif
+                @error('asignacion')
+                    <x-ui.alert tone="danger" class="mt-2">{{ $message }}</x-ui.alert>
+                @enderror
+
                 {{-- Detalle del caso (panel tipo-específico) — ahora arriba del historial --}}
                 <div style="margin-top:12px;">
                     @if($casoActivo->tipo_caso === 'cobranza')
@@ -159,19 +201,47 @@
                         @include('servicio::partials.panel-caso', ['servicio' => $casoServicio])
                     @endif
                     @can('casos.editar', $proyectoActivo->id)
-                        <div style="margin-top:8px;text-align:right;">
+                        <div class="text-right" style="margin-top:8px;">
                             <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
-                               wire:navigate class="btn btn-ghost btn-sm" style="text-decoration:none;">
+                               wire:navigate class="btn btn-ghost btn-sm">
                                 <x-ui.icon name="edit" :size="13" />
-                                <span>{{ __('casos.edit_case') }}</span>
+                                <span>{{ __('casos.edit_case', ['entidad' => $rotuloCaso]) }}</span>
                             </a>
                         </div>
                     @endcan
                 </div>
 
+                {{-- Los datos de la cuenta, en lectura y plegados por grupo.
+                     Antes eran 34 inputs sueltos dentro del formulario de
+                     gestión —98 en el proyecto grande—, en una rejilla de tres
+                     columnas y sin agrupar. Aquí se leen, que es lo que el
+                     gestor hace con ellos mientras habla; editarlos es un clic
+                     y ocurre en la pantalla que ya existía para eso. --}}
+                @if($gruposCamposCaso !== [])
+                    <x-ui.card :title="__('casos.case_fields_title', ['entidad' => $rotuloCaso])" style="margin-top:12px;">
+                        <div class="flex flex-col" style="gap:2px;">
+                            @foreach($gruposCamposCaso as $i => $grupo)
+                                <details @if($i === 0) open @endif class="cp-grupo">
+                                    <summary class="flex items-center text-xs uppercase-spaced text-ink-600"
+                                             style="cursor:pointer;list-style:none;gap:6px;padding:6px 0;">
+                                        <x-ui.icon name="chevron-right" :size="12" class="cp-grupo-flecha" />
+                                        <span>{{ $grupo['nombre'] }}</span>
+                                        <span class="text-ink-500 font-normal">({{ count($grupo['campos']) }})</span>
+                                    </summary>
+                                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:4px 0 10px;">
+                                        @foreach($grupo['campos'] as $fila)
+                                            <x-cp.valor :campo="$fila['campo']" :valor="$fila['valor']" />
+                                        @endforeach
+                                    </div>
+                                </details>
+                            @endforeach
+                        </div>
+                    </x-ui.card>
+                @endif
+
                 @if(isset($compromisosResueltos) && $compromisosResueltos->isNotEmpty())
                     <x-ui.card :title="__('casos.resolved_commitments', ['count' => $compromisosResueltos->count()])" style="margin-top:12px;">
-                        <ul style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
+                        <ul class="flex flex-col text-sm" style="gap:6px;">
                             @foreach($compromisosResueltos as $c)
                                 @php
                                     $estadoTone = match ($c->estado) {
@@ -181,24 +251,24 @@
                                         default => 'neutral',
                                     };
                                 @endphp
-                                <li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
-                                    <div style="min-width:0;">
-                                        <div style="display:flex;align-items:center;gap:6px;">
+                                <li class="flex items-center justify-between gap-2" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center" style="gap:6px;">
                                             <x-ui.badge :tone="$estadoTone" size="sm">{{ ucfirst($c->estado) }}</x-ui.badge>
-                                            <span style="font-size:11px;color:var(--text-tertiary);">
+                                            <span class="text-xs text-ink-500">
                                                 {{ str_replace('_', ' ', $c->tipo_compromiso) }}
                                             </span>
                                         </div>
-                                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                                        <div class="text-xs text-ink-500" style="margin-top:2px;">
                                             {{ __('casos.expiry_label', ['date' => \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y')]) }}
                                         </div>
                                     </div>
-                                    <div style="font-size:11px;color:var(--text-secondary);text-align:right;">
+                                    <div class="text-xs text-ink-600 text-right">
                                         @if($c->fecha_resolucion)
                                             {{ __('casos.resolved_label') }}<br>
                                             <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
                                         @else
-                                            <span style="color:var(--text-tertiary);">{{ __('casos.no_date') }}</span>
+                                            <span class="text-ink-500">{{ __('casos.no_date') }}</span>
                                         @endif
                                     </div>
                                 </li>
@@ -237,7 +307,7 @@
                 </x-ui.card>
             @else
                 <x-ui.card>
-                    <x-ui.empty-state :title="__('casos.select_case_title')" :message="__('casos.select_case_desc')" />
+                    <x-ui.empty-state :title="__('casos.select_case_title', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo])" :message="__('casos.select_case_desc', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo])" />
                 </x-ui.card>
             @endif
         </div>
@@ -246,27 +316,38 @@
         <div class="vt-col-right">
             @if($casoActivo)
                 <x-ui.card :title="__('casos.history_title', ['count' => $historial->count()])">
+                    <x-slot:actions>
+                        <div class="flex items-center gap-1" title="{{ __('casos.history_effective_hint') }}">
+                            <button type="button" wire:click="alternarSoloEfectivas"
+                                    class="btn btn-sm {{ $soloEfectivas ? 'btn-ghost' : 'btn-secondary' }}"
+                                    @disabled(! $soloEfectivas)>{{ __('casos.history_all') }}</button>
+                            <button type="button" wire:click="alternarSoloEfectivas"
+                                    class="btn btn-sm {{ $soloEfectivas ? 'btn-secondary' : 'btn-ghost' }}"
+                                    @disabled($soloEfectivas)>{{ __('casos.history_effective') }}</button>
+                        </div>
+                    </x-slot:actions>
                     @if($historial->isEmpty())
                         <x-ui.empty-state :title="__('casos.no_gestions')" :message="__('casos.no_gestions_desc')" />
                     @else
                         <x-ui.timeline>
                             @foreach($historial as $g)
                                 @php
-                                    $tone = match (mb_strtolower((string) $g->resultado_nombre)) {
-                                        'contacto efectivo', 'promesa de pago', 'venta cerrada', 'resuelto' => 'success',
-                                        'sin contacto', 'no contesta'                                       => 'warning',
-                                        'rechazo', 'cancelado'                                              => 'danger',
-                                        default                                                             => 'neutral',
-                                    };
+                                    // El color sale de `resultados.es_contacto_efectivo`, que es
+                                    // lo que el proyecto declara de cada resultado. Antes salía de
+                                    // comparar el nombre en minúsculas contra una lista en
+                                    // español: un proyecto que llame «Contacto con tercero» a un
+                                    // resultado efectivo lo pintaba gris, y el catálogo es de cada
+                                    // mandante.
+                                    $tone = $g->es_contacto_efectivo ? 'success' : 'neutral';
                                 @endphp
                                 <x-ui.timeline-item
                                     :tone="$tone"
-                                    :timestamp="\Illuminate\Support\Carbon::parse($g->creada_en)->format('d/m/Y H:i')"
+                                    :timestamp="hora_local($g->creada_en)"
                                     :title="($g->resultado_nombre ?? '—') . ' · ' . ($g->tipo_gestion_nombre ?? '—')">
                                     @if($g->notas)
                                         <div style="margin-bottom:4px;">{{ $g->notas }}</div>
                                     @endif
-                                    <div style="font-size:11px;color:var(--text-tertiary);">
+                                    <div class="text-xs text-ink-500">
                                         {{ $g->canal_nombre ?? '—' }}
                                         · {{ $g->usuario_nombre ?? '—' }}
                                         @if($g->duracion_segundos)
@@ -274,7 +355,7 @@
                                         @endif
                                     </div>
                                     @if($g->motivo_no_contacto_nombre || $g->causa_nombre)
-                                        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;">
+                                        <div class="flex flex-wrap gap-1" style="margin-top:4px;">
                                             @if($g->motivo_no_contacto_nombre)
                                                 <x-ui.badge tone="warning" size="sm">{{ __('casos.no_contact_badge', ['motivo' => $g->motivo_no_contacto_nombre]) }}</x-ui.badge>
                                             @endif
@@ -286,10 +367,10 @@
 
                                     {{-- Valores de campos personalizados ámbito gestión × tipo_gestion. --}}
                                     @if(! empty($valoresCamposGestion[$g->id] ?? []))
-                                        <dl style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:11px;">
+                                        <dl class="text-xs" style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);display:grid;grid-template-columns:auto 1fr;gap:2px 8px;">
                                             @foreach($valoresCamposGestion[$g->id] as $cp)
-                                                <dt style="color:var(--text-tertiary);">{{ $cp['etiqueta'] }}</dt>
-                                                <dd style="color:var(--text);margin:0;">{{ $cp['valor'] }}</dd>
+                                                <dt class="text-ink-500">{{ $cp['etiqueta'] }}</dt>
+                                                <dd class="text-ink" style="margin:0;">{{ $cp['valor'] }}</dd>
                                             @endforeach
                                         </dl>
                                     @endif
@@ -300,7 +381,7 @@
                 </x-ui.card>
             @else
                 <x-ui.card :title="__('casos.custom_fields_panel')">
-                    <x-ui.empty-state :title="__('casos.no_active_case')" :message="__('casos.no_active_case_desc')" />
+                    <x-ui.empty-state :title="__('casos.no_active_case')" :message="__('casos.no_active_case_desc', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo])" />
                 </x-ui.card>
             @endif
         </div>

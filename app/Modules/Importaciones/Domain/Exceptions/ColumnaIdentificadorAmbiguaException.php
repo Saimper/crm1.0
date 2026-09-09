@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Domain\Exceptions;
 
-class ColumnaIdentificadorAmbiguaException extends \DomainException
+class ColumnaIdentificadorAmbiguaException extends \DomainException implements MensajeAptoParaPantalla
 {
     public function __construct()
     {

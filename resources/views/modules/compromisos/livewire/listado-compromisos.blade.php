@@ -10,8 +10,8 @@
         </div>
     </div>
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <div class="card">
+        <x-ui.toolbar :count="__('compromisos.results', ['count' => $compromisos->total()])">
             <select wire:model.live="estado" class="input" style="width:160px;">
                 <option value="">{{ __('compromisos.all_states') }}</option>
                 <option value="pendiente">{{ __('compromisos.state_pending') }}</option>
@@ -35,9 +35,18 @@
             @if($estado !== '' || $vencimiento !== '' || $tipoCompromiso !== '')
                 <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('compromisos.clear_filters') }}</button>
             @endif
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('compromisos.results', ['count' => $compromisos->total()]) }}</span>
-        </div>
+            @can('compromisos.exportar', (int) app('tenancy.proyecto_activo')->id)
+                {{-- Sin wire:navigate: es una descarga, no una pantalla. El href lleva los filtros puestos. --}}
+                <a href="{{ $urlExportar }}" class="btn btn-secondary btn-sm">
+                    <x-ui.icon name="download" :size="13" />
+                    {{ __('compromisos.export_csv') }}
+                </a>
+            @endcan
+        </x-ui.toolbar>
+
+        {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($compromisos->isEmpty())
             <div class="empty">
@@ -69,7 +78,7 @@
                                 'cumplido' => 'success',
                                 'roto' => 'danger',
                                 'cancelado' => 'neutral',
-                                'pendiente' => $c->fecha_vencimiento < now()->format('Y-m-d') ? 'danger' : 'warning',
+                                'pendiente' => $c->fecha_vencimiento < $hoy ? 'danger' : 'warning',
                                 default => 'neutral',
                             };
                             $url = $c->persona_public_id
@@ -81,9 +90,9 @@
                                 : null;
                         @endphp
                         <tr wire:key="comp-{{ $c->id }}"
-                            @if($url) onclick="window.Livewire.navigate('{{ $url }}')" style="cursor:pointer;" @endif>
+                            @if($url) onclick="window.Livewire.navigate('{{ $url }}')" @endif>
                             <td>
-                                <span style="font-size:11px;">
+                                <span class="text-xs">
                                     {{ str_replace('_', ' ', $c->tipo_compromiso) }}
                                 </span>
                             </td>
@@ -92,18 +101,18 @@
                                     {{ ucfirst($c->estado) }}
                                 </x-ui.badge>
                             </td>
-                            <td><span style="font-weight:500;">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
-                            <td><span class="font-mono" style="font-size:12px;">{{ $c->identificacion }}</span></td>
-                            <td style="font-size:12px;color:var(--text-secondary);">{{ $c->usuario_nombre ?? '—' }}</td>
-                            <td style="font-size:12px;">
+                            <td><span class="font-medium">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $c->identificacion }}</span></td>
+                            <td class="text-sm text-ink-600">{{ $c->usuario_nombre ?? '—' }}</td>
+                            <td class="text-sm">
                                 {{ $c->fecha_vencimiento ? \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y') : '—' }}
                             </td>
-                            <td style="font-size:12px;color:var(--text-secondary);">
+                            <td class="text-sm text-ink-600">
                                 {{ $c->fecha_resolucion ? \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') : '—' }}
                             </td>
-                            <td>
+                            <td class="text-ink-400">
                                 @if($url)
-                                    <x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" />
+                                    <x-ui.icon name="chevron-right" :size="14" />
                                 @endif
                             </td>
                         </tr>
@@ -111,7 +120,7 @@
                 </tbody>
             </table>
 
-            <div style="padding:10px 16px;border-top:1px solid var(--border);">
+            <div class="card-footer">
                 {{ $compromisos->links() }}
             </div>
         @endif

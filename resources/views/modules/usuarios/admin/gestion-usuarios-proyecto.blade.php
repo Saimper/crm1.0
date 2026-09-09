@@ -7,9 +7,9 @@
     @endif
 
     <div class="flex items-center justify-between">
-        <div style="font-size:12px;color:var(--text-tertiary);">
+        <div class="text-sm text-ink-500">
             {{ __('usuarios.users_count_label') }}
-            <span class="tnum" style="font-weight:600;color:var(--text);">{{ $asignaciones->count() }}</span>
+            <span class="tnum font-semibold" style="color:var(--text);">{{ $asignaciones->count() }}</span>
         </div>
         <button type="button" wire:click="abrirFormAsignar" class="btn btn-primary btn-sm">
             <x-ui.icon name="plus" :size="13" />
@@ -33,7 +33,7 @@
                     <div class="flex items-start justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-2">
-                                <div style="font-weight:600;color:var(--text);">{{ $primero->name }}</div>
+                                <div class="font-semibold">{{ $primero->name }}</div>
                                 @if(! $primero->usuario_activo)
                                     <span class="badge badge-neutral">{{ __('usuarios.badge_inactive_user') }}</span>
                                 @endif
@@ -59,7 +59,7 @@
                                             : "quitar({$a->usuario_id}, {$a->rol_id})";
                                     @endphp
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="badge {{ $rolBadge }}" style="font-weight:600;gap:6px;">
+                                        <span class="badge {{ $rolBadge }} font-semibold" style="gap:6px;">
                                             @if($esCustom)<span style="font-size:9px;opacity:0.8;">{{ __('usuarios.badge_custom') }}</span>@endif
                                             {{ $a->rol_codigo }}
                                             <button type="button"
@@ -97,7 +97,7 @@
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
-            <div style="padding:20px;">
+            <div class="card-pad">
                 <div class="field">
                     <label class="field-label">{{ __('usuarios.label_user_email_modal') }}</label>
                     <div class="flex items-center gap-2">
@@ -139,7 +139,7 @@
                     @php $esRolCustom = str_starts_with($rolAsignarValor, 'custom:'); @endphp
 
                     @if($esRolCustom)
-                        <div class="alert alert-info" style="font-size:12px;">
+                        <div class="alert alert-info text-sm">
                             {{ __('usuarios.info_custom_role') }}
                         </div>
                     @endif
@@ -152,9 +152,9 @@
                             </div>
                             <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:8px;">
                                 @foreach($carterasDelProyecto as $c)
-                                    <label class="flex items-center gap-2" style="font-size:12px;padding:3px 0;">
+                                    <label class="flex items-center gap-2 text-sm" style="padding:3px 0;">
                                         <input type="checkbox" value="{{ $c->id }}" wire:model="carterasSeleccionadas" class="checkbox"/>
-                                        <span class="font-mono" style="color:var(--text-tertiary);">{{ $c->codigo }}</span>
+                                        <span class="font-mono text-ink-500">{{ $c->codigo }}</span>
                                         <span>{{ $c->nombre }}</span>
                                     </label>
                                 @endforeach

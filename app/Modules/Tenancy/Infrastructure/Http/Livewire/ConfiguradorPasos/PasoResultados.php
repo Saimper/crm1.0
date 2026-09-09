@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
+use stdClass;
 
 /**
  * Paso 5 del wizard F36 — CRUD de resultados del proyecto.
@@ -239,6 +240,114 @@ final class PasoResultados extends Component
         $this->dispatch('configuracion-paso-completado');
     }
 
+    // -----------------------------------------------------------------
+    // Plantillas de nota
+    // -----------------------------------------------------------------
+
+    /** @var array<string, mixed> */
+    public array $plantilla = ['etiqueta' => '', 'texto' => '', 'resultado_id' => null];
+
+    /**
+     * Crea una frase hecha para el campo de notas.
+     *
+     * Con resultado, sale sólo bajo ese resultado, que es cuando ahorra
+     * escribir de verdad. Sin él, sale siempre.
+     */
+    public function crearPlantilla(): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $proyectoId = (int) $this->proyecto->id;
+
+        $this->validate([
+            'plantilla.etiqueta' => ['required', 'string', 'max:60'],
+            'plantilla.texto' => ['required', 'string', 'max:500'],
+            'plantilla.resultado_id' => ['nullable', 'integer', Rule::exists('resultados', 'id')
+                ->where('proyecto_id', $proyectoId)],
+        ], [], [
+            'plantilla.etiqueta' => 'etiqueta',
+            'plantilla.texto' => 'texto',
+            'plantilla.resultado_id' => 'resultado',
+        ]);
+
+        $siguiente = (int) DB::table('plantillas_nota')->where('proyecto_id', $proyectoId)->max('orden');
+
+        DB::table('plantillas_nota')->insert([
+            'proyecto_id' => $proyectoId,
+            'resultado_id' => $this->plantilla['resultado_id'] === null || $this->plantilla['resultado_id'] === ''
+                ? null
+                : (int) $this->plantilla['resultado_id'],
+            'etiqueta' => trim((string) $this->plantilla['etiqueta']),
+            'texto' => trim((string) $this->plantilla['texto']),
+            'activo' => true,
+            'orden' => $siguiente + 10,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+
+        $this->plantilla = ['etiqueta' => '', 'texto' => '', 'resultado_id' => null];
+    }
+
+    public function eliminarPlantilla(int $id): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        DB::table('plantillas_nota')
+            ->where('id', $id)
+            ->where('proyecto_id', (int) $this->proyecto->id)
+            ->delete();
+    }
+
+    // -----------------------------------------------------------------
+    // Matriz tipo de gestión × resultado
+    // -----------------------------------------------------------------
+
+    /**
+     * Marca o desmarca que un tipo de gestión admita un resultado.
+     *
+     * Es una lista blanca de pares, de la misma clase que las banderas
+     * `requiere_compromiso` y `requiere_causa` que ya son configurables por
+     * proyecto: no ejecuta lógica de usuario. La línea a no cruzar es la
+     * siguiente —«si el resultado es X entonces el campo Y es obligatorio»—,
+     * que sería un motor de reglas y §13.14 lo prohíbe.
+     */
+    public function alternarCombinacion(int $tipoGestionId, int $resultadoId): void
+    {
+        $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
+
+        $proyectoId = (int) $this->proyecto->id;
+
+        // Las dos puntas tienen que ser de este proyecto: los ids llegan del
+        // payload y `proyecto_id` en la tabla no sirve de nada si no se mira.
+        $tipoValido = DB::table('tipos_gestion')->where('id', $tipoGestionId)->where('proyecto_id', $proyectoId)->exists();
+        $resultadoValido = DB::table('resultados')->where('id', $resultadoId)->where('proyecto_id', $proyectoId)->exists();
+
+        if (! $tipoValido || ! $resultadoValido) {
+            abort(403, 'Ese tipo de gestión o ese resultado no son de este proyecto.');
+        }
+
+        $existente = DB::table('resultado_tipo_gestion')
+            ->where('proyecto_id', $proyectoId)
+            ->where('tipo_gestion_id', $tipoGestionId)
+            ->where('resultado_id', $resultadoId)
+            ->first(['id']);
+
+        if ($existente !== null) {
+            DB::table('resultado_tipo_gestion')->where('id', $existente->id)->delete();
+
+            return;
+        }
+
+        DB::table('resultado_tipo_gestion')->insert([
+            'proyecto_id' => $proyectoId,
+            'tipo_gestion_id' => $tipoGestionId,
+            'resultado_id' => $resultadoId,
+            'orden' => 0,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ]);
+    }
+
     public function render(): View
     {
         $proyectoId = (int) $this->proyecto->id;
@@ -274,6 +383,19 @@ final class PasoResultados extends Component
             ->get(['id', 'codigo', 'nombre']);
 
         return view('livewire.tenancy.configurador-pasos.paso-resultados', [
+            'plantillas' => DB::table('plantillas_nota as p')
+                ->leftJoin('resultados as r', 'r.id', '=', 'p.resultado_id')
+                ->where('p.proyecto_id', $proyectoId)
+                ->orderBy('p.orden')->orderBy('p.id')
+                ->get(['p.id', 'p.etiqueta', 'p.texto', 'r.nombre as resultado_nombre']),
+            'tiposGestion' => DB::table('tipos_gestion')
+                ->where('proyecto_id', $proyectoId)->where('activo', true)
+                ->orderBy('orden')->orderBy('id')->get(['id', 'codigo', 'nombre']),
+            'combinaciones' => DB::table('resultado_tipo_gestion')
+                ->where('proyecto_id', $proyectoId)
+                ->get(['tipo_gestion_id', 'resultado_id'])
+                ->map(fn (stdClass $c): string => $c->tipo_gestion_id.'-'.$c->resultado_id)
+                ->flip(),
             'resultados' => $resultados,
             'estadosTerminales' => $estadosTerminales,
         ]);

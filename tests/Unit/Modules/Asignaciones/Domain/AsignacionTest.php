@@ -26,7 +26,6 @@ final class AsignacionTest extends TestCase
         Asignacion::registrar(
             publicId: '01HXASIG0000000000000ASIG01',
             proyectoId: 1,
-            campanaId: 2,
             casoId: 3,
             usuarioId: 4,
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),
@@ -56,7 +55,6 @@ final class AsignacionTest extends TestCase
         return Asignacion::registrar(
             publicId: '01HXASIG0000000000000ASIG02',
             proyectoId: 1,
-            campanaId: 2,
             casoId: 3,
             usuarioId: 4,
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),

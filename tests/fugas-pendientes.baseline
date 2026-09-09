@@ -1,0 +1,63 @@
+# Fugas multi-mandante conocidas y todavía sin cerrar.
+#
+# El grupo `fuga-pendiente` son tests escritos a propósito para fallar: cada uno
+# documenta un agujero real de aislamiento entre mandantes que sigue abierto en
+# producción. `phpunit.xml` los excluye del run por defecto para que la suite del
+# día a día sea utilizable, y hasta ahora eso significaba que nadie los veía.
+#
+# Este número es un trinquete. El job `fugas` del CI ejecuta el grupo y compara:
+#
+#   fallos actuales  >  este número  →  el build se rompe (has abierto una fuga nueva)
+#   fallos actuales  <  este número  →  el build pasa y te pide bajar el número
+#   fallos actuales  == este número  →  el build pasa
+#
+# La única forma de subirlo es a mano y con explicación en el PR. Bajarlo es la
+# tarea; llegar a 0 es el objetivo, y entonces se borra la exclusión de
+# phpunit.xml y el grupo pasa a correr con el resto.
+#
+# Medido el 2026-09-08 sobre feat/vista-de-trabajo-rediseno: 23 fallos, 2 pasan.
+#
+# 2026-09-09 · 23 -> 20. Acotar el PAT del wrapper (habilidades explícitas,
+# caducidad y mandante en el nombre del token) cerró las tres fugas de
+# integración: comodín, sin expiración y sin atribución.
+#
+# 2026-09-08 · 20 -> 16. Fase 3, primera mitad: el scope de proyecto pasa a
+# fallar CERRADO (`tenancy.scope_estricto` encendido por defecto) y el trait
+# gana un guardia de ESCRITURA, que es otra cosa —el global scope sólo toca los
+# SELECT, así que con un proyecto activo se podía insertar dentro de otro sin
+# más que decir su id—. Los cuatro tests que documentaban esas fugas dejan de
+# estar en el grupo: ya no describen un agujero, describen la garantía.
+#
+# 2026-09-08 · 16 -> 11. Fase 3, el SSO. El PAT del wrapper lleva ahora su
+# mandante como habilidad y la ficha de persona lo comprueba —antes sólo miraba
+# el acceso al proyecto, así que un asesor que trabaja para dos clientes leía
+# fichas del segundo con el token del primero—; el espacio anti-replay de `jti`
+# pasa a ser de cada cliente, porque el identificador lo elige el wrapper y uno
+# podía agotarle los accesos al otro; y dar de baja a un mandante revoca sus
+# tokens y además se comprueba en cada petición, que la baja puede llegar por
+# un camino que no sea el botón. Los ocho tests del fichero salen del grupo.
+#
+# 2026-09-08 · 11 -> 4. Fase 4, la administración. Dos agujeros que no eran de
+# datos sino de rastro y de retirada. (1) Lo que un administrador hace con las
+# cuentas y con los accesos —altas, cambios de correo, roles sobre el proyecto
+# de un cliente, el rol global— no dejaba constancia: la mitad de esas acciones
+# escribe en pivotes sin modelo, que ningún observer Eloquent ve pasar. Ahora lo
+# registra `RegistroDeAccionesAdministrativas`, enumerando lo que guarda en vez
+# de fotografiar la fila entera, que en `users` significaría copiar el hash de
+# la contraseña a un registro inmutable. Y el listado de auditoría se acota al
+# mandante de quien mira. (2) No existía retirar un proyecto: `desactivar()` lo
+# pausa pero lo deja visible en toda la administración. `archivar()` lo saca de
+# los tres caminos por los que se alcanza —listado, selector y URL— sin borrar
+# una sola fila.
+# 2026-09-08 · 4 -> 0. Cerrada la última: las cuatro fugas del listado de
+# auditoría llevaban meses en rojo por una avería del arnés y no del código
+# —`idsDe()` no sabía leer un paginador y reventaba antes de llegar a su
+# aserción—, así que lo que documentaban ya estaba cerrado desde la Fase 3 de
+# las pantallas de administración.
+#
+# El grupo se queda sin miembros. Los tests que lo componían no se borran: dejan
+# de describir un agujero y pasan a describir la garantía que lo tapa, y corren
+# con el resto de la suite —`phpunit.xml` ya no los excluye—. Este fichero se
+# queda como lo que fue: el registro de veintitrés agujeros de aislamiento y de
+# en qué orden se cerraron.
+0

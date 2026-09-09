@@ -2,16 +2,17 @@
 
 use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaController;
 use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaMandanteController;
+use App\Modules\Casos\Infrastructure\Http\Controllers\ExportarCasosController;
+use App\Modules\Compromisos\Infrastructure\Http\Controllers\ExportarCompromisosController;
+use App\Modules\Gestiones\Infrastructure\Http\Controllers\ExportarGestionesController;
+use App\Modules\Importaciones\Infrastructure\Http\Controllers\DescargarFilasRechazadasController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\DescargarPlantillaImportacionController;
-use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCasosController;
-use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarCompromisosController;
-use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarGestionesController;
-use App\Modules\Importaciones\Infrastructure\Http\Controllers\ExportarPersonasController;
+use App\Modules\Personas\Infrastructure\Http\Controllers\ExportarPersonasController;
 use App\Modules\Reportes\Infrastructure\Http\Controllers\ExportarReporteController;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin');
+Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::view('dashboard', 'dashboard')->name('dashboard');
@@ -25,9 +26,25 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:personas.ver')
                 ->name('proyectos.personas.lista');
 
+            // Exportaciones desde los listados (ola 04). Permiso propio por
+            // módulo —exportar es sacar datos, no verlos— y los mismos filtros
+            // que la pantalla. Van antes que las rutas con {persona}/{caso}/
+            // {compromiso} de su prefijo para que «exportar» no se lea como id.
+            Route::get('/personas/exportar', ExportarPersonasController::class)
+                ->middleware('can:personas.exportar')
+                ->name('proyectos.personas.exportar');
+
             Route::view('/casos', 'casos::listado-page')
                 ->middleware('can:casos.ver')
                 ->name('proyectos.casos.lista');
+
+            Route::get('/casos/exportar', ExportarCasosController::class)
+                ->middleware('can:casos.exportar')
+                ->name('proyectos.casos.exportar');
+
+            Route::get('/gestiones/exportar', ExportarGestionesController::class)
+                ->middleware('can:gestiones.exportar')
+                ->name('proyectos.gestiones.exportar');
 
             Route::view('/casos/crear', 'casos::crear-caso-page')
                 ->middleware('can:casos.crear')
@@ -42,6 +59,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::view('/compromisos', 'compromisos::listado-page')
                 ->middleware('can:compromisos.ver')
                 ->name('proyectos.compromisos.lista');
+
+            Route::get('/compromisos/exportar', ExportarCompromisosController::class)
+                ->middleware('can:compromisos.exportar')
+                ->name('proyectos.compromisos.exportar');
 
             Route::get('/compromisos/{compromiso}/editar', fn (int $proyecto_id, string $compromiso) => view('compromisos::editar-page', [
                 'compromiso' => $compromiso,
@@ -59,9 +80,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:personas.editar')
                 ->name('proyectos.personas.editar');
 
+            // `contactos.ver` y no `personas.ver`: la pantalla enseña teléfonos y
+            // correos, que es el dato de contacto en sí. Era la única ruta de
+            // proyecto que no pedía ningún permiso, así que bastaba con tener
+            // acceso al proyecto para leerlos.
             Route::get('/personas/{persona}/contactos', fn (int $proyecto_id, string $persona) => view('contactos::lista-page', [
                 'persona' => $persona,
-            ]))->name('proyectos.personas.contactos');
+            ]))
+                ->middleware('can:contactos.ver')
+                ->name('proyectos.personas.contactos');
 
             Route::view('/bandeja', 'asignaciones::bandeja-page')
                 ->middleware('can:asignaciones.ver_propia')
@@ -123,30 +150,19 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones');
 
+            // `{importacion}` es el public_id (ulid), nunca el id interno (§4).
+            // `importaciones.crear` y no `.ver`: quien pudo subir el archivo ya
+            // tenía su contenido, y `.ver` hoy no abre ninguna puerta.
+            Route::get('/importaciones/{importacion}/rechazadas',
+                DescargarFilasRechazadasController::class)
+                ->middleware('can:importaciones.crear')
+                ->where('importacion', '[0-9A-Za-z]{26}')
+                ->name('proyectos.importaciones.rechazadas');
+
             Route::get('/importaciones/plantilla',
                 DescargarPlantillaImportacionController::class)
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.plantilla');
-
-            Route::get('/importaciones/personas/exportar',
-                ExportarPersonasController::class)
-                ->middleware('can:importaciones.crear')
-                ->name('proyectos.importaciones.exportar-personas');
-
-            Route::get('/importaciones/casos/exportar',
-                ExportarCasosController::class)
-                ->middleware('can:importaciones.crear')
-                ->name('proyectos.importaciones.exportar-casos');
-
-            Route::get('/importaciones/gestiones/exportar',
-                ExportarGestionesController::class)
-                ->middleware('can:importaciones.crear')
-                ->name('proyectos.importaciones.exportar-gestiones');
-
-            Route::get('/importaciones/compromisos/exportar',
-                ExportarCompromisosController::class)
-                ->middleware('can:importaciones.crear')
-                ->name('proyectos.importaciones.exportar-compromisos');
 
             // /proyectos/{id}/catalogos y /carteras eliminadas en F36 P9 — los flujos
             // de definición se centralizaron en el wizard "Configurar proyecto".

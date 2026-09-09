@@ -2,13 +2,14 @@
 
 return [
     // Panel caso cobranza
-    'panel_label' => 'Collection case · Loan',
+    'panel_label' => 'Collection account · Loan',
     'saldo_total' => 'Total balance',
     'saldo_capital' => 'Principal balance',
     'saldo_interes' => 'Interest balance',
     'cuota_mensual' => 'Monthly payment',
     'cuotas' => 'Installments',
     'dias_mora' => 'Days overdue',
+    'dias_mora_confirmado_el' => 'delinquency last confirmed on :fecha',
     'monto_original' => 'Original amount',
     'desembolso' => 'Disbursement',
     'vencimiento' => 'Due date',

@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Application\UseCases;
 
+use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
-use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoFila;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
+use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Domain\Exceptions\FalloDeImportacion;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoEncontrada;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoProcesable;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use Throwable;
 
 /**
@@ -22,6 +27,12 @@ use Throwable;
  *
  * Procesa filas en chunks, llama a obtenerMapaCampos() UNA vez por chunk,
  * acumula valores de CP y llama a guardarValoresEnLote() UNA vez por chunk.
+ *
+ * Todo lo que pueda fallar —desde leer la importación hasta el último lote—
+ * va dentro de UN try/catch: la importación se marca fallida con un motivo
+ * apto para pantalla y lo que sale de aquí es `FalloDeImportacion`, sin la
+ * excepción original detrás. Antes cada capa reescribía `error_global` con
+ * `getMessage()` y el INSERT con los datos del cliente acababa en la columna.
  */
 final readonly class EjecutarImportacionDinamica
 {
@@ -29,36 +40,82 @@ final readonly class EjecutarImportacionDinamica
         private ProcesarFilaDinamica $procesarFila,
         private CampoPersonalizadoImportacionRepository $cpRepo,
         private ConnectionInterface $db,
+        private DescriptorDeFalloImportacion $descriptor,
     ) {}
 
     /**
      * @return array{procesadas: int, insertadas: int, actualizadas: int, invalidas: int, omitidas: int, duplicadas: int}
+     *
+     * @throws FalloDeImportacion
      */
     public function execute(EjecutarImportacionInput $input): array
+    {
+        $proyectoId = null;
+        $lote = 0;
+
+        try {
+            return $this->procesar($input, $proyectoId, $lote);
+        } catch (Throwable $e) {
+            $fallo = $this->descriptor->describir($e, [
+                'importacion_id' => $input->importacionId,
+                'proyecto_id' => $proyectoId,
+                'lote' => $lote,
+            ]);
+
+            $this->db->table('importaciones')
+                ->where('id', $input->importacionId)
+                ->update([
+                    'estado' => EstadoImportacion::FALLIDA->value,
+                    'error_global' => $fallo->motivo,
+                    'terminado_en' => CarbonImmutable::now(),
+                ]);
+
+            throw FalloDeImportacion::desde($fallo);
+        }
+    }
+
+    /**
+     * `$proyectoId` y `$lote` van por referencia para que el catch de arriba
+     * pueda decir en qué proyecto y en qué lote (el ordinal del chunk) se rompió.
+     *
+     * @param-out int $proyectoId
+     *
+     * @return array{procesadas: int, insertadas: int, actualizadas: int, invalidas: int, omitidas: int, duplicadas: int}
+     */
+    private function procesar(EjecutarImportacionInput $input, ?int &$proyectoId, int &$lote): array
     {
         $importacion = $this->db->table('importaciones')
             ->where('id', $input->importacionId)
             ->first();
 
         if ($importacion === null) {
-            throw new \RuntimeException("Importación {$input->importacionId} no encontrada.");
+            throw ImportacionNoEncontrada::conId($input->importacionId);
         }
+
+        $proyectoId = (int) $importacion->proyecto_id;
 
         // PREPARADA: ejecución directa. PROCESANDO: ya fue marcada por EncolarImportacion
         // al despachar el job (o el worker reanuda tras un corte); el job serializa con GET_LOCK.
         $estado = EstadoImportacion::from((string) $importacion->estado);
         if (! in_array($estado, [EstadoImportacion::PREPARADA, EstadoImportacion::PROCESANDO], true)) {
-            throw new \RuntimeException(
-                "La importación está en estado {$estado->value}, se requiere PREPARADA o PROCESANDO."
-            );
+            throw ImportacionNoProcesable::enEstado($estado);
         }
 
         if ($importacion->esquema === null) {
-            throw new \RuntimeException('La importación no tiene esquema configurado.');
+            throw ImportacionNoProcesable::sinEsquema();
         }
 
-        $esquema = EsquemaImportacion::deserializar((string) $importacion->esquema);
-        $proyectoId = (int) $importacion->proyecto_id;
+        try {
+            $esquema = EsquemaImportacion::deserializar((string) $importacion->esquema);
+        } catch (InvalidArgumentException $e) {
+            throw ImportacionNoProcesable::esquemaMalformado($e->getMessage());
+        }
+
+        // La columna `importaciones.modo` es la última palabra del supervisor:
+        // la escribe `marcarComoEncolada` con lo elegido en el paso 3. El JSON
+        // se guardó al terminar el paso 2, cuando el modo aún era el de por
+        // defecto, y leerlo de ahí fue lo que hizo que todo corriera como upsert.
+        $esquema = $esquema->conModo(ModoImportacion::from((string) $importacion->modo));
         $carteraId = $esquema->carteraId;
 
         $this->db->table('importaciones')
@@ -68,7 +125,6 @@ final readonly class EjecutarImportacionDinamica
                 'iniciado_en' => CarbonImmutable::now(),
             ]);
 
-        $offset = 0;
         $totalProcesadas = 0;
         $totalInsertadas = 0;
         $totalActualizadas = 0;
@@ -76,12 +132,20 @@ final readonly class EjecutarImportacionDinamica
         $totalOmitidas = 0;
         $totalDuplicadas = 0;
 
+        // Cursor por `numero_fila` y sólo filas pendientes, en vez de OFFSET:
+        // el worker que reanuda tras un corte no vuelve a pasar por lo ya
+        // procesado, y el salto no se paga leyendo y descartando N filas por
+        // chunk. El cursor además cierra el bucle aunque una fila quedara
+        // pendiente por lo que fuera: sin él, esa fila se releería sin fin.
+        $ultimoNumeroFila = 0;
+
         while (true) {
             $filas = ImportacionFilaModel::query()
                 ->sinScopeProyecto()
                 ->where('importacion_id', $input->importacionId)
+                ->where('estado', EstadoFila::PENDIENTE->value)
+                ->where('numero_fila', '>', $ultimoNumeroFila)
                 ->orderBy('numero_fila')
-                ->offset($offset)
                 ->limit($input->chunkSize)
                 ->get();
 
@@ -89,112 +153,101 @@ final readonly class EjecutarImportacionDinamica
                 break;
             }
 
-            try {
-                $this->db->transaction(function () use (
-                    $filas,
-                    $esquema,
-                    $proyectoId,
-                    $carteraId,
-                    &$totalProcesadas,
-                    &$totalInsertadas,
-                    &$totalActualizadas,
-                    &$totalInvalidas,
-                    &$totalOmitidas,
-                    &$totalDuplicadas,
-                ): void {
-                    $mapaCampos = $carteraId !== null
-                        ? $this->cpRepo->obtenerMapaCampos($proyectoId, $carteraId)
-                        : [];
+            $ultimoNumeroFila = (int) $filas->last()->numero_fila;
+            $lote++;
 
-                    $tiposIdentificacion = $this->db->table('tipos_identificacion')
-                        ->pluck('id', 'codigo')
-                        ->all();
+            $this->db->transaction(function () use (
+                $filas,
+                $esquema,
+                $proyectoId,
+                $carteraId,
+                &$totalProcesadas,
+                &$totalInsertadas,
+                &$totalActualizadas,
+                &$totalInvalidas,
+                &$totalOmitidas,
+                &$totalDuplicadas,
+            ): void {
+                $mapaCampos = $carteraId !== null
+                    ? $this->cpRepo->obtenerMapaCampos($proyectoId, $carteraId)
+                    : [];
 
-                    $personasExistentes = $this->cargarPersonasExistentes($filas, $esquema, $proyectoId, $tiposIdentificacion);
-                    $casosExistentes = $this->cargarCasosExistentes($filas, $esquema, $proyectoId);
+                $tiposIdentificacion = $this->db->table('tipos_identificacion')
+                    ->pluck('id', 'codigo')
+                    ->all();
 
-                    $valoresCpAcumulados = [];
-                    $chunkProcesadas = 0;
-                    $chunkInsertadas = 0;
-                    $chunkActualizadas = 0;
-                    $chunkInvalidas = 0;
-                    $chunkOmitidas = 0;
-                    $chunkDuplicadas = 0;
+                $personasExistentes = $this->cargarPersonasExistentes($filas, $esquema, $proyectoId, $tiposIdentificacion);
+                $casosExistentes = $this->cargarCasosExistentes($filas, $esquema, $proyectoId);
 
-                    foreach ($filas as $fila) {
-                        $payload = is_array($fila->payload) ? $fila->payload : [];
+                $valoresCpAcumulados = [];
+                $chunkProcesadas = 0;
+                $chunkInsertadas = 0;
+                $chunkActualizadas = 0;
+                $chunkInvalidas = 0;
+                $chunkOmitidas = 0;
+                $chunkDuplicadas = 0;
 
-                        $resultado = $this->procesarFila->execute(new ProcesarFilaInput(
-                            fila: $payload,
-                            esquema: $esquema,
-                            importacionFilaId: (int) $fila->id,
-                            mapaCampos: $mapaCampos,
-                            tiposIdentificacion: $tiposIdentificacion,
-                            personasExistentes: $personasExistentes,
-                            casosExistentes: $casosExistentes,
-                        ));
+                foreach ($filas as $fila) {
+                    $payload = is_array($fila->payload) ? $fila->payload : [];
 
-                        $fila->estado = $resultado->resultadoFila->estado->value;
-                        $fila->mensaje_error = $resultado->resultadoFila->razon;
-                        $fila->entidad_id = $resultado->resultadoFila->entidadId;
-                        $fila->save();
+                    $resultado = $this->procesarFila->execute(new ProcesarFilaInput(
+                        fila: $payload,
+                        esquema: $esquema,
+                        importacionFilaId: (int) $fila->id,
+                        mapaCampos: $mapaCampos,
+                        tiposIdentificacion: $tiposIdentificacion,
+                        personasExistentes: $personasExistentes,
+                        casosExistentes: $casosExistentes,
+                    ));
 
-                        $valoresCpAcumulados = array_merge($valoresCpAcumulados, $resultado->valoresCp);
+                    $fila->estado = $resultado->resultadoFila->estado->value;
+                    $fila->mensaje_error = $resultado->resultadoFila->razon;
+                    $fila->entidad_id = $resultado->resultadoFila->entidadId;
+                    $fila->save();
 
-                        match ($resultado->resultadoFila->estado) {
-                            EstadoFila::PROCESADA => $chunkProcesadas++,
-                            EstadoFila::INVALIDA => $chunkInvalidas++,
-                            EstadoFila::OMITIDA => $chunkOmitidas++,
-                            EstadoFila::DUPLICADA => $chunkDuplicadas++,
-                            default => null,
-                        };
+                    $valoresCpAcumulados = array_merge($valoresCpAcumulados, $resultado->valoresCp);
 
-                        if ($resultado->fueInsert) {
-                            $chunkInsertadas++;
-                        } elseif ($resultado->resultadoFila->estado === EstadoFila::PROCESADA) {
-                            $chunkActualizadas++;
-                        }
+                    match ($resultado->resultadoFila->estado) {
+                        EstadoFila::PROCESADA => $chunkProcesadas++,
+                        EstadoFila::INVALIDA => $chunkInvalidas++,
+                        EstadoFila::OMITIDA => $chunkOmitidas++,
+                        EstadoFila::DUPLICADA => $chunkDuplicadas++,
+                        default => null,
+                    };
+
+                    if ($resultado->fueInsert) {
+                        $chunkInsertadas++;
+                    } elseif ($resultado->resultadoFila->estado === EstadoFila::PROCESADA) {
+                        $chunkActualizadas++;
                     }
+                }
 
-                    if ($valoresCpAcumulados !== []) {
-                        $this->cpRepo->guardarValoresEnLote($valoresCpAcumulados);
-                    }
+                if ($valoresCpAcumulados !== []) {
+                    $this->cpRepo->guardarValoresEnLote($valoresCpAcumulados);
+                }
 
-                    $this->db->table('importaciones')
-                        ->where('id', $filas->first()->importacion_id)
-                        ->update([
-                            'procesadas' => DB::raw("procesadas + {$chunkProcesadas}"),
-                            'insertadas' => DB::raw("insertadas + {$chunkInsertadas}"),
-                            'actualizadas' => DB::raw("actualizadas + {$chunkActualizadas}"),
-                            'invalidas' => DB::raw("invalidas + {$chunkInvalidas}"),
-                            'omitidas' => DB::raw("omitidas + {$chunkOmitidas}"),
-                            'duplicadas' => DB::raw("duplicadas + {$chunkDuplicadas}"),
-                        ]);
-
-                    $totalProcesadas += $chunkProcesadas;
-                    $totalInsertadas += $chunkInsertadas;
-                    $totalActualizadas += $chunkActualizadas;
-                    $totalInvalidas += $chunkInvalidas;
-                    $totalOmitidas += $chunkOmitidas;
-                    $totalDuplicadas += $chunkDuplicadas;
-                });
-            } catch (Throwable $e) {
                 $this->db->table('importaciones')
-                    ->where('id', $input->importacionId)
+                    ->where('id', $filas->first()->importacion_id)
                     ->update([
-                        'estado' => EstadoImportacion::FALLIDA->value,
-                        'error_global' => mb_substr($e->getMessage(), 0, 500),
-                        'terminado_en' => CarbonImmutable::now(),
+                        'procesadas' => DB::raw("procesadas + {$chunkProcesadas}"),
+                        'insertadas' => DB::raw("insertadas + {$chunkInsertadas}"),
+                        'actualizadas' => DB::raw("actualizadas + {$chunkActualizadas}"),
+                        'invalidas' => DB::raw("invalidas + {$chunkInvalidas}"),
+                        'omitidas' => DB::raw("omitidas + {$chunkOmitidas}"),
+                        'duplicadas' => DB::raw("duplicadas + {$chunkDuplicadas}"),
                     ]);
 
-                throw $e;
-            }
+                $totalProcesadas += $chunkProcesadas;
+                $totalInsertadas += $chunkInsertadas;
+                $totalActualizadas += $chunkActualizadas;
+                $totalInvalidas += $chunkInvalidas;
+                $totalOmitidas += $chunkOmitidas;
+                $totalDuplicadas += $chunkDuplicadas;
+            });
 
             if ($this->verificarCancelacion($input->importacionId)) {
                 break;
             }
-
-            $offset += $input->chunkSize;
         }
 
         $this->db->table('importaciones')
@@ -224,8 +277,13 @@ final readonly class EjecutarImportacionDinamica
     }
 
     /**
-     * Carga en un solo query todas las personas del chunk que ya existen
-     * en el proyecto, keyeadas por "tipoIdentId:identificacion".
+     * Las personas del chunk que ya existen en el proyecto, keyeadas por
+     * "tipoIdentId:identificacion" con la identificación tal como viene en el
+     * archivo, que es como la busca ProcesarFilaDinamica.
+     *
+     * UNA consulta por tipo de identificación con `whereIn`, que cae sobre el
+     * índice único (proyecto, tipo, identificación). Antes era una consulta por
+     * identificación: 778 ms por lote de 1.000 frente a 11 ms.
      *
      * @param  Collection<int, ImportacionFilaModel>  $filas
      * @param  array<string, int>  $tiposIdentificacion
@@ -244,22 +302,21 @@ final readonly class EjecutarImportacionDinamica
 
         $columnasSistema = $esquema->columnasParaSistema();
         $tipoIdentCol = $columnasSistema['tipo_identificacion_codigo'] ?? null;
+        $identKey = $columnaIdentidad->clavePayload();
 
-        $identificaciones = [];
+        /** @var array<int, array<string, true>> $porTipo tipoIdentId → identificaciones del archivo */
+        $porTipo = [];
 
         foreach ($filas as $fila) {
             $payload = is_array($fila->payload) ? $fila->payload : [];
-            $identKey = $columnaIdentidad->accion === AccionColumna::MAPEAR_SISTEMA
-                ? $columnaIdentidad->campoSistemaMapeado
-                : $columnaIdentidad->codigoSugerido();
-            $valor = trim($payload[$identKey] ?? '');
+            $valor = trim((string) ($payload[$identKey] ?? ''));
             if ($valor === '') {
                 continue;
             }
 
             $tipoIdentId = null;
             if ($tipoIdentCol !== null) {
-                $codigo = strtoupper(trim($payload[$tipoIdentCol->campoSistemaMapeado] ?? ''));
+                $codigo = strtoupper(trim((string) ($payload[$tipoIdentCol->campoSistemaMapeado] ?? '')));
                 $tipoIdentId = $tiposIdentificacion[$codigo] ?? null;
             }
 
@@ -269,25 +326,38 @@ final readonly class EjecutarImportacionDinamica
             }
 
             if ($tipoIdentId !== null) {
-                $identificaciones[] = [$tipoIdentId, $valor];
+                $porTipo[$tipoIdentId][$valor] = true;
             }
-        }
-
-        if ($identificaciones === []) {
-            return [];
         }
 
         $personasMap = [];
 
-        foreach ($identificaciones as [$tipoId, $ident]) {
-            $personaId = $this->db->table('personas')
+        foreach ($porTipo as $tipoId => $identificaciones) {
+            // PHP convierte «8123456» en clave entera; si llegara así al
+            // `whereIn`, MySQL compararía la columna varchar como número y
+            // dejaría de usar el índice único de personas para todo el lote.
+            $valores = array_map('strval', array_keys($identificaciones));
+
+            $encontradas = $this->db->table('personas')
                 ->where('proyecto_id', $proyectoId)
                 ->where('tipo_identificacion_id', $tipoId)
-                ->where('identificacion', $ident)
-                ->value('id');
+                ->whereIn('identificacion', $valores)
+                ->get(['id', 'identificacion']);
 
-            if ($personaId !== null) {
-                $personasMap[$tipoId.':'.$ident] = (int) $personaId;
+            // La comparación en la base es case-insensitive (collation
+            // unicode_ci) y la clave del mapa lleva el valor del archivo, así
+            // que se casan sin distinguir mayúsculas, igual que hacía el
+            // `where identificacion = ?` de antes.
+            $porValor = [];
+            foreach ($encontradas as $persona) {
+                $porValor[mb_strtolower((string) $persona->identificacion)] = (int) $persona->id;
+            }
+
+            foreach ($valores as $ident) {
+                $personaId = $porValor[mb_strtolower($ident)] ?? null;
+                if ($personaId !== null) {
+                    $personasMap[$tipoId.':'.$ident] = $personaId;
+                }
             }
         }
 

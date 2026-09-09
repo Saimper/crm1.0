@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use App\Modules\Reportes\Application\DTOs\EntradaDefinicionReporte;
 use App\Modules\Reportes\Application\Hidratacion\HidratadorDefinicionReporte;
 use App\Modules\Reportes\Application\Servicios\ServicioCamposPersonalizadosReporte;
@@ -13,12 +14,25 @@ use App\Modules\Reportes\Application\UseCases\EjecutarReporte;
 use App\Modules\Reportes\Domain\Constructor\Catalogo\CatalogoCamposReporte;
 use App\Modules\Reportes\Domain\Constructor\Contracts\RepositorioDefinicionReporte;
 use App\Modules\Reportes\Domain\Constructor\Enums\EntidadRaiz;
+use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 final class ConstructorReporte extends Component
 {
+    use AutorizaEnProyectoActivo;
+
+    /**
+     * `#[Locked]` porque el id lo fija `mount()` desde la ruta `.../{definicion_id}/editar`,
+     * que ya comprueba la pertenencia al proyecto activo en `cargarExistente()`. Sin el
+     * candado, un `$wire.set('definicionId', N)` desde la consola convertía el formulario
+     * de «crear» en un «actualizar» contra cualquier definición: el proyecto lo pone el
+     * servidor, pero el id lo ponía el cliente.
+     */
+    #[Locked]
     public ?int $definicionId = null;
 
     public string $entidadRaiz = 'casos';
@@ -53,7 +67,7 @@ final class ConstructorReporte extends Component
 
     public function mount(?int $definicionId = null): void
     {
-        abort_unless(auth()->user()?->tienePermiso('reportes.constructor.gestionar') === true, 403);
+        $this->autorizarEn('reportes.constructor.gestionar');
 
         if ($definicionId !== null) {
             $this->cargarExistente($definicionId);
@@ -62,7 +76,7 @@ final class ConstructorReporte extends Component
 
     private function cargarExistente(int $id): void
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $proyectoId = $this->proyectoActivoId();
         $repo = app(RepositorioDefinicionReporte::class);
         $data = $repo->buscar($id, $proyectoId);
         if ($data === null) {
@@ -96,7 +110,7 @@ final class ConstructorReporte extends Component
     #[Computed]
     public function camposDisponibles(): array
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $proyectoId = $this->proyectoActivoId();
         $entidad = EntidadRaiz::from($this->entidadRaiz);
         $cp = app(ServicioCamposPersonalizadosReporte::class);
         $cat = new CatalogoCamposReporte($entidad, $cp->obtenerCampos($entidad, $proyectoId));
@@ -193,11 +207,17 @@ final class ConstructorReporte extends Component
 
     public function preview(): void
     {
+        // Fuera del try: `catch (\Throwable)` se tragaría el 403 y lo dejaría como
+        // un mensaje de error de formulario, con la ejecución ya hecha.
+        $this->guardas();
+
         $this->errorGuardar = null;
         try {
             $entrada = $this->construirEntrada();
             $def = HidratadorDefinicionReporte::desdeArray($entrada->paraHidratacion());
-            $resultado = app(EjecutarReporte::class)->execute($def, 50);
+            // La previsualización enseña lo mismo que enseñaría la descarga,
+            // recorte por cartera incluido.
+            $resultado = app(EjecutarReporte::class)->execute($def, 50, $this->carterasDelRol());
             $filas = [];
             foreach ($resultado->filas as $fila) {
                 $filas[] = $fila;
@@ -213,6 +233,8 @@ final class ConstructorReporte extends Component
 
     public function guardar(): void
     {
+        $this->guardas();
+
         $this->errorGuardar = null;
         try {
             $entrada = $this->construirEntrada();
@@ -224,17 +246,53 @@ final class ConstructorReporte extends Component
             }
             session()->flash('mensaje', 'Definición guardada.');
             $this->redirectRoute('proyectos.reportes.custom', [
-                'proyecto_id' => app('tenancy.proyecto_activo')->id,
+                'proyecto_id' => $this->proyectoActivoId(),
             ]);
         } catch (\Throwable $e) {
             $this->errorGuardar = $e->getMessage();
         }
     }
 
+    /**
+     * Las dos comprobaciones que el `can:` de la ruta no vuelve a hacer.
+     *
+     * El permiso, porque cada acción es un POST aparte a /livewire/update que no
+     * repasa el middleware; y por `reportes.constructor.gestionar`, que es el
+     * mínimo de las dos rutas que montan esta pantalla (nuevo y editar). El
+     * AUDITOR tiene `reportes.constructor.ejecutar` pero no éste, y ejecutar un
+     * preview desde aquí es parte de redactar la definición, no de leerla.
+     *
+     * Y la pertenencia, porque en modo edición el id decide qué fila se
+     * sobreescribe: el permiso es por proyecto, así que un supervisor con
+     * `gestionar` en el suyo lo arrastraría al ajeno si nadie mira la fila.
+     */
+    /**
+     * Las carteras a las que el rol del usuario está acotado (F22), o `null`
+     * si no lo está. Es lo que el ejecutor necesita para no enseñar de más.
+     *
+     * @return list<int>|null
+     */
+    private function carterasDelRol(): ?array
+    {
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario->carterasPermitidas($this->proyectoActivoId());
+    }
+
+    private function guardas(): void
+    {
+        $this->autorizarEn('reportes.constructor.gestionar');
+
+        if ($this->definicionId !== null) {
+            $this->exigirDelProyecto('reportes_definiciones', $this->definicionId);
+        }
+    }
+
     private function construirEntrada(): EntradaDefinicionReporte
     {
         return new EntradaDefinicionReporte(
-            proyectoId: (int) app('tenancy.proyecto_activo')->id,
+            proyectoId: $this->proyectoActivoId(),
             codigo: trim($this->codigo),
             nombre: trim($this->nombre),
             entidadRaiz: $this->entidadRaiz,
@@ -248,7 +306,7 @@ final class ConstructorReporte extends Component
 
     private function catalogo(): CatalogoCamposReporte
     {
-        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        $proyectoId = $this->proyectoActivoId();
         $entidad = EntidadRaiz::from($this->entidadRaiz);
         $cp = app(ServicioCamposPersonalizadosReporte::class);
 

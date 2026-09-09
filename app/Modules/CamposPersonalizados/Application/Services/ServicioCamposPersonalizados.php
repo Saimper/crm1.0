@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\CamposPersonalizados\Application\Services;
 
+use App\Modules\CamposPersonalizados\Domain\Exceptions\CambioDeTipoNoPermitido;
 use App\Modules\CamposPersonalizados\Domain\Services\EvaluadorReglas;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto;
@@ -27,22 +28,50 @@ final readonly class ServicioCamposPersonalizados
     /**
      * Devuelve los campos personalizados aplicables al ámbito dado (activos, ordenados).
      *
+     * El orden es grupo, luego posición dentro del grupo, luego id. El `id`
+     * final no es adorno: el importador escribe `orden = 0` para todos, así que
+     * los 98 campos de un proyecto empataban y el orden que veía el gestor no lo
+     * garantizaba nadie. Los campos sin grupo van al final, que es donde se
+     * espera lo que nadie ha clasificado todavía.
+     *
      * @return Collection<int, CampoPersonalizadoModel>
      */
     public function campos(int $proyectoId, AmbitoCampo $ambito, int $ambitoId): Collection
     {
         return CampoPersonalizadoModel::query()
             ->sinScopeProyecto()
-            ->where('proyecto_id', $proyectoId)
-            ->where('ambito', $ambito->value)
-            ->where('ambito_id', $ambitoId)
-            ->where('activo', true)
-            ->orderBy('orden')
+            ->from('campos_personalizados as cp')
+            ->leftJoin('grupos_campo as gc', 'gc.id', '=', 'cp.grupo_campo_id')
+            ->where('cp.proyecto_id', $proyectoId)
+            ->where('cp.ambito', $ambito->value)
+            ->where('cp.ambito_id', $ambitoId)
+            ->where('cp.activo', true)
+            ->orderByRaw('cp.grupo_campo_id is null')
+            ->orderBy('gc.orden')
+            ->orderBy('gc.id')
+            ->orderBy('cp.orden')
+            ->orderBy('cp.id')
+            ->select(['cp.*', 'gc.nombre as grupo_nombre', 'gc.codigo as grupo_codigo'])
             ->get();
     }
 
     /**
      * Valida y persiste los valores para una entidad (caso/gestión/compromiso).
+     *
+     * `$permitirVaciar` decide qué significa un `null` entrante, y por defecto
+     * significa «no lo sé», no «bórralo».
+     *
+     * El motivo es un incidente real: la Vista de Trabajo enviaba los 34 campos
+     * del caso en cada gestión, incluidos los que no sabía leer —los de tipo
+     * `moneda`, cuyos valores estaban en `valor_texto_corto` tras un cambio de
+     * tipo hecho desde la UI—. Llegaban como `null`, `mapearValorAColumna`
+     * devolvía las once columnas a null y el `updateOrCreate` las escribía. Tres
+     * filas de producción quedaron en blanco así, y había 22.623 valores a una
+     * gestión de distancia.
+     *
+     * Sólo debe pasar `true` quien es dueño del formulario completo y por tanto
+     * puede distinguir «el usuario vació este campo» de «este campo no estaba en
+     * la pantalla».
      *
      * @param  array<string, mixed>  $valoresPorCodigo  [codigo_campo => valor]
      */
@@ -52,6 +81,7 @@ final readonly class ServicioCamposPersonalizados
         int $ambitoId,
         int $entidadId,
         array $valoresPorCodigo,
+        bool $permitirVaciar = false,
     ): void {
         $campos = $this->campos($proyectoId, $ambito, $ambitoId);
 
@@ -67,13 +97,19 @@ final readonly class ServicioCamposPersonalizados
             );
         }
 
+        $conValor = $permitirVaciar ? [] : $this->camposConValor($campos, $entidadId);
+
         // 2) Persistir en transacción.
-        $this->db->transaction(function () use ($campos, $valoresPorCodigo, $entidadId): void {
+        $this->db->transaction(function () use ($campos, $valoresPorCodigo, $entidadId, $permitirVaciar, $conValor): void {
             foreach ($campos as $campo) {
                 if (! array_key_exists($campo->codigo, $valoresPorCodigo)) {
                     continue;
                 }
                 $valor = $valoresPorCodigo[$campo->codigo];
+
+                if ($valor === null && ! $permitirVaciar && isset($conValor[(int) $campo->id])) {
+                    continue;
+                }
 
                 $payload = $this->mapearValorAColumna(TipoCampo::from((string) $campo->tipo), $valor);
 
@@ -86,6 +122,80 @@ final readonly class ServicioCamposPersonalizados
                 );
             }
         });
+    }
+
+    /**
+     * Corta un cambio de tipo que dejaría ilegibles los valores ya guardados.
+     *
+     * Lo llaman las dos pantallas que editan definiciones. Vive aquí y no en el
+     * componente porque es una invariante del dominio (§13.4): el tipo declara
+     * en qué columna se lee el valor, así que cambiarlo sin mover los valores es
+     * perder el dato de vista.
+     */
+    public function garantizarTipoMutable(int $campoId, string $tipoNuevo): void
+    {
+        $campo = $this->db->table('campos_personalizados')
+            ->where('id', $campoId)
+            ->first(['tipo', 'etiqueta']);
+
+        if ($campo === null || (string) $campo->tipo === $tipoNuevo) {
+            return;
+        }
+
+        $valores = $this->db->table('valores_campo_personalizado')
+            ->where('campo_personalizado_id', $campoId)
+            ->count();
+
+        if ($valores > 0) {
+            throw CambioDeTipoNoPermitido::porqueYaTieneValores(
+                (string) $campo->etiqueta,
+                (string) $campo->tipo,
+                $tipoNuevo,
+                $valores,
+            );
+        }
+    }
+
+    /**
+     * Los campos del ámbito que YA tienen algo guardado para esta entidad.
+     *
+     * Se resuelve en una sola consulta y sólo cuando hace falta: es la lista que
+     * un `null` entrante no puede pisar.
+     *
+     * @param  Collection<int, CampoPersonalizadoModel>  $campos
+     * @return array<int, true>
+     */
+    private function camposConValor(Collection $campos, int $entidadId): array
+    {
+        $ids = $campos->map(fn (CampoPersonalizadoModel $c): int => (int) $c->id)->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $filas = $this->db->table('valores_campo_personalizado')
+            ->whereIn('campo_personalizado_id', $ids)
+            ->where('entidad_id', $entidadId)
+            ->get([
+                'campo_personalizado_id',
+                'valor_texto_corto', 'valor_texto_largo',
+                'valor_numero_entero', 'valor_numero_decimal',
+                'valor_fecha', 'valor_fecha_hora',
+                'valor_booleano', 'valor_opcion_id',
+                'valor_opciones_ids', 'valor_moneda_monto', 'valor_moneda_codigo',
+            ]);
+
+        $conValor = [];
+        foreach ($filas as $fila) {
+            foreach ((array) $fila as $columna => $valor) {
+                if ($columna !== 'campo_personalizado_id' && $valor !== null) {
+                    $conValor[(int) $fila->campo_personalizado_id] = true;
+                    break;
+                }
+            }
+        }
+
+        return $conValor;
     }
 
     /**

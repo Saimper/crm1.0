@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Models\User;
+use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
+use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
+use App\Modules\Casos\Application\DTOs\FiltrosListadoCasos;
+use App\Modules\Casos\Application\Services\ConsultaListadoCasos;
 use App\Modules\Casos\Application\Services\PreferenciasColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
+use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Expression;
@@ -29,6 +35,9 @@ use stdClass;
  * `CatalogoColumnasCaso` y se recuerdan por (usuario, proyecto) en
  * `preferencias_columnas`.
  *
+ * La consulta y los filtros viven en `ConsultaListadoCasos`, compartida con la
+ * exportación: «Exportar CSV» descarga las mismas filas que se ven.
+ *
  * Permiso: casos.ver.
  */
 final class ListadoCasos extends Component
@@ -44,10 +53,45 @@ final class ListadoCasos extends Component
     #[Url(as: 'estado', except: '')]
     public string $estadoCasoId = '';
 
+    /**
+     * Sólo las cuentas que no son de nadie. Es el filtro que hace usable
+     * «Tomar» cuando el proyecto tiene 5.000 cuentas y 40 sin dueño.
+     */
+    #[Url(as: 'sin_duenio', except: false)]
+    public bool $soloSinDuenio = false;
+
+    public ?string $mensajeAsignacion = null;
+
     /** @var list<string> */
     public array $columnasVisibles = [];
 
     public bool $selectorColumnasAbierto = false;
+
+    /**
+     * Por qué columna se ordena. Vacío es el orden de siempre: primero lo
+     * urgente, y dentro de eso lo más nuevo.
+     *
+     * La clave llega del cliente y NUNCA se interpola en el ORDER BY: se busca
+     * en el catálogo de columnas, que es una lista cerrada, y lo que se usa es
+     * la expresión que el catálogo declara.
+     */
+    #[Url(as: 'orden', except: '')]
+    public string $orden = '';
+
+    #[Url(as: 'dir', except: 'asc')]
+    public string $direccion = 'asc';
+
+    public function ordenarPor(string $clave): void
+    {
+        if (! array_key_exists($clave, CatalogoColumnasCaso::indexadoPorClave($this->tipoOperacion()))) {
+            return;
+        }
+
+        // Segundo clic en la misma cabecera: se da la vuelta.
+        $this->direccion = $this->orden === $clave && $this->direccion === 'asc' ? 'desc' : 'asc';
+        $this->orden = $clave;
+        $this->resetPage();
+    }
 
     public function mount(): void
     {
@@ -73,11 +117,47 @@ final class ListadoCasos extends Component
         $this->resetPage();
     }
 
+    public function updatingSoloSinDuenio(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * El asesor toma la cuenta que va a trabajar.
+     *
+     * La comprobación de permiso está aquí y en el UseCase (§13 defensa en
+     * profundidad): esta pantalla la ven roles que no pueden autoasignarse.
+     */
+    public function tomarCuenta(int $casoId, AutoasignarCaso $autoasignar): void
+    {
+        $proyectoId = $this->proyectoId();
+
+        abort_unless(
+            $this->usuario()->tienePermiso('asignaciones.autoasignarse', $proyectoId),
+            403,
+            'No tienes permiso para tomar cuentas en este proyecto.',
+        );
+
+        try {
+            $autoasignar->execute(
+                proyectoId: $proyectoId,
+                casoId: $casoId,
+                usuarioId: $this->usuarioId(),
+                ahora: new DateTimeImmutable,
+                carterasPermitidas: $this->usuario()->carterasPermitidas($proyectoId),
+            );
+            $this->mensajeAsignacion = __('casos.assign_taken');
+        } catch (AutoasignacionNoPermitida $e) {
+            $this->addError('asignacion', $e->getMessage());
+        }
+    }
+
     public function limpiarFiltros(): void
     {
         $this->busqueda = '';
         $this->carteraId = '';
         $this->estadoCasoId = '';
+        $this->soloSinDuenio = false;
         $this->resetPage();
     }
 
@@ -125,12 +205,30 @@ final class ListadoCasos extends Component
         $tipoOperacion = $this->tipoOperacion();
         $columnas = CatalogoColumnasCaso::indexadoPorClave($tipoOperacion);
         $visibles = CatalogoColumnasCaso::sanear($this->columnasVisibles, $tipoOperacion);
+        $filtros = FiltrosListadoCasos::desde($this->busqueda, $this->carteraId, $this->estadoCasoId);
+        $consulta = app(ConsultaListadoCasos::class);
 
-        $casos = $this->consultaBase($proyectoId, $tipoOperacion)
-            ->select($this->seleccion($columnas, $visibles))
-            ->orderByDesc('c.prioridad')
-            ->orderByDesc('c.creada_en')
+        // El límite por cartera del rol (F22) va antes que cualquier filtro:
+        // sin él, un supervisor limitado a una cartera veía la del proyecto entero.
+        $base = $consulta->recortarACarteras(
+            $consulta->consultaBase($proyectoId, $tipoOperacion),
+            $this->usuario()->carterasPermitidas($proyectoId),
+        );
+
+        $filtrada = $consulta->aplicarFiltros($base, $filtros);
+
+        if ($this->soloSinDuenio) {
+            $filtrada->whereNotExists(fn (Builder $q) => $q
+                ->from('asignaciones as asg')
+                ->whereColumn('asg.caso_id', 'c.id')
+                ->where('asg.proyecto_id', $proyectoId));
+        }
+
+        $casos = $this
+            ->ordenar($filtrada->select($this->seleccion($columnas, $visibles)), $columnas)
             ->paginate(25);
+
+        $autoasignar = app(AutoasignarCaso::class);
 
         return view('casos::livewire.listado-casos', [
             'casos' => $casos,
@@ -139,7 +237,35 @@ final class ListadoCasos extends Component
             'totalProyecto' => $this->totalProyecto($proyectoId),
             'catalogoColumnas' => CatalogoColumnasCaso::paraTipoOperacion($tipoOperacion),
             'columnasVisibles' => $visibles,
+            'urlExportar' => route('proyectos.casos.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
+            'puedeTomar' => $this->usuario()->tienePermiso('asignaciones.autoasignarse', $proyectoId)
+                && $autoasignar->proyectoLoPermite($proyectoId),
         ]);
+    }
+
+    /**
+     * El orden elegido, o el de siempre si no hay ninguno.
+     *
+     * `$this->orden` ya pasó por el catálogo en `ordenarPor`, pero se vuelve a
+     * comprobar aquí porque también puede llegar por la URL, que nadie filtró.
+     *
+     * @param  array<string, ColumnaCaso>  $columnas
+     */
+    private function ordenar(Builder $consulta, array $columnas): Builder
+    {
+        $columna = $columnas[$this->orden] ?? null;
+
+        if ($columna === null) {
+            return $consulta->orderByDesc('c.prioridad')->orderByDesc('c.creada_en');
+        }
+
+        $direccion = $this->direccion === 'desc' ? 'desc' : 'asc';
+
+        // Desempate por PK: sin él, dos filas con el mismo valor pueden salir en
+        // distinto orden en cada página y una se repite mientras otra no sale.
+        return $consulta
+            ->orderBy(DB::raw($columna->expresion), $direccion)
+            ->orderBy('c.id');
     }
 
     /**
@@ -155,6 +281,14 @@ final class ListadoCasos extends Component
             'c.id', 'c.public_id', 'c.tipo_caso',
             'p.public_id as persona_public_id', 'p.tipo_persona',
             'p.nombres', 'p.apellidos', 'p.razon_social',
+            // Quién tiene la cuenta. Subconsulta escalar y no join porque la
+            // consulta ya trae una fila por caso: un join, aunque hoy el único
+            // `(proyecto_id, caso_id)` garantice que no puede multiplicar,
+            // acopla el número de filas del listado a otra tabla.
+            DB::raw('(select u.name from asignaciones asg'
+                .' inner join users u on u.id = asg.usuario_id'
+                .' where asg.caso_id = c.id and asg.proyecto_id = c.proyecto_id'
+                .' order by asg.id desc limit 1) as asignado_a'),
         ];
 
         foreach ($visibles as $clave) {
@@ -165,48 +299,6 @@ final class ListadoCasos extends Component
         }
 
         return $seleccion;
-    }
-
-    private function consultaBase(int $proyectoId, string $tipoOperacion): Builder
-    {
-        $q = DB::table('casos as c')
-            ->join('personas as p', 'p.id', '=', 'c.persona_id')
-            ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
-            ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
-            ->where('c.proyecto_id', $proyectoId)
-            ->whereNull('c.eliminada_en');
-
-        $tablaCti = CatalogoColumnasCaso::tablaCti($tipoOperacion);
-        if ($tablaCti !== null) {
-            $q->leftJoin($tablaCti.' as cti', 'cti.caso_id', '=', 'c.id');
-        }
-
-        return $this->aplicarFiltros($q);
-    }
-
-    private function aplicarFiltros(Builder $q): Builder
-    {
-        $busqueda = trim($this->busqueda);
-
-        if ($busqueda !== '') {
-            $like = '%'.$busqueda.'%';
-            $q->where(function ($w) use ($like): void {
-                $w->where('p.identificacion', 'like', $like)
-                    ->orWhere('p.nombres', 'like', $like)
-                    ->orWhere('p.apellidos', 'like', $like)
-                    ->orWhere('p.razon_social', 'like', $like);
-            });
-        }
-
-        if ($this->carteraId !== '' && ctype_digit($this->carteraId)) {
-            $q->where('c.cartera_id', (int) $this->carteraId);
-        }
-
-        if ($this->estadoCasoId !== '' && ctype_digit($this->estadoCasoId)) {
-            $q->where('c.estado_caso_id', (int) $this->estadoCasoId);
-        }
-
-        return $q;
     }
 
     /**
@@ -272,5 +364,13 @@ final class ListadoCasos extends Component
     private function usuarioId(): int
     {
         return (int) Auth::id();
+    }
+
+    private function usuario(): User
+    {
+        $usuario = Auth::user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario;
     }
 }

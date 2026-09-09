@@ -4,50 +4,64 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Cx;
 
-use App\Models\User;
 use App\Modules\Casos\Infrastructure\Http\Livewire\NuevaGestion;
 use App\Modules\Cx\Application\DTOs\RegistrarCasoTicketCxInput;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class NuevaGestionCxComponentTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registra_gestion_cx_con_resolucion_desde_componente(): void
     {
-        [$casoId, $personaId, $proyectoId] = $this->crearContextoCx();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-        $this->actingAs(User::factory()->create());
+        $proyecto = $this->crearProyectoCx();
+        [$casoId, $personaId] = $this->crearContextoCx($proyecto);
+        $this->activarProyecto($proyecto);
 
-        $canalId = (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id');
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_ENTRANTE')->value('id');
-        $resultadoId = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'ESCALADO')->value('id');
-        $causaId = (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'CAIDO')->value('id');
-        $escalamientoId = (int) DB::table('niveles_escalamiento')->where('proyecto_id', $proyectoId)->where('codigo', 'N2')->value('id');
+        // El resultado exige compromiso (abre el slot de resolución del ticket)
+        // y exige causa, que es lo que el formulario original rellenaba con
+        // `CAIDO`.
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'requiere_causa' => true,
+        ]);
+        $escalamientoId = $this->crearNivelEscalamientoEn($proyecto);
 
-        Livewire::test(NuevaGestion::class, [
-            'casoId' => $casoId,
-            'personaId' => $personaId,
-            'tipoCaso' => 'ticket_cx',
-        ])
-            ->set('canalId', $canalId)
-            ->set('tipoGestionId', $tipoGestionId)
-            ->set('resultadoId', $resultadoId)
-            ->set('causaId', $causaId)
+        // Registrar una gestión exige `gestiones.crear` desde F42: el usuario
+        // anónimo de factory que montaba este test ya no pasa la puerta.
+        $gestor = $this->crearGestor($proyecto);
+
+        $fechaLimite = Carbon::now()->addDay()->format('Y-m-d\TH:i');
+
+        Livewire::actingAs($gestor)
+            ->test(NuevaGestion::class, [
+                'casoId' => $casoId,
+                'personaId' => $personaId,
+                'tipoCaso' => 'ticket_cx',
+            ])
+            ->set('canalId', $cascada['canal_id'])
+            ->set('tipoGestionId', $cascada['tipo_gestion_id'])
+            ->set('resultadoId', $cascada['resultado_id'])
+            ->set('causaId', $cascada['causa_id'])
             ->set('resolucionAccion', 'Verificar infraestructura')
-            ->set('resolucionFechaLimite', '2026-04-19T10:00')
+            ->set('resolucionFechaLimite', $fechaLimite)
             ->set('resolucionNivelEscalamientoId', $escalamientoId)
             ->call('guardar')
             ->assertHasNoErrors()
@@ -66,26 +80,18 @@ final class NuevaGestionCxComponentTest extends TestCase
         ]);
     }
 
-    /** @return array{int,int,int} */
-    private function crearContextoCx(): array
+    /** @return array{int,int} */
+    private function crearContextoCx(stdClass $proyecto): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
-
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'Cx',
-        ]);
+        $cartera = $this->crearCarteraEn($proyecto, 'SOPORTE_GENERAL');
+        $persona = $this->crearPersonaEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
 
         $out = $this->app->make(RegistrarCasoTicketCx::class)->execute(new RegistrarCasoTicketCxInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estado,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-18'),
             prioridad: 100,
             codigoTicket: 'TKT-UI-'.Str::random(4),
@@ -99,6 +105,23 @@ final class NuevaGestionCxComponentTest extends TestCase
             fechaLimiteSla: null,
         ));
 
-        return [$out->casoId, $personaId, $proyectoId];
+        return [$out->casoId, (int) $persona->id];
+    }
+
+    /** No hay helper en `EscenarioOperativo` para este catálogo tipo-específico de CX. */
+    private function crearNivelEscalamientoEn(stdClass $proyecto): int
+    {
+        $ahora = Carbon::now();
+
+        return (int) DB::table('niveles_escalamiento')->insertGetId([
+            'proyecto_id' => $proyecto->id,
+            'codigo' => 'N2',
+            'nombre' => 'Nivel 2',
+            'nivel' => 2,
+            'activo' => true,
+            'orden' => 20,
+            'creada_en' => $ahora,
+            'actualizada_en' => $ahora,
+        ]);
     }
 }

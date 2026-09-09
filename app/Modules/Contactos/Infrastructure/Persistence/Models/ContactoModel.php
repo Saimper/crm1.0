@@ -7,6 +7,7 @@ namespace App\Modules\Contactos\Infrastructure\Persistence\Models;
 use App\Modules\Tenancy\Infrastructure\Support\PerteneceAProyecto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 final class ContactoModel extends Model
 {
@@ -28,4 +29,18 @@ final class ContactoModel extends Model
         'es_principal' => 'boolean',
         'activo' => 'boolean',
     ];
+
+    /**
+     * El ULID público, que §4 pide en toda entidad operativa y a esta le
+     * faltaba. Se genera aquí para que ningún camino de escritura tenga que
+     * acordarse.
+     */
+    protected static function booted(): void
+    {
+        self::creating(function (self $contacto): void {
+            if (blank($contacto->public_id)) {
+                $contacto->public_id = (string) Str::ulid();
+            }
+        });
+    }
 }

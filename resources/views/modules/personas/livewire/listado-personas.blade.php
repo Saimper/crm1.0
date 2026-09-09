@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('personas.title_list') }}</h1>
             <div class="page-subtitle">{{ __('personas.subtitle_registered', ['count' => $totalProyecto]) }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="flex items-center gap-2">
             @can('personas.crear', app('tenancy.proyecto_activo')->id)
                 <a href="{{ route('proyectos.personas.crear', ['proyecto_id' => app('tenancy.proyecto_activo')->id]) }}"
                    wire:navigate class="btn btn-primary">
@@ -15,15 +15,10 @@
         </div>
     </div>
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <div style="position:relative;width:300px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="{{ __('personas.search_placeholder') }}" style="padding-left:28px;"/>
-            </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('personas.results', ['count' => $personas->total()])">
+            <x-ui.search-input width="300px" wire:model.live.debounce.300ms="busqueda"
+                               placeholder="{{ __('personas.search_placeholder') }}" />
             <select wire:model.live="tipoPersona" class="input" style="width:160px;">
                 <option value="">{{ __('personas.all_types') }}</option>
                 <option value="fisica">{{ __('personas.type_physical') }}</option>
@@ -32,9 +27,18 @@
             @if($busqueda !== '' || $tipoPersona !== '')
                 <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('personas.clear_filters') }}</button>
             @endif
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('personas.results', ['count' => $personas->total()]) }}</span>
-        </div>
+            @can('personas.exportar', (int) app('tenancy.proyecto_activo')->id)
+                {{-- Sin wire:navigate: es una descarga, no una pantalla. El href lleva los filtros puestos. --}}
+                <a href="{{ $urlExportar }}" class="btn btn-secondary btn-sm">
+                    <x-ui.icon name="download" :size="13" />
+                    {{ __('personas.export_csv') }}
+                </a>
+            @endcan
+        </x-ui.toolbar>
+
+        {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($personas->isEmpty())
             <div class="empty">
@@ -55,7 +59,7 @@
                         <th style="width:80px;">{{ __('personas.col_type') }}</th>
                         <th style="width:170px;">{{ __('personas.col_id_doc') }}</th>
                         <th>{{ __('personas.col_name') }}</th>
-                        <th class="num" style="width:80px;">{{ __('personas.col_cases') }}</th>
+                        <th class="num" style="width:80px;">{{ __('personas.col_cases', ['entidades' => $rotuloCasos]) }}</th>
                         <th style="width:130px;">{{ __('personas.col_created') }}</th>
                         <th style="width:60px;"></th>
                     </tr>
@@ -73,30 +77,30 @@
                                 'persona' => $p->public_id,
                             ]);
                         @endphp
-                        <tr wire:key="persona-{{ $p->id }}" onclick="window.Livewire.navigate('{{ $url }}')" style="cursor:pointer;">
+                        <tr wire:key="persona-{{ $p->id }}" onclick="window.Livewire.navigate('{{ $url }}')">
                             <td>
                                 <x-ui.badge :tone="$p->tipo_persona === 'juridica' ? 'info' : 'neutral'" size="sm">
                                     {{ ucfirst($p->tipo_persona) }}
                                 </x-ui.badge>
                             </td>
                             <td>
-                                <span class="font-mono" style="font-size:12px;">
+                                <span class="font-mono text-sm">
                                     {{ $p->tipo_identificacion_codigo ?? '' }}
                                     {{ $p->identificacion }}
                                 </span>
                             </td>
-                            <td><span style="font-weight:500;">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
+                            <td><span class="font-medium">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
                             <td class="num">{{ $p->total_casos }}</td>
-                            <td style="font-size:12px;color:var(--text-secondary);">
-                                {{ \Illuminate\Support\Carbon::parse($p->creada_en)->format('d/m/Y') }}
+                            <td class="text-sm text-ink-600">
+                                {{ hora_local($p->creada_en, 'd/m/Y') }}
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
 
-            <div style="padding:10px 16px;border-top:1px solid var(--border);">
+            <div class="card-header" style="border-top:1px solid var(--border);border-bottom:0;">
                 {{ $personas->links() }}
             </div>
         @endif

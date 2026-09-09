@@ -44,8 +44,7 @@
                     @endphp
                     <a href="{{ route('proyectos.dashboard', ['proyecto_id' => $p->id]) }}"
                        wire:navigate
-                       class="card card-pad proyecto-tile"
-                       style="text-decoration:none;color:inherit;display:block;transition:border-color 120ms var(--ease), background 120ms var(--ease);">
+                       class="card card-pad proyecto-tile">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
                                 <div class="label-xs" style="margin-bottom:2px;">{{ $p->mandante_nombre }}</div>
@@ -59,9 +58,6 @@
                     </a>
                 @endforeach
             </div>
-            <style>
-                .proyecto-tile:hover { border-color: var(--primary-soft-border); background: var(--bg-subtle); }
-            </style>
         @endif
     </section>
 </div>

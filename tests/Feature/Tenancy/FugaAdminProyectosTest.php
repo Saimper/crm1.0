@@ -11,7 +11,6 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
-use PHPUnit\Framework\Attributes\Group;
 use stdClass;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
@@ -33,8 +32,10 @@ use Tests\TestCase;
  *      `editandoId` señala. Un admin de A puede fijar `editandoId` a un
  *      proyecto de B y apropiárselo.
  *
- * Y falta una tercera cosa: no existe archivar/borrar proyecto (D2). Solo
- * `desactivar()`, que deja el proyecto visible en toda la administración.
+ * Y faltaba una tercera cosa, ya cerrada: archivar (D2). Antes sólo estaba
+ * `desactivar()`, que pausa el proyecto pero lo deja a la vista de toda la
+ * administración; ahora `archivar()` lo retira de los tres caminos por los que
+ * se alcanza un proyecto.
  *
  * Los tests que fijan comportamiento correcto (listado scoped, guards de
  * abrirFormEditar/desactivar/activar, buscador, no-admins) están aquí para que
@@ -429,10 +430,18 @@ final class FugaAdminProyectosTest extends TestCase
     }
 
     // ---------------------------------------------------------------
-    // D2: archivar proyecto (acción inexistente hoy)
+    // D2: archivar proyecto
     // ---------------------------------------------------------------
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Un proyecto se retira, y retirarlo no es borrarlo. `archivar()` marca
+     * `eliminada_en` y deja la fila donde estaba (§4): del `proyecto_id` cuelga
+     * la operación entera, y las gestiones no se borran nunca (§13.11).
+     *
+     * Desde ese momento el proyecto ya no está en el listado de administración.
+     * Que tampoco esté en los otros dos caminos —el selector y la URL— lo fijan
+     * el test de más abajo y ArchivarProyectoTest.
+     */
     public function test_existe_accion_de_archivar_proyecto_para_el_admin_del_mandante(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -465,7 +474,12 @@ final class FugaAdminProyectosTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Archivar es irreversible desde la pantalla, así que pasa por la misma
+     * guarda que el resto de acciones de aquí: el id lo pone el cliente y lo
+     * único que decide es el dueño ACTUAL de la fila. Un admin de A que apunte
+     * a un proyecto de B se lleva un 403 antes de tocar nada.
+     */
     public function test_admin_de_a_no_puede_archivar_un_proyecto_de_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -486,16 +500,24 @@ final class FugaAdminProyectosTest extends TestCase
         );
     }
 
-    #[Group('fuga-pendiente')]
+    /**
+     * Lo archivado desaparece también para quien trabajaba dentro: el selector
+     * deja de ofrecerlo aunque la asignación en `usuario_proyecto_rol` siga
+     * intacta. Y sólo desaparece él — los demás proyectos del mandante siguen
+     * ahí, que archivar uno no es cerrarle la puerta al cliente.
+     */
     public function test_proyecto_archivado_es_invisible_para_supervisor_y_gestor(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
 
-        // Segundo proyecto del mismo mandante: garantiza que el selector no
-        // auto-redirija por tener un único proyecto accesible (SelectorProyecto::mount).
+        // Keep two active projects after archiving so this exercises the list,
+        // rather than the valid single-project redirect.
         $otro = $this->crearProyectoCobranza($a['mandante']);
         $this->darAccesoAProyecto($a['supervisor'], $otro, 'SUPERVISOR');
         $this->darAccesoAProyecto($a['gestor'], $otro, 'GESTOR');
+        $third = $this->crearProyectoCobranza($a['mandante']);
+        $this->darAccesoAProyecto($a['supervisor'], $third, 'SUPERVISOR');
+        $this->darAccesoAProyecto($a['gestor'], $third, 'GESTOR');
 
         $this->assertTrue(
             method_exists(AdminProyectos::class, 'archivar'),

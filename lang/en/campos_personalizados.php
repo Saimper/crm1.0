@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'label_group' => 'Group',
+    'group_none' => '— No group —',
+    'group_hint' => 'Groups are created from the project configurator.',
+    'label_visible_gestion' => 'Shown in the work view',
     'title' => 'Custom Fields',
     'subtitle' => 'Extended attributes per project · 10 closed types',
     'back_to_panel' => '← Back to panel',

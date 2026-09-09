@@ -6,6 +6,11 @@ return [
     // `mandante.activo`, así que salen del cliente en el que se está trabajando.
     'alcance_todos_los_clientes' => 'Todos los clientes — esta pantalla no está acotada al cliente activo.',
     'menu' => 'Menú',
+    'close_menu' => 'Cerrar menú',
+    'close_search' => 'Cerrar búsqueda',
+    'skip_content' => 'Saltar al contenido',
+    'project_overview' => 'Resumen del proyecto',
+    'user_menu' => 'Menú de usuario',
     'breadcrumb_projects' => 'Proyectos',
     'active_project' => 'Proyecto activo',
     'change_project' => 'Cambiar proyecto',

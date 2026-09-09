@@ -21,6 +21,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Conexión para descargas largas
+    |--------------------------------------------------------------------------
+    |
+    | Qué conexión usan las descargas que recorren un resultado grande fila a
+    | fila. Por defecto `mysql_streaming`, que tiene el buffer de PDO apagado y
+    | así no se trae el conjunto entero a memoria antes de la primera fila.
+    |
+    | La suite la apunta a `mysql`: sus tests corren dentro de una transacción
+    | de la conexión por defecto, y una segunda conexión no vería nada de lo que
+    | esa transacción escribió. Un operador puede apuntarla ahí también si su
+    | driver no admite consultas sin buffer.
+    |
+    */
+
+    'conexion_sin_buffer' => env('DB_CONEXION_SIN_BUFFER', 'mysql_streaming'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Database Connections
     |--------------------------------------------------------------------------
     |
@@ -62,6 +80,40 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+        ],
+
+        /*
+        | La misma base, pero con el resultado SIN BUFFER (`MYSQL_ATTR_USE_BUFFERED_QUERY
+        | => false`). Es para las descargas que recorren un resultado grande fila
+        | a fila: con el buffer puesto —el modo por defecto— PDO se trae el
+        | conjunto entero a memoria antes de devolver la primera fila, y un
+        | `cursor()` sólo difiere la hidratación, no la descarga.
+        |
+        | Va en una conexión aparte y no cambiando el atributo sobre la de
+        | siempre porque mientras un resultado sin buffer está abierto esa
+        | conexión no admite otra consulta, y la sesión, la auditoría o
+        | cualquier listener la usarían a mitad de la descarga.
+        */
+        'mysql_streaming' => [
+            'driver' => 'mysql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) + [
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_USE_BUFFERED_QUERY : PDO::MYSQL_ATTR_USE_BUFFERED_QUERY) => false,
+            ] : [],
         ],
 
         'mariadb' => [

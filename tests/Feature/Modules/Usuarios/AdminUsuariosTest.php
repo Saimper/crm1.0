@@ -6,21 +6,24 @@ namespace Tests\Feature\Modules\Usuarios;
 
 use App\Models\User;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminUsuarios;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AdminUsuariosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_admin_crea_usuario(): void
@@ -66,12 +69,13 @@ final class AdminUsuariosTest extends TestCase
 
     public function test_admin_rechaza_email_duplicado(): void
     {
-        $this->actingAs($this->admin());
+        $admin = $this->admin();
+        $this->actingAs($admin);
 
         Livewire::test(AdminUsuarios::class)
             ->call('abrirFormCrearUsuario')
             ->set('formUsuario.name', 'Dup')
-            ->set('formUsuario.email', 'admin@crm.local')       // ya existe
+            ->set('formUsuario.email', $admin->email)        // ya existe
             ->set('formUsuario.password', 'secret12')
             ->call('guardarUsuario')
             ->assertHasErrors(['formUsuario.email']);
@@ -110,7 +114,7 @@ final class AdminUsuariosTest extends TestCase
             'name' => 'Asignable', 'email' => 'asn.'.Str::random(4).'@crm.local',
             'password' => Hash::make('x'), 'activo' => true,
         ]);
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        $proyectoId = (int) $this->crearProyectoCobranza()->id;
         $rolGestorId = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
 
         Livewire::test(AdminUsuarios::class)
@@ -148,6 +152,11 @@ final class AdminUsuariosTest extends TestCase
 
     public function test_ruta_200_admin_global(): void
     {
+        // La ruta pasa por `mandante.activo`: sin un cliente que resolver el
+        // middleware manda al selector en vez de renderizar. Con un único
+        // mandante vivo no hay nada que elegir y la pantalla se pinta.
+        $this->crearProyectoCobranza();
+
         $this->actingAs($this->admin())->get(route('admin.usuarios'))->assertStatus(200);
     }
 

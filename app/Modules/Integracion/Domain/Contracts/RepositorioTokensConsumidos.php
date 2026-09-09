@@ -8,7 +8,12 @@ use DateTimeImmutable;
 
 interface RepositorioTokensConsumidos
 {
-    public function fueConsumido(string $jti): bool;
+    /**
+     * El `jti` lo elige el wrapper, así que el espacio de nombres es de cada
+     * cliente: sin el mandante, un mandante puede agotar identificadores de
+     * otro y dejarlo sin poder entrar.
+     */
+    public function fueConsumido(string $jti, int $mandanteId): bool;
 
     public function registrarConsumo(
         string $jti,

@@ -2,7 +2,7 @@
 
 return [
     // Panel caso venta
-    'panel_label' => 'Sales case · Lead',
+    'panel_label' => 'Sales opportunity · Lead',
     'valor_estimado' => 'Estimated value',
     'producto' => 'Product',
     'etapa_embudo' => 'Funnel stage',

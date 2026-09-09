@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Tenancy;
 
 use App\Models\User;
+use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
 use Database\Seeders\DatabaseSeeder;
 use Firebase\JWT\JWT;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
-use PHPUnit\Framework\Attributes\Group;
+use Laravel\Sanctum\Sanctum;
 use stdClass;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
@@ -120,7 +121,6 @@ final class FugaApiIntegracionTest extends TestCase
      * sin abilities, así que Sanctum guarda ["*"]. Un bearer pensado para
      * previsualizar una ficha queda habilitado para cualquier API futura.
      */
-    #[Group('fuga-pendiente')]
     public function test_el_pat_del_wrapper_no_debe_emitirse_con_abilities_de_comodin(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -146,7 +146,6 @@ final class FugaApiIntegracionTest extends TestCase
      * pasa `expiresAt`, así que el PAT del wrapper NUNCA caduca. Un token
      * filtrado del wrapper del mandante A vale para siempre.
      */
-    #[Group('fuga-pendiente')]
     public function test_el_pat_del_wrapper_debe_caducar(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -167,7 +166,6 @@ final class FugaApiIntegracionTest extends TestCase
      * preguntarle al bearer de qué mandante viene, que es exactamente lo que
      * hace falta para cerrar la fuga del test siguiente.
      */
-    #[Group('fuga-pendiente')]
     public function test_el_pat_emitido_debe_ser_atribuible_al_mandante_que_lo_pidio(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -187,21 +185,27 @@ final class FugaApiIntegracionTest extends TestCase
     // ----------------------------------------------- Límite en preview persona
 
     /**
-     * LA FUGA CENTRAL de esta superficie.
+     * La fuga central de esta superficie, cerrada.
      *
      * Escenario nada exótico en un BPO: el mismo correo trabaja para dos
      * clientes y entra por los dos wrappers. Cada handshake le deja un pivot de
      * GESTOR en el proyecto de su mandante. A partir de ahí, el PAT emitido por
      * el wrapper de A vale para leer la ficha de una persona del mandante B,
-     * porque PreviewPersonaController.php:27 sólo comprueba el acceso al
-     * PROYECTO y nunca que el proyecto sea del mandante que emitió el token.
+     * porque la ficha sólo comprobaba el acceso al PROYECTO y nunca que el proyecto
+     * fuera del mandante que emitió el token. Ahora el mandante viaja como
+     * habilidad del PAT y se comprueba en cada lectura.
      */
-    #[Group('fuga-pendiente')]
     public function test_el_pat_del_mandante_a_no_puede_leer_una_persona_del_mandante_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
         $correoCompartido = 'agente.compartido@wrap.io';
+
+        // El mismo correo trabaja para los dos clientes: un admin le dio de
+        // alta en los dos proyectos. Sin esto el segundo handshake se niega,
+        // que es otra garantía y tiene su propio test.
+        $this->vincularCorreoAProyecto($correoCompartido, $a['proyecto']);
+        $this->vincularCorreoAProyecto($correoCompartido, $b['proyecto']);
 
         $patA = $this->emitirPat($a['mandante'], $a['proyecto'], $correoCompartido);
         $this->emitirPat($b['mandante'], $b['proyecto'], $correoCompartido);
@@ -229,8 +233,9 @@ final class FugaApiIntegracionTest extends TestCase
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
-        $response = $this->actingAs($a['gestor'], 'sanctum')
-            ->getJson($this->urlPersona($b['proyecto'], $b['persona']));
+        Sanctum::actingAs($a['gestor'], EmitirSanctumTokenDesdeJwt::HABILIDADES);
+
+        $response = $this->getJson($this->urlPersona($b['proyecto'], $b['persona']));
 
         $this->assertSame(
             403,
@@ -298,7 +303,6 @@ final class FugaApiIntegracionTest extends TestCase
      * User.php:93 le abre TODOS los proyectos de B, incluso los que nunca tocó.
      * El PAT emitido por el wrapper de A hereda ese alcance completo.
      */
-    #[Group('fuga-pendiente')]
     public function test_el_pat_del_mandante_a_no_alcanza_los_proyectos_de_b_por_rol_de_mandante(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -307,6 +311,9 @@ final class FugaApiIntegracionTest extends TestCase
         $personaAjena = $this->crearPersonaEn($otroProyectoDeB);
 
         $correoCompartido = 'admin.compartido@wrap.io';
+
+        $this->vincularCorreoAProyecto($correoCompartido, $a['proyecto']);
+        $this->vincularCorreoAProyecto($correoCompartido, $b['proyecto']);
 
         $patA = $this->emitirPat($a['mandante'], $a['proyecto'], $correoCompartido);
 
@@ -334,13 +341,12 @@ final class FugaApiIntegracionTest extends TestCase
     }
 
     /**
-     * FUGA: el bearer no recuerda de qué mandante viene, así que tampoco se
-     * entera de que ese mandante dejó de ser cliente. Desactivar el mandante
-     * cierra las dos puertas de entrada — VerificarFirmaHmacMandante y
-     * AutenticadorPorJwt filtran por `activo` — pero no toca ni un solo PAT ya
-     * emitido, que sigue leyendo fichas indefinidamente (no caduca nunca).
+     * Dar de baja a un cliente cierra también lo que ya había abierto. Antes
+     * sólo cerraba las dos puertas de ENTRADA —el handshake y la firma HMAC
+     * filtran por `activo`— y los PAT ya emitidos seguían leyendo fichas hasta
+     * caducar. Se comprueba en cada petición y no sólo al pulsar el botón: la
+     * baja puede llegar por otro camino.
      */
-    #[Group('fuga-pendiente')]
     public function test_desactivar_el_mandante_debe_cerrar_los_pat_que_emitio(): void
     {
         ['a' => $a] = $this->montarDosMandantes();
@@ -421,7 +427,6 @@ final class FugaApiIntegracionTest extends TestCase
      * la usa para decidir. Por eso la segunda aserción exige una fila por
      * mandante — hoy la PK global ni siquiera lo permitiría.
      */
-    #[Group('fuga-pendiente')]
     public function test_un_jti_consumido_por_el_mandante_b_no_debe_bloquear_al_mandante_a(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
@@ -469,12 +474,14 @@ final class FugaApiIntegracionTest extends TestCase
      * el mismo correo tiene abierta en el wrapper del otro — ni dejar vivo el
      * token que se acaba de cerrar. Fija el comportamiento actual.
      */
-    #[Group('fuga-pendiente')]
     public function test_el_logout_del_mandante_a_mata_su_pat_y_respeta_el_del_mandante_b(): void
     {
         ['a' => $a, 'b' => $b] = $this->montarDosMandantes();
 
         $correoCompartido = 'logout.compartido@wrap.io';
+
+        $this->vincularCorreoAProyecto($correoCompartido, $a['proyecto']);
+        $this->vincularCorreoAProyecto($correoCompartido, $b['proyecto']);
 
         $patA = $this->emitirPat($a['mandante'], $a['proyecto'], $correoCompartido);
         $patB = $this->emitirPat($b['mandante'], $b['proyecto'], $correoCompartido);
@@ -482,6 +489,12 @@ final class FugaApiIntegracionTest extends TestCase
         $this->withHeader('Authorization', "Bearer {$patA}")
             ->postJson('/api/auth/logout')
             ->assertStatus(200);
+
+        // El guard de auth se memoriza entre peticiones del mismo método de
+        // test: sin olvidarlo, la segunda llamada reutiliza el usuario que ya
+        // resolvió y devuelve 200 aunque la fila del token ya no exista. El
+        // test pasaría por la razón equivocada.
+        $this->app['auth']->forgetGuards();
 
         $conPatA = $this->consultarPersona($patA, $a['proyecto'], $a['persona']);
         $this->assertNotSame(
@@ -494,6 +507,8 @@ final class FugaApiIntegracionTest extends TestCase
             (string) $conPatA->getContent(),
             'El PAT revocado siguió devolviendo datos.'
         );
+
+        $this->app['auth']->forgetGuards();
 
         $conPatB = $this->consultarPersona($patB, $b['proyecto'], $b['persona']);
         $this->assertSame(

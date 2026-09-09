@@ -25,8 +25,8 @@
                 ['can' => 'reportes.operativos',    'route' => 'proyectos.reportes.equipos',        'title' => __('tenancy.tile_reportes_eq_title'),     'desc' => __('tenancy.tile_reportes_eq_desc'),      'icon' => 'users'],
                 ['can' => 'reportes.analiticos',    'route' => 'proyectos.reportes.analiticos',     'title' => __('tenancy.tile_reportes_an_title'),     'desc' => __('tenancy.tile_reportes_an_desc'),      'icon' => 'pie-chart'],
                 ['can' => 'asignaciones.ver_equipo','route' => 'proyectos.bandeja.equipo',          'title' => __('tenancy.tile_bandeja_equipo_title'),  'desc' => __('tenancy.tile_bandeja_equipo_desc'),   'icon' => 'briefcase'],
-                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.masiva',     'title' => __('tenancy.tile_asig_masiva_title'),     'desc' => __('tenancy.tile_asig_masiva_desc'),      'icon' => 'arrow-right'],
-                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar',  'title' => __('tenancy.tile_reasignar_title'),       'desc' => __('tenancy.tile_reasignar_desc'),        'icon' => 'refresh'],
+                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.masiva',     'title' => __('tenancy.tile_asig_masiva_title'),     'desc' => __('tenancy.tile_asig_masiva_desc', ['entidades' => $rotuloCasos]),      'icon' => 'arrow-right'],
+                ['can' => 'asignaciones.reasignar', 'route' => 'proyectos.asignaciones.reasignar',  'title' => __('tenancy.tile_reasignar_title'),       'desc' => __('tenancy.tile_reasignar_desc', ['entidades' => $rotuloCasos]),        'icon' => 'refresh'],
             ],
             __('tenancy.section_administration') => [
                 // Tile "Catálogos del proyecto" absorbido por el wizard "Configurar proyecto" (F36 P9).
@@ -37,7 +37,7 @@
                 ['can' => 'auditoria.ver', 'route' => 'proyectos.auditoria', 'title' => __('tenancy.tile_auditoria_title'), 'desc' => __('tenancy.tile_auditoria_desc'), 'icon' => 'shield'],
             ],
             __('tenancy.section_data') => [
-                ['can' => 'importaciones.crear', 'route' => 'proyectos.importaciones', 'title' => __('tenancy.tile_importar_title'), 'desc' => __('tenancy.tile_importar_desc'), 'icon' => 'upload'],
+                ['can' => 'importaciones.crear', 'route' => 'proyectos.importaciones', 'title' => __('tenancy.tile_importar_title'), 'desc' => __('tenancy.tile_importar_desc', ['entidades' => $rotuloCasos]), 'icon' => 'upload'],
             ],
         ];
     @endphp
@@ -47,7 +47,7 @@
             <div>
                 <h1 class="page-title">{{ $proyecto->nombre }}</h1>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;">
+            <div class="flex items-center gap-2">
                 <span class="badge {{ $tipoBadge }}">{{ ucfirst($proyecto->tipo_operacion) }}</span>
                 <span class="code-mono" style="font-size:11px;color:var(--text-tertiary);">{{ $proyecto->codigo }}</span>
                 <a href="{{ route('dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('tenancy.change_project') }}</a>
@@ -57,7 +57,7 @@
         <div class="card card-pad">
             <div class="card-title" style="margin-bottom:4px;">{{ $mandante->nombre ?? 'Proyecto' }}</div>
             @if(! empty($proyecto->descripcion))
-                <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 14px;">{{ $proyecto->descripcion }}</p>
+                <p class="text-sm text-ink-500" style="margin:0 0 14px;">{{ $proyecto->descripcion }}</p>
             @endif
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
@@ -68,7 +68,7 @@
                 </div>
                 <div>
                     <div class="label-xs">{{ __('tenancy.label_validity') }}</div>
-                    <div style="margin-top:6px;font-size:13px;color:var(--text);">{{ $vigencia }}</div>
+                    <div class="text-base text-ink" style="margin-top:6px;">{{ $vigencia }}</div>
                 </div>
                 <div>
                     <div class="label-xs">{{ __('tenancy.label_code_project') }}</div>
@@ -81,58 +81,11 @@
         @php
             $usuarioId = (int) auth()->id();
             $hoy = \Illuminate\Support\Carbon::today();
-            $kpis = null;
-            if (auth()->user()?->tienePermiso('asignaciones.ver_propia', $proyecto->id) === true) {
-                $kpis = [
-                    'pendientes' => (int) DB::table('asignaciones')
-                        ->where('proyecto_id', $proyecto->id)
-                        ->where('usuario_id', $usuarioId)
-                        ->where('estado', 'pendiente')
-                        ->count(),
-                    'compromisos_proximos' => (int) DB::table('compromisos')
-                        ->where('proyecto_id', $proyecto->id)
-                        ->where('usuario_id', $usuarioId)
-                        ->where('estado', 'pendiente')
-                        ->whereNull('eliminada_en')
-                        ->whereBetween('fecha_vencimiento', [$hoy->toDateString(), $hoy->copy()->addDays(7)->toDateString()])
-                        ->count(),
-                    'compromisos_vencidos' => (int) DB::table('compromisos')
-                        ->where('proyecto_id', $proyecto->id)
-                        ->where('usuario_id', $usuarioId)
-                        ->where('estado', 'pendiente')
-                        ->whereNull('eliminada_en')
-                        ->where('fecha_vencimiento', '<', $hoy->toDateString())
-                        ->count(),
-                    'gestiones_hoy' => (int) DB::table('gestiones')
-                        ->where('proyecto_id', $proyecto->id)
-                        ->where('usuario_id', $usuarioId)
-                        ->whereNull('eliminada_en')
-                        ->whereDate('creada_en', $hoy->toDateString())
-                        ->count(),
-                ];
-            }
         @endphp
 
-        @if($kpis !== null)
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">{{ __('tenancy.kpi_pending') }}</div>
-                    <div style="font-size:22px;font-weight:600;color:var(--text);margin-top:4px;">{{ number_format($kpis['pendientes']) }}</div>
-                </div>
-                <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">{{ __('tenancy.kpi_gestiones_today') }}</div>
-                    <div style="font-size:22px;font-weight:600;color:var(--text);margin-top:4px;">{{ number_format($kpis['gestiones_hoy']) }}</div>
-                </div>
-                <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">{{ __('tenancy.kpi_commitments_next7') }}</div>
-                    <div style="font-size:22px;font-weight:600;color:var(--success-text);margin-top:4px;">{{ number_format($kpis['compromisos_proximos']) }}</div>
-                </div>
-                <div class="card card-pad" style="padding:14px;">
-                    <div class="label-xs">{{ __('tenancy.kpi_commitments_overdue') }}</div>
-                    <div style="font-size:22px;font-weight:600;color:var(--danger-text);margin-top:4px;">{{ number_format($kpis['compromisos_vencidos']) }}</div>
-                </div>
-            </div>
-        @endif
+        {{-- El resumen del día vive en su propio componente: la vista no calcula
+             (§13.4), y así el mismo panel puede reutilizarse en otra pantalla. --}}
+        <livewire:reportes.panel-del-dia :proyecto-id="$proyecto->id" />
 
         @foreach($cards as $categoria => $items)
             @php
@@ -150,15 +103,14 @@
                         @foreach($visibles as $c)
                             <a href="{{ route($c['route'], ['proyecto_id' => $proyecto->id]) }}"
                                wire:navigate
-                               class="card card-pad proyecto-action-tile"
-                               style="text-decoration:none;color:inherit;display:block;transition:border-color 120ms var(--ease), background 120ms var(--ease);">
+                               class="card card-pad proyecto-action-tile">
                                 <div class="flex items-start gap-3">
-                                    <div class="flex-shrink-0" style="height:40px;width:40px;border-radius:8px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;border:1px solid var(--primary-soft-border);">
+                                    <div class="shrink-0 flex items-center justify-center text-brand-700 h-10 w-10 rounded-lg bg-brand-50 border border-brand-100">
                                         <x-ui.icon :name="$c['icon']" :size="18" />
                                     </div>
                                     <div class="min-w-0">
-                                        <div style="font-weight:600;color:var(--text);font-size:14px;">{{ $c['title'] }}</div>
-                                        <p style="margin-top:2px;font-size:12px;color:var(--text-tertiary);">{{ $c['desc'] }}</p>
+                                        <div class="font-semibold text-ink text-md">{{ $c['title'] }}</div>
+                                        <p class="text-sm text-ink-500" style="margin-top:2px;">{{ $c['desc'] }}</p>
                                     </div>
                                 </div>
                             </a>
@@ -169,7 +121,4 @@
         @endforeach
 
     </div>
-    <style>
-        .proyecto-action-tile:hover { border-color: var(--primary-soft-border); background: var(--bg-subtle); }
-    </style>
 </x-app-layout>

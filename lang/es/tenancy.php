@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'autoasignacion' => 'Auto-asignación al gestionar',
+    'autoasignacion_ayuda' => 'Si el asesor gestiona una cuenta sin dueño, la cuenta pasa a ser suya. Apagado, solo el supervisor reparte.',
+    'accion_editar' => 'Editar datos',
+    'accion_configurar' => 'Configurar proyecto',
+    'accion_entrar' => 'Entrar al proyecto',
     'selector_mandante' => [
         'titulo' => 'Elige el cliente',
         'ayuda' => 'Trabajarás dentro de este cliente hasta que cambies. Solo verás sus usuarios, proyectos y carteras.',
@@ -103,7 +108,19 @@ return [
     'label_description' => 'Descripción (opcional)',
     'label_start_date' => 'Fecha inicio',
     'label_end_date' => 'Fecha fin',
-    'confirm_deactivate_proyecto' => '¿Desactivar este proyecto?',
+    // Desactivar y archivar conviven en la misma pantalla y se parecen
+    // demasiado: el texto es lo único que los distingue, así que dice qué pasa
+    // después de pulsar, no qué hace el botón.
+    'baja_proyecto_titulo' => 'Baja del proyecto',
+    'deactivate_hint_proyecto' => 'Lo pausa. Sigue en esta lista y se vuelve a activar cuando quieras.',
+    'archive_hint_proyecto' => 'Lo retira de la administración y del selector. Nadie podrá entrar y no hay botón de vuelta.',
+    'btn_archive' => 'Archivar',
+    'confirm_deactivate_proyecto' => '¿Desactivar este proyecto? Deja de operarse, pero sigue aquí y puedes reactivarlo.',
+    'confirm_archive_proyecto' => '¿Archivar este proyecto? Desaparece de la administración y del selector, y nadie podrá volver a entrar. No se borra nada —sus casos y gestiones se conservan—, pero desarchivarlo ya no se hace desde esta pantalla.',
+    'flash_proyecto_guardado' => 'Proyecto guardado.',
+    'flash_proyecto_activado' => 'Proyecto activado.',
+    'flash_proyecto_desactivado' => 'Proyecto desactivado. Sigue en la lista; puedes reactivarlo.',
+    'flash_proyecto_archivado' => 'Proyecto archivado. Ya no aparece en la administración ni en el selector.',
 
     // Selector de proyectos
     'admin_global_label' => 'Administrador global',
@@ -145,9 +162,9 @@ return [
     'tile_bandeja_equipo_title' => 'Bandeja del equipo',
     'tile_bandeja_equipo_desc' => 'Asignaciones de los miembros con KPIs por gestor.',
     'tile_asig_masiva_title' => 'Asignación masiva',
-    'tile_asig_masiva_desc' => 'Distribuir casos pendientes round-robin al equipo.',
+    'tile_asig_masiva_desc' => 'Distribuir :entidades pendientes round-robin al equipo.',
     'tile_reasignar_title' => 'Re-asignar entre equipos',
-    'tile_reasignar_desc' => 'Mover pendientes respetando casos en trabajo.',
+    'tile_reasignar_desc' => 'Mover pendientes respetando :entidades en trabajo.',
     'tile_usuarios_proy_title' => 'Usuarios del proyecto',
     'tile_usuarios_proy_desc' => 'Asignar y quitar roles SUPERVISOR/GESTOR/AUDITOR.',
     'tile_equipos_proy_title' => 'Equipos del proyecto',
@@ -155,5 +172,5 @@ return [
     'tile_auditoria_title' => 'Auditoría',
     'tile_auditoria_desc' => 'Quién cambió qué, cuándo y desde qué IP.',
     'tile_importar_title' => 'Importar / Exportar',
-    'tile_importar_desc' => 'CSVs de personas, casos, gestiones, compromisos.',
+    'tile_importar_desc' => 'CSVs de personas, :entidades, gestiones, compromisos.',
 ];

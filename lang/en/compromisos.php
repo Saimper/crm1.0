@@ -32,6 +32,7 @@ return [
     'type_close' => 'Sale closing',
     'type_service' => 'Service action',
     'clear_filters' => 'Clear',
+    'export_csv' => 'Export CSV',
     'results' => ':count results',
 
     // Table columns

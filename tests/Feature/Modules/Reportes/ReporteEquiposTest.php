@@ -4,66 +4,69 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Reportes;
 
-use App\Models\User;
 use App\Modules\Reportes\Infrastructure\Http\Livewire\ReporteEquipos;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ReporteEquiposTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_accede_ruta_reporte_equipos(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)
-            ->get(route('proyectos.reportes.equipos', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.reportes.equipos', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
     }
 
     public function test_gestor_recibe_403_reporte_equipos(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.reportes.equipos', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.reportes.equipos', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_agrega_gestiones_por_miembros_del_equipo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $gestor1 = $this->crearConRol($proyectoId, 'GESTOR');
-        $gestor2 = $this->crearConRol($proyectoId, 'GESTOR');
-        $gestorFuera = $this->crearConRol($proyectoId, 'GESTOR');
+        $supervisor = $this->crearSupervisor($proyecto);
+        $gestor1 = $this->crearGestor($proyecto);
+        $gestor2 = $this->crearGestor($proyecto);
+        $gestorFuera = $this->crearGestor($proyecto);
 
-        $equipoId = $this->crearEquipo($proyectoId, 'EQ_A', 'Equipo A');
-        $this->agregarMiembro($equipoId, $gestor1->id, $proyectoId);
-        $this->agregarMiembro($equipoId, $gestor2->id, $proyectoId);
+        $equipoId = $this->crearEquipo($proyecto, 'EQ_A', 'Equipo A');
+        $this->agregarMiembro($equipoId, $gestor1->id, (int) $proyecto->id);
+        $this->agregarMiembro($equipoId, $gestor2->id, (int) $proyecto->id);
 
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'cobranza')->value('id');
-        $personaId = (int) DB::table('casos')->where('id', $casoId)->value('persona_id');
+        $persona = $this->crearPersonaEn($proyecto);
+        $casoId = $this->crearCasoEn($proyecto, ['persona' => $persona]);
+        $cascada = $this->crearCascadaGestionEn($proyecto);
 
-        $this->crearGestion($proyectoId, $casoId, $personaId, $gestor1->id);
-        $this->crearGestion($proyectoId, $casoId, $personaId, $gestor2->id);
-        $this->crearGestion($proyectoId, $casoId, $personaId, $gestorFuera->id);
+        $this->crearGestion($proyecto, $casoId, (int) $persona->id, $gestor1->id, $cascada);
+        $this->crearGestion($proyecto, $casoId, (int) $persona->id, $gestor2->id, $cascada);
+        $this->crearGestion($proyecto, $casoId, (int) $persona->id, $gestorFuera->id, $cascada);
 
         $this->actingAs($supervisor);
 
@@ -79,11 +82,11 @@ final class ReporteEquiposTest extends TestCase
 
     public function test_equipo_sin_miembros_muestra_ceros(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
-        $equipoId = $this->crearEquipo($proyectoId, 'EQ_VACIO', 'Equipo vacío');
+        $equipoId = $this->crearEquipo($proyecto, 'EQ_VACIO', 'Equipo vacío');
 
         $filas = Livewire::test(ReporteEquipos::class)->viewData('filas');
         $fila = collect($filas)->firstWhere('equipo.id', $equipoId);
@@ -94,19 +97,20 @@ final class ReporteEquiposTest extends TestCase
 
     public function test_expandir_devuelve_detalle_por_miembro(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $supervisor = $this->crearSupervisor($proyecto);
+        $gestor = $this->crearGestor($proyecto);
         $this->actingAs($supervisor);
 
-        $equipoId = $this->crearEquipo($proyectoId, 'EQ_DETALLE', 'Con detalle');
-        $this->agregarMiembro($equipoId, $gestor->id, $proyectoId);
+        $equipoId = $this->crearEquipo($proyecto, 'EQ_DETALLE', 'Con detalle');
+        $this->agregarMiembro($equipoId, $gestor->id, (int) $proyecto->id);
 
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'cobranza')->value('id');
-        $personaId = (int) DB::table('casos')->where('id', $casoId)->value('persona_id');
-        $this->crearGestion($proyectoId, $casoId, $personaId, $gestor->id);
+        $persona = $this->crearPersonaEn($proyecto);
+        $casoId = $this->crearCasoEn($proyecto, ['persona' => $persona]);
+        $cascada = $this->crearCascadaGestionEn($proyecto);
+        $this->crearGestion($proyecto, $casoId, (int) $persona->id, $gestor->id, $cascada);
 
         $c = Livewire::test(ReporteEquipos::class)
             ->set('rango', 'mes')
@@ -121,24 +125,26 @@ final class ReporteEquiposTest extends TestCase
 
     public function test_no_agrega_gestiones_de_otro_proyecto(): void
     {
-        $proyectoA = $this->proyectoId();
-        $proyectoB = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
+        $proyectoA = $this->crearProyectoCobranza();
+        $proyectoB = $this->crearProyectoCx();
 
-        $this->bindProyectoActivo($proyectoA);
-        $supervisor = $this->crearConRol($proyectoA, 'SUPERVISOR');
-        $gestor = $this->crearConRol($proyectoA, 'GESTOR');
+        $this->activarProyecto($proyectoA);
+        $supervisor = $this->crearSupervisor($proyectoA);
+        $gestor = $this->crearGestor($proyectoA);
         DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $gestor->id, 'proyecto_id' => $proyectoB,
+            'usuario_id' => $gestor->id,
+            'proyecto_id' => $proyectoB->id,
             'rol_id' => (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id'),
             'activo' => true,
         ]);
 
         $equipoId = $this->crearEquipo($proyectoA, 'EQ_X', 'Equipo X');
-        $this->agregarMiembro($equipoId, $gestor->id, $proyectoA);
+        $this->agregarMiembro($equipoId, $gestor->id, (int) $proyectoA->id);
 
-        $casoB = (int) DB::table('casos')->where('proyecto_id', $proyectoB)->where('tipo_caso', 'ticket_cx')->value('id');
-        $personaB = (int) DB::table('casos')->where('id', $casoB)->value('persona_id');
-        $this->crearGestion($proyectoB, $casoB, $personaB, $gestor->id);
+        $personaB = $this->crearPersonaEn($proyectoB);
+        $casoB = $this->crearCasoEn($proyectoB, ['persona' => $personaB]);
+        $cascadaB = $this->crearCascadaGestionEn($proyectoB);
+        $this->crearGestion($proyectoB, $casoB, (int) $personaB->id, $gestor->id, $cascadaB);
 
         $this->actingAs($supervisor);
         $filas = Livewire::test(ReporteEquipos::class)->set('rango', 'mes')->viewData('filas');
@@ -147,21 +153,11 @@ final class ReporteEquiposTest extends TestCase
         $this->assertSame(0, $fila['total_gestiones']);
     }
 
-    private function proyectoId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearEquipo(int $proyectoId, string $codigo, string $nombre): int
+    private function crearEquipo(stdClass $proyecto, string $codigo, string $nombre): int
     {
         return (int) DB::table('equipos')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'codigo' => $codigo,
             'nombre' => $nombre,
             'activo' => true,
@@ -179,40 +175,21 @@ final class ReporteEquiposTest extends TestCase
         ]);
     }
 
-    private function crearGestion(int $proyectoId, int $casoId, int $personaId, int $usuarioId): void
+    /**
+     * @param  array{tipo_gestion_id: int, resultado_id: int, canal_id: int, motivo_no_contacto_id: int, causa_id: int}  $cascada
+     */
+    private function crearGestion(stdClass $proyecto, int $casoId, int $personaId, int $usuarioId, array $cascada): void
     {
-        $tipoGestionId = (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->value('id');
-        $resultadoId = (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->value('id');
-        $canalId = (int) DB::table('canales')->value('id');
-
         DB::table('gestiones')->insert([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'caso_id' => $casoId,
             'persona_id' => $personaId,
-            'canal_id' => $canalId,
-            'tipo_gestion_id' => $tipoGestionId,
-            'resultado_id' => $resultadoId,
+            'canal_id' => $cascada['canal_id'],
+            'tipo_gestion_id' => $cascada['tipo_gestion_id'],
+            'resultado_id' => $cascada['resultado_id'],
             'usuario_id' => $usuarioId,
             'creada_en' => Carbon::now(),
         ]);
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Integracion\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use App\Modules\Integracion\Application\UseCases\RotacionSecret\RotarSecretMandante;
 use App\Modules\Integracion\Infrastructure\Jobs\EmitirWebhookStatusMandante;
 use Illuminate\Contracts\View\View;
@@ -11,6 +12,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -26,18 +28,38 @@ use Livewire\Component;
  *  - Rotar: genera nuevo, mueve actual a sso_secret_old (válido 24h),
  *    despacha webhook al wrapper.
  *  - Editar webhook URLs (rotación + status changed).
+ *
+ * Sobre las guardas: aquí NO se usa `AutorizaEnProyectoActivo`. Esta pantalla
+ * cuelga de `admin.global` y no hay proyecto activo que autorizar contra él, así
+ * que la comprobación correcta es la del rol global —la misma que hace
+ * `AdminUsuarios::soloAdminGlobal()`—. Y hace falta repetirla en cada método
+ * porque el `admin.global` de la ruta protege la PÁGINA: cada acción Livewire es
+ * un POST aparte a /livewire/update que no vuelve a pasar por ese middleware.
+ * Siendo esto el llavero del SSO —revelar y rotar secrets, y apuntar a dónde se
+ * envían—, la guarda va incluso en los métodos que sólo leen.
  */
 final class AdminSsoSecrets extends Component
 {
-    /** @var array<int, bool> */
+    /**
+     * `#[Locked]` en todo lo que lleva id o secret: son estado del servidor, no
+     * entrada del cliente. Sin esto un `$wire.set('revelado', {3: true})` o un
+     * `$wire.set('editandoMandanteId', N)` desde la consola reapunta la pantalla
+     * al mandante que quiera quien tenga el componente montado.
+     *
+     * @var array<int, bool>
+     */
+    #[Locked]
     public array $revelado = [];
 
     /** ID del último mandante rotado (mostrar secret completo una sola vez). */
+    #[Locked]
     public ?int $rotadoId = null;
 
+    #[Locked]
     public ?string $rotadoSecret = null;
 
     /** Mandante en edición de webhook URLs (form drawer). */
+    #[Locked]
     public ?int $editandoMandanteId = null;
 
     public string $webhookUrlSecretRotated = '';
@@ -46,11 +68,16 @@ final class AdminSsoSecrets extends Component
 
     public function revelar(int $mandanteId): void
     {
+        $this->soloAdminGlobal();
+        $this->mandanteVigente($mandanteId);
+
         $this->revelado[$mandanteId] = true;
     }
 
     public function ocultar(int $mandanteId): void
     {
+        $this->soloAdminGlobal();
+
         $this->revelado[$mandanteId] = false;
         $this->rotadoId = null;
         $this->rotadoSecret = null;
@@ -58,6 +85,9 @@ final class AdminSsoSecrets extends Component
 
     public function rotar(int $mandanteId, RotarSecretMandante $useCase): void
     {
+        $this->soloAdminGlobal();
+        $this->mandanteVigente($mandanteId);
+
         $output = $useCase->execute($mandanteId);
 
         $this->rotadoId = $output->mandanteId;
@@ -73,13 +103,8 @@ final class AdminSsoSecrets extends Component
 
     public function abrirWebhooks(int $mandanteId): void
     {
-        $row = DB::table('mandantes')
-            ->where('id', $mandanteId)
-            ->first(['id', 'webhook_url_secret_rotated', 'webhook_url_status_changed']);
-
-        if ($row === null) {
-            return;
-        }
+        $this->soloAdminGlobal();
+        $row = $this->mandanteVigente($mandanteId);
 
         $this->editandoMandanteId = (int) $row->id;
         $this->webhookUrlSecretRotated = (string) ($row->webhook_url_secret_rotated ?? '');
@@ -88,6 +113,8 @@ final class AdminSsoSecrets extends Component
 
     public function cerrarWebhooks(): void
     {
+        $this->soloAdminGlobal();
+
         $this->editandoMandanteId = null;
         $this->webhookUrlSecretRotated = '';
         $this->webhookUrlStatusChanged = '';
@@ -95,9 +122,13 @@ final class AdminSsoSecrets extends Component
 
     public function guardarWebhooks(): void
     {
+        $this->soloAdminGlobal();
+
         if ($this->editandoMandanteId === null) {
             return;
         }
+
+        $this->mandanteVigente($this->editandoMandanteId);
 
         $this->validate([
             'webhookUrlSecretRotated' => ['nullable', 'url:http,https', 'max:255'],
@@ -106,6 +137,7 @@ final class AdminSsoSecrets extends Component
 
         DB::table('mandantes')
             ->where('id', $this->editandoMandanteId)
+            ->whereNull('eliminada_en')
             ->update([
                 'webhook_url_secret_rotated' => $this->webhookUrlSecretRotated !== '' ? $this->webhookUrlSecretRotated : null,
                 'webhook_url_status_changed' => $this->webhookUrlStatusChanged !== '' ? $this->webhookUrlStatusChanged : null,
@@ -118,13 +150,11 @@ final class AdminSsoSecrets extends Component
 
     public function probarWebhookStatus(int $mandanteId): void
     {
-        $url = (string) DB::table('mandantes')
-            ->where('id', $mandanteId)
-            ->value('webhook_url_status_changed');
+        $this->soloAdminGlobal();
+        $row = $this->mandanteVigente($mandanteId);
 
-        $activo = (bool) DB::table('mandantes')
-            ->where('id', $mandanteId)
-            ->value('activo');
+        $url = (string) ($row->webhook_url_status_changed ?? '');
+        $activo = (bool) $row->activo;
 
         if ($url === '') {
             session()->flash('admin-sso-ok', 'No hay webhook_url_status_changed configurada.');
@@ -139,6 +169,12 @@ final class AdminSsoSecrets extends Component
     #[Computed]
     public function mandantes(): Collection
     {
+        // El listado ES la fuga: trae los secrets de todos los mandantes. La
+        // guarda va aquí y no sólo en las acciones para que un componente
+        // reutilizado o un snapshot heredado de una sesión con más derechos no
+        // llegue a renderizarlos.
+        $this->soloAdminGlobal();
+
         return DB::table('mandantes')
             ->whereNull('eliminada_en')
             ->select([
@@ -154,5 +190,43 @@ final class AdminSsoSecrets extends Component
     public function render(): View
     {
         return view('integracion::admin.sso-secrets');
+    }
+
+    /**
+     * El equivalente de `autorizarEn()` para una pantalla sin proyecto activo.
+     *
+     * `mandante.administrar` no sirve como criterio: ADMIN_MANDANTE lo tiene y
+     * esta ruta le está vetada a propósito (§10, F39), porque el secret es del
+     * canal entre el wrapper y el CRM, no del mandante.
+     */
+    private function soloAdminGlobal(): void
+    {
+        $usuario = auth()->user();
+
+        abort_unless(
+            $usuario instanceof User && $usuario->esAdminGlobal(),
+            403,
+            'Solo ADMIN_GLOBAL gestiona los secrets SSO.',
+        );
+    }
+
+    /**
+     * La pertenencia que sí existe aquí: que el mandante exista y siga vivo.
+     *
+     * No hay `proyecto_id` que cruzar —`mandantes` es la raíz de la jerarquía— y
+     * ADMIN_GLOBAL es cross-mandante por definición, así que lo único que puede
+     * llegar mal por el id del cliente es un mandante borrado o inexistente.
+     * 404 y no 403, por lo mismo que `filaDelProyecto`: no confirmar qué ids hay.
+     */
+    private function mandanteVigente(int $mandanteId): object
+    {
+        $fila = DB::table('mandantes')
+            ->where('id', $mandanteId)
+            ->whereNull('eliminada_en')
+            ->first(['id', 'activo', 'webhook_url_secret_rotated', 'webhook_url_status_changed']);
+
+        abort_if($fila === null, 404);
+
+        return $fila;
     }
 }

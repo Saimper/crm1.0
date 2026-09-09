@@ -15,20 +15,24 @@ use App\Modules\Cx\Domain\ValueObjects\DatosResolucionTicket;
 use App\Modules\Cx\Domain\ValueObjects\FechaLimiteSla;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class CrearResolucionDesdeGestionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registrar_gestion_con_escalamiento_crea_compromiso_y_resolucion(): void
@@ -41,11 +45,11 @@ final class CrearResolucionDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_ENTRANTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'ESCALADO', $ctx['proyectoId']),
+            canalId: $ctx['escalado']['canal_id'],
+            tipoGestionId: $ctx['escalado']['tipo_gestion_id'],
+            resultadoId: $ctx['escalado']['resultado_id'],
             motivoNoContactoId: null,
-            causaId: $this->idProyecto('causas_gestion', 'CAIDO', $ctx['proyectoId']),
+            causaId: $ctx['escalado']['causa_id'],
             usuarioId: $ctx['usuarioId'],
             notas: 'Cliente reporta caída general, se escala a nivel 2.',
             duracion: null,
@@ -53,7 +57,7 @@ final class CrearResolucionDesdeGestionTest extends TestCase
             datosCompromiso: new DatosResolucionTicket(
                 accion: new AccionComprometida('Revisión de infraestructura y respuesta al cliente'),
                 fechaLimite: new FechaLimiteSla(new DateTimeImmutable('2026-04-19 10:00:00')),
-                nivelEscalamientoId: $this->idProyecto('niveles_escalamiento', 'N2', $ctx['proyectoId']),
+                nivelEscalamientoId: $ctx['nivelEscalamientoId'],
             ),
         ));
 
@@ -115,7 +119,9 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         $this->assertDatabaseHas('compromisos', ['id' => $compromisoId, 'estado' => 'cancelado']);
     }
 
-    /** @param array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} $ctx */
+    /**
+     * @param  array{proyectoId:int, casoId:int, personaId:int, usuarioId:int, nivelEscalamientoId:int, escalado:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int}, compromisoSla:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int}}  $ctx
+     */
     private function registrarResolucion(array $ctx): void
     {
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
@@ -124,9 +130,9 @@ final class CrearResolucionDesdeGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_ENTRANTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'COMPROMISO_SLA', $ctx['proyectoId']),
+            canalId: $ctx['compromisoSla']['canal_id'],
+            tipoGestionId: $ctx['compromisoSla']['tipo_gestion_id'],
+            resultadoId: $ctx['compromisoSla']['resultado_id'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -140,33 +146,52 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         ));
     }
 
-    /** @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} */
+    /**
+     * Escenario mínimo de un proyecto CX con un ticket abierto y las dos cascadas
+     * de gestión que el test usa: la de escalamiento (exige causa) y la del
+     * compromiso de SLA. Ambas exigen compromiso, que es lo que dispara el
+     * listener `CrearResolucionDesdeGestion`.
+     *
+     * @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int, nivelEscalamientoId:int, escalado:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int}, compromisoSla:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int}}
+     */
     private function contexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'SOPORTE_GENERAL')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $proyecto = $this->crearProyectoCx();
+        $cartera = $this->crearCarteraEn($proyecto, 'SOPORTE_GENERAL');
+        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
+        $escalado = $this->crearCascadaGestionEn($proyecto, [
+            'codigo_tipo' => 'LLAMADA_ENTRANTE',
+            'codigo_resultado' => 'ESCALADO',
+            'requiere_compromiso' => true,
+            'requiere_causa' => true,
         ]);
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Tester',
-            'apellidos' => 'CX',
+
+        $compromisoSla = $this->crearCascadaGestionEn($proyecto, [
+            'codigo_tipo' => 'LLAMADA_ENTRANTE_SLA',
+            'codigo_resultado' => 'COMPROMISO_SLA',
+            'requiere_compromiso' => true,
+        ]);
+
+        // No hay helper para `niveles_escalamiento` en EscenarioOperativo.
+        $nivelEscalamientoId = (int) DB::table('niveles_escalamiento')->insertGetId([
+            'proyecto_id' => $proyecto->id,
+            'codigo' => 'N2',
+            'nombre' => 'Nivel 2',
+            'nivel' => 2,
+            'activo' => true,
+            'orden' => 20,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
 
         $out = $this->app->make(RegistrarCasoTicketCx::class)->execute(new RegistrarCasoTicketCxInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estadoId,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-18'),
             prioridad: 100,
             codigoTicket: 'TKT-RES-'.Str::random(4),
@@ -181,20 +206,13 @@ final class CrearResolucionDesdeGestionTest extends TestCase
         ));
 
         return [
-            'proyectoId' => $proyectoId,
+            'proyectoId' => (int) $proyecto->id,
             'casoId' => $out->casoId,
-            'personaId' => $personaId,
-            'usuarioId' => $usuarioId,
+            'personaId' => (int) $persona->id,
+            'usuarioId' => (int) $usuario->id,
+            'nivelEscalamientoId' => $nivelEscalamientoId,
+            'escalado' => $escalado,
+            'compromisoSla' => $compromisoSla,
         ];
-    }
-
-    private function idGlobal(string $tabla, string $codigo): int
-    {
-        return (int) DB::table($tabla)->where('codigo', $codigo)->value('id');
-    }
-
-    private function idProyecto(string $tabla, string $codigo, int $proyectoId): int
-    {
-        return (int) DB::table($tabla)->where('proyecto_id', $proyectoId)->where('codigo', $codigo)->value('id');
     }
 }

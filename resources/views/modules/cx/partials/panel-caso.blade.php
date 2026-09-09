@@ -3,18 +3,18 @@
 @endphp
 
 @if($ticket)
-    <div class="rounded-md border border-sky-200 bg-sky-50 p-4 space-y-3">
+    <div class="rounded-md border border-brand-100 bg-brand-50 p-4 space-y-3">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <div class="text-[10px] uppercase tracking-wider text-sky-700">{{ __('cx.panel_label') }}</div>
-                <div class="text-lg font-semibold text-sky-900 font-mono">{{ $ticket->codigo_ticket }}</div>
-                <div class="text-sm text-sky-900 mt-0.5">{{ $ticket->asunto }}</div>
+                <div class="text-[10px] uppercase tracking-wider text-brand-700">{{ __('cx.panel_label') }}</div>
+                <div class="text-lg font-semibold text-brand-900 font-mono">{{ $ticket->codigo_ticket }}</div>
+                <div class="text-sm text-brand-900 mt-0.5">{{ $ticket->asunto }}</div>
             </div>
             @if($ticket->prioridad_nombre)
                 @php
                     $badge = match (strtoupper((string) $ticket->prioridad_codigo)) {
                         'URGENTE' => 'bg-danger-50 text-danger-700',
-                        'ALTA'    => 'bg-orange-100 text-orange-800',
+                        'ALTA'    => 'bg-warning-50 text-warning-800',
                         'MEDIA'   => 'bg-warning-50 text-warning-700',
                         default   => 'bg-success-50 text-success-800',
                     };
@@ -26,35 +26,35 @@
         </div>
 
         @if($ticket->descripcion)
-            <div class="text-xs text-sky-900/80 whitespace-pre-line">{{ $ticket->descripcion }}</div>
+            <div class="text-xs text-brand-900/80 whitespace-pre-line">{{ $ticket->descripcion }}</div>
         @endif
 
         <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
-                <dt class="text-sky-700">{{ __('cx.categoria') }}</dt>
-                <dd class="font-medium text-sky-900">{{ $ticket->categoria_nombre ?? '—' }}</dd>
+                <dt class="text-brand-700">{{ __('cx.categoria') }}</dt>
+                <dd class="font-medium text-brand-900">{{ $ticket->categoria_nombre ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-sky-700">{{ __('cx.sla') }}</dt>
-                <dd class="font-medium text-sky-900">{{ $ticket->sla_nombre ?? '—' }}</dd>
+                <dt class="text-brand-700">{{ __('cx.sla') }}</dt>
+                <dd class="font-medium text-brand-900">{{ $ticket->sla_nombre ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-sky-700">{{ __('cx.escalamiento') }}</dt>
-                <dd class="font-medium text-sky-900">{{ $ticket->escalamiento_nombre ?? 'N1' }}</dd>
+                <dt class="text-brand-700">{{ __('cx.escalamiento') }}</dt>
+                <dd class="font-medium text-brand-900">{{ $ticket->escalamiento_nombre ?? 'N1' }}</dd>
             </div>
             <div>
-                <dt class="text-sky-700">{{ __('cx.reportado') }}</dt>
-                <dd class="font-medium text-sky-900">
+                <dt class="text-brand-700">{{ __('cx.reportado') }}</dt>
+                <dd class="font-medium text-brand-900">
                     {{ \Illuminate\Support\Carbon::parse($ticket->fecha_reporte)->format('d/m/Y H:i') }}
                 </dd>
             </div>
             @if($ticket->fecha_limite_sla)
                 <div class="col-span-2 sm:col-span-4">
-                    <dt class="text-sky-700">{{ __('cx.limite_sla') }}</dt>
-                    <dd class="font-semibold text-sky-900">
+                    <dt class="text-brand-700">{{ __('cx.limite_sla') }}</dt>
+                    <dd class="font-semibold text-brand-900">
                         {{ \Illuminate\Support\Carbon::parse($ticket->fecha_limite_sla)->format('d/m/Y H:i') }}
                         @php $diff = \Illuminate\Support\Carbon::parse($ticket->fecha_limite_sla)->diffForHumans(); @endphp
-                        <span class="text-[10px] text-sky-700">· {{ $diff }}</span>
+                        <span class="text-[10px] text-brand-700">· {{ $diff }}</span>
                     </dd>
                 </div>
             @endif

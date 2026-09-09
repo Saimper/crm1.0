@@ -11,20 +11,23 @@ use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
 use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class TransicionAsignacionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registrar_gestion_pasa_asignacion_pendiente_a_en_trabajo(): void
@@ -42,9 +45,9 @@ final class TransicionAsignacionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $ctx['proyectoId'])->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
-            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $ctx['proyectoId'])->where('codigo', 'CONTACTO_TITULAR')->value('id'),
+            canalId: $ctx['cascada']['canal_id'],
+            tipoGestionId: $ctx['cascada']['tipo_gestion_id'],
+            resultadoId: $ctx['cascada']['resultado_id'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -82,19 +85,12 @@ final class TransicionAsignacionTest extends TestCase
         $useCase->execute($asignacionId, new DateTimeImmutable('2026-04-21'));
     }
 
-    /** @param array{proyectoId:int,casoId:int,personaId:int,usuarioId:int} $ctx */
+    /** @param array{proyectoId:int,casoId:int,personaId:int,usuarioId:int,cascada:array<string,int>} $ctx */
     private function registrarAsignacion(array $ctx): int
     {
-        $campanaId = (int) DB::table('campanas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $ctx['proyectoId'],
-            'codigo' => 'CAMP_TEST', 'nombre' => 'Camp Test',
-            'estado' => 'activa', 'fecha_inicio' => '2026-04-01',
-        ]);
-
         return $this->app->make(RegistrarAsignacion::class)->execute(new RegistrarAsignacionInput(
             publicId: (string) Str::ulid(),
             proyectoId: $ctx['proyectoId'],
-            campanaId: $campanaId,
             casoId: $ctx['casoId'],
             usuarioId: $ctx['usuarioId'],
             fechaAsignacion: new DateTimeImmutable('2026-04-17'),
@@ -103,33 +99,24 @@ final class TransicionAsignacionTest extends TestCase
         ));
     }
 
-    /** @return array{proyectoId:int,casoId:int,personaId:int,usuarioId:int} */
+    /** @return array{proyectoId:int,casoId:int,personaId:int,usuarioId:int,cascada:array<string,int>} */
     private function contexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoAbiertoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
-
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'Tester', 'email' => 'tester.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $casoId = $this->crearCasoEn($proyecto, [
+            'persona' => $persona,
+            'fecha_ingreso' => '2026-04-17',
         ]);
+        $cascada = $this->crearCascadaGestionEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
 
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
-        ]);
-
-        $casoId = (int) DB::table('casos')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'cartera_id' => $carteraId, 'persona_id' => $personaId,
-            'tipo_caso' => 'cobranza', 'estado_caso_id' => $estadoAbiertoId,
-            'fecha_ingreso' => '2026-04-17', 'prioridad' => 100,
-        ]);
-
-        return ['proyectoId' => $proyectoId, 'casoId' => $casoId, 'personaId' => $personaId, 'usuarioId' => $usuarioId];
+        return [
+            'proyectoId' => (int) $proyecto->id,
+            'casoId' => $casoId,
+            'personaId' => (int) $persona->id,
+            'usuarioId' => (int) $usuario->id,
+            'cascada' => $cascada,
+        ];
     }
 }

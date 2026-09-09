@@ -21,9 +21,11 @@ return [
     'event_created' => 'Created',
     'event_updated' => 'Updated',
     'event_deleted' => 'Deleted',
+    'event_exported' => 'Exported',
     'filter_from' => 'From',
     'filter_to' => 'To',
     'btn_export_csv' => 'Export CSV',
+    'export_order_hint' => 'The CSV runs from the oldest event to the newest, with the current filters applied.',
     'btn_clear_filters' => 'Clear filters',
 
     // Table

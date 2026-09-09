@@ -135,6 +135,12 @@ final class LeadWritebackFichaTest extends TestCase
         });
     }
 
+    /**
+     * El writeback sigue emitiendo los campos del caso al registrar una gestión,
+     * pero ahora los lee de la base en vez de recibirlos del formulario: desde
+     * este cambio, la gestión no escribe campos del caso. Se editan en «Editar
+     * caso», que es la pantalla dueña del dato.
+     */
     public function test_nueva_gestion_emite_custom_del_caso_al_guardar(): void
     {
         Queue::fake();
@@ -159,7 +165,7 @@ final class LeadWritebackFichaTest extends TestCase
             'actualizada_en' => now(),
         ]);
 
-        DB::table('campos_personalizados')->insert([
+        $campoId = (int) DB::table('campos_personalizados')->insertGetId([
             'proyecto_id' => $proyecto->id,
             'ambito' => 'caso',
             'ambito_id' => $cartera->id,
@@ -169,6 +175,15 @@ final class LeadWritebackFichaTest extends TestCase
             'obligatorio' => false,
             'activo' => true,
             'orden' => 1,
+            'creada_en' => now(),
+            'actualizada_en' => now(),
+        ]);
+
+        // El valor ya está en el caso, puesto por la importación o por «Editar caso».
+        DB::table('valores_campo_personalizado')->insert([
+            'campo_personalizado_id' => $campoId,
+            'entidad_id' => $casoId,
+            'valor_texto_corto' => '1500',
             'creada_en' => now(),
             'actualizada_en' => now(),
         ]);
@@ -193,7 +208,6 @@ final class LeadWritebackFichaTest extends TestCase
             ->set('canalId', $canalId)
             ->set('tipoGestionId', $tipoGestionId)
             ->set('resultadoId', $resultadoId)
-            ->set('valoresCamposCaso', ['saldo' => '1500'])
             ->call('guardar')
             ->assertHasNoErrors();
 
@@ -201,6 +215,11 @@ final class LeadWritebackFichaTest extends TestCase
             return ($job->cuerpo['changes']['custom']['saldo'] ?? null) === '1500'
                 && ($job->cuerpo['changes']['custom_labels']['saldo'] ?? null) === 'Saldo Actual';
         });
+
+        // Y el valor sigue donde estaba: registrar una gestión ya no lo toca.
+        $this->assertSame('1500', DB::table('valores_campo_personalizado')
+            ->where('campo_personalizado_id', $campoId)->where('entidad_id', $casoId)
+            ->value('valor_texto_corto'));
     }
 
     public function test_custom_castea_todos_los_valores_a_string(): void

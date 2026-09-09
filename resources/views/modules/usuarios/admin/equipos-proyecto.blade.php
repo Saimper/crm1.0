@@ -1,8 +1,8 @@
 <div class="space-y-4">
     <div class="card card-pad flex items-center justify-between">
         <div>
-            <h3 style="font-size:13px;font-weight:600;color:var(--text);">{{ __('usuarios.equipos_title') }}</h3>
-            <p style="font-size:12px;color:var(--text-tertiary);margin-top:4px;">
+            <h3 class="text-base font-semibold">{{ __('usuarios.equipos_title') }}</h3>
+            <p class="text-sm text-ink-500" style="margin-top:4px;">
                 {{ __('usuarios.equipos_subtitle') }}
             </p>
         </div>
@@ -16,7 +16,7 @@
 
     @if($formEquipoVisible)
         <div class="card card-pad" style="background:var(--primary-soft);border-color:var(--primary-soft-border);">
-            <h4 style="font-size:13px;font-weight:600;color:var(--primary-text);margin-bottom:12px;">
+            <h4 class="text-base font-semibold text-brand-700" style="margin-bottom:12px;">
                 {{ $equipoEditandoId === null ? __('usuarios.form_create_team') : __('usuarios.form_edit_team') }}
             </h4>
             <form wire:submit.prevent="guardarEquipo" class="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -78,7 +78,7 @@
                         <tr>
                             <td class="code-mono">{{ $e->codigo }}</td>
                             <td>{{ $e->nombre }}</td>
-                            <td style="color:var(--text-tertiary);font-size:12px;">{{ $e->descripcion }}</td>
+                            <td class="text-ink-500 text-sm">{{ $e->descripcion }}</td>
                             <td class="num">{{ $e->miembros_count }}</td>
                             <td style="text-align:center;">
                                 @if($e->activo)
@@ -112,7 +112,7 @@
     @if($gestionandoEquipoId !== null)
         <div class="card card-pad space-y-3" style="border-color:var(--primary-soft-border);">
             <div class="flex items-center justify-between">
-                <h4 style="font-size:13px;font-weight:600;color:var(--text);">{{ __('usuarios.members_section_title') }}</h4>
+                <h4 class="text-base font-semibold">{{ __('usuarios.members_section_title') }}</h4>
                 <button type="button" wire:click="cerrarMiembros" class="btn btn-ghost btn-sm">
                     <x-ui.icon name="x" :size="13" />
                     <span>{{ __('usuarios.btn_close_members') }}</span>

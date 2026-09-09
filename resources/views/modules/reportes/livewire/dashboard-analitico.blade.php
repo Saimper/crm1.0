@@ -9,10 +9,10 @@
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="rounded-lg border border-ink-200 bg-white overflow-hidden">
             <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-                {{ __('reportes.chart_cases_by_type') }}
+                {{ __('reportes.chart_cases_by_type', ['entidad' => $rotuloCaso]) }}
             </div>
             @if($distribucionCasos->isEmpty())
-                <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_cases') }}</div>
+                <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_cases', ['entidades' => $rotuloCasos]) }}</div>
             @else
                 <table class="min-w-full text-sm">
                     <tbody class="divide-y divide-ink-100">
@@ -20,7 +20,7 @@
                             @php
                                 $color = match ($d->tipo_caso) {
                                     'cobranza'   => 'bg-warning-50 text-warning-700',
-                                    'ticket_cx'  => 'bg-sky-100 text-sky-800',
+                                    'ticket_cx'  => 'bg-brand-50 text-brand-700',
                                     'lead_venta' => 'bg-success-50 text-success-800',
                                     'servicio'   => 'bg-brand-100 text-brand-800',
                                     default      => 'bg-ink-100 text-ink-700',

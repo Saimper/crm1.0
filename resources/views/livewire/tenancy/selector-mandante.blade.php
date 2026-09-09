@@ -14,12 +14,12 @@
                 <button type="button" wire:click="seleccionar({{ $m->id }})"
                         @class(['selector-mandante-item'])
                         style="display:flex;align-items:baseline;gap:12px;text-align:left;width:100%;
-                               border:1px solid {{ (int) $activoId === (int) $m->id ? 'var(--accent)' : 'var(--border)' }};
-                               border-radius:8px;padding:14px 16px;background:var(--surface);cursor:pointer;">
+                               border:1px solid {{ (int) $activoId === (int) $m->id ? 'var(--primary)' : 'var(--border)' }};
+                               border-radius:8px;padding:14px 16px;background:var(--bg-elev);cursor:pointer;">
                     <span style="font-weight:600;font-size:14px;">{{ $m->nombre }}</span>
                     <span style="font-family:ui-monospace,monospace;font-size:12px;color:var(--text-secondary);">{{ $m->codigo }}</span>
                     @if((int) $activoId === (int) $m->id)
-                        <span style="margin-left:auto;font-size:12px;color:var(--accent);">{{ __('tenancy.selector_mandante.activo') }}</span>
+                        <span style="margin-left:auto;font-size:12px;color:var(--primary);">{{ __('tenancy.selector_mandante.activo') }}</span>
                     @endif
                 </button>
             @endforeach

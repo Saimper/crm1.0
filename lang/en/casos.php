@@ -1,25 +1,49 @@
 <?php
 
 return [
+    'pick_type_first' => 'Pick the type first',
+    'fields_ungrouped' => 'Ungrouped',
+    'currency_symbol' => 'USD',
+    'entidad_singular' => [
+        'cobranza' => 'account',
+        'cx' => 'ticket',
+        'venta' => 'opportunity',
+        'servicio' => 'service',
+        'generico' => 'case',
+    ],
+    'entidad_plural' => [
+        'cobranza' => 'accounts',
+        'cx' => 'tickets',
+        'venta' => 'opportunities',
+        'servicio' => 'services',
+        'generico' => 'cases',
+    ],
+    'entidad_articulo' => [
+        'cobranza' => 'an',
+        'cx' => 'a',
+        'venta' => 'an',
+        'servicio' => 'a',
+        'generico' => 'a',
+    ],
     // Page titles
-    'title_list' => 'Project Cases',
-    'title_create' => 'New Case',
-    'title_edit' => 'Edit Case',
+    'title_list' => 'Project :entidades',
+    'title_create' => 'Create :entidad',
+    'title_edit' => 'Edit :entidad',
     'title_work' => 'Work View',
 
     // Subtitles / meta
-    'subtitle_open' => ':count open cases',
+    'subtitle_open' => ':count :entidades',
     'subtitle_type' => 'Project type: :tipo',
     'subtitle_person' => 'Person: :nombre',
     'subtitle_type_edit' => 'Type: :tipo',
     'subtitle_state_via' => 'Status: modified via interactions',
 
     // Actions / buttons
-    'create_case' => 'Create Case',
+    'create_case' => 'Create :entidad',
     'save_changes' => 'Save Changes',
     'back_to_tray' => '← Back to tray',
-    'new_case' => 'New Case',
-    'edit_case' => 'Edit Case',
+    'new_case' => 'Create :entidad',
+    'edit_case' => 'Edit :entidad',
 
     // Form fields
     'field_wallet' => 'Portfolio',
@@ -28,19 +52,20 @@ return [
     'select_wallet' => '— Select —',
 
     // Additional info
-    'additional_info' => 'Additional Case Information',
+    'additional_info' => 'Additional information',
     'no_custom_fields' => '(no fields defined by the administrator for this portfolio)',
     'custom_fields_title' => 'Custom Fields',
-    'case_fields_title' => 'Case Fields',
+    'case_fields_title' => ':Entidad fields',
 
     // No person alert
-    'no_person_alert' => 'Select a person from the list to create a case. The screen expects <code>?persona={ulid}</code>.',
+    'no_person_alert' => 'Select a person from the list to create :un :entidad. The screen expects <code>?persona={ulid}</code>.',
 
     // Filters / search bar
     'search_placeholder' => 'Search by person…',
     'all_wallets' => 'All portfolios',
     'all_states' => 'All statuses',
     'clear_filters' => 'Clear',
+    'export_csv' => 'Export CSV',
     'results' => ':count results',
 
     // Table columns
@@ -53,20 +78,20 @@ return [
     'col_commitment' => 'Commitment',
 
     // Empty state
-    'empty_title' => 'No Cases',
-    'empty_no_filters' => 'There are no cases in this project yet.',
-    'empty_with_filters' => 'No cases match the current filters.',
+    'empty_title' => 'No :entidades',
+    'empty_no_filters' => 'There are no :entidades in this project yet.',
+    'empty_with_filters' => 'No :entidades match the current filters.',
 
     // Commitment badge
     'commitment_active' => 'Active',
 
     // Work view — left panel
-    'cases_count' => 'Cases (:count)',
+    'cases_count' => ':Entidades (:count)',
     'active_commitment' => 'Active Commitment',
     'expires' => 'Expires :date',
     'active_commitment_edit' => 'Edit',
-    'no_open_cases' => 'No open cases',
-    'no_open_cases_desc' => 'This person has no cases in this project yet.',
+    'no_open_cases' => 'No :entidades',
+    'no_open_cases_desc' => 'This person has no :entidades in this project yet.',
     'resolved_commitments' => 'Resolved Commitments (:count)',
     'expiry_label' => 'Expiry: :date',
     'resolved_label' => 'Resolved',
@@ -75,14 +100,14 @@ return [
     'active_commitment_label' => 'active commitment',
     'contacts_button' => 'Contacts',
     'register_gestion_title' => 'Log Interaction',
-    'select_case_title' => 'Select a Case',
-    'select_case_desc' => 'Choose a case from the list to log interactions.',
+    'select_case_title' => 'Select :un :entidad',
+    'select_case_desc' => 'Choose :un :entidad from the list to log interactions.',
     'history_title' => 'History (:count)',
     'no_gestions' => 'No interactions',
     'no_gestions_desc' => 'No interactions have been logged yet.',
     'custom_fields_panel' => 'Custom Fields',
-    'no_active_case' => 'No active case',
-    'no_active_case_desc' => 'Select a case to view its custom fields and history.',
+    'no_active_case' => 'Nothing selected',
+    'no_active_case_desc' => 'Select :un :entidad to view its custom fields and history.',
     'no_contact_badge' => 'No contact: :motivo',
     'cause_badge' => 'Cause: :causa',
 
@@ -96,8 +121,8 @@ return [
     'field_cause' => 'Cause',
     'field_duration' => 'Duration (sec)',
     'field_notes' => 'Notes (optional)',
-    'notes_placeholder' => 'Free-form supplement. Do not extract data from here; use the structured fields.',
-    'ctrl_enter_hint' => 'Ctrl+Enter to save.',
+    'notes_placeholder' => 'What happened, in one sentence. Data the business filters or counts goes in the fields above, not here.',
+    'ctrl_enter_hint' => 'Ctrl+Enter or ⌘+Enter to save.',
     'submit_gestion' => 'Log Interaction',
 
     // Commitments inline in new interaction
@@ -130,4 +155,16 @@ return [
     'columns' => 'Columns',
     'columns_title' => 'Visible columns',
     'columns_reset' => 'Reset',
+    // Self-assignment: the agent takes the account they are about to work
+    'assign_take' => 'Take',
+    'assign_take_title' => 'Take this account into my queue',
+    'assign_taken' => 'Account taken. It is now in your queue.',
+    'assign_owner' => 'Assigned to',
+    'assign_unowned' => 'Unassigned',
+    'assign_only_unowned' => 'Unassigned only',
+    'last_outcome_none' => 'no outcome',
+    'last_outcome_never' => 'no activity yet',
+    'history_all' => 'All',
+    'history_effective' => 'Effective',
+    'history_effective_hint' => 'Only the activity that reached the person',
 ];

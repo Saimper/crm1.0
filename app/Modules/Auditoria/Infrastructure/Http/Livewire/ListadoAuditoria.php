@@ -6,6 +6,7 @@ namespace App\Modules\Auditoria\Infrastructure\Http\Livewire;
 
 use App\Models\User;
 use App\Modules\Auditoria\Application\Services\AlcanceAuditoria;
+use App\Modules\Auditoria\Application\Services\FiltrosAuditoria;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -116,7 +117,9 @@ final class ListadoAuditoria extends Component
 
         $this->recortar($q, 'a', $usuario, $modoGlobal, $proyectoId, $mandantes);
 
-        $this->aplicarFiltros($q, 'a');
+        // Los mismos filtros que aplican las dos exportaciones: lo que se ve y
+        // lo que se descarga no pueden divergir.
+        $this->filtros()->aplicar($q, 'a');
 
         $registros = $q->orderByDesc('a.creada_en')->paginate(25);
 
@@ -189,23 +192,15 @@ final class ListadoAuditoria extends Component
     }
 
     /** Filtros de pantalla. Sólo estrechan; el recorte de tenant ya se aplicó. */
-    private function aplicarFiltros(Builder $q, string $alias): void
+    private function filtros(): FiltrosAuditoria
     {
-        if ($this->entidadTipo !== '') {
-            $q->where($alias.'.entidad_tipo', $this->entidadTipo);
-        }
-        if ($this->usuarioId !== null) {
-            $q->where($alias.'.usuario_id', $this->usuarioId);
-        }
-        if ($this->evento !== '') {
-            $q->where($alias.'.evento', $this->evento);
-        }
-        if ($this->desde !== '') {
-            $q->where($alias.'.creada_en', '>=', $this->desde.' 00:00:00');
-        }
-        if ($this->hasta !== '') {
-            $q->where($alias.'.creada_en', '<=', $this->hasta.' 23:59:59');
-        }
+        return new FiltrosAuditoria(
+            entidadTipo: $this->entidadTipo,
+            usuarioId: $this->usuarioId,
+            evento: $this->evento,
+            desde: $this->desde,
+            hasta: $this->hasta,
+        );
     }
 
     /** ¿Este id cae dentro de lo que el usuario alcanza AHORA MISMO? */

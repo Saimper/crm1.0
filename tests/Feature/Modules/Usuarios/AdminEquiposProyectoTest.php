@@ -6,48 +6,52 @@ namespace Tests\Feature\Modules\Usuarios;
 
 use App\Models\User;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminEquiposProyecto;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AdminEquiposProyectoTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_accede_ruta_equipos(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)
-            ->get(route('proyectos.equipos', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.equipos', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(200);
     }
 
     public function test_gestor_recibe_403_en_ruta_equipos(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
-            ->get(route('proyectos.equipos', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.equipos', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
     public function test_supervisor_crea_equipo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         Livewire::test(AdminEquiposProyecto::class)
             ->call('abrirFormCrear')
@@ -58,18 +62,22 @@ final class AdminEquiposProyectoTest extends TestCase
             ->assertSet('formEquipoVisible', false);
 
         $this->assertDatabaseHas('equipos', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'codigo' => 'EQ_TEST',
             'nombre' => 'Equipo de prueba',
             'activo' => true,
         ]);
     }
 
-    public function test_codigo_duplicado_en_mismo_proyecto_es_rechazado(): void
+    public function test_codigo_duplicado_en_mismo_proyecto_no_produce_dos_equipos_con_el_mismo_codigo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        // Intención original: dos equipos del mismo proyecto no comparten código.
+        // El rechazo ya no es un error de validación: desde el batch B6
+        // (GeneradorCodigo::resolverConflicto, política UI documentada) el
+        // componente sufija `_2` en vez de devolver el form con errores.
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         $c = Livewire::test(AdminEquiposProyecto::class);
         $c->call('abrirFormCrear')
@@ -81,17 +89,25 @@ final class AdminEquiposProyectoTest extends TestCase
         $c->call('abrirFormCrear')
             ->set('formCodigo', 'DUP')
             ->set('formNombre', 'Segundo')
-            ->call('guardarEquipo')
-            ->assertHasErrors(['formCodigo']);
+            ->call('guardarEquipo');
+
+        $codigos = DB::table('equipos')
+            ->where('proyecto_id', $proyecto->id)
+            ->orderBy('id')
+            ->pluck('codigo')
+            ->all();
+
+        $this->assertSame(['DUP', 'DUP_2'], $codigos);
+        $this->assertSame(count($codigos), count(array_unique($codigos)));
     }
 
     public function test_agregar_y_quitar_miembro(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $gestor = $this->crearGestor($proyecto);
 
         $c = Livewire::test(AdminEquiposProyecto::class)
             ->call('abrirFormCrear')
@@ -99,8 +115,7 @@ final class AdminEquiposProyectoTest extends TestCase
             ->set('formNombre', 'Con miembros')
             ->call('guardarEquipo');
 
-        $equipoId = (int) DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)->where('codigo', 'EQ_MIEMBROS')->value('id');
+        $equipoId = $this->equipoIdDe($proyecto, 'EQ_MIEMBROS');
 
         $c->call('gestionarMiembros', $equipoId)
             ->set('buscarEmail', $gestor->email)
@@ -111,7 +126,7 @@ final class AdminEquiposProyectoTest extends TestCase
         $this->assertDatabaseHas('equipo_usuario', [
             'equipo_id' => $equipoId,
             'usuario_id' => $gestor->id,
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
         ]);
 
         $c->call('quitarMiembro', $gestor->id);
@@ -124,18 +139,11 @@ final class AdminEquiposProyectoTest extends TestCase
 
     public function test_no_puede_agregar_admin_global_como_miembro(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
-        $admin = User::query()->create([
-            'name' => 'Admin', 'email' => 'admin.equipo.'.Str::random(3).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolAdminId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
-        DB::table('usuario_global_rol')->insert([
-            'usuario_id' => $admin->id, 'rol_id' => $rolAdminId,
-        ]);
+        $admin = $this->crearAdminGlobal();
 
         Livewire::test(AdminEquiposProyecto::class)
             ->call('abrirFormCrear')
@@ -143,8 +151,7 @@ final class AdminEquiposProyectoTest extends TestCase
             ->set('formNombre', 'Test admin')
             ->call('guardarEquipo');
 
-        $equipoId = (int) DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)->where('codigo', 'EQ_ADMIN')->value('id');
+        $equipoId = $this->equipoIdDe($proyecto, 'EQ_ADMIN');
 
         Livewire::test(AdminEquiposProyecto::class)
             ->call('gestionarMiembros', $equipoId)
@@ -155,13 +162,13 @@ final class AdminEquiposProyectoTest extends TestCase
 
     public function test_no_puede_agregar_usuario_sin_rol_en_el_proyecto(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         // Usuario sin rol en este proyecto
         $extra = User::query()->create([
-            'name' => 'Suelto', 'email' => 'suelto.'.Str::random(3).'@crm.local',
+            'name' => 'Suelto', 'email' => 'suelto.'.Str::random(6).'@crm.local',
             'password' => Hash::make('x'), 'activo' => true,
         ]);
 
@@ -171,8 +178,7 @@ final class AdminEquiposProyectoTest extends TestCase
             ->set('formNombre', 'Test sin-rol')
             ->call('guardarEquipo');
 
-        $equipoId = (int) DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)->where('codigo', 'EQ_NULL')->value('id');
+        $equipoId = $this->equipoIdDe($proyecto, 'EQ_NULL');
 
         Livewire::test(AdminEquiposProyecto::class)
             ->call('gestionarMiembros', $equipoId)
@@ -183,9 +189,9 @@ final class AdminEquiposProyectoTest extends TestCase
 
     public function test_desactivar_y_activar_equipo(): void
     {
-        $proyectoId = $this->proyectoId();
-        $this->bindProyectoActivo($proyectoId);
-        $this->actingAs($this->crearConRol($proyectoId, 'SUPERVISOR'));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
+        $this->actingAs($this->crearSupervisor($proyecto));
 
         Livewire::test(AdminEquiposProyecto::class)
             ->call('abrirFormCrear')
@@ -193,8 +199,7 @@ final class AdminEquiposProyectoTest extends TestCase
             ->set('formNombre', 'Toggle')
             ->call('guardarEquipo');
 
-        $id = (int) DB::table('equipos')
-            ->where('proyecto_id', $proyectoId)->where('codigo', 'EQ_TOGGLE')->value('id');
+        $id = $this->equipoIdDe($proyecto, 'EQ_TOGGLE');
 
         Livewire::test(AdminEquiposProyecto::class)->call('desactivar', $id);
         $this->assertFalse((bool) DB::table('equipos')->where('id', $id)->value('activo'));
@@ -203,31 +208,11 @@ final class AdminEquiposProyectoTest extends TestCase
         $this->assertTrue((bool) DB::table('equipos')->where('id', $id)->value('activo'));
     }
 
-    private function proyectoId(): int
+    private function equipoIdDe(stdClass $proyecto, string $codigo): int
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
+        return (int) DB::table('equipos')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('codigo', $codigo)
+            ->value('id');
     }
 }

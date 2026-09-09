@@ -47,6 +47,16 @@
                         <span class="text-[10px] text-warning-700">· {{ $cobranza->tramo_mora_nombre }}</span>
                     @endif
                 </dd>
+                {{-- El CRM envejece la mora cada día; esta línea dice cuándo la afirmó
+                     una fuente por última vez (el archivo del cliente, un alta a mano,
+                     un rescate), que es lo que distingue una mora confirmada de una
+                     calculada por el reloj. No dice «el cliente» porque el dato no
+                     guarda quién fue la fuente. --}}
+                @if(!empty($cobranza->dias_mora_confirmado_en))
+                    <dd class="text-[10px] text-warning-700">
+                        {{ __('cobranza.dias_mora_confirmado_el', ['fecha' => \Illuminate\Support\Carbon::parse($cobranza->dias_mora_confirmado_en)->format('d/m/Y')]) }}
+                    </dd>
+                @endif
             </div>
             <div>
                 <dt class="text-warning-700">{{ __('cobranza.monto_original') }}</dt>

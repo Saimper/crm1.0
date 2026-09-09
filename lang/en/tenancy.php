@@ -1,6 +1,11 @@
 <?php
 
 return [
+    'autoasignacion' => 'Self-assign on interaction',
+    'autoasignacion_ayuda' => 'When an agent works an unassigned account, it becomes theirs. When off, only the supervisor assigns.',
+    'accion_editar' => 'Edit details',
+    'accion_configurar' => 'Configure project',
+    'accion_entrar' => 'Open project',
     'selector_mandante' => [
         'titulo' => 'Choose a client',
         'ayuda' => 'You will work inside this client until you switch. You will only see its users, projects and portfolios.',
@@ -103,7 +108,19 @@ return [
     'label_description' => 'Description (optional)',
     'label_start_date' => 'Start date',
     'label_end_date' => 'End date',
-    'confirm_deactivate_proyecto' => 'Deactivate this project?',
+    // Deactivating and archiving live side by side on this screen and look
+    // alike: the copy is the only thing telling them apart, so it says what
+    // happens afterwards rather than what the button does.
+    'baja_proyecto_titulo' => 'Taking the project down',
+    'deactivate_hint_proyecto' => 'Pauses it. It stays on this list and can be switched back on whenever you want.',
+    'archive_hint_proyecto' => 'Pulls it out of administration and the project picker. Nobody can enter it, and there is no way back.',
+    'btn_archive' => 'Archive',
+    'confirm_deactivate_proyecto' => 'Deactivate this project? It stops operating, but stays here and you can reactivate it.',
+    'confirm_archive_proyecto' => 'Archive this project? It disappears from administration and from the project picker, and nobody can enter it again. Nothing is deleted —its cases and interactions are kept— but unarchiving is no longer done from this screen.',
+    'flash_proyecto_guardado' => 'Project saved.',
+    'flash_proyecto_activado' => 'Project activated.',
+    'flash_proyecto_desactivado' => 'Project deactivated. It stays on the list; you can reactivate it.',
+    'flash_proyecto_archivado' => 'Project archived. It no longer shows in administration or the project picker.',
 
     // Project selector
     'admin_global_label' => 'Global administrator',
@@ -145,9 +162,9 @@ return [
     'tile_bandeja_equipo_title' => 'Team inbox',
     'tile_bandeja_equipo_desc' => 'Member assignments with KPIs per agent.',
     'tile_asig_masiva_title' => 'Bulk assignment',
-    'tile_asig_masiva_desc' => 'Distribute pending cases round-robin to the team.',
+    'tile_asig_masiva_desc' => 'Distribute pending :entidades round-robin to the team.',
     'tile_reasignar_title' => 'Re-assign between teams',
-    'tile_reasignar_desc' => 'Move pending cases while respecting in-progress ones.',
+    'tile_reasignar_desc' => 'Move pending :entidades while respecting in-progress ones.',
     'tile_usuarios_proy_title' => 'Project users',
     'tile_usuarios_proy_desc' => 'Assign and remove SUPERVISOR/AGENT/AUDITOR roles.',
     'tile_equipos_proy_title' => 'Project teams',
@@ -155,5 +172,5 @@ return [
     'tile_auditoria_title' => 'Audit',
     'tile_auditoria_desc' => 'Who changed what, when and from which IP.',
     'tile_importar_title' => 'Import / Export',
-    'tile_importar_desc' => 'CSVs of persons, cases, interactions, commitments.',
+    'tile_importar_desc' => 'CSVs of persons, :entidades, interactions, commitments.',
 ];

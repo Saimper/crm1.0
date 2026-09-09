@@ -12,19 +12,22 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
-    <!-- Red de fugas multi-mandante: tests que documentan trabajo pendiente y
-         fallan a propósito. Se corren con `php artisan test -group fuga-pendiente`. -->
-    <groups>
-        <exclude>
-            <group>fuga-pendiente</group>
-        </exclude>
-    </groups>
+    <!-- La red de fugas multi-mandante ya no se excluye: el grupo se quedó sin
+         miembros el 2026-09-08, cuando la última fuga documentada se cerró.
+         Aquellos tests fallaban a propósito, así que había que apartarlos para
+         que la suite del día a día fuera utilizable; ahora describen garantías y
+         corren con el resto, que era el objetivo declarado en
+         tests/fugas-pendientes.baseline desde el principio. -->
     <source>
         <include>
             <directory>app</directory>
         </include>
     </source>
     <php>
+        <!-- La suite pasa de 1.400 tests y su pico supera los 128M del CLI por
+             defecto: sin esto muere a mitad con «Allowed memory size exhausted»
+             en máquinas que no fijan memory_limit (el CI ya corre con -1). -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
@@ -32,6 +35,10 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="mysql"/>
         <env name="DB_DATABASE" value="crm_test"/>
+        <!-- Las descargas grandes salen por una conexión sin buffer de PDO. En
+             la suite tienen que ir por la de siempre: los tests corren dentro
+             de una transacción y una segunda conexión no vería sus datos. -->
+        <env name="DB_CONEXION_SIN_BUFFER" value="mysql"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

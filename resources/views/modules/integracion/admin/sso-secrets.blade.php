@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('integracion.title') }}</h1>
             <div class="page-subtitle">{{ __('integracion.subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="flex items-start gap-2">
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('integracion.back_to_panel') }}</a>
         </div>
     </div>
@@ -13,7 +13,7 @@
         <div class="alert alert-success" style="margin-bottom:14px;">{{ session('admin-sso-ok') }}</div>
     @endif
 
-    <div class="card" style="padding:0;">
+    <div class="card">
         @if($this->mandantes->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="shield" :size="32" /></div>
@@ -46,33 +46,33 @@
                                 && \Illuminate\Support\Carbon::parse($m->sso_secret_old_expires_at)->isFuture();
                         @endphp
                         <tr @class(['row-highlight' => $rotadoAhora])>
-                            <td style="font-family:monospace;font-size:12px;color:var(--text-secondary);">{{ $m->id }}</td>
-                            <td style="font-size:12px;">
-                                <div style="font-weight:500;">{{ $m->nombre }}</div>
-                                <div style="color:var(--text-tertiary);font-size:11px;font-family:monospace;">{{ $m->codigo }}</div>
+                            <td class="text-sm text-ink-600" style="font-family:monospace;">{{ $m->id }}</td>
+                            <td class="text-sm">
+                                <div class="font-medium">{{ $m->nombre }}</div>
+                                <div class="text-ink-500 text-xs" style="font-family:monospace;">{{ $m->codigo }}</div>
                             </td>
-                            <td style="font-family:monospace;font-size:11px;color:var(--text-secondary);">
+                            <td class="text-xs text-ink-600" style="font-family:monospace;">
                                 @if(empty($m->sso_secret))
-                                    <span style="color:var(--danger-text);">{{ __('integracion.secret_not_set') }}</span>
+                                    <span class="text-danger-700">{{ __('integracion.secret_not_set') }}</span>
                                 @else
                                     {{ $secretShow }}
                                     @if($rotadoAhora)
-                                        <div style="margin-top:4px;color:var(--success-text);font-size:11px;">
+                                        <div class="text-success-700 text-xs" style="margin-top:4px;">
                                             {{ __('integracion.secret_copy_now') }}
                                         </div>
                                     @endif
                                 @endif
                             </td>
-                            <td style="font-size:11px;color:var(--text-tertiary);">
+                            <td class="text-xs text-ink-500">
                                 @if($oldVigente)
-                                    <span style="color:var(--warning-text);">{{ __('integracion.old_valid_until') }}</span>
+                                    <span class="text-warning-700">{{ __('integracion.old_valid_until') }}</span>
                                     <div style="font-family:monospace;">{{ \Illuminate\Support\Carbon::parse($m->sso_secret_old_expires_at)->format('d/m/Y H:i') }}</div>
                                 @else
                                     —
                                 @endif
                             </td>
-                            <td style="font-size:11px;color:var(--text-tertiary);">
-                                {{ $m->actualizada_en ? \Illuminate\Support\Carbon::parse($m->actualizada_en)->format('d/m/Y H:i') : '—' }}
+                            <td class="text-xs text-ink-500">
+                                {{ hora_local($m->actualizada_en) }}
                             </td>
                             <td style="text-align:center;">
                                 <x-ui.badge :tone="$m->activo ? 'success' : 'neutral'" size="sm">
@@ -118,7 +118,7 @@
                 <button type="button" wire:click="cerrarWebhooks" class="btn btn-ghost btn-sm">×</button>
             </div>
             <div class="drawer-body">
-                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">
+                <p class="text-sm text-ink-600" style="margin-bottom:14px;">
                     {!! __('integracion.webhooks_desc') !!}
                 </p>
 

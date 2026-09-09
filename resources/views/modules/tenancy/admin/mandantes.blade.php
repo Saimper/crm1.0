@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('tenancy.mandantes_title') }}</h1>
             <div class="page-subtitle">{{ __('tenancy.mandantes_subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="flex items-start gap-2">
             <a href="{{ route('admin.dashboard') }}" wire:navigate class="btn btn-ghost btn-sm">{{ __('tenancy.back_to_panel') }}</a>
             <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                 <x-ui.icon name="plus" :size="14" />
@@ -17,18 +17,14 @@
         <div class="alert alert-success" style="margin-bottom:14px;">{{ session('admin-mandantes-ok') }}</div>
     @endif
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" :placeholder="__('common.search')" style="padding-left:28px;"/>
-            </div>
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('tenancy.records_count', ['count' => $mandantes->count()]) }}</span>
-        </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('tenancy.records_count', ['count' => $mandantes->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda" :placeholder="__('common.search')" />
+        </x-ui.toolbar>
+
+        {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($mandantes->isEmpty())
             <div class="empty">
@@ -51,9 +47,9 @@
                 <tbody>
                     @foreach($mandantes as $m)
                         <tr wire:key="mandante-{{ $m->id }}" wire:click="abrirFormEditar({{ $m->id }})">
-                            <td><span class="font-mono" style="font-size:12px;">{{ $m->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $m->nombre }}</span></td>
-                            <td><span class="font-mono" style="font-size:12px;color:var(--text-secondary);">{{ $m->documento ?? '—' }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $m->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $m->nombre }}</span></td>
+                            <td><span class="font-mono text-sm text-ink-600">{{ $m->documento ?? '—' }}</span></td>
                             <td class="num">{{ $m->total_proyectos }}</td>
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:6px;">
@@ -61,7 +57,7 @@
                                     {{ $m->activo ? __('tenancy.status_active') : __('tenancy.status_inactive') }}
                                 </span>
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -73,7 +69,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="form-mandante-scrim"></div>
         <div class="drawer" wire:key="form-mandante">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('tenancy.drawer_new_mandante') : __('tenancy.drawer_edit_mandante') }}
                 </div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" :aria-label="__('tenancy.close')">

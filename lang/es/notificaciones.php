@@ -17,5 +17,6 @@ return [
     'empty_title' => 'Sin notificaciones',
     'empty_message' => 'No tienes notificaciones en este filtro.',
     'btn_mark_read' => 'Marcar leída',
-    'link_view_case' => 'Ver caso #:id',
+    'link_view_case' => 'Ver :entidad #:id',
+    'label_case_plain' => ':Entidad #:id',
 ];

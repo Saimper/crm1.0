@@ -80,6 +80,9 @@ final class FormularioCamposPersonalizados extends Component
                 $this->ambitoId,
                 $this->entidadId,
                 $this->valores,
+                // Es el formulario dueño del ámbito completo: aquí un campo en
+                // blanco sí significa que el usuario lo vació.
+                permitirVaciar: true,
             );
         } catch (Throwable $e) {
             $this->addError('general', $e->getMessage());

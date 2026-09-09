@@ -13,27 +13,38 @@ use App\Modules\Cobranza\Domain\ValueObjects\MontoPromesa;
 use App\Modules\Cobranza\Infrastructure\Http\Livewire\ResolverPromesa;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ResolverPromesaComponentTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    /**
+     * El gestor que monta el escenario. Antes estos tests actuaban como un
+     * `User::factory()` sin rol en el proyecto y pasaban igual, porque el
+     * componente no comprobaba permisos. Ahora sí, y el actor tiene que ser
+     * quien de verdad puede resolver.
+     */
+    private ?User $gestor = null;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_marca_promesa_cumplida_desde_componente(): void
     {
         $compromisoId = $this->crearContextoConPromesa();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->gestor);
 
         Livewire::test(ResolverPromesa::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'cumplida')
@@ -53,7 +64,7 @@ final class ResolverPromesaComponentTest extends TestCase
     public function test_valida_fecha_resolucion_requerida(): void
     {
         $compromisoId = $this->crearContextoConPromesa();
-        $this->actingAs(User::factory()->create());
+        $this->actingAs($this->gestor);
 
         Livewire::test(ResolverPromesa::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'rota')
@@ -64,29 +75,26 @@ final class ResolverPromesaComponentTest extends TestCase
 
     private function crearContextoConPromesa(): int
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
+        $cartera = $this->crearCarteraEn($proyecto, 'CONSUMO');
+        $persona = $this->crearPersonaEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $usuario = $this->gestor = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
-        ]);
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'requiere_causa' => true,
+            'codigo_tipo' => 'LLAMADA_SALIENTE',
+            'codigo_resultado' => 'PROMESA_PAGO',
         ]);
 
         $out = $this->app->make(RegistrarCasoCobranza::class)->execute(new RegistrarCasoCobranzaInput(
-            proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estado,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-17'),
             prioridad: 100,
             numeroPrestamo: 'PRST-RES-'.Str::random(4),
@@ -105,16 +113,16 @@ final class ResolverPromesaComponentTest extends TestCase
 
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
             publicId: (string) Str::ulid(),
-            proyectoId: $proyectoId,
+            proyectoId: (int) $proyecto->id,
             casoId: $out->casoId,
-            personaId: $personaId,
+            personaId: (int) $persona->id,
             contactoId: null,
-            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'LLAMADA_SALIENTE')->value('id'),
-            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'PROMESA_PAGO')->value('id'),
+            canalId: $cascada['canal_id'],
+            tipoGestionId: $cascada['tipo_gestion_id'],
+            resultadoId: $cascada['resultado_id'],
             motivoNoContactoId: null,
-            causaId: (int) DB::table('causas_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'DESEMPLEO')->value('id'),
-            usuarioId: $usuarioId,
+            causaId: $cascada['causa_id'],
+            usuarioId: (int) $usuario->id,
             notas: null,
             duracion: null,
             creadaEn: new DateTimeImmutable('2026-04-17 10:00:00'),

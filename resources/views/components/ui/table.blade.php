@@ -15,7 +15,7 @@
         <tbody>{{ $slot }}</tbody>
     </table>
     @isset($footer)
-        <div class="card-header" style="border-top: 1px solid var(--border); border-bottom: 0; background: var(--bg-subtle);">
+        <div class="card-footer">
             {{ $footer }}
         </div>
     @endisset

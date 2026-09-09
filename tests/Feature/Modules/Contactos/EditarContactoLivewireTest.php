@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Contactos;
 
-use App\Models\User;
 use App\Modules\Contactos\Infrastructure\Http\Livewire\ListaContactos;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -18,29 +20,24 @@ use Tests\TestCase;
  */
 final class EditarContactoLivewireTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_supervisor_edita_contacto_existente(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
-        $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $contactoId = (int) DB::table('contactos')->insertGetId([
-            'proyecto_id' => $proyectoId,
-            'persona_id' => $persona->id,
-            'tipo' => 'telefono',
-            'valor' => '+593 11111111',
-            'es_principal' => false,
-        ]);
+        $persona = $this->crearPersonaEn($proyecto);
+        $contactoId = $this->insertarContacto($persona, 'telefono', '+593 11111111');
 
         Livewire::test(ListaContactos::class, ['persona' => $persona->public_id])
             ->call('abrirEditar', $contactoId)
@@ -58,20 +55,14 @@ final class EditarContactoLivewireTest extends TestCase
 
     public function test_marcar_principal_degrada_otros_del_mismo_tipo(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
-        $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $c1 = (int) DB::table('contactos')->insertGetId([
-            'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
-            'tipo' => 'correo', 'valor' => 'a@x.com', 'es_principal' => true,
-        ]);
-        $c2 = (int) DB::table('contactos')->insertGetId([
-            'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
-            'tipo' => 'correo', 'valor' => 'b@x.com', 'es_principal' => false,
-        ]);
+        $persona = $this->crearPersonaEn($proyecto);
+        $c1 = $this->insertarContacto($persona, 'correo', 'a@x.com', esPrincipal: true);
+        $c2 = $this->insertarContacto($persona, 'correo', 'b@x.com');
 
         Livewire::test(ListaContactos::class, ['persona' => $persona->public_id])
             ->call('abrirEditar', $c2)
@@ -85,16 +76,13 @@ final class EditarContactoLivewireTest extends TestCase
 
     public function test_eliminar_contacto_marca_eliminada_en(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($supervisor);
 
-        $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $cid = (int) DB::table('contactos')->insertGetId([
-            'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
-            'tipo' => 'telefono', 'valor' => '+593 99999999', 'es_principal' => false,
-        ]);
+        $persona = $this->crearPersonaEn($proyecto);
+        $cid = $this->insertarContacto($persona, 'telefono', '+593 99999999');
 
         Livewire::test(ListaContactos::class, ['persona' => $persona->public_id])
             ->call('eliminar', $cid);
@@ -104,16 +92,13 @@ final class EditarContactoLivewireTest extends TestCase
 
     public function test_gestor_no_puede_eliminar(): void
     {
-        $proyectoId = $this->proyectoCobranza();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
-        $this->bindProyectoActivo($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
+        $this->activarProyecto($proyecto);
         $this->actingAs($gestor);
 
-        $persona = (object) DB::table('personas')->where('proyecto_id', $proyectoId)->first();
-        $cid = (int) DB::table('contactos')->insertGetId([
-            'proyecto_id' => $proyectoId, 'persona_id' => $persona->id,
-            'tipo' => 'telefono', 'valor' => '+593 88888888', 'es_principal' => false,
-        ]);
+        $persona = $this->crearPersonaEn($proyecto);
+        $cid = $this->insertarContacto($persona, 'telefono', '+593 88888888');
 
         try {
             Livewire::test(ListaContactos::class, ['persona' => $persona->public_id])
@@ -127,31 +112,23 @@ final class EditarContactoLivewireTest extends TestCase
         $this->assertNull(DB::table('contactos')->where('id', $cid)->value('eliminada_en'));
     }
 
-    private function proyectoCobranza(): int
+    /**
+     * `crearContactoEn` del trait fuerza `es_principal = true`, y estos tests
+     * necesitan controlar esa bandera fila a fila.
+     */
+    private function insertarContacto(stdClass $persona, string $tipo, string $valor, bool $esPrincipal = false): int
     {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function bindProyectoActivo(int $proyectoId): void
-    {
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.ec.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
+        return (int) DB::table('contactos')->insertGetId([
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $persona->proyecto_id,
+            'persona_id' => $persona->id,
+            'tipo' => $tipo,
+            'valor' => $valor,
+            'es_principal' => $esPrincipal,
             'activo' => true,
+            'origen' => 'manual',
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
         ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
     }
 }

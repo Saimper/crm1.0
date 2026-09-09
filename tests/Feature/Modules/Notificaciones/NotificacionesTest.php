@@ -8,49 +8,49 @@ use App\Models\User;
 use App\Modules\Notificaciones\Application\Services\GeneradorNotificaciones;
 use App\Modules\Notificaciones\Infrastructure\Http\Livewire\BadgeNotificaciones;
 use App\Modules\Notificaciones\Infrastructure\Http\Livewire\ListadoNotificaciones;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class NotificacionesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_generador_crea_notificaciones_por_vencer_y_vencidos(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
+        $casoId = $this->crearCasoEn($proyecto);
 
-        $casoId = (int) DB::table('casos')
-            ->where('proyecto_id', $proyectoId)
-            ->where('tipo_caso', 'cobranza')
-            ->value('id');
-
-        $porVencerId = $this->crearCompromiso($proyectoId, $casoId, $gestor->id, Carbon::now()->addDay()->toDateString());
-        $vencidoId = $this->crearCompromiso($proyectoId, $casoId, $gestor->id, Carbon::now()->subDay()->toDateString());
-        $lejanoId = $this->crearCompromiso($proyectoId, $casoId, $gestor->id, Carbon::now()->addDays(30)->toDateString());
+        $porVencerId = $this->crearCompromiso($proyecto, $casoId, (int) $gestor->id, Carbon::now()->addDay()->toDateString());
+        $vencidoId = $this->crearCompromiso($proyecto, $casoId, (int) $gestor->id, Carbon::now()->subDay()->toDateString());
+        $lejanoId = $this->crearCompromiso($proyecto, $casoId, (int) $gestor->id, Carbon::now()->addDays(30)->toDateString());
 
         $creadas = app(GeneradorNotificaciones::class)->ejecutar(umbralDias: 3);
 
         $this->assertSame(2, $creadas);
         $this->assertDatabaseHas('notificaciones', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'destinatario_usuario_id' => $gestor->id,
             'tipo' => 'compromiso_por_vencer',
             'entidad_id' => $porVencerId,
         ]);
         $this->assertDatabaseHas('notificaciones', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'destinatario_usuario_id' => $gestor->id,
             'tipo' => 'compromiso_vencido',
             'entidad_id' => $vencidoId,
@@ -62,10 +62,10 @@ final class NotificacionesTest extends TestCase
 
     public function test_generador_es_idempotente(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'cobranza')->value('id');
-        $this->crearCompromiso($proyectoId, $casoId, $gestor->id, Carbon::now()->subDay()->toDateString());
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
+        $casoId = $this->crearCasoEn($proyecto);
+        $this->crearCompromiso($proyecto, $casoId, (int) $gestor->id, Carbon::now()->subDay()->toDateString());
 
         app(GeneradorNotificaciones::class)->ejecutar(umbralDias: 3);
         app(GeneradorNotificaciones::class)->ejecutar(umbralDias: 3);
@@ -76,14 +76,14 @@ final class NotificacionesTest extends TestCase
 
     public function test_listado_muestra_notificaciones_del_usuario_en_proyecto(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $this->actingAs($gestor);
 
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'cobranza')->value('id');
-        $this->crearCompromiso($proyectoId, $casoId, $gestor->id, Carbon::now()->subDay()->toDateString());
+        $casoId = $this->crearCasoEn($proyecto);
+        $this->crearCompromiso($proyecto, $casoId, (int) $gestor->id, Carbon::now()->subDay()->toDateString());
         app(GeneradorNotificaciones::class)->ejecutar();
 
         $c = Livewire::test(ListadoNotificaciones::class);
@@ -93,14 +93,14 @@ final class NotificacionesTest extends TestCase
 
     public function test_marcar_leida_actualiza_contador(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyecto = $this->crearProyectoCobranza();
+        $this->activarProyecto($proyecto);
 
-        $gestor = $this->crearUsuarioConRol($proyectoId, 'GESTOR');
+        $gestor = $this->crearUsuarioConRol($proyecto, 'GESTOR');
         $this->actingAs($gestor);
 
-        $casoId = (int) DB::table('casos')->where('proyecto_id', $proyectoId)->where('tipo_caso', 'cobranza')->value('id');
-        $this->crearCompromiso($proyectoId, $casoId, $gestor->id, Carbon::now()->subDay()->toDateString());
+        $casoId = $this->crearCasoEn($proyecto);
+        $this->crearCompromiso($proyecto, $casoId, (int) $gestor->id, Carbon::now()->subDay()->toDateString());
         app(GeneradorNotificaciones::class)->ejecutar();
 
         $id = (int) DB::table('notificaciones')->first()->id;
@@ -113,18 +113,18 @@ final class NotificacionesTest extends TestCase
 
     public function test_notificaciones_no_se_comparten_entre_proyectos(): void
     {
-        $proyA = $this->proyectoCobranzaId();
-        $proyB = $this->proyectoCxId();
+        $proyA = $this->crearProyectoCobranza();
+        $proyB = $this->crearProyectoCx();
 
         $gestor = $this->crearUsuarioConRol($proyA, 'GESTOR');
-        $this->crearUsuarioProyectoRol($gestor->id, $proyB, 'GESTOR');
+        $this->crearUsuarioProyectoRol((int) $gestor->id, $proyB, 'GESTOR');
 
-        $casoA = (int) DB::table('casos')->where('proyecto_id', $proyA)->where('tipo_caso', 'cobranza')->value('id');
-        $this->crearCompromiso($proyA, $casoA, $gestor->id, Carbon::now()->subDay()->toDateString());
+        $casoA = $this->crearCasoEn($proyA);
+        $this->crearCompromiso($proyA, $casoA, (int) $gestor->id, Carbon::now()->subDay()->toDateString());
         app(GeneradorNotificaciones::class)->ejecutar();
 
         $this->actingAs($gestor);
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyB));
+        $this->activarProyecto($proyB);
 
         $c = Livewire::test(ListadoNotificaciones::class);
         $this->assertSame(0, $c->viewData('notificaciones')->total());
@@ -134,7 +134,7 @@ final class NotificacionesTest extends TestCase
 
     public function test_ruta_403_sin_permiso_notificaciones_ver(): void
     {
-        $proyectoId = $this->proyectoCobranzaId();
+        $proyecto = $this->crearProyectoCobranza();
 
         $u = User::query()->create([
             'name' => 'Sin', 'email' => 'sin.'.Str::random(4).'@crm.local',
@@ -143,25 +143,15 @@ final class NotificacionesTest extends TestCase
         // No se asigna rol: no tiene notificaciones.ver.
 
         $this->actingAs($u)
-            ->get(route('proyectos.notificaciones', ['proyecto_id' => $proyectoId]))
+            ->get(route('proyectos.notificaciones', ['proyecto_id' => $proyecto->id]))
             ->assertStatus(403);
     }
 
-    private function proyectoCobranzaId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function proyectoCxId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
-    }
-
-    private function crearCompromiso(int $proyectoId, int $casoId, int $usuarioId, string $fechaVenc): int
+    private function crearCompromiso(stdClass $proyecto, int $casoId, int $usuarioId, string $fechaVenc): int
     {
         return (int) DB::table('compromisos')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'caso_id' => $casoId,
             'gestion_origen_id' => null,
             'tipo_compromiso' => 'promesa_pago',
@@ -171,26 +161,13 @@ final class NotificacionesTest extends TestCase
         ]);
     }
 
-    private function crearUsuarioConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $this->crearUsuarioProyectoRol($u->id, $proyectoId, $codigoRol);
-
-        return $u;
-    }
-
-    private function crearUsuarioProyectoRol(int $usuarioId, int $proyectoId, string $codigoRol): void
+    /** Asigna un usuario ya existente a otro proyecto: el trait sólo sabe crearlo junto con su rol. */
+    private function crearUsuarioProyectoRol(int $usuarioId, stdClass $proyecto, string $codigoRol): void
     {
         $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
         DB::table('usuario_proyecto_rol')->insert([
             'usuario_id' => $usuarioId,
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'rol_id' => $rolId,
             'activo' => true,
         ]);

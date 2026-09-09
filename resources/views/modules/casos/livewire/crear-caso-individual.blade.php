@@ -1,7 +1,7 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">{{ __('casos.title_create') }}</h1>
+            <h1 class="page-title">{{ __('casos.title_create', ['entidad' => $rotuloCaso]) }}</h1>
             <div class="page-subtitle">
                 {{ __('casos.subtitle_type', ['tipo' => ucfirst(str_replace('_', ' ', $tipoOperacion))]) }}
                 @if($persona)
@@ -19,7 +19,7 @@
     @if($persona === null)
         <div class="card card-pad">
             <div class="alert alert-warning">
-                {!! __('casos.no_person_alert') !!}
+                {!! __('casos.no_person_alert', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo]) !!}
             </div>
         </div>
     @else
@@ -48,12 +48,16 @@
                 </div>
             </div>
 
+            {{-- Elegir cartera va al servidor a por los campos personalizados y
+                 repinta medio formulario. Acotada a ese viaje, no al de guardar. --}}
+            <x-ui.cargando target="carteraId" />
+
             @if($carteraId !== '')
                 <hr style="margin:20px 0;border:0;border-top:1px solid var(--border);">
-                <h3 style="font-size:13px;font-weight:600;margin-bottom:10px;">
+                <h3 class="text-base font-semibold" style="margin-bottom:10px;">
                     {{ __('casos.additional_info') }}
                     @if($camposPersonalizados->isEmpty())
-                        <span style="font-weight:400;color:var(--text-tertiary);font-size:11px;">
+                        <span class="font-normal text-ink-500 text-xs">
                             {{ __('casos.no_custom_fields') }}
                         </span>
                     @endif
@@ -73,37 +77,9 @@
                                     {{ $etiqueta }}
                                     @if($req)<span style="color:var(--danger);">*</span>@endif
                                 </label>
-                                @switch($tipo)
-                                    @case('texto_corto')
-                                        <input type="text" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                        @break
-                                    @case('texto_largo')
-                                        <textarea rows="3" wire:model="valoresCp.{{ $key }}" class="input"></textarea>
-                                        @break
-                                    @case('numero_entero')
-                                        <input type="number" step="1" wire:model="valoresCp.{{ $key }}" class="input mono"/>
-                                        @break
-                                    @case('numero_decimal')
-                                    @case('moneda')
-                                        <input type="number" step="0.01" wire:model="valoresCp.{{ $key }}" class="input mono"/>
-                                        @break
-                                    @case('fecha')
-                                        <input type="date" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                        @break
-                                    @case('fecha_hora')
-                                        <input type="datetime-local" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                        @break
-                                    @case('booleano')
-                                        <label style="display:flex;align-items:center;gap:6px;">
-                                            <input type="checkbox" wire:model="valoresCp.{{ $key }}"/>
-                                            <span style="font-size:12px;">{{ __('casos.yes') }}</span>
-                                        </label>
-                                        @break
-                                    @default
-                                        <input type="text" wire:model="valoresCp.{{ $key }}" class="input"/>
-                                @endswitch
+                                <x-cp.control :campo="$campo" model="valoresCp.{{ $key }}" clase="input" />
                                 @if($campo->descripcion)
-                                    <div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">{{ $campo->descripcion }}</div>
+                                    <div class="text-xs text-ink-500" style="margin-top:4px;">{{ $campo->descripcion }}</div>
                                 @endif
                             </div>
                         @endforeach
@@ -111,11 +87,11 @@
                 @endif
             @endif
 
-            <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+            <div class="flex gap-2" style="margin-top:20px;justify-content:flex-end;">
                 <a href="{{ route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $personaPublicId]) }}"
                    wire:navigate class="btn btn-ghost">{{ __('common.cancel') }}</a>
                 <button type="button" wire:click="guardar" class="btn btn-primary">
-                    {{ __('casos.create_case') }}
+                    {{ __('casos.create_case', ['entidad' => $rotuloCaso]) }}
                 </button>
             </div>
         </div>

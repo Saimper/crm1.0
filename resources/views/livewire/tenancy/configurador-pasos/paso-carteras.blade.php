@@ -7,22 +7,21 @@
         <div class="alert alert-warning" style="margin-bottom:14px;">{{ session('paso-carteras-error') }}</div>
     @endif
 
-    <div class="card" style="padding:0;">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;">
-            <div style="position:relative;width:280px;">
-                <span style="position:absolute;left:9px;top:11px;color:var(--text-muted);pointer-events:none;">
-                    <x-ui.icon name="search" :size="13" />
-                </span>
-                <input type="text" wire:model.live.debounce.300ms="busqueda"
-                       class="input" placeholder="{{ __('common.search') }}…" style="padding-left:28px;"/>
-            </div>
-            <span style="flex:1;"></span>
-            <span style="font-size:12px;color:var(--text-tertiary);">{{ __('configurador.carteras.n_carteras', ['n' => $carteras->count()]) }}</span>
-            <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
-                <x-ui.icon name="plus" :size="14" />
-                <span>{{ __('configurador.carteras.nueva') }}</span>
-            </button>
-        </div>
+    <div class="card">
+        <x-ui.toolbar :count="__('configurador.carteras.n_carteras', ['n' => $carteras->count()])">
+            <x-ui.search-input wire:model.live.debounce.300ms="busqueda"
+                               placeholder="{{ __('common.search') }}…" />
+            <x-slot:acciones>
+                <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
+                    <x-ui.icon name="plus" :size="14" />
+                    <span>{{ __('configurador.carteras.nueva') }}</span>
+                </button>
+            </x-slot:acciones>
+        </x-ui.toolbar>
+
+        {{-- La tabla de antes sigue en pantalla mientras llega la nueva; sólo
+             esta barra dice que se está trabajando. --}}
+        <x-ui.cargando />
 
         @if($carteras->isEmpty())
             <div class="empty">
@@ -45,9 +44,9 @@
                 <tbody>
                     @foreach($carteras as $c)
                         <tr wire:key="paso-cartera-{{ $c->id }}" wire:click="abrirFormEditar({{ $c->id }})">
-                            <td><span class="font-mono" style="font-size:12px;">{{ $c->codigo }}</span></td>
-                            <td><span style="font-weight:500;">{{ $c->nombre }}</span></td>
-                            <td><span style="font-size:12px;color:var(--text-secondary);">{{ $c->descripcion ?? '—' }}</span></td>
+                            <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
+                            <td><span class="font-medium">{{ $c->nombre }}</span></td>
+                            <td><span class="text-sm text-ink-600">{{ $c->descripcion ?? '—' }}</span></td>
                             <td class="num">{{ $c->total_casos }}</td>
                             <td>
                                 <span style="display:inline-flex;align-items:center;gap:6px;">
@@ -55,7 +54,7 @@
                                     {{ $c->activo ? __('configurador.carteras.activa') : __('configurador.carteras.inactiva') }}
                                 </span>
                             </td>
-                            <td><x-ui.icon name="chevron-right" :size="14" style="color:var(--text-muted);" /></td>
+                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -67,7 +66,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="paso-cartera-scrim"></div>
         <div class="drawer" wire:key="paso-cartera-drawer">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('configurador.carteras.drawer_nueva') : __('configurador.carteras.drawer_editar') }}
                 </div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('configurador.cerrar') }}">
@@ -95,9 +94,9 @@
                         @error('form.descripcion')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label style="display:flex;align-items:center;gap:8px;">
+                        <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.activo"/>
-                            <span style="font-size:13px;color:var(--text-secondary);">{{ __('configurador.carteras.cartera_activa') }}</span>
+                            <span class="text-base text-ink-600">{{ __('configurador.carteras.cartera_activa') }}</span>
                         </label>
                     </div>
                 </div>

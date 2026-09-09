@@ -8,6 +8,7 @@ use App\Modules\Tenancy\Domain\ConfiguracionProyecto\CalculadorAvanceConfiguraci
 use App\Modules\Tenancy\Domain\Contracts\CarteraRepository;
 use App\Modules\Tenancy\Domain\Contracts\MandanteRepository;
 use App\Modules\Tenancy\Domain\Contracts\ProyectoRepository;
+use App\Modules\Tenancy\Domain\ValueObjects\TipoOperacion;
 use App\Modules\Tenancy\Infrastructure\Configuracion\Verificadores\CamposPersonalizadosVerificador;
 use App\Modules\Tenancy\Infrastructure\Configuracion\Verificadores\CarterasVerificador;
 use App\Modules\Tenancy\Infrastructure\Configuracion\Verificadores\CatalogosTipoVerificador;
@@ -48,6 +49,7 @@ use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentMandante
 use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentProyectoRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -77,6 +79,8 @@ final class TenancyServiceProvider extends ServiceProvider
     public function boot(Router $router): void
     {
         $this->loadViewsFrom(resource_path('views/modules/tenancy'), 'tenancy');
+
+        $this->compartirRotuloDeLaEntidad();
 
         $router->aliasMiddleware('proyecto.activo', ResolverProyectoActivo::class);
         $router->aliasMiddleware('mandante.activo', ResolverMandanteActivo::class);
@@ -118,5 +122,62 @@ final class TenancyServiceProvider extends ServiceProvider
 
         Livewire::component('tenancy.configurador-pasos.paso-campos-personalizados', PasoCamposPersonalizados::class);
         Livewire::component('tenancy.configurador-pasos.paso-resumen', PasoResumen::class);
+    }
+
+    /**
+     * «Caso» no significa nada para quien opera: en cobranza es una cuenta, en
+     * soporte un ticket, en ventas una oportunidad. La palabra la elige el tipo
+     * del proyecto activo, hace falta en muchas vistas, y el proyecto activo lo
+     * publica un middleware — así que se resuelve al renderizar y no al arrancar.
+     *
+     * Vive aquí y no en AppServiceProvider porque §13.8 de CLAUDE.md lo prohíbe
+     * y porque el dueño del proyecto activo y del VO es este módulo.
+     *
+     * Tres decisiones que no son obvias:
+     *
+     * - Se lee con `data_get` y no con `->tipo_operacion`. El binding no siempre
+     *   es un ProyectoModel: hay escenarios que publican un stdClass parcial, y
+     *   un acceso directo ahí lanza ErrorException y tumba la pantalla entera
+     *   por un rótulo. Sin tipo, la palabra genérica.
+     * - Se memoiza por tipo + idioma, no por petición: hay pruebas que cambian
+     *   el proyecto activo entre dos renders del mismo caso, y una caché por
+     *   petición les daría el rótulo del proyecto anterior.
+     * - No pisa lo que la vista ya trae. Un composer sobre '*' alcanza las 178
+     *   vistas del proyecto, y sin esta guarda un componente que declarase
+     *   `@props(['rotuloCaso'])` quedaría mudo desde su call site.
+     */
+    private function compartirRotuloDeLaEntidad(): void
+    {
+        /** @var array<string, array{rotuloCaso: string, rotuloCasos: string, rotuloArticulo: string}> $cache */
+        $cache = [];
+
+        View::composer('*', function ($view) use (&$cache): void {
+            $datos = $view->getData();
+
+            if (array_key_exists('rotuloCaso', $datos)) {
+                return;
+            }
+
+            $proyecto = $this->app->bound('tenancy.proyecto_activo')
+                ? $this->app->make('tenancy.proyecto_activo')
+                : null;
+
+            $tipo = is_object($proyecto) || is_array($proyecto)
+                ? data_get($proyecto, 'tipo_operacion')
+                : null;
+
+            $tipo = is_string($tipo) ? $tipo : null;
+            $clave = ($tipo ?? '-').'|'.$this->app->getLocale();
+
+            // Nombres deliberadamente feos: `$entidad` y `$entidades` ya los usa
+            // el módulo de entidades configurables, y estos son de alcance global.
+            $cache[$clave] ??= [
+                'rotuloCaso' => TipoOperacion::etiquetaDe($tipo),
+                'rotuloCasos' => TipoOperacion::etiquetaDe($tipo, plural: true),
+                'rotuloArticulo' => TipoOperacion::articuloDe($tipo),
+            ];
+
+            $view->with($cache[$clave]);
+        });
     }
 }

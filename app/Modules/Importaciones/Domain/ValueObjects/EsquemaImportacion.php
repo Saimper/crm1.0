@@ -7,6 +7,7 @@ namespace App\Modules\Importaciones\Domain\ValueObjects;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ColisionCodigosCampoException;
 use App\Modules\Importaciones\Domain\Exceptions\ColumnaIdentificadorAmbiguaException;
@@ -92,6 +93,41 @@ final readonly class EsquemaImportacion
     }
 
     /**
+     * Las columnas que llegan al `payload`, en el orden del archivo. Es lo que
+     * se devuelve como cabecera al descargar las filas rechazadas.
+     *
+     * @return list<ColumnaExcel>
+     */
+    public function columnasDelArchivo(): array
+    {
+        return array_values(array_filter(
+            $this->columnas,
+            static fn (ColumnaExcel $c): bool => $c->debePersistirse(),
+        ));
+    }
+
+    /**
+     * El mismo esquema con otro modo.
+     *
+     * El wizard persiste el esquema al terminar el paso 2 con el modo que había
+     * entonces —`upsert` por defecto—, y el selector de modo está en el paso 3.
+     * El modo que el supervisor elige de verdad se escribe en la columna
+     * `importaciones.modo`, y el motor lo lee del JSON: así es como un «completar
+     * vacíos» corría siempre como «insertar y actualizar». Esta operación es lo
+     * que permite que columna y JSON digan lo mismo antes de ejecutar.
+     */
+    public function conModo(ModoImportacion $modo): self
+    {
+        return new self(
+            target: $this->target,
+            proyectoId: $this->proyectoId,
+            carteraId: $this->carteraId,
+            modo: $modo,
+            columnas: $this->columnas,
+        );
+    }
+
+    /**
      * Valida la integridad del esquema. Lanza excepciones si hay inconsistencias.
      *
      * @throws EsquemaInvalidoException
@@ -151,6 +187,10 @@ final readonly class EsquemaImportacion
                     'es_identificador_caso' => $c->esIdentificadorCaso,
                     'accion' => $c->accion->value,
                     'etiqueta_personalizada' => $c->etiquetaPersonalizada,
+                    // Sin esta clave el rol se perdía al persistir y `deserializar()`
+                    // lo rellenaba con NINGUNO: el camino asíncrono no generó
+                    // contactos ni una sola vez desde que existe la opción.
+                    'rol_contacto' => $c->rolContacto->value,
                 ],
                 $this->columnas,
             ),
@@ -197,6 +237,7 @@ final readonly class EsquemaImportacion
                 esIdentificadorCaso: (bool) ($col['es_identificador_caso'] ?? false),
                 accion: AccionColumna::from($col['accion']),
                 etiquetaPersonalizada: $col['etiqueta_personalizada'] ?? null,
+                rolContacto: RolContacto::from($col['rol_contacto'] ?? RolContacto::NINGUNO->value),
             );
         }
 

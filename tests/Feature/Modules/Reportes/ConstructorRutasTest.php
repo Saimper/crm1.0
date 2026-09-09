@@ -9,22 +9,35 @@ use App\Modules\Reportes\Application\DTOs\EntradaDefinicionReporte;
 use App\Modules\Reportes\Application\Servicios\ServicioCamposPersonalizadosReporte;
 use App\Modules\Reportes\Application\UseCases\CrearDefinicionReporte;
 use App\Modules\Reportes\Infrastructure\Persistence\Repositories\RepositorioDefinicionReporteEloquent;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ConstructorRutasTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    private stdClass $mandante;
+
+    private stdClass $proyecto;
 
     private int $proyectoId;
 
+    private int $autorId;
+
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
 
+        $this->mandante = $this->crearMandante();
+        $this->proyecto = $this->crearProyectoCobranza($this->mandante);
+        $this->proyectoId = (int) $this->proyecto->id;
+        $this->autorId = (int) $this->crearAdminGlobal()->id;
     }
 
     public function test_supervisor_accede_listado_custom(): void
@@ -107,6 +120,105 @@ final class ConstructorRutasTest extends TestCase
         $this->assertStringStartsWith('PK', $contenido);
     }
 
+    /**
+     * La descarga del constructor deja la MISMA huella que las cuatro
+     * descargas de listado: quién, qué tabla, con qué recorte y cuántas filas.
+     * `reportes_ejecuciones` es la métrica del módulo; esto es lo que el
+     * cliente mira cuando pregunta quién sacó sus datos.
+     */
+    public function test_export_deja_huella_en_la_auditoria_del_cliente(): void
+    {
+        $defId = $this->crearDefinicionDePrueba();
+        $u = $this->usuarioConRol('SUPERVISOR');
+
+        $this->actingAs($u)->get(route('proyectos.reportes.custom.exportar', [
+            'proyecto_id' => $this->proyectoId, 'definicion_id' => $defId, 'formato' => 'csv',
+        ]))->streamedContent();
+
+        $huella = DB::table('auditorias')->where('evento', 'exportado')->first();
+
+        $this->assertNotNull($huella, 'Sacar datos con un reporte custom también es sacarlos.');
+        $this->assertSame('casos', $huella->entidad_tipo, 'Se atribuye a la entidad raíz, que es de donde salieron las filas.');
+        $this->assertSame($this->proyectoId, (int) $huella->proyecto_id);
+        $this->assertSame((int) $u->id, (int) $huella->usuario_id);
+
+        $cambios = json_decode((string) $huella->cambios, true);
+        $this->assertSame('csv', $cambios['filtros']['despues']['formato']);
+        $this->assertTrue($cambios['completa']['despues']);
+    }
+
+    /**
+     * Un reporte es una consulta que el usuario compone, así que el recorte por
+     * cartera del rol (F22) tiene que valer aquí igual que en la bandeja. Sin
+     * esto, el constructor era la puerta de atrás: se elige `personas` como
+     * entidad raíz y sale el padrón completo, sin tope de filas.
+     */
+    public function test_el_recorte_por_cartera_del_rol_gobierna_el_reporte(): void
+    {
+        $proyecto = DB::table('proyectos')->where('id', $this->proyectoId)->first();
+        $permitida = $this->crearCarteraEn($proyecto);
+        $vetada = $this->crearCarteraEn($proyecto);
+        $estado = $this->crearEstadoCasoEn($proyecto);
+
+        $dentro = $this->crearPersonaEn($proyecto, '7200000001');
+        $fuera = $this->crearPersonaEn($proyecto, '7200000002');
+        $this->crearCasoEn($proyecto, ['cartera' => $permitida, 'estado' => $estado, 'persona' => $dentro]);
+        $this->crearCasoEn($proyecto, ['cartera' => $vetada, 'estado' => $estado, 'persona' => $fuera]);
+
+        $defId = $this->crearDefinicionDePersonas();
+
+        $supervisor = $this->usuarioConRol('SUPERVISOR');
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $this->proyectoId,
+            'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
+            'cartera_id' => $permitida->id,
+        ]);
+
+        $csv = $this->actingAs($supervisor)->get(route('proyectos.reportes.custom.exportar', [
+            'proyecto_id' => $this->proyectoId, 'definicion_id' => $defId, 'formato' => 'csv',
+        ]))->assertOk()->streamedContent();
+
+        $this->assertStringContainsString('7200000001', $csv);
+        $this->assertStringNotContainsString('7200000002', $csv, 'La persona de la cartera vetada no sale por el constructor.');
+    }
+
+    /**
+     * El CSV del constructor pasa por las mismas celdas que el resto: el DSL
+     * expone las notas de gestión, que las escribe otra persona, y una nota que
+     * empiece por «=» la evalúa Excel al abrir el fichero.
+     */
+    public function test_el_csv_del_constructor_neutraliza_las_formulas(): void
+    {
+        $proyecto = DB::table('proyectos')->where('id', $this->proyectoId)->first();
+        $this->crearPersonaEn($proyecto, '=HYPERLINK("http://x")');
+
+        $defId = $this->crearDefinicionDePersonas();
+
+        $csv = $this->actingAs($this->usuarioConRol('SUPERVISOR'))->get(route('proyectos.reportes.custom.exportar', [
+            'proyecto_id' => $this->proyectoId, 'definicion_id' => $defId, 'formato' => 'csv',
+        ]))->assertOk()->streamedContent();
+
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+    }
+
+    /** Una definición sobre personas, con la identificación como única columna. */
+    private function crearDefinicionDePersonas(): int
+    {
+        $crear = new CrearDefinicionReporte(new RepositorioDefinicionReporteEloquent, new ServicioCamposPersonalizadosReporte);
+
+        return $crear->execute(
+            new EntradaDefinicionReporte(
+                proyectoId: $this->proyectoId,
+                codigo: 'padron',
+                nombre: 'Padrón',
+                entidadRaiz: 'personas',
+                columnas: [['campo' => 'personas.identificacion', 'etiqueta' => 'Identificación']],
+            ),
+            $this->autorId,
+        );
+    }
+
     public function test_export_registra_ejecucion(): void
     {
         $defId = $this->crearDefinicionDePrueba();
@@ -128,21 +240,15 @@ final class ConstructorRutasTest extends TestCase
     public function test_export_definicion_otro_proyecto_da_404(): void
     {
         $defId = $this->crearDefinicionDePrueba();
-        $otroProy = (int) DB::table('proyectos')->where('codigo', 'SOPORTE_DEMO_2026')->value('id');
 
-        $u = User::query()->create([
-            'name' => 'Cross', 'email' => 'cross.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $otroProy,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
+        // Otro proyecto del MISMO mandante: la definición no debe ser visible
+        // desde él aunque el usuario sea supervisor allí.
+        $otroProyecto = $this->crearProyectoCx($this->mandante);
+        $u = $this->crearSupervisor($otroProyecto);
 
         $this->actingAs($u)
             ->get(route('proyectos.reportes.custom.exportar', [
-                'proyecto_id' => $otroProy, 'definicion_id' => $defId, 'formato' => 'csv',
+                'proyecto_id' => (int) $otroProyecto->id, 'definicion_id' => $defId, 'formato' => 'csv',
             ]))
             ->assertStatus(404);
     }
@@ -164,7 +270,6 @@ final class ConstructorRutasTest extends TestCase
         $repo = new RepositorioDefinicionReporteEloquent;
         $cp = new ServicioCamposPersonalizadosReporte;
         $crear = new CrearDefinicionReporte($repo, $cp);
-        $usuarioId = (int) DB::table('users')->where('email', 'admin@crm.local')->value('id');
 
         return $crear->execute(
             new EntradaDefinicionReporte(
@@ -177,26 +282,12 @@ final class ConstructorRutasTest extends TestCase
                     ['campo' => 'casos.tipo_caso', 'etiqueta' => 'Tipo'],
                 ],
             ),
-            $usuarioId,
+            $this->autorId,
         );
     }
 
     private function usuarioConRol(string $codigoRol): User
     {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $this->proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
+        return $this->crearUsuarioConRol($this->proyecto, $codigoRol);
     }
 }

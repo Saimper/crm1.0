@@ -31,6 +31,10 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'gestiones.editar',        'nombre' => 'Editar gestiones',                        'grupo' => 'gestiones',     'activo' => true],
             ['codigo' => 'gestiones.eliminar',      'nombre' => 'Eliminar gestiones (admin)',              'grupo' => 'gestiones',     'activo' => true],
             ['codigo' => 'gestiones.administrar',   'nombre' => 'Administrar gestiones',                   'grupo' => 'gestiones',     'activo' => true],
+            // Ola 04: exportar es sacar los datos del sistema, no verlos. Cada
+            // listado tiene su permiso propio; antes las cuatro descargas colgaban
+            // de `importaciones.crear`, que no tiene nada que ver con extraer.
+            ['codigo' => 'gestiones.exportar',      'nombre' => 'Exportar gestiones',                      'grupo' => 'gestiones',     'activo' => true],
 
             // Compromisos (reemplaza el grupo "promesas" v1; se generaliza en v2)
             ['codigo' => 'compromisos.ver',         'nombre' => 'Ver compromisos',                         'grupo' => 'compromisos',   'activo' => true],
@@ -39,6 +43,7 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'compromisos.cancelar',    'nombre' => 'Cancelar compromisos',                    'grupo' => 'compromisos',   'activo' => true],
             ['codigo' => 'compromisos.eliminar',    'nombre' => 'Eliminar compromisos (admin)',            'grupo' => 'compromisos',   'activo' => true],
             ['codigo' => 'compromisos.administrar', 'nombre' => 'Administrar compromisos',                 'grupo' => 'compromisos',   'activo' => true],
+            ['codigo' => 'compromisos.exportar',    'nombre' => 'Exportar compromisos',                    'grupo' => 'compromisos',   'activo' => true],
 
             // Personas
             ['codigo' => 'personas.ver',            'nombre' => 'Ver personas',                            'grupo' => 'personas',      'activo' => true],
@@ -46,6 +51,7 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'personas.editar',         'nombre' => 'Editar personas',                         'grupo' => 'personas',      'activo' => true],
             ['codigo' => 'personas.eliminar',       'nombre' => 'Eliminar personas (baja lógica)',         'grupo' => 'personas',      'activo' => true],
             ['codigo' => 'personas.administrar',    'nombre' => 'Administrar personas',                    'grupo' => 'personas',      'activo' => true],
+            ['codigo' => 'personas.exportar',       'nombre' => 'Exportar personas',                       'grupo' => 'personas',      'activo' => true],
 
             // Casos
             ['codigo' => 'casos.ver',               'nombre' => 'Ver casos',                               'grupo' => 'casos',         'activo' => true],
@@ -55,6 +61,7 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'casos.reabrir',           'nombre' => 'Reabrir casos',                           'grupo' => 'casos',         'activo' => true],
             ['codigo' => 'casos.eliminar',          'nombre' => 'Eliminar casos (baja lógica)',            'grupo' => 'casos',         'activo' => true],
             ['codigo' => 'casos.administrar',       'nombre' => 'Administrar casos',                       'grupo' => 'casos',         'activo' => true],
+            ['codigo' => 'casos.exportar',          'nombre' => 'Exportar casos',                          'grupo' => 'casos',         'activo' => true],
 
             // Contactos
             ['codigo' => 'contactos.ver',           'nombre' => 'Ver contactos',                           'grupo' => 'contactos',     'activo' => true],
@@ -62,19 +69,13 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'contactos.editar',        'nombre' => 'Editar contactos',                        'grupo' => 'contactos',     'activo' => true],
             ['codigo' => 'contactos.eliminar',      'nombre' => 'Eliminar contactos',                      'grupo' => 'contactos',     'activo' => true],
 
-            // Campañas
-            ['codigo' => 'campanas.ver',            'nombre' => 'Ver campañas',                            'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.crear',          'nombre' => 'Crear campañas',                          'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.editar',         'nombre' => 'Editar campañas',                         'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.eliminar',       'nombre' => 'Eliminar campañas',                       'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.gestionar',      'nombre' => 'Gestionar campañas',                      'grupo' => 'campanas',      'activo' => true],
-            ['codigo' => 'campanas.administrar',    'nombre' => 'Administrar campañas',                    'grupo' => 'campanas',      'activo' => true],
-
             // Asignaciones
             ['codigo' => 'asignaciones.ver_propia', 'nombre' => 'Ver bandeja propia',                      'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.ver_equipo', 'nombre' => 'Ver bandejas del equipo',                 'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.crear',      'nombre' => 'Crear asignaciones',                      'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.reasignar',  'nombre' => 'Reasignar casos',                         'grupo' => 'asignaciones',  'activo' => true],
+            // El asesor toma para sí una cuenta sin dueño; el proyecto tiene que permitirlo (`proyectos.permite_autoasignacion`).
+            ['codigo' => 'asignaciones.autoasignarse', 'nombre' => 'Tomar cuentas sin dueño',                'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.cerrar',     'nombre' => 'Cerrar asignaciones',                     'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.eliminar',   'nombre' => 'Eliminar asignaciones',                   'grupo' => 'asignaciones',  'activo' => true],
             ['codigo' => 'asignaciones.administrar', 'nombre' => 'Administrar asignaciones',                'grupo' => 'asignaciones',  'activo' => true],
@@ -105,7 +106,6 @@ final class PermisosSeeder extends Seeder
             // Reportes
             ['codigo' => 'reportes.operativos',              'nombre' => 'Ver reportes operativos',                          'grupo' => 'reportes',      'activo' => true],
             ['codigo' => 'reportes.analiticos',              'nombre' => 'Ver reportes analíticos',                          'grupo' => 'reportes',      'activo' => true],
-            ['codigo' => 'reportes.exportar',                'nombre' => 'Exportar reportes',                                'grupo' => 'reportes',      'activo' => true],
             ['codigo' => 'reportes.constructor.gestionar',   'nombre' => 'Crear/editar definiciones de reportes custom',     'grupo' => 'reportes',      'activo' => true],
             ['codigo' => 'reportes.constructor.ejecutar',    'nombre' => 'Ejecutar y previsualizar reportes custom',         'grupo' => 'reportes',      'activo' => true],
             ['codigo' => 'reportes.constructor.exportar',    'nombre' => 'Exportar reportes custom (CSV/XLSX)',              'grupo' => 'reportes',      'activo' => true],

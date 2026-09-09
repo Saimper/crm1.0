@@ -7,6 +7,8 @@ namespace App\Modules\Auditoria\Infrastructure\Http\Controllers;
 use App\Models\User;
 use App\Modules\Auditoria\Application\Services\AlcanceAuditoria;
 use App\Modules\Auditoria\Application\Services\ExportadorCsvAuditoria;
+use App\Modules\Auditoria\Application\Services\FiltrosAuditoria;
+use App\Support\Http\ParametroDeConsulta;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,8 +46,7 @@ final class ExportarAuditoriaMandanteController
         // Mismo default que la pantalla: el cliente activo. Un `mandante_id`
         // por query string no amplía nada — `mandantesLegibles()` lo interseca
         // con lo que el usuario ya alcanzaba.
-        $filtro = $this->escalar($request, 'mandante_id');
-        $mandanteFiltro = $filtro === '' ? $this->alcance->mandanteActivoId() : (int) $filtro;
+        $mandanteFiltro = ParametroDeConsulta::entero($request, 'mandante_id') ?? $this->alcance->mandanteActivoId();
 
         // `auditoria.exportar`, no `auditoria.ver`: el alcance de lo que se
         // puede SACAR del sistema se calcula con el permiso de sacarlo. Sin
@@ -58,12 +59,14 @@ final class ExportarAuditoriaMandanteController
 
         $exportables = $this->proyectosExportables($usuario, $mandantes);
 
+        $filtros = FiltrosAuditoria::desdeQueryString($request);
+
         $q = DB::table('auditorias as a')
             ->leftJoin('users as u', 'u.id', '=', 'a.usuario_id')
-            ->select($this->exportador->columnas())
-            ->orderByDesc('a.creada_en');
+            ->select($this->exportador->columnas());
 
-        // 1 · Recorte de tenant, idéntico al de la pantalla.
+        // 1 · Recorte de tenant, idéntico al de la pantalla. Va PRIMERO y no
+        //     depende de ningún parámetro: los filtros sólo estrechan.
         $this->alcance->aplicarAMandantes($q, 'a', $mandantes);
 
         // 2 · Y encima, el permiso por proyecto. Un evento sin proyecto (acción
@@ -76,9 +79,17 @@ final class ExportarAuditoriaMandanteController
             });
         }
 
-        $this->aplicarFiltros($request, $q);
+        $filtros->aplicar($q, 'a');
 
-        return $this->exportador->responder($q, $this->nombreFichero($mandantes));
+        return $this->exportador->responder(
+            $q,
+            $this->nombreFichero($mandantes),
+            $filtros,
+            proyectoId: null,
+            // La huella se atribuye a un cliente sólo cuando la descarga es de
+            // uno: un CSV de varios mandantes no es de ninguno en concreto.
+            mandanteId: is_array($mandantes) && count($mandantes) === 1 ? $mandantes[0] : null,
+        );
     }
 
     /**
@@ -116,44 +127,6 @@ final class ExportarAuditoriaMandanteController
         );
 
         return $exportables;
-    }
-
-    private function aplicarFiltros(Request $request, Builder $q): void
-    {
-        $entidadTipo = $this->escalar($request, 'entidad_tipo');
-        $usuarioId = $this->escalar($request, 'usuario_id');
-        $evento = $this->escalar($request, 'evento');
-        $desde = $this->escalar($request, 'desde');
-        $hasta = $this->escalar($request, 'hasta');
-
-        if ($entidadTipo !== '') {
-            $q->where('a.entidad_tipo', $entidadTipo);
-        }
-        if ($usuarioId !== '') {
-            $q->where('a.usuario_id', (int) $usuarioId);
-        }
-        if ($evento !== '') {
-            $q->where('a.evento', $evento);
-        }
-        if ($desde !== '') {
-            $q->where('a.creada_en', '>=', $desde.' 00:00:00');
-        }
-        if ($hasta !== '') {
-            $q->where('a.creada_en', '<=', $hasta.' 23:59:59');
-        }
-    }
-
-    /**
-     * Un parámetro de query string es lo que quiera quien hace la petición:
-     * `?usuario_id[]=1` llega como array, y castearlo a int o a string da 1 o
-     * "Array" con un warning. Cualquier cosa que no sea un escalar se trata
-     * como "no me han pasado filtro", que es el único valor seguro.
-     */
-    private function escalar(Request $request, string $clave): string
-    {
-        $valor = $request->query($clave);
-
-        return is_scalar($valor) ? trim((string) $valor) : '';
     }
 
     /** @param  list<int>|null  $mandantes */

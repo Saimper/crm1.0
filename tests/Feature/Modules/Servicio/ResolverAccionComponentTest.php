@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Servicio;
 
-use App\Models\User;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
 use App\Modules\Servicio\Application\DTOs\RegistrarCasoServicioInput;
@@ -13,27 +12,34 @@ use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
 use App\Modules\Servicio\Domain\ValueObjects\DescripcionAccion;
 use App\Modules\Servicio\Domain\ValueObjects\FechaProgramada;
 use App\Modules\Servicio\Infrastructure\Http\Livewire\ResolverAccion;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class ResolverAccionComponentTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_marca_accion_ejecutada_desde_componente(): void
     {
-        $compromisoId = $this->crearContextoConAccion();
-        $this->actingAs(User::factory()->create());
+        $proyecto = $this->crearProyectoServicio();
+        $this->activarProyecto($proyecto);
+
+        $compromisoId = $this->crearContextoConAccion($proyecto);
+        $this->actingAs($this->crearGestor($proyecto));
 
         Livewire::test(ResolverAccion::class, ['compromisoId' => $compromisoId])
             ->call('abrir', 'ejecutada')
@@ -47,31 +53,26 @@ final class ResolverAccionComponentTest extends TestCase
         $this->assertDatabaseHas('compromisos', ['id' => $compromisoId, 'estado' => 'cumplido']);
     }
 
-    private function crearContextoConAccion(): int
+    private function crearContextoConAccion(stdClass $proyecto): int
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'SERVICIO_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
+        $proyectoId = (int) $proyecto->id;
 
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'RESIDENCIAL')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estado = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'PENDIENTE')->value('id');
+        $cartera = $this->crearCarteraEn($proyecto, 'RESIDENCIAL');
+        $estado = $this->crearEstadoCasoEn($proyecto, 'PENDIENTE');
+        $persona = $this->crearPersonaEn($proyecto);
+        $usuario = $this->crearGestor($proyecto);
 
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'UC', 'email' => 'uc.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
-        ]);
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Tester', 'apellidos' => 'Servicio',
+        $cascada = $this->crearCascadaGestionEn($proyecto, [
+            'requiere_compromiso' => true,
+            'codigo_tipo' => 'COORDINACION',
+            'codigo_resultado' => 'AGENDADO',
         ]);
 
         $out = $this->app->make(RegistrarCasoServicio::class)->execute(new RegistrarCasoServicioInput(
             proyectoId: $proyectoId,
-            carteraId: $carteraId,
-            personaId: $personaId,
-            estadoCasoId: $estado,
+            carteraId: (int) $cartera->id,
+            personaId: (int) $persona->id,
+            estadoCasoId: (int) $estado->id,
             fechaIngreso: new DateTimeImmutable('2026-04-20'),
             prioridad: 100,
             codigoServicio: 'SVC-RES-'.Str::random(4),
@@ -87,14 +88,14 @@ final class ResolverAccionComponentTest extends TestCase
             publicId: (string) Str::ulid(),
             proyectoId: $proyectoId,
             casoId: $out->casoId,
-            personaId: $personaId,
+            personaId: (int) $persona->id,
             contactoId: null,
-            canalId: (int) DB::table('canales')->where('codigo', 'TELEFONO')->value('id'),
-            tipoGestionId: (int) DB::table('tipos_gestion')->where('proyecto_id', $proyectoId)->where('codigo', 'COORDINACION')->value('id'),
-            resultadoId: (int) DB::table('resultados')->where('proyecto_id', $proyectoId)->where('codigo', 'AGENDADO')->value('id'),
+            canalId: $cascada['canal_id'],
+            tipoGestionId: $cascada['tipo_gestion_id'],
+            resultadoId: $cascada['resultado_id'],
             motivoNoContactoId: null,
             causaId: null,
-            usuarioId: $usuarioId,
+            usuarioId: (int) $usuario->id,
             notas: null,
             duracion: null,
             creadaEn: new DateTimeImmutable('2026-04-20 10:00:00'),

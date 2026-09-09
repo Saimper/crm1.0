@@ -4,217 +4,223 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Importaciones;
 
-use App\Models\User;
-use App\Modules\Importaciones\Application\UseCases\ProcesarImportacionPersonas;
+use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionDinamica;
+use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionInput;
+use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
+use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
+use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
- * F31: verifica los 3 modos sobre personas.
- * - merge: rellena solo nulos
- * - overwrite: pisa todo con valores no-null
- * - skip_duplicados: marca duplicada, no toca registro
+ * Qué promete cada modo de importación, comprobado contra el motor que corre.
+ *
+ * La versión anterior de este fichero probaba los mismos tres modos contra
+ * `ProcesarImportacionPersonas`, el importador de columnas fijas que se retiró:
+ * un test verde sobre una clase que ninguna pantalla podía invocar. Las
+ * promesas son las mismas y el sitio donde se cumplen es `ProcesarFilaDinamica`,
+ * así que el fichero se queda con su nombre y cambia de sujeto.
+ *
+ * Sobre casos y no sobre personas porque el asistente ya no importa personas
+ * sueltas: una persona nace como efecto de crear su caso.
  */
 final class ModosImportacionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_modo_merge_solo_rellena_columnas_vacias(): void
+    public function test_completar_vacios_rellena_lo_nulo_y_respeta_lo_que_ya_estaba(): void
     {
-        [$proyectoId, $supervisor] = $this->setupContexto();
+        [$proyecto, $cartera] = $this->escenario();
+        $this->casoCon($proyecto, $cartera, ['saldo_capital' => 1000.00, 'saldo_interes' => null]);
 
-        DB::table('personas')->insert([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $this->idTipoCed(),
-            'identificacion' => '5500000001',
-            'nombres' => 'Juan',
-            'apellidos' => null,
-            'fecha_nacimiento' => null,
+        $this->importar($proyecto, $cartera, ModoImportacion::MERGE, [
+            'saldo_capital' => '250',
+            'saldo_interes' => '75',
         ]);
 
-        $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_codigo' => 'CED',
-            'identificacion' => '5500000001',
-            'nombres' => 'Juan Carlos',
-            'apellidos' => 'Pérez',
-            'fecha_nacimiento' => '1990-01-15',
+        $cti = $this->cti($proyecto);
+        $this->assertSame('1000.00', (string) $cti->saldo_capital, 'Lo que ya tenía valor no se toca.');
+        $this->assertSame('75.00', (string) $cti->saldo_interes, 'Lo que estaba nulo se rellena.');
+    }
+
+    public function test_insertar_y_actualizar_pisa_lo_que_el_archivo_trae(): void
+    {
+        [$proyecto, $cartera] = $this->escenario();
+        $this->casoCon($proyecto, $cartera, ['saldo_capital' => 1000.00, 'saldo_interes' => 40.00]);
+
+        $this->importar($proyecto, $cartera, ModoImportacion::UPSERT, [
+            'saldo_capital' => '250',
+            'saldo_interes' => '75',
         ]);
 
-        app(ProcesarImportacionPersonas::class)->ejecutar(
-            $importacionId,
-            commit: true,
-            modo: ModoImportacion::MERGE,
+        $cti = $this->cti($proyecto);
+        $this->assertSame('250.00', (string) $cti->saldo_capital);
+        $this->assertSame('75.00', (string) $cti->saldo_interes);
+    }
+
+    /**
+     * La celda vacía de una hoja de cálculo no es una orden de borrar.
+     *
+     * El asistente ni siquiera la mete en el payload, así que el motor no
+     * puede distinguirla de una columna ausente, y en los dos casos deja el
+     * valor como estaba. Es la garantía que hacía falta para que un archivo
+     * parcial —el que sólo trae los saldos que cambiaron— no vacíe el resto.
+     */
+    public function test_una_celda_vacia_del_archivo_no_borra_el_valor_guardado(): void
+    {
+        [$proyecto, $cartera] = $this->escenario();
+        $this->casoCon($proyecto, $cartera, ['saldo_capital' => 1000.00, 'saldo_interes' => 40.00]);
+
+        $this->importar($proyecto, $cartera, ModoImportacion::UPSERT, ['saldo_capital' => '250']);
+
+        $cti = $this->cti($proyecto);
+        $this->assertSame('250.00', (string) $cti->saldo_capital);
+        $this->assertSame('40.00', (string) $cti->saldo_interes, 'La columna que el archivo no trae se queda como estaba.');
+    }
+
+    public function test_saltar_duplicados_no_toca_el_caso_y_marca_la_fila(): void
+    {
+        [$proyecto, $cartera] = $this->escenario();
+        $this->casoCon($proyecto, $cartera, ['saldo_capital' => 1000.00, 'saldo_interes' => 40.00]);
+
+        $importacionId = $this->importar($proyecto, $cartera, ModoImportacion::SKIP_DUPLICADOS, [
+            'saldo_capital' => '250',
+            'saldo_interes' => '75',
+        ]);
+
+        $cti = $this->cti($proyecto);
+        $this->assertSame('1000.00', (string) $cti->saldo_capital, 'Saltar es no escribir: ni una columna.');
+        $this->assertSame('40.00', (string) $cti->saldo_interes);
+
+        $fila = DB::table('importacion_filas')->where('importacion_id', $importacionId)->first();
+        $this->assertSame('duplicada', (string) $fila->estado);
+        $this->assertSame(1, (int) DB::table('importaciones')->where('id', $importacionId)->value('duplicadas'));
+    }
+
+    /**
+     * Saltar duplicados NO es «insertar lo que falta»: una fila cuyo caso no
+     * existe queda inválida y lo dice. El nombre del modo se presta a leerlo
+     * como un upsert tolerante, y no lo es.
+     */
+    public function test_saltar_duplicados_tampoco_crea_lo_que_no_existe(): void
+    {
+        [$proyecto, $cartera] = $this->escenario();
+
+        $importacionId = $this->importar($proyecto, $cartera, ModoImportacion::SKIP_DUPLICADOS, ['saldo_capital' => '250']);
+
+        $fila = DB::table('importacion_filas')->where('importacion_id', $importacionId)->first();
+        $this->assertSame('invalida', (string) $fila->estado);
+        $this->assertStringContainsString('no se crean registros nuevos', (string) $fila->mensaje_error);
+        $this->assertSame(0, DB::table('casos')->where('proyecto_id', $proyecto->id)->count());
+    }
+
+    /** @return array{0: stdClass, 1: stdClass} */
+    private function escenario(): array
+    {
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+
+        return [$proyecto, $cartera];
+    }
+
+    /**
+     * Un caso de cobranza ya cargado, con los saldos que se le digan.
+     *
+     * @param  array<string, float|null>  $saldos
+     */
+    private function casoCon(stdClass $proyecto, stdClass $cartera, array $saldos): void
+    {
+        $persona = $this->crearPersonaEn($proyecto, '8-990-429');
+        $casoId = $this->crearCasoEn($proyecto, ['cartera' => $cartera, 'persona' => $persona]);
+
+        DB::table('casos_cobranza')->insert(array_merge([
+            'caso_id' => $casoId,
+            'proyecto_id' => $proyecto->id,
+            'numero_prestamo' => 'PR-MODOS',
+            'monto_original' => 1000.00,
+            'saldo_total' => 1000.00,
+            'creada_en' => Carbon::now(),
+            'actualizada_en' => Carbon::now(),
+        ], $saldos));
+    }
+
+    /**
+     * Corre el motor con un esquema de cobranza y una sola fila.
+     *
+     * @param  array<string, string>  $valores
+     */
+    private function importar(stdClass $proyecto, stdClass $cartera, ModoImportacion $modo, array $valores): int
+    {
+        $esquema = new EsquemaImportacion(
+            target: TargetImportacion::CASO_COBRANZA,
+            proyectoId: (int) $proyecto->id,
+            carteraId: (int) $cartera->id,
+            modo: $modo,
+            columnas: [
+                new ColumnaExcel('CEDULA', TipoCampo::TEXTO_CORTO, 'identificacion', true, false, AccionColumna::MAPEAR_SISTEMA),
+                new ColumnaExcel('CUENTA', TipoCampo::TEXTO_CORTO, null, false, true, AccionColumna::IGNORAR),
+                new ColumnaExcel('CAPITAL', TipoCampo::NUMERO_DECIMAL, 'saldo_capital', false, false, AccionColumna::MAPEAR_SISTEMA),
+                new ColumnaExcel('INTERES', TipoCampo::NUMERO_DECIMAL, 'saldo_interes', false, false, AccionColumna::MAPEAR_SISTEMA),
+            ],
         );
 
-        $persona = DB::table('personas')->where('identificacion', '5500000001')->first();
-        $this->assertSame('Juan', $persona->nombres, 'merge no debe pisar campos llenos');
-        $this->assertSame('Pérez', $persona->apellidos, 'merge debe rellenar campos nulos');
-        $this->assertNotNull($persona->fecha_nacimiento, 'merge debe rellenar fecha_nacimiento nula');
-    }
-
-    public function test_modo_overwrite_pisa_todos_los_campos(): void
-    {
-        [$proyectoId, $supervisor] = $this->setupContexto();
-
-        DB::table('personas')->insert([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $this->idTipoCed(),
-            'identificacion' => '5500000002',
-            'nombres' => 'Juan',
-            'apellidos' => 'Apellido viejo',
-        ]);
-
-        $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_codigo' => 'CED',
-            'identificacion' => '5500000002',
-            'nombres' => 'Juan Carlos',
-            'apellidos' => 'Apellido nuevo',
-        ]);
-
-        app(ProcesarImportacionPersonas::class)->ejecutar(
-            $importacionId,
-            commit: true,
-            modo: ModoImportacion::OVERWRITE,
-        );
-
-        $persona = DB::table('personas')->where('identificacion', '5500000002')->first();
-        $this->assertSame('Juan Carlos', $persona->nombres);
-        $this->assertSame('Apellido nuevo', $persona->apellidos);
-    }
-
-    public function test_modo_skip_duplicados_no_toca_registro_y_marca_fila(): void
-    {
-        [$proyectoId, $supervisor] = $this->setupContexto();
-
-        DB::table('personas')->insert([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $this->idTipoCed(),
-            'identificacion' => '5500000003',
-            'nombres' => 'Original',
-        ]);
-
-        $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_codigo' => 'CED',
-            'identificacion' => '5500000003',
-            'nombres' => 'CSV Nuevo',
-        ]);
-
-        app(ProcesarImportacionPersonas::class)->ejecutar(
-            $importacionId,
-            commit: true,
-            modo: ModoImportacion::SKIP_DUPLICADOS,
-        );
-
-        $persona = DB::table('personas')->where('identificacion', '5500000003')->first();
-        $this->assertSame('Original', $persona->nombres, 'skip_duplicados no debe modificar el registro');
-
-        $this->assertDatabaseHas('importacion_filas', [
-            'importacion_id' => $importacionId,
-            'estado' => 'duplicada',
-        ]);
-    }
-
-    public function test_overwrite_no_pisa_con_null_si_csv_trae_vacio(): void
-    {
-        [$proyectoId, $supervisor] = $this->setupContexto();
-
-        DB::table('personas')->insert([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $this->idTipoCed(),
-            'identificacion' => '5500000004',
-            'nombres' => 'Juan',
-            'apellidos' => 'Pérez',
-        ]);
-
-        $importacionId = $this->crearImportacionConFila($proyectoId, $supervisor->id, [
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_codigo' => 'CED',
-            'identificacion' => '5500000004',
-            'nombres' => 'Juan Modificado',
-            'apellidos' => '',
-        ]);
-
-        app(ProcesarImportacionPersonas::class)->ejecutar(
-            $importacionId,
-            commit: true,
-            modo: ModoImportacion::OVERWRITE,
-        );
-
-        $persona = DB::table('personas')->where('identificacion', '5500000004')->first();
-        $this->assertSame('Juan Modificado', $persona->nombres);
-        $this->assertSame('Pérez', $persona->apellidos, 'CSV vacío no debe sobreescribir a null');
-    }
-
-    private function setupContexto(): array
-    {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $this->app->instance('tenancy.proyecto_activo', DB::table('proyectos')->find($proyectoId));
-
-        $rolId = (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id');
-        $u = User::query()->create([
-            'name' => 'Sup',
-            'email' => 'sup.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-        $this->actingAs($u);
-
-        return [$proyectoId, $u];
-    }
-
-    private function idTipoCed(): int
-    {
-        return (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-    }
-
-    /** @param array<string,string> $payload */
-    private function crearImportacionConFila(int $proyectoId, int $usuarioId, array $payload): int
-    {
         $importacionId = (int) DB::table('importaciones')->insertGetId([
             'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_entidad' => 'persona',
-            'modo' => 'merge',
+            'proyecto_id' => $proyecto->id,
+            'tipo_entidad' => 'caso_cobranza',
+            'modo' => $modo->value,
             'estado' => EstadoImportacion::PREPARADA->value,
-            'usuario_id' => $usuarioId,
-            'nombre_archivo' => 'test.csv',
+            'usuario_id' => $this->crearSupervisor($proyecto)->id,
+            'nombre_archivo' => 'modos.csv',
             'total_filas' => 1,
+            'esquema' => $esquema->serializar(),
         ]);
 
         DB::table('importacion_filas')->insert([
             'importacion_id' => $importacionId,
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => $proyecto->id,
             'numero_fila' => 1,
             'estado' => 'pendiente',
-            'payload' => json_encode($payload),
+            'payload' => json_encode(array_merge([
+                'identificacion' => '8-990-429',
+                'id_cpelegido' => 'PR-MODOS',
+            ], $valores), JSON_THROW_ON_ERROR),
         ]);
 
+        app(EjecutarImportacionDinamica::class)->execute(new EjecutarImportacionInput(
+            importacionId: $importacionId,
+            chunkSize: 100,
+        ));
+
         return $importacionId;
+    }
+
+    private function cti(stdClass $proyecto): stdClass
+    {
+        /** @var stdClass $fila */
+        $fila = DB::table('casos_cobranza')
+            ->where('proyecto_id', $proyecto->id)
+            ->where('numero_prestamo', 'PR-MODOS')
+            ->first();
+
+        return $fila;
     }
 }

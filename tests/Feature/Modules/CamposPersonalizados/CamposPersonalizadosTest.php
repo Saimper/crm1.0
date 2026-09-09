@@ -7,24 +7,30 @@ namespace Tests\Feature\Modules\CamposPersonalizados;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\Exceptions\ReglaViolada;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class CamposPersonalizadosTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_guarda_y_recupera_valor_texto_corto(): void
     {
-        $proyectoId = $this->idProyecto();
-        $carteraId = $this->idCartera($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $proyectoId = (int) $proyecto->id;
+        $carteraId = (int) $cartera->id;
+
         $campoId = $this->definirCampo($proyectoId, $carteraId, 'referencia_pago', 'texto_corto', obligatorio: false);
 
         $servicio = $this->app->make(ServicioCamposPersonalizados::class);
@@ -41,8 +47,11 @@ final class CamposPersonalizadosTest extends TestCase
 
     public function test_obligatorio_no_enviado_throws(): void
     {
-        $proyectoId = $this->idProyecto();
-        $carteraId = $this->idCartera($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $proyectoId = (int) $proyecto->id;
+        $carteraId = (int) $cartera->id;
+
         $this->definirCampo($proyectoId, $carteraId, 'campo_obligatorio', 'texto_corto', obligatorio: true);
 
         $this->expectException(ReglaViolada::class);
@@ -52,8 +61,11 @@ final class CamposPersonalizadosTest extends TestCase
 
     public function test_regla_regex_rechaza_valor_invalido(): void
     {
-        $proyectoId = $this->idProyecto();
-        $carteraId = $this->idCartera($proyectoId);
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
+        $proyectoId = (int) $proyecto->id;
+        $carteraId = (int) $cartera->id;
+
         DB::table('campos_personalizados')->insert([
             'proyecto_id' => $proyectoId,
             'ambito' => 'caso',
@@ -84,42 +96,21 @@ final class CamposPersonalizadosTest extends TestCase
 
     public function test_campos_otro_proyecto_no_se_cargan(): void
     {
-        $proyectoA = $this->idProyecto();
-        $carteraA = $this->idCartera($proyectoA);
-        $this->definirCampo($proyectoA, $carteraA, 'campo_a', 'texto_corto', obligatorio: false);
+        // Dos proyectos del MISMO mandante: el aislamiento es por proyecto (§2),
+        // no por mandante, y con el mandante compartido el test lo demuestra.
+        $mandante = $this->crearMandante();
 
-        // Un proyecto B adicional del mismo mandante.
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
-        $proyectoB = (int) DB::table('proyectos')->insertGetId([
-            'public_id' => '01HXOTHER0000000000000B',
-            'mandante_id' => $mandanteId,
-            'codigo' => 'OTRO_P',
-            'nombre' => 'Otro proyecto',
-            'tipo_operacion' => 'cobranza',
-            'activo' => true,
-        ]);
-        $carteraB = (int) DB::table('carteras')->insertGetId([
-            'public_id' => '01HXOTHER0000000000000CB',
-            'proyecto_id' => $proyectoB,
-            'codigo' => 'OTRA_CART',
-            'nombre' => 'Otra cartera',
-            'activo' => true,
-        ]);
+        $proyectoA = $this->crearProyectoCobranza($mandante);
+        $carteraA = $this->crearCarteraEn($proyectoA);
+        $this->definirCampo((int) $proyectoA->id, (int) $carteraA->id, 'campo_a', 'texto_corto', obligatorio: false);
+
+        $proyectoB = $this->crearProyectoCobranza($mandante);
+        $carteraB = $this->crearCarteraEn($proyectoB);
 
         $servicio = $this->app->make(ServicioCamposPersonalizados::class);
 
-        $this->assertCount(1, $servicio->campos($proyectoA, AmbitoCampo::CASO, $carteraA));
-        $this->assertCount(0, $servicio->campos($proyectoB, AmbitoCampo::CASO, $carteraB));
-    }
-
-    private function idProyecto(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function idCartera(int $proyectoId): int
-    {
-        return (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
+        $this->assertCount(1, $servicio->campos((int) $proyectoA->id, AmbitoCampo::CASO, (int) $carteraA->id));
+        $this->assertCount(0, $servicio->campos((int) $proyectoB->id, AmbitoCampo::CASO, (int) $carteraB->id));
     }
 
     private function definirCampo(int $proyectoId, int $carteraId, string $codigo, string $tipo, bool $obligatorio): int

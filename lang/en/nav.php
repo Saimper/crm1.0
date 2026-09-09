@@ -6,6 +6,11 @@ return [
     // `mandante.activo` middleware, so they step outside the active client.
     'alcance_todos_los_clientes' => 'All clients — this screen is not scoped to the active client.',
     'menu' => 'Menu',
+    'close_menu' => 'Close menu',
+    'close_search' => 'Close search',
+    'skip_content' => 'Skip to content',
+    'project_overview' => 'Project overview',
+    'user_menu' => 'User menu',
     'breadcrumb_projects' => 'Projects',
     'active_project' => 'Active project',
     'change_project' => 'Change project',

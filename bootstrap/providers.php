@@ -2,7 +2,6 @@
 
 use App\Modules\Asignaciones\Infrastructure\Providers\AsignacionesServiceProvider;
 use App\Modules\Auditoria\Infrastructure\Providers\AuditoriaServiceProvider;
-use App\Modules\Campanas\Infrastructure\Providers\CampanasServiceProvider;
 use App\Modules\CamposPersonalizados\Infrastructure\Providers\CamposPersonalizadosServiceProvider;
 use App\Modules\Casos\Infrastructure\Providers\CasosServiceProvider;
 use App\Modules\Catalogos\Infrastructure\Providers\CatalogosServiceProvider;
@@ -32,7 +31,6 @@ return [
     PersonasServiceProvider::class,
     ContactosServiceProvider::class,
     GestionesServiceProvider::class,
-    CampanasServiceProvider::class,
     AsignacionesServiceProvider::class,
     CamposPersonalizadosServiceProvider::class,
     CobranzaServiceProvider::class,

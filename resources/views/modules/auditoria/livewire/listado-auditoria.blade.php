@@ -40,6 +40,7 @@
                     <option value="creado">{{ __('auditoria.event_created') }}</option>
                     <option value="actualizado">{{ __('auditoria.event_updated') }}</option>
                     <option value="eliminado">{{ __('auditoria.event_deleted') }}</option>
+                    <option value="exportado">{{ __('auditoria.event_exported') }}</option>
                 </select>
             </div>
             <div>
@@ -64,7 +65,11 @@
             @if(! $modoGlobal)
                 @php $pid = (int) app('tenancy.proyecto_activo')->id; @endphp
                 @can('auditoria.exportar')
+                    {{-- El fichero sale del evento más antiguo al más reciente
+                         (por id), al revés que esta tabla: es lo que permite
+                         paginar por clave y que la descarga no se corte. --}}
                     <a href="{{ route('proyectos.auditoria.exportar', array_merge(['proyecto_id' => $pid], $qs)) }}"
+                       title="{{ __('auditoria.export_order_hint') }}"
                        class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
                         {{ __('auditoria.btn_export_csv') }}
                     </a>
@@ -76,6 +81,7 @@
                      pinta a quien tiene `auditoria.exportar`: verlo en pantalla
                      no es poder sacarlo del sistema. --}}
                 <a href="{{ route('admin.auditoria.exportar', array_merge($mandanteId ? ['mandante_id' => $mandanteId] : [], $qs)) }}"
+                   title="{{ __('auditoria.export_order_hint') }}"
                    class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
                     {{ __('auditoria.btn_export_csv') }}
                 </a>
@@ -86,6 +92,9 @@
             </button>
         </div>
     </section>
+    {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+         esta barra dice que se está trabajando. --}}
+    <x-ui.cargando />
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
@@ -114,11 +123,12 @@
                                 'creado'      => 'bg-success-50 text-success-800',
                                 'actualizado' => 'bg-brand-100 text-brand-800',
                                 'eliminado'   => 'bg-danger-50 text-danger-700',
+                                'exportado'   => 'bg-warning-50 text-warning-800',
                                 default       => 'bg-ink-100 text-ink-700',
                             };
                         @endphp
                         <tr>
-                            <td class="px-3 py-2 text-xs">{{ \Illuminate\Support\Carbon::parse($r->creada_en)->format('d/m/Y H:i:s') }}</td>
+                            <td class="px-3 py-2 text-xs">{{ hora_local($r->creada_en, 'd/m/Y H:i:s') }}</td>
                             @if($modoGlobal)
                                 <td class="px-3 py-2 text-xs">
                                     @if($r->proyecto_id)
@@ -163,7 +173,7 @@
                 </div>
                 <div class="p-4 space-y-4 text-xs">
                     <div class="text-ink-500">
-                        {{ \Illuminate\Support\Carbon::parse($detalle->creada_en)->format('d/m/Y H:i:s') }}
+                        {{ hora_local($detalle->creada_en, 'd/m/Y H:i:s') }}
                         · IP {{ $detalle->ip ?? '—' }}
                     </div>
                     @php

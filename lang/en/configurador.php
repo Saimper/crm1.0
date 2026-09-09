@@ -1,6 +1,34 @@
 <?php
 
 return [
+    'plantillas' => [
+        'titulo' => 'Note templates',
+        'ayuda' => 'Set phrases the agent drops into the notes with one click and edits afterwards.',
+        'etiqueta' => 'Label',
+        'etiqueta_ph' => 'Asks for a call',
+        'texto' => 'Text',
+        'texto_ph' => 'The holder asks to be called after 6pm.',
+        'resultado' => 'Only with the result',
+        'siempre' => '— Always —',
+    ],
+    'causas' => [
+        'titulo' => 'Interaction causes',
+        'ayuda' => 'Why it turned out that way. Results flagged as «requires cause» ask for one of these.',
+        'nueva' => 'Cause name…',
+        'confirm_eliminar' => 'Delete this cause? Only if no interaction uses it.',
+    ],
+    'matriz' => [
+        'titulo' => 'Which results each interaction type allows',
+        'ayuda' => 'A type with no box ticked allows every result. Tick boxes to narrow it down.',
+        'col_resultado' => 'Result',
+    ],
+    'canales' => [
+        'titulo' => 'Channels',
+        'ayuda' => 'How the interaction happens. The catalogue is shared across clients; here you pick which ones this project uses, in what order and under what name.',
+        'col_nombre' => 'Name in this project',
+        'col_duracion' => 'Asks for duration',
+        'col_adjunto' => 'Allows attachment',
+    ],
 
     // Wizard / configurador principal
     'titulo_editar' => 'Edit configuration',
@@ -117,6 +145,16 @@ return [
 
     // Step: custom fields
     'campos' => [
+        'grupos_titulo' => 'Groups',
+        'grupos_ayuda' => 'They order the fields in the work view. Just a name and a position.',
+        'grupos_nuevo' => 'Group name…',
+        'grupos_confirm_eliminar' => 'Delete this group? Only if it has no fields in it.',
+        'grupo' => 'Group',
+        'grupo_ninguno' => '— No group —',
+        'col_grupo' => 'Group',
+        'oculto' => 'Hidden',
+        'visible_en_gestion' => 'Shown in the work view',
+        'visible_en_gestion_ayuda' => 'When off, the field still exists and is edited from the record, but does not appear when logging an interaction.',
         'info_opcional' => 'Optional step. Custom fields extend the project data model without schema migrations. You can complete this later from the administration panel.',
         'n_campos' => ':n fields',
         'nuevo' => 'New field',

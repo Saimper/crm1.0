@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Asignaciones\Infrastructure\Http\Livewire;
 
+use App\Models\User;
+use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
 use App\Modules\Asignaciones\Application\UseCases\CerrarAsignacion;
+use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
+use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -15,6 +20,9 @@ use Livewire\WithPagination;
 final class Bandeja extends Component
 {
     use WithPagination;
+
+    /** Pestaña de las cuentas que no son de nadie; no es un estado de asignación. */
+    private const POOL = 'sin_duenio';
 
     #[Url(as: 'estado')]
     public string $estadoFiltro = 'pendiente';
@@ -34,6 +42,36 @@ final class Bandeja extends Component
         $this->resetPage();
     }
 
+    /**
+     * El asesor toma una cuenta del montón sin dueño.
+     *
+     * La pestaña «sin dueño» sólo existe para esto: con 5.000 cuentas en el
+     * proyecto, encontrarlas por el listado y filtrar era el camino largo.
+     */
+    public function tomarCuenta(int $casoId, AutoasignarCaso $autoasignar): void
+    {
+        $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+
+        abort_unless(
+            $this->usuario()->tienePermiso('asignaciones.autoasignarse', $proyectoId),
+            403,
+            'No tienes permiso para tomar cuentas en este proyecto.',
+        );
+
+        try {
+            $autoasignar->execute(
+                proyectoId: $proyectoId,
+                casoId: $casoId,
+                usuarioId: (int) auth()->id(),
+                ahora: new DateTimeImmutable,
+                carterasPermitidas: $this->usuario()->carterasPermitidas($proyectoId),
+            );
+            $this->mensajeExito = __('asignaciones.taken');
+        } catch (AutoasignacionNoPermitida $e) {
+            $this->addError('asignacion', $e->getMessage());
+        }
+    }
+
     public function cerrarAsignacion(int $asignacionId, CerrarAsignacion $useCase): void
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
@@ -48,7 +86,7 @@ final class Bandeja extends Component
         abort_unless($asignacion, 404);
 
         try {
-            $useCase->execute($asignacionId);
+            $useCase->execute($asignacionId, new DateTimeImmutable);
             $this->mensajeExito = 'Asignación cerrada.';
         } catch (TransicionAsignacionInvalida $e) {
             $this->addError('asignacion', $e->getMessage());
@@ -61,13 +99,20 @@ final class Bandeja extends Component
         $proyectoId = (int) $proyectoActivo->id;
         $usuarioId = (int) auth()->id();
 
+        $autoasignar = app(AutoasignarCaso::class);
+        $puedeTomar = $this->usuario()->tienePermiso('asignaciones.autoasignarse', $proyectoId)
+            && $autoasignar->proyectoLoPermite($proyectoId);
+
+        if ($this->estadoFiltro === self::POOL && $puedeTomar) {
+            return $this->renderPool($proyectoActivo, $proyectoId);
+        }
+
         $query = DB::table('asignaciones as a')
             ->join('casos as c', 'c.id', '=', 'a.caso_id')
             ->join('personas as pe', 'pe.id', '=', 'c.persona_id')
             ->join('carteras as ca', 'ca.id', '=', 'c.cartera_id')
             ->join('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
             ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
-            ->leftJoin('campanas as cm', 'cm.id', '=', 'a.campana_id')
             ->where('a.proyecto_id', $proyectoId)
             ->where('a.usuario_id', $usuarioId)
             ->whereNull('c.eliminada_en');
@@ -99,7 +144,6 @@ final class Bandeja extends Component
                 'ec.nombre as estado_caso_nombre', 'ec.codigo as estado_caso_codigo',
                 'ca.nombre as cartera_nombre',
                 'ru.nombre as resultado_ultimo',
-                'cm.nombre as campana_nombre',
             ])
             ->orderByDesc('a.prioridad')
             ->orderByDesc('c.fecha_ultima_gestion')
@@ -117,6 +161,96 @@ final class Bandeja extends Component
             'conteoPorEstado' => $conteoPorEstado,
             'totalGeneral' => (int) $conteoPorEstado->sum(),
             'proyectoActivo' => $proyectoActivo,
+            'puedeTomar' => $puedeTomar,
+            'totalSinDuenio' => $puedeTomar ? $this->consultaPool($proyectoId)->count() : 0,
+            'viendoPool' => false,
         ]);
+    }
+
+    /**
+     * Las cuentas del proyecto que no son de nadie.
+     *
+     * Se respeta el límite por cartera del rol (F22): un asesor limitado a una
+     * cartera no puede tomar cuentas de otra por la puerta de atrás.
+     */
+    private function consultaPool(int $proyectoId): Builder
+    {
+        $consulta = DB::table('casos as c')
+            ->where('c.proyecto_id', $proyectoId)
+            ->whereNull('c.eliminada_en')
+            ->whereNotExists(fn (Builder $q) => $q
+                ->from('asignaciones as asg')
+                ->whereColumn('asg.caso_id', 'c.id')
+                ->where('asg.proyecto_id', $proyectoId));
+
+        $carteras = $this->usuario()->carterasPermitidas($proyectoId);
+
+        if ($carteras !== null) {
+            $consulta->whereIn('c.cartera_id', $carteras);
+        }
+
+        return $consulta;
+    }
+
+    private function renderPool(object $proyectoActivo, int $proyectoId): View
+    {
+        $query = $this->consultaPool($proyectoId)
+            ->join('personas as pe', 'pe.id', '=', 'c.persona_id')
+            ->join('carteras as ca', 'ca.id', '=', 'c.cartera_id')
+            ->join('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
+            ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id');
+
+        $texto = trim($this->busqueda);
+        if ($texto !== '') {
+            $like = "%{$texto}%";
+            $query->where(function ($w) use ($like): void {
+                $w->where('pe.identificacion', 'like', $like)
+                    ->orWhere('pe.nombres', 'like', $like)
+                    ->orWhere('pe.apellidos', 'like', $like)
+                    ->orWhere('pe.razon_social', 'like', $like);
+            });
+        }
+
+        $cuentas = $query
+            ->select([
+                'c.id as caso_id', 'c.public_id as caso_public_id', 'c.tipo_caso',
+                'c.prioridad', 'c.fecha_ultima_gestion', 'c.tiene_compromiso_vigente',
+                'pe.public_id as persona_public_id',
+                'pe.identificacion', 'pe.tipo_persona',
+                'pe.nombres', 'pe.apellidos', 'pe.razon_social',
+                'ec.nombre as estado_caso_nombre',
+                'ca.nombre as cartera_nombre',
+                'ru.nombre as resultado_ultimo',
+                // La tabla es la misma que la de asignaciones; estas cuentas aún
+                // no tienen ninguna, así que las columnas de asignación van vacías.
+            ])
+            ->orderByDesc('c.prioridad')
+            ->orderByDesc('c.creada_en')
+            ->paginate(20);
+
+        $conteoPorEstado = DB::table('asignaciones')
+            ->where('proyecto_id', $proyectoId)
+            ->where('usuario_id', (int) auth()->id())
+            ->selectRaw('estado, count(*) as total')
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        return view('asignaciones::livewire.bandeja', [
+            'asignaciones' => $cuentas,
+            'conteoPorEstado' => $conteoPorEstado,
+            'totalGeneral' => (int) $conteoPorEstado->sum(),
+            'proyectoActivo' => $proyectoActivo,
+            'puedeTomar' => true,
+            'totalSinDuenio' => $cuentas->total(),
+            'viendoPool' => true,
+        ]);
+    }
+
+    private function usuario(): User
+    {
+        $usuario = auth()->user();
+        abort_unless($usuario instanceof User, 401);
+
+        return $usuario;
     }
 }

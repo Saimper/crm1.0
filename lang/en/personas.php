@@ -23,13 +23,14 @@ return [
     'type_physical' => 'Individual',
     'type_legal' => 'Company',
     'clear_filters' => 'Clear',
+    'export_csv' => 'Export CSV',
     'results' => ':count results',
 
     // Table columns
     'col_type' => 'Type',
     'col_id_doc' => 'Identification',
     'col_name' => 'Name',
-    'col_cases' => 'Cases',
+    'col_cases' => ':Entidades',
     'col_created' => 'Created',
 
     // Empty state
@@ -56,13 +57,13 @@ return [
     'field_company_readonly' => 'Company Name (not editable)',
 
     // Global search
-    'search_global_button' => 'Search person, case, interaction…',
+    'search_global_button' => 'Search person or :entidad…',
     'search_global_ph' => 'Search by ID or person name in the active project...',
     'search_select_project' => 'Select an active project to search.',
     'search_min_chars' => 'Type at least 3 characters to search in project :proyecto.',
     'search_no_results' => 'No results in the active project.',
     'search_section_persons' => 'People',
-    'search_section_cases' => 'Cases',
+    'search_section_cases' => ':Entidades',
     'search_project_label' => 'project:',
     'search_close_hint' => 'close',
 ];

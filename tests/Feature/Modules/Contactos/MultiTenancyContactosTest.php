@@ -7,6 +7,7 @@ namespace Tests\Feature\Modules\Contactos;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
@@ -29,6 +30,7 @@ final class MultiTenancyContactosTest extends TestCase
         $personaB = $this->crearPersonaEn($proyectoB);
 
         DB::table('contactos')->insert([
+            'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoB->id,
             'persona_id' => $personaB->id,
             'tipo' => 'correo',

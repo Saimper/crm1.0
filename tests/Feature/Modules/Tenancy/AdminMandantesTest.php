@@ -6,26 +6,29 @@ namespace Tests\Feature\Modules\Tenancy;
 
 use App\Models\User;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\AdminMandantes;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class AdminMandantesTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_admin_global_crea_mandante(): void
     {
-        $this->actingAs($this->admin());
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminMandantes::class)
             ->call('abrirFormCrear')
@@ -47,11 +50,22 @@ final class AdminMandantesTest extends TestCase
 
     public function test_admin_rechaza_codigo_duplicado(): void
     {
-        $this->actingAs($this->admin());
+        $this->markTestSkipped(
+            'La premisa del test ya no es la del componente: desde la política B6 '
+            .'(commit 748dbd0), AdminMandantes::guardar no rechaza el código repetido, '
+            .'lo desambigua con GeneradorCodigo::resolverConflicto. Con `BPO_DEMO` ya '
+            .'ocupado, guardar no añade error y crea el mandante como `BPO_DEMO_2` '
+            .'(verificado en crm_test_w3). Reescribir el assert a "crea BPO_DEMO_2" '
+            .'sería comprobar otra cosa, así que queda para que producto decida cuál '
+            .'de las dos conductas quiere antes de fijar el test.'
+        );
+
+        $this->crearMandante('BPO_DEMO', 'BPO Demo Corp');
+        $this->actingAs($this->crearAdminGlobal());
 
         Livewire::test(AdminMandantes::class)
             ->call('abrirFormCrear')
-            ->set('form.codigo', 'BPO_DEMO')          // ya existe por MandantesDemoSeeder
+            ->set('form.codigo', 'BPO_DEMO')          // ya existe
             ->set('form.nombre', 'Duplicado')
             ->call('guardar')
             ->assertHasErrors(['form.codigo']);
@@ -59,8 +73,9 @@ final class AdminMandantesTest extends TestCase
 
     public function test_admin_edita_nombre_mandante(): void
     {
-        $this->actingAs($this->admin());
-        $id = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
+        $mandante = $this->crearMandante('BPO_DEMO', 'BPO Demo Corp');
+        $this->actingAs($this->crearAdminGlobal());
+        $id = (int) $mandante->id;
 
         Livewire::test(AdminMandantes::class)
             ->call('abrirFormEditar', $id)
@@ -76,8 +91,9 @@ final class AdminMandantesTest extends TestCase
 
     public function test_admin_desactiva_y_reactiva_mandante(): void
     {
-        $this->actingAs($this->admin());
-        $id = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
+        $mandante = $this->crearMandante('BPO_DEMO', 'BPO Demo Corp');
+        $this->actingAs($this->crearAdminGlobal());
+        $id = (int) $mandante->id;
 
         Livewire::test(AdminMandantes::class)->call('desactivar', $id);
         $this->assertFalse((bool) DB::table('mandantes')->where('id', $id)->value('activo'));
@@ -98,14 +114,6 @@ final class AdminMandantesTest extends TestCase
 
     public function test_ruta_200_para_admin_global(): void
     {
-        $this->actingAs($this->admin())->get(route('admin.mandantes'))->assertStatus(200);
-    }
-
-    private function admin(): User
-    {
-        /** @var User $u */
-        $u = User::query()->where('email', 'admin@crm.local')->firstOrFail();
-
-        return $u;
+        $this->actingAs($this->crearAdminGlobal())->get(route('admin.mandantes'))->assertStatus(200);
     }
 }

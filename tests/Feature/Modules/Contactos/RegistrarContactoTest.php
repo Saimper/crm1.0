@@ -9,35 +9,38 @@ use App\Modules\Contactos\Application\UseCases\RegistrarContacto;
 use App\Modules\Contactos\Domain\Exceptions\DatosContactoInvalidos;
 use App\Modules\Contactos\Domain\ValueObjects\TipoContacto;
 use App\Modules\Contactos\Infrastructure\Persistence\Models\ContactoModel;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class RegistrarContactoTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registra_contacto_y_respeta_scope_del_proyecto(): void
     {
-        $proyectoA = $this->idProyecto('COBRANZA_DEMO_2026');
-        $proyectoB = $this->crearProyectoExtra('OTRO_COB_2026');
+        $mandante = $this->crearMandante();
+        $proyectoA = $this->crearProyectoCobranza($mandante);
+        $proyectoB = $this->crearProyectoCobranza($mandante);
 
-        $personaA = $this->crearPersona($proyectoA, '0102030405');
-        $personaB = $this->crearPersona($proyectoB, '0102030405');
+        // Misma identificación en ambos proyectos: personas son por-proyecto (§2).
+        $personaA = $this->crearPersonaEn($proyectoA, '0102030405');
+        $personaB = $this->crearPersonaEn($proyectoB, '0102030405');
 
         $useCase = $this->app->make(RegistrarContacto::class);
 
         $useCase->execute(new RegistrarContactoInput(
-            proyectoId: $proyectoA,
-            personaId: $personaA,
+            proyectoId: (int) $proyectoA->id,
+            personaId: (int) $personaA->id,
             tipo: TipoContacto::CORREO,
             valor: 'juan.a@correo.com',
             etiqueta: null,
@@ -46,8 +49,8 @@ final class RegistrarContactoTest extends TestCase
         ));
 
         $useCase->execute(new RegistrarContactoInput(
-            proyectoId: $proyectoB,
-            personaId: $personaB,
+            proyectoId: (int) $proyectoB->id,
+            personaId: (int) $personaB->id,
             tipo: TipoContacto::CORREO,
             valor: 'juan.b@correo.com',
             etiqueta: null,
@@ -56,7 +59,7 @@ final class RegistrarContactoTest extends TestCase
         ));
 
         // Global scope filtra por proyecto activo.
-        $this->setProyectoActivo($proyectoA);
+        $this->activarProyecto($proyectoA);
         $this->assertSame(1, ContactoModel::query()->count());
         $this->assertTrue(ContactoModel::query()->where('valor', 'juan.a@correo.com')->exists());
         $this->assertFalse(ContactoModel::query()->where('valor', 'juan.b@correo.com')->exists());
@@ -64,13 +67,13 @@ final class RegistrarContactoTest extends TestCase
 
     public function test_rechaza_valor_duplicado_para_la_misma_persona(): void
     {
-        $proyectoId = $this->idProyecto('COBRANZA_DEMO_2026');
-        $personaId = $this->crearPersona($proyectoId, '0102030405');
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto, '0102030405');
         $useCase = $this->app->make(RegistrarContacto::class);
 
         $input = fn () => new RegistrarContactoInput(
-            proyectoId: $proyectoId,
-            personaId: $personaId,
+            proyectoId: (int) $proyecto->id,
+            personaId: (int) $persona->id,
             tipo: TipoContacto::TELEFONO,
             valor: '+593 98 123 4567',
             etiqueta: null,
@@ -82,45 +85,5 @@ final class RegistrarContactoTest extends TestCase
 
         $this->expectException(DatosContactoInvalidos::class);
         $useCase->execute($input());
-    }
-
-    private function idProyecto(string $codigo): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', $codigo)->value('id');
-    }
-
-    private function crearProyectoExtra(string $codigo): int
-    {
-        $mandanteId = (int) DB::table('mandantes')->where('codigo', 'BPO_DEMO')->value('id');
-
-        return (int) DB::table('proyectos')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'mandante_id' => $mandanteId,
-            'codigo' => $codigo,
-            'nombre' => "Proyecto extra {$codigo}",
-            'tipo_operacion' => 'cobranza',
-            'activo' => true,
-        ]);
-    }
-
-    private function crearPersona(int $proyectoId, string $identificacion): int
-    {
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-
-        return (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(),
-            'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica',
-            'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => $identificacion,
-            'nombres' => 'Test',
-            'apellidos' => 'User',
-        ]);
-    }
-
-    private function setProyectoActivo(int $proyectoId): void
-    {
-        $proyecto = DB::table('proyectos')->find($proyectoId);
-        $this->app->instance('tenancy.proyecto_activo', $proyecto);
     }
 }

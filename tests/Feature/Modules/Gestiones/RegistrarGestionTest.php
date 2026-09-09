@@ -13,21 +13,23 @@ use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Gestiones\Domain\Exceptions\CausaRequerida;
 use App\Modules\Gestiones\Domain\Exceptions\PromesaRequerida;
 use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
+use Database\Seeders\DatabaseSeeder;
 use DateTimeImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 final class RegistrarGestionTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_registra_gestion_con_resultado_efectivo_sin_compromiso(): void
@@ -41,9 +43,9 @@ final class RegistrarGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'CONTACTO_TITULAR', $ctx['proyectoId']),
+            canalId: $ctx['contactoTitular']['canal_id'],
+            tipoGestionId: $ctx['contactoTitular']['tipo_gestion_id'],
+            resultadoId: $ctx['contactoTitular']['resultado_id'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -73,9 +75,9 @@ final class RegistrarGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'NEGOCIACION', $ctx['proyectoId']),
+            canalId: $ctx['negociacion']['canal_id'],
+            tipoGestionId: $ctx['negociacion']['tipo_gestion_id'],
+            resultadoId: $ctx['negociacion']['resultado_id'],
             motivoNoContactoId: null,
             causaId: null,
             usuarioId: $ctx['usuarioId'],
@@ -88,7 +90,7 @@ final class RegistrarGestionTest extends TestCase
     public function test_registra_gestion_con_promesa_pago_y_causa(): void
     {
         $ctx = $this->contexto();
-        $causaId = $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']);
+        $causaId = $ctx['promesaPago']['causa_id'];
 
         $output = $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
             publicId: (string) Str::ulid(),
@@ -96,9 +98,9 @@ final class RegistrarGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            canalId: $ctx['promesaPago']['canal_id'],
+            tipoGestionId: $ctx['promesaPago']['tipo_gestion_id'],
+            resultadoId: $ctx['promesaPago']['resultado_id'],
             motivoNoContactoId: null,
             causaId: $causaId,
             usuarioId: $ctx['usuarioId'],
@@ -114,7 +116,7 @@ final class RegistrarGestionTest extends TestCase
 
         $this->assertDatabaseHas('gestiones', [
             'id' => $output->id,
-            'resultado_id' => $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            'resultado_id' => $ctx['promesaPago']['resultado_id'],
             'causa_id' => $causaId,
         ]);
     }
@@ -122,7 +124,7 @@ final class RegistrarGestionTest extends TestCase
     public function test_throws_cuando_resultado_requiere_compromiso_y_no_llegan_datos(): void
     {
         $ctx = $this->contexto();
-        $causaId = $this->idProyecto('causas_gestion', 'DESEMPLEO', $ctx['proyectoId']);
+        $causaId = $ctx['promesaPago']['causa_id'];
 
         $this->expectException(PromesaRequerida::class);
         $this->app->make(RegistrarGestion::class)->execute(new RegistrarGestionInput(
@@ -131,9 +133,9 @@ final class RegistrarGestionTest extends TestCase
             casoId: $ctx['casoId'],
             personaId: $ctx['personaId'],
             contactoId: null,
-            canalId: $this->idGlobal('canales', 'TELEFONO'),
-            tipoGestionId: $this->idProyecto('tipos_gestion', 'LLAMADA_SALIENTE', $ctx['proyectoId']),
-            resultadoId: $this->idProyecto('resultados', 'PROMESA_PAGO', $ctx['proyectoId']),
+            canalId: $ctx['promesaPago']['canal_id'],
+            tipoGestionId: $ctx['promesaPago']['tipo_gestion_id'],
+            resultadoId: $ctx['promesaPago']['resultado_id'],
             motivoNoContactoId: null,
             causaId: $causaId,
             usuarioId: $ctx['usuarioId'],
@@ -144,43 +146,49 @@ final class RegistrarGestionTest extends TestCase
         ));
     }
 
-    /** @return array{proyectoId:int, casoId:int, personaId:int, usuarioId:int} */
+    /**
+     * Escenario de cobranza equivalente al que daban los seeders demo: un caso
+     * abierto y tres resultados con las mismas banderas que tenían
+     * CONTACTO_TITULAR (nada obligatorio), NEGOCIACION (exige causa) y
+     * PROMESA_PAGO (exige causa y compromiso).
+     *
+     * @return array{
+     *     proyectoId:int, casoId:int, personaId:int, usuarioId:int,
+     *     contactoTitular:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int},
+     *     negociacion:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int},
+     *     promesaPago:array{tipo_gestion_id:int, resultado_id:int, canal_id:int, motivo_no_contacto_id:int, causa_id:int}
+     * }
+     */
     private function contexto(): array
     {
-        $proyectoId = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->where('codigo', 'CONSUMO')->value('id');
-        $tipoCed = (int) DB::table('tipos_identificacion')->where('codigo', 'CED')->value('id');
-        $estadoAbiertoId = (int) DB::table('estados_caso')->where('proyecto_id', $proyectoId)->where('codigo', 'ABIERTO')->value('id');
-
-        $usuarioId = (int) DB::table('users')->insertGetId([
-            'name' => 'Tester', 'email' => 'tester.'.Str::random(6).'@crm.local',
-            'password' => bcrypt('x'), 'activo' => true,
+        $proyecto = $this->crearProyectoCobranza();
+        $persona = $this->crearPersonaEn($proyecto);
+        $casoId = $this->crearCasoEn($proyecto, [
+            'persona' => $persona,
+            'fecha_ingreso' => '2026-04-17',
         ]);
+        $usuario = $this->crearGestor($proyecto);
 
-        $personaId = (int) DB::table('personas')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'tipo_persona' => 'fisica', 'tipo_identificacion_id' => $tipoCed,
-            'identificacion' => (string) random_int(1_000_000_000, 9_999_999_999),
-            'nombres' => 'Test', 'apellidos' => 'User',
-        ]);
-
-        $casoId = (int) DB::table('casos')->insertGetId([
-            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyectoId,
-            'cartera_id' => $carteraId, 'persona_id' => $personaId,
-            'tipo_caso' => 'cobranza', 'estado_caso_id' => $estadoAbiertoId,
-            'fecha_ingreso' => '2026-04-17', 'prioridad' => 100,
-        ]);
-
-        return ['proyectoId' => $proyectoId, 'casoId' => $casoId, 'personaId' => $personaId, 'usuarioId' => $usuarioId];
-    }
-
-    private function idGlobal(string $tabla, string $codigo): int
-    {
-        return (int) DB::table($tabla)->where('codigo', $codigo)->value('id');
-    }
-
-    private function idProyecto(string $tabla, string $codigo, int $proyectoId): int
-    {
-        return (int) DB::table($tabla)->where('proyecto_id', $proyectoId)->where('codigo', $codigo)->value('id');
+        return [
+            'proyectoId' => (int) $proyecto->id,
+            'casoId' => $casoId,
+            'personaId' => (int) $persona->id,
+            'usuarioId' => (int) $usuario->id,
+            'contactoTitular' => $this->crearCascadaGestionEn($proyecto, [
+                'es_contacto_efectivo' => true,
+                'requiere_compromiso' => false,
+                'requiere_causa' => false,
+            ]),
+            'negociacion' => $this->crearCascadaGestionEn($proyecto, [
+                'es_contacto_efectivo' => true,
+                'requiere_compromiso' => false,
+                'requiere_causa' => true,
+            ]),
+            'promesaPago' => $this->crearCascadaGestionEn($proyecto, [
+                'es_contacto_efectivo' => true,
+                'requiere_compromiso' => true,
+                'requiere_causa' => true,
+            ]),
+        ];
     }
 }

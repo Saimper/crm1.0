@@ -29,7 +29,7 @@ final class BadgeNotificaciones extends Component
             ? app('tenancy.proyecto_activo')
             : null;
 
-        if ($proyectoActivo === null || auth()->id() === null) {
+        if ($proyectoActivo === null || auth()->user()?->tienePermiso('notificaciones.ver', (int) $proyectoActivo->id) !== true) {
             $this->noLeidas = 0;
 
             return;

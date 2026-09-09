@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'label_group' => 'Grupo',
+    'group_none' => '— Sin grupo —',
+    'group_hint' => 'Los grupos se crean desde el configurador del proyecto.',
+    'label_visible_gestion' => 'Se ve en la vista de trabajo',
     'title' => 'Campos Personalizados',
     'subtitle' => 'Atributos extendidos por proyecto · 10 tipos cerrados',
     'back_to_panel' => '← Volver al panel',

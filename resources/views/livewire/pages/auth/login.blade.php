@@ -17,7 +17,12 @@ new #[Layout('layouts.guest')] class extends Component
 
         Session::regenerate();
 
-        $this->redirectIntended(default: route('admin.dashboard', absolute: false), navigate: true);
+        $user = auth()->user();
+        $destination = $user?->esAdminGlobal() || $user?->mandantesAdministrados() !== []
+            ? 'admin.dashboard'
+            : 'dashboard';
+
+        $this->redirectIntended(default: route($destination, absolute: false), navigate: true);
     }
 }; ?>
 
@@ -28,12 +33,12 @@ new #[Layout('layouts.guest')] class extends Component
     <x-auth-session-status :status="session('status')" />
 
     <form wire:submit="login" style="display:flex;flex-direction:column;gap:14px;">
-        <x-ui.form-field :label="__('common.email')" :error="$errors->first('form.email')">
+        <x-ui.form-field for="email" :label="__('common.email')" :error="$errors->first('form.email')">
             <input wire:model="form.email" id="email" type="email" name="email" required autofocus
                    autocomplete="username" class="input">
         </x-ui.form-field>
 
-        <x-ui.form-field :label="__('common.password')" :error="$errors->first('form.password')">
+        <x-ui.form-field for="password" :label="__('common.password')" :error="$errors->first('form.password')">
             <input wire:model="form.password" id="password" type="password" name="password" required
                    autocomplete="current-password" class="input">
         </x-ui.form-field>
@@ -50,7 +55,7 @@ new #[Layout('layouts.guest')] class extends Component
                     {{ __('auth.forgot_password') }}
                 </a>
             @endif
-            <x-ui.button type="submit">{{ __('auth.login_button') }}</x-ui.button>
+            <x-ui.button type="submit" wire:loading.attr="disabled" wire:target="login">{{ __('auth.login_button') }}</x-ui.button>
         </div>
     </form>
 </div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Reportes\Infrastructure\Http\Streamers;
 
 use App\Modules\Reportes\Application\DTOs\ResultadoEjecucionReporte;
+use App\Support\Csv\RespuestaCsv;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -17,8 +18,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class StreamerReporteXlsx
 {
+    /** Cada cuántas filas se empuja lo escrito hacia el cliente. */
+    private const FILAS_POR_EMPUJE = 500;
+
     /**
-     * @param  callable(int $totalFilas): void|null  $onComplete
+     * @param  (callable(int $totalFilas, bool $completa): void)|null  $onComplete
      */
     public function stream(
         ResultadoEjecucionReporte $resultado,
@@ -26,32 +30,53 @@ final class StreamerReporteXlsx
         ?callable $onComplete = null,
     ): StreamedResponse {
         return new StreamedResponse(function () use ($resultado, $onComplete): void {
+            set_time_limit(0);
+            ignore_user_abort(true);
+
             $writer = new Writer;
             $writer->openToFile('php://output');
 
-            $cabeceras = array_map(static fn (array $h): string => $h['etiqueta'], $resultado->cabeceras);
-            $writer->addRow(Row::fromValues($cabeceras));
-
             $total = 0;
-            foreach ($resultado->filas as $fila) {
-                $i = 0;
-                $valores = [];
-                foreach ($resultado->cabeceras as $_) {
-                    $valores[] = self::formatearValor($fila['col_'.$i] ?? null);
-                    $i++;
+            $completa = false;
+
+            try {
+                $cabeceras = array_map(static fn (array $h): string => $h['etiqueta'], $resultado->cabeceras);
+                $writer->addRow(Row::fromValues($cabeceras));
+
+                foreach ($resultado->filas as $fila) {
+                    $i = 0;
+                    $valores = [];
+                    foreach ($resultado->cabeceras as $_) {
+                        $valores[] = self::formatearValor($fila['col_'.$i] ?? null);
+                        $i++;
+                    }
+                    $writer->addRow(Row::fromValues($valores));
+                    $total++;
+
+                    // OpenSpout escribe en su propio búfer; sin empujar, nginx
+                    // puede no ver un byte en varios minutos y dar el upstream
+                    // por muerto. Y es además el único punto donde
+                    // `connection_aborted()` puede llegar a ser cierto.
+                    if ($total % self::FILAS_POR_EMPUJE === 0) {
+                        flush();
+
+                        if (connection_aborted()) {
+                            break;
+                        }
+                    }
                 }
-                $writer->addRow(Row::fromValues($valores));
-                $total++;
-            }
 
-            $writer->close();
+                $completa = ! connection_aborted();
+            } finally {
+                $writer->close();
 
-            if ($onComplete !== null) {
-                $onComplete($total);
+                if ($onComplete !== null) {
+                    $onComplete($total, $completa);
+                }
             }
         }, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => 'attachment; filename="'.RespuestaCsv::nombreSeguro($filename).'"',
             'X-Accel-Buffering' => 'no',
         ]);
     }

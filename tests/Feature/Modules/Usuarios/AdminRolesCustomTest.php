@@ -10,11 +10,14 @@ use App\Modules\Usuarios\Application\RolesCustom\UseCases\CrearRolCustom;
 use App\Modules\Usuarios\Domain\RolesCustom\Exceptions\PermisoNoAsignableARolCustom;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminRolesCustom;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\GestionUsuariosProyecto;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use stdClass;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -22,12 +25,15 @@ use Tests\TestCase;
  */
 final class AdminRolesCustomTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
+
+    private ?stdClass $proyecto = null;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_admin_global_crea_rol_custom_con_permisos(): void
@@ -198,7 +204,7 @@ final class AdminRolesCustomTest extends TestCase
     public function test_multi_tenancy_rol_de_proyecto_a_no_aparece_en_proyecto_b(): void
     {
         $proyectoA = $this->proyectoVenta();
-        $proyectoB = (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
+        $proyectoB = (int) $this->crearProyectoCobranza()->id;
 
         $this->crearRolCustom($proyectoA, 'SOLO_A', ['casos.ver']);
         $this->crearRolCustom($proyectoB, 'SOLO_B', ['casos.ver']);
@@ -242,7 +248,7 @@ final class AdminRolesCustomTest extends TestCase
         $this->assertTrue($usuario->tienePermiso('casos.ver', $proyectoId));
         $this->assertTrue($usuario->tienePermiso('gestiones.crear', $proyectoId));
         $this->assertTrue($usuario->tienePermiso('compromisos.crear', $proyectoId));
-        $this->assertFalse($usuario->tienePermiso('reportes.exportar', $proyectoId));
+        $this->assertFalse($usuario->tienePermiso('casos.exportar', $proyectoId));
         $this->assertFalse($usuario->tienePermiso('roles.gestionar', $proyectoId));
     }
 
@@ -360,7 +366,9 @@ final class AdminRolesCustomTest extends TestCase
 
     private function proyectoVenta(): int
     {
-        return (int) DB::table('proyectos')->where('codigo', 'VENTA_DEMO_2026')->value('id');
+        $this->proyecto ??= $this->crearProyectoVenta();
+
+        return (int) $this->proyecto->id;
     }
 
     private function adminId(): int

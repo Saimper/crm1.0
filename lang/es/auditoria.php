@@ -21,9 +21,11 @@ return [
     'event_created' => 'Creado',
     'event_updated' => 'Actualizado',
     'event_deleted' => 'Eliminado',
+    'event_exported' => 'Exportado',
     'filter_from' => 'Desde',
     'filter_to' => 'Hasta',
     'btn_export_csv' => 'Exportar CSV',
+    'export_order_hint' => 'El CSV sale del evento más antiguo al más reciente, con los filtros puestos.',
     'btn_clear_filters' => 'Limpiar filtros',
 
     // Tabla

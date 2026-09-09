@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Application\Console\Commands;
 
+use App\Modules\Cobranza\Domain\Exceptions\DatosCasoCobranzaInvalidos;
+use App\Modules\Cobranza\Domain\ValueObjects\DiasMora;
 use App\Modules\Importaciones\Domain\Catalogo\SinonimosCampoSistema;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +51,14 @@ final class RescatarCamposNativosCommand extends Command
         'cuota_mensual' => 'cuota_mensual',
         'dias_mora' => 'dias_mora',
     ];
+
+    /** @var array<int, int> proyecto_id => mandante_id */
+    private array $mandantePorProyecto = [];
+
+    public function __construct(private readonly RelojDelMandante $reloj)
+    {
+        parent::__construct();
+    }
 
     public function handle(): int
     {
@@ -139,7 +150,7 @@ final class RescatarCamposNativosCommand extends Command
             ->where('v.campo_personalizado_id', $campoId)
             ->whereNull('c.eliminada_en')
             ->whereNull('cc.'.$columna)
-            ->select(['cc.caso_id as destino_id', DB::raw($this->expresionValor())])
+            ->select(['cc.caso_id as destino_id', 'c.proyecto_id', 'v.actualizada_en as afirmado_en', DB::raw($this->expresionValor())])
             ->get();
 
         if ($seco) {
@@ -149,15 +160,64 @@ final class RescatarCamposNativosCommand extends Command
         return $this->aplicar($filas, function (stdClass $fila) use ($columna): int {
             $numero = $this->aNumero((string) $fila->valor);
 
-            if ($numero !== null && (float) $numero < 0 && in_array($columna, self::COLUMNAS_SIN_NEGATIVOS, true)) {
+            if ($numero === null) {
                 return 0;
             }
 
-            return $numero === null ? 0 : DB::table('casos_cobranza')
+            if ((float) $numero < 0 && in_array($columna, self::COLUMNAS_SIN_NEGATIVOS, true)) {
+                return 0;
+            }
+
+            $update = $columna === 'dias_mora'
+                ? $this->moraAnclada($numero, (string) $fila->afirmado_en, (int) $fila->proyecto_id)
+                : [$columna => $numero];
+
+            return $update === null ? 0 : DB::table('casos_cobranza')
                 ->where('caso_id', $fila->destino_id)
                 ->whereNull($columna)
-                ->update([$columna => $numero]);
+                ->update($update);
         });
+    }
+
+    /**
+     * Una mora rescatada de un CP se ancla al día en que el ÚLTIMO archivo la
+     * afirmó —el `actualizada_en` del valor, en el calendario del mandante—,
+     * nunca a hoy: si se anclara a hoy, el envejecimiento partiría de una foto
+     * vieja como si fuera de hoy y la cuenta iría tantos días atrasada como
+     * lleve el valor guardado. Y `actualizada_en` y no `creada_en`: el upsert
+     * de valores conserva `creada_en` de la primera importación, así que con
+     * un archivo semanal reimportado el valor sería del último y la fecha del
+     * primero, y el cron sumaría encima semanas que la cifra ya traía. Las dos
+     * fechas, porque el archivo es una fuente.
+     *
+     * Y pasa por el VO: una cifra que `DiasMora` rechaza no se copia, porque
+     * la fila quedaría imposible de hidratar y la Vista de Trabajo del caso
+     * reventaría en vez de enseñar una mora dudosa.
+     *
+     * @return array<string, int|string|null>|null
+     */
+    private function moraAnclada(string $numero, string $afirmadoEn, int $proyectoId): ?array
+    {
+        try {
+            $dias = new DiasMora((int) $numero);
+        } catch (DatosCasoCobranzaInvalidos) {
+            return null;
+        }
+
+        $fecha = $this->reloj->enZona($afirmadoEn, $this->mandanteDe($proyectoId))?->toDateString();
+
+        return [
+            'dias_mora' => $dias->dias,
+            'dias_mora_actualizado_en' => $fecha,
+            'dias_mora_confirmado_en' => $fecha,
+        ];
+    }
+
+    private function mandanteDe(int $proyectoId): int
+    {
+        return $this->mandantePorProyecto[$proyectoId] ??= (int) DB::table('proyectos')
+            ->where('id', $proyectoId)
+            ->value('mandante_id');
     }
 
     /**

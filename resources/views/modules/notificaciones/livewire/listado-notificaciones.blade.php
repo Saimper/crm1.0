@@ -18,6 +18,9 @@
             @endif
         </div>
     </x-ui.card>
+    {{-- La lista de antes se queda en pantalla mientras llega la nueva; sólo
+         esta barra dice que se está trabajando. --}}
+    <x-ui.cargando />
 
     @if($notificaciones->isEmpty())
         <x-ui.empty-state
@@ -67,7 +70,7 @@
                                     <div class="text-sm font-semibold text-ink-900">{{ $n->titulo }}</div>
                                 @endif
                                 <div class="text-xs text-ink-500 whitespace-nowrap">
-                                    {{ \Illuminate\Support\Carbon::parse($n->creada_en)->diffForHumans() }}
+                                    {{ hace_cuanto($n->creada_en) }}
                                 </div>
                             </div>
                             <div class="text-sm text-ink-700 mt-1">{{ $n->mensaje }}</div>
@@ -76,10 +79,10 @@
                                 @if(!empty($meta['caso_id']))
                                     @if($linkUrl)
                                         <a href="{{ $linkUrl }}" wire:navigate class="text-[11px] text-brand-700 hover:underline">
-                                            {{ __('notificaciones.link_view_case', ['id' => $meta['caso_id']]) }}
+                                            {{ __('notificaciones.link_view_case', ['id' => $meta['caso_id'], 'entidad' => $rotuloCaso]) }}
                                         </a>
                                     @else
-                                        <span class="text-[11px] text-ink-500">caso #{{ $meta['caso_id'] }}</span>
+                                        <span class="text-[11px] text-ink-500">{{ __('notificaciones.label_case_plain', ['id' => $meta['caso_id'], 'entidad' => $rotuloCaso]) }}</span>
                                     @endif
                                 @endif
                             </div>

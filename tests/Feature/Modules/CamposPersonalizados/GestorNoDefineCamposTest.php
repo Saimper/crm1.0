@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\CamposPersonalizados;
 
-use App\Models\User;
 use App\Modules\CamposPersonalizados\Infrastructure\Http\Livewire\AdminCamposPersonalizados;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
 
 /**
@@ -25,18 +24,19 @@ use Tests\TestCase;
  */
 final class GestorNoDefineCamposTest extends TestCase
 {
+    use EscenarioOperativo;
     use RefreshDatabase;
 
     protected function setUp(): void
     {
-        $this->markTestSkipped('TODO F35: migrar a factories tras limpieza demo seeders (ver tests/Support/EscenarioOperativo).');
-
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_ruta_admin_campos_403_para_gestor(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
         $this->actingAs($gestor)
             ->get('/admin/campos-personalizados')
@@ -45,8 +45,8 @@ final class GestorNoDefineCamposTest extends TestCase
 
     public function test_ruta_admin_campos_403_para_supervisor(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)
             ->get('/admin/campos-personalizados')
@@ -64,8 +64,8 @@ final class GestorNoDefineCamposTest extends TestCase
 
     public function test_livewire_admin_campos_mount_aborta_con_gestor(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
         $this->actingAs($gestor);
 
         Livewire::test(AdminCamposPersonalizados::class)
@@ -74,8 +74,8 @@ final class GestorNoDefineCamposTest extends TestCase
 
     public function test_livewire_admin_campos_mount_aborta_con_supervisor(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
         $this->actingAs($supervisor);
 
         Livewire::test(AdminCamposPersonalizados::class)
@@ -87,14 +87,14 @@ final class GestorNoDefineCamposTest extends TestCase
         $admin = $this->crearAdminGlobal();
         $this->actingAs($admin);
 
-        $proyectoId = $this->proyectoId();
-        $carteraId = (int) DB::table('carteras')->where('proyecto_id', $proyectoId)->value('id');
+        $proyecto = $this->crearProyectoCobranza();
+        $cartera = $this->crearCarteraEn($proyecto);
 
         Livewire::test(AdminCamposPersonalizados::class)
             ->call('abrirFormCrear')
-            ->set('form.proyecto_id', $proyectoId)
+            ->set('form.proyecto_id', (int) $proyecto->id)
             ->set('form.ambito', 'caso')
-            ->set('form.ambito_id', $carteraId)
+            ->set('form.ambito_id', (int) $cartera->id)
             ->set('form.codigo', 'campo_admin_test')
             ->set('form.etiqueta', 'Campo Admin Test')
             ->set('form.tipo', 'texto_corto')
@@ -105,7 +105,7 @@ final class GestorNoDefineCamposTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('campos_personalizados', [
-            'proyecto_id' => $proyectoId,
+            'proyecto_id' => (int) $proyecto->id,
             'codigo' => 'campo_admin_test',
         ]);
     }
@@ -156,57 +156,19 @@ final class GestorNoDefineCamposTest extends TestCase
 
     public function test_gestor_no_tiene_campos_definir_en_ningun_proyecto(): void
     {
-        $proyectoId = $this->proyectoId();
-        $gestor = $this->crearConRol($proyectoId, 'GESTOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $gestor = $this->crearGestor($proyecto);
 
-        $this->assertFalse($gestor->tienePermiso('campos.definir', $proyectoId));
-        $this->assertFalse($gestor->tienePermiso('entidades.definir', $proyectoId));
+        $this->assertFalse($gestor->tienePermiso('campos.definir', (int) $proyecto->id));
+        $this->assertFalse($gestor->tienePermiso('entidades.definir', (int) $proyecto->id));
     }
 
     public function test_supervisor_no_tiene_campos_definir(): void
     {
-        $proyectoId = $this->proyectoId();
-        $supervisor = $this->crearConRol($proyectoId, 'SUPERVISOR');
+        $proyecto = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($proyecto);
 
-        $this->assertFalse($supervisor->tienePermiso('campos.definir', $proyectoId));
-        $this->assertFalse($supervisor->tienePermiso('entidades.definir', $proyectoId));
-    }
-
-    private function proyectoId(): int
-    {
-        return (int) DB::table('proyectos')->where('codigo', 'COBRANZA_DEMO_2026')->value('id');
-    }
-
-    private function crearConRol(int $proyectoId, string $codigoRol): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => ucfirst(strtolower($codigoRol)),
-            'email' => strtolower($codigoRol).'.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'),
-            'activo' => true,
-        ]);
-        $rolId = (int) DB::table('roles')->where('codigo', $codigoRol)->value('id');
-        DB::table('usuario_proyecto_rol')->insert([
-            'usuario_id' => $u->id, 'proyecto_id' => $proyectoId,
-            'rol_id' => $rolId, 'activo' => true,
-        ]);
-
-        return $u;
-    }
-
-    private function crearAdminGlobal(): User
-    {
-        /** @var User $u */
-        $u = User::query()->create([
-            'name' => 'Admin', 'email' => 'admin.'.Str::random(6).'@crm.local',
-            'password' => Hash::make('x'), 'activo' => true,
-        ]);
-        $rolAdminId = (int) DB::table('roles')->where('codigo', 'ADMIN_GLOBAL')->value('id');
-        DB::table('usuario_global_rol')->insert([
-            'usuario_id' => $u->id, 'rol_id' => $rolAdminId,
-        ]);
-
-        return $u;
+        $this->assertFalse($supervisor->tienePermiso('campos.definir', (int) $proyecto->id));
+        $this->assertFalse($supervisor->tienePermiso('entidades.definir', (int) $proyecto->id));
     }
 }

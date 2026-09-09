@@ -4,7 +4,7 @@
             <h1 class="page-title">{{ __('campos_personalizados.title') }}</h1>
             <div class="page-subtitle">{{ __('campos_personalizados.subtitle') }}</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;">
+        <div class="flex items-center gap-2">
             {{-- Selector del proyecto EN PANTALLA. Antes no existía porque el
                  listado volcaba todos los proyectos a la vez — que era la fuga.
                  Ahora que la tabla está acotada a uno, sin este selector un
@@ -41,12 +41,12 @@
         @endphp
         @if($camposDeProyecto->isNotEmpty())
             <div style="margin-bottom:14px;">
-                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;margin-bottom:4px;">
+                <div class="flex items-center gap-[10px]" style="padding:8px 0;margin-bottom:4px;">
                     <span class="label-xs" style="margin:0;">
                         <span class="font-mono">{{ $p->codigo }}</span> · {{ $p->nombre }} · {{ $p->tipo_operacion }}
                     </span>
-                    <div style="flex:1;height:1px;background:var(--border);"></div>
-                    <span style="font-size:11px;color:var(--text-tertiary);">{{ __('campos_personalizados.count_fields', ['count' => $camposDeProyecto->count()]) }}</span>
+                    <div class="divider-h flex-1"></div>
+                    <span class="text-xs text-ink-500">{{ __('campos_personalizados.count_fields', ['count' => $camposDeProyecto->count()]) }}</span>
                 </div>
                 <div class="card" style="padding:0;">
                     <table class="table table-compact">
@@ -64,10 +64,10 @@
                         </thead>
                         <tbody>
                             @foreach($camposDeProyecto as $c)
-                                <tr wire:key="campo-{{ $c->id }}" style="cursor:pointer;" wire:click="abrirFormEditar({{ $c->id }})">
+                                <tr wire:key="campo-{{ $c->id }}" class="cursor-pointer" wire:click="abrirFormEditar({{ $c->id }})">
                                     <td>
                                         <span class="badge badge-neutral">{{ $c->ambito }}</span>
-                                        <div style="font-size:11px;color:var(--text-tertiary);margin-top:2px;">
+                                        <div class="text-xs text-ink-500" style="margin-top:2px;">
                                             @if($c->ambito === 'caso')
                                                 {{ $c->cartera_nombre ?? '#'.$c->ambito_id }}
                                             @elseif($c->ambito === 'gestion')
@@ -77,25 +77,25 @@
                                             @endif
                                         </div>
                                     </td>
-                                    <td><span class="font-mono" style="font-size:12px;">{{ $c->codigo }}</span></td>
+                                    <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
                                     <td>{{ $c->etiqueta }}</td>
-                                    <td><span style="color:var(--text-secondary);font-size:12px;">{{ $c->tipo }}</span></td>
+                                    <td><span class="text-ink-600 text-sm">{{ $c->tipo }}</span></td>
                                     <td>
                                         @if($c->obligatorio)
-                                            <x-ui.icon name="check" :size="14" style="color:var(--success-text);" />
+                                            <x-ui.icon name="check" :size="14" class="text-success-700" />
                                         @else
-                                            <span style="color:var(--text-muted);">—</span>
+                                            <span class="text-ink-400">—</span>
                                         @endif
                                     </td>
                                     <td class="num">{{ $c->orden }}</td>
                                     <td>
-                                        <span style="display:inline-flex;align-items:center;gap:6px;">
+                                        <span class="inline-flex items-center gap-[6px]">
                                             <span class="dot dot-{{ $c->activo ? 'success' : 'neutral' }}"></span>
                                             {{ $c->activo ? __('campos_personalizados.status_active') : __('campos_personalizados.status_inactive') }}
                                         </span>
                                     </td>
                                     <td>
-                                        <div style="display:flex;gap:2px;" wire:click.stop>
+                                        <div class="flex gap-[2px]" wire:click.stop>
                                             <button type="button" wire:click="abrirFormEditar({{ $c->id }})" class="icon-btn" :title="__('common.edit')">
                                                 <x-ui.icon name="edit" :size="12" />
                                             </button>
@@ -144,7 +144,7 @@
         <div class="scrim" wire:click="cerrarForm" wire:key="form-campo-scrim"></div>
         <div class="drawer" wire:key="form-campo">
             <div class="drawer-header">
-                <div style="font-size:14px;font-weight:600;">
+                <div class="text-md font-semibold">
                     {{ $campoEditandoId === null ? __('campos_personalizados.drawer_new') : __('campos_personalizados.drawer_edit', ['label' => $form['etiqueta']]) }}
                 </div>
                 <button type="button" wire:click="cerrarForm" class="icon-btn" :aria-label="__('campos_personalizados.close')">
@@ -153,11 +153,11 @@
             </div>
             <div class="drawer-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                    <div style="grid-column:1 / -1;">
+                    <div class="col-span-full">
                         <label class="field-label">
                             {{ __('campos_personalizados.label_project') }}
                             @if($campoEditandoId !== null)
-                                <span style="color:var(--text-tertiary);font-weight:400;">{{ __('campos_personalizados.project_locked') }}</span>
+                                <span class="text-ink-500 font-normal">{{ __('campos_personalizados.project_locked') }}</span>
                             @endif
                         </label>
                         {{-- Al editar, el proyecto se muestra pero no se cambia: es lo que
@@ -167,10 +167,10 @@
                              mandante de un proyecto. --}}
                         @if($campoEditandoId !== null)
                             @php($proyectoActual = $proyectos->firstWhere('id', (int) ($form['proyecto_id'] ?? 0)))
-                            <div style="display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
+                            <div class="flex items-center gap-2 text-ink-600" style="height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;">
                                 <span class="badge badge-neutral">{{ $proyectoActual->codigo ?? '—' }}</span>
-                                <span style="font-size:12px;">{{ $proyectoActual->nombre ?? '' }}</span>
-                                <span style="font-size:11px;color:var(--text-tertiary);margin-left:auto;">{{ __('campos_personalizados.not_editable') }}</span>
+                                <span class="text-sm">{{ $proyectoActual->nombre ?? '' }}</span>
+                                <span class="text-xs text-ink-500" style="margin-left:auto;">{{ __('campos_personalizados.not_editable') }}</span>
                             </div>
                         @else
                             <select wire:model.live="form.proyecto_id"
@@ -202,7 +202,7 @@
                         </select>
                         @error('form.tipo')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="grid-column:1 / -1;">
+                    <div class="col-span-full">
                         <label class="field-label">{{ $form['ambito'] === 'caso' ? __('campos_personalizados.label_scope_id') : __('campos_personalizados.label_scope_gestion_id') }}</label>
                         <select wire:model="form.ambito_id"
                                 class="select @error('form.ambito_id') input-error @enderror">
@@ -231,7 +231,7 @@
                                class="input mono @error('form.orden') input-error @enderror"/>
                         @error('form.orden')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="grid-column:1 / -1;">
+                    <div class="col-span-full">
                         <label class="field-label">{{ __('campos_personalizados.label_etiqueta') }}</label>
                         <input type="text" wire:model="form.etiqueta"
                                class="input @error('form.etiqueta') input-error @enderror"/>
@@ -243,18 +243,33 @@
                                class="input @error('form.longitud_max') input-error @enderror"/>
                         @error('form.longitud_max')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                    <div style="display:flex;align-items:flex-end;gap:14px;">
-                        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+                    <div>
+                        <label class="field-label">{{ __('campos_personalizados.label_group') }}</label>
+                        <select wire:model="form.grupo_campo_id" class="input @error('form.grupo_campo_id') input-error @enderror">
+                            <option value="">{{ __('campos_personalizados.group_none') }}</option>
+                            @foreach($grupos as $g)
+                                <option value="{{ $g->id }}">{{ $g->nombre }}</option>
+                            @endforeach
+                        </select>
+                        @error('form.grupo_campo_id')<div class="field-error">{{ $message }}</div>@enderror
+                        <div class="field-hint">{{ __('campos_personalizados.group_hint') }}</div>
+                    </div>
+                    <div class="flex items-end gap-[14px] flex-wrap">
+                        <label class="inline-flex items-center gap-[6px] text-base">
                             <input type="checkbox" wire:model="form.obligatorio" class="checkbox"/>
                             <span>{{ __('campos_personalizados.label_required') }}</span>
                         </label>
-                        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+                        <label class="inline-flex items-center gap-[6px] text-base">
                             <input type="checkbox" wire:model="form.activo" class="checkbox"/>
                             <span>{{ __('campos_personalizados.label_active') }}</span>
                         </label>
+                        <label class="inline-flex items-center gap-[6px] text-base">
+                            <input type="checkbox" wire:model="form.visible_en_gestion" class="checkbox"/>
+                            <span>{{ __('campos_personalizados.label_visible_gestion') }}</span>
+                        </label>
                     </div>
 
-                    <div style="grid-column:1 / -1;border-top:1px solid var(--border);padding-top:10px;">
+                    <div class="col-span-full" style="border-top:1px solid var(--border);padding-top:10px;">
                         <div class="label-xs" style="margin-bottom:8px;">{{ __('campos_personalizados.advanced_rules') }}</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                             @if(in_array($form['tipo'] ?? '', ['fecha','fecha_hora'], true))
@@ -320,8 +335,8 @@
                                 @error('form.auto_fill')<div class="field-error">{{ $message }}</div>@enderror
                             </div>
 
-                            <div style="display:flex;align-items:flex-end;">
-                                <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+                            <div class="flex items-end">
+                                <label class="inline-flex items-center gap-[6px] text-base">
                                     <input type="checkbox" wire:model="form.solo_lectura_tras_guardar" class="checkbox"/>
                                     <span>{{ __('campos_personalizados.readonly_after_save') }}</span>
                                 </label>

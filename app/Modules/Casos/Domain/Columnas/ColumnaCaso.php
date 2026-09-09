@@ -10,6 +10,10 @@ namespace App\Modules\Casos\Domain\Columnas;
  * `expresion` es SQL ya calificado y declarado aquí en el servidor: el usuario
  * solo elige claves de este catálogo, nunca aporta SQL (mismo criterio que la
  * whitelist del constructor de reportes, §Reportes F32).
+ *
+ * `instante` marca las columnas con hora (timestamps UTC): son las únicas que
+ * la exportación pasa a la zona del cliente. Las fechas de calendario van tal
+ * cual, porque convertirlas de huso las desplaza un día.
  */
 final readonly class ColumnaCaso
 {
@@ -20,6 +24,7 @@ final readonly class ColumnaCaso
         public bool $numerica = false,
         public bool $fija = false,
         public ?string $tipoOperacion = null,
+        public bool $instante = false,
     ) {}
 
     public function alias(): string

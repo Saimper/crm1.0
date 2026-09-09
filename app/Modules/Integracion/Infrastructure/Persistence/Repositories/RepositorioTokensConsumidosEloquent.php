@@ -17,9 +17,12 @@ final class RepositorioTokensConsumidosEloquent implements RepositorioTokensCons
         private readonly ConnectionInterface $db,
     ) {}
 
-    public function fueConsumido(string $jti): bool
+    public function fueConsumido(string $jti, int $mandanteId): bool
     {
-        return $this->db->table(self::TABLA)->where('jti', $jti)->exists();
+        return $this->db->table(self::TABLA)
+            ->where('mandante_id', $mandanteId)
+            ->where('jti', $jti)
+            ->exists();
     }
 
     public function registrarConsumo(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire;
 
+use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
 use App\Modules\Tenancy\Application\DTOs\RegistrarMandanteInput;
 use App\Modules\Tenancy\Application\UseCases\RegistrarMandante;
 use App\Modules\Tenancy\Domain\Exceptions\CodigoMandanteDuplicado;
@@ -14,17 +15,35 @@ use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
 
 /**
  * CRUD de mandantes para ADMIN_GLOBAL. Usa el UseCase RegistrarMandante para respetar
  * invariantes de dominio al crear; edición y cambio de estado operan directo sobre el modelo.
+ *
+ * El `admin.global` de la ruta protege la PÁGINA, no el commit: cada acción de
+ * Livewire es un POST aparte a /livewire/update que reentra en el componente sin
+ * volver a pasar por el middleware. De ahí `soloAdminGlobal()` al principio de
+ * cada método que lee o escribe un mandante.
+ *
+ * Aquí no aplica el trait AutorizaEnProyectoActivo: /admin/mandantes cuelga de
+ * `admin.global` y no tiene proyecto activo, así que no hay contra qué evaluar un
+ * permiso por proyecto. El mandante es además la raíz del árbol de tenancy: no
+ * pertenece a ningún proyecto, luego tampoco hay pertenencia que comprobar. La
+ * guarda correcta es la del rol global, al estilo de AdminUsuarios::soloAdminGlobal().
  */
 final class AdminMandantes extends Component
 {
     public bool $formVisible = false;
 
+    /**
+     * Bloqueada: la fija `abrirFormEditar()` en el servidor y decide a qué fila
+     * apunta el UPDATE de `guardar()`. Sin `#[Locked]`, el cliente podía cambiarla
+     * entre abrir el formulario y guardar, y escribir sobre otro mandante.
+     */
+    #[Locked]
     public ?int $editandoId = null;
 
     public string $busqueda = '';
@@ -38,6 +57,8 @@ final class AdminMandantes extends Component
 
     public function abrirFormCrear(): void
     {
+        $this->soloAdminGlobal();
+
         $this->editandoId = null;
         $this->form = ['codigo' => '', 'nombre' => '', 'documento' => ''];
         $this->formVisible = true;
@@ -46,6 +67,10 @@ final class AdminMandantes extends Component
 
     public function abrirFormEditar(int $id): void
     {
+        // No escribe, pero vuelca código, nombre y documento del mandante en una
+        // propiedad pública: es una lectura de datos de otro cliente y se cierra igual.
+        $this->soloAdminGlobal();
+
         $row = MandanteModel::query()->find($id);
         if ($row === null) {
             return;
@@ -70,6 +95,8 @@ final class AdminMandantes extends Component
 
     public function guardar(RegistrarMandante $useCase): void
     {
+        $this->soloAdminGlobal();
+
         $this->validate([
             'form.codigo' => GeneradorCodigo::reglaValidacion(50),
             'form.nombre' => ['required', 'string', 'max:200'],
@@ -129,20 +156,45 @@ final class AdminMandantes extends Component
         session()->flash('admin-mandantes-ok', 'Mandante guardado.');
     }
 
+    /**
+     * Dar de baja a un cliente le cierra la puerta, y también las que ya tenía
+     * abiertas.
+     *
+     * Las dos entradas del SSO respetan la baja desde siempre —el handshake y
+     * la firma HMAC filtran por `activo`— pero los tokens ya emitidos duran
+     * ocho horas y seguían funcionando: un cliente desactivado a las nueve de
+     * la mañana leía fichas de personas hasta las cinco de la tarde. Por eso el
+     * mandante va en el nombre del token: para poder encontrarlos y borrarlos.
+     */
     public function desactivar(int $id): void
     {
-        MandanteModel::query()->where('id', $id)->update(['activo' => false]);
+        $this->soloAdminGlobal();
+
+        DB::transaction(function () use ($id): void {
+            MandanteModel::query()->where('id', $id)->update(['activo' => false]);
+
+            DB::table('personal_access_tokens')
+                ->where('name', EmitirSanctumTokenDesdeJwt::nombreDeToken($id))
+                ->delete();
+        });
+
         session()->flash('admin-mandantes-ok', 'Mandante desactivado.');
     }
 
     public function activar(int $id): void
     {
+        $this->soloAdminGlobal();
+
         MandanteModel::query()->where('id', $id)->update(['activo' => true]);
         session()->flash('admin-mandantes-ok', 'Mandante activado.');
     }
 
     public function render(): View
     {
+        // El listado es el inventario completo de clientes del BPO. Cada commit
+        // de Livewire lo vuelve a pintar, así que la guarda va también aquí.
+        $this->soloAdminGlobal();
+
         $busqueda = trim($this->busqueda);
         $query = DB::table('mandantes as m')
             ->leftJoin('proyectos as p', function ($join): void {
@@ -171,6 +223,14 @@ final class AdminMandantes extends Component
         return view('tenancy::admin.mandantes', [
             'mandantes' => $mandantes,
         ]);
+    }
+
+    private function soloAdminGlobal(): void
+    {
+        $u = auth()->user();
+        if ($u === null || ! $u->esAdminGlobal()) {
+            abort(403, 'Solo ADMIN_GLOBAL puede administrar mandantes.');
+        }
     }
 
     private function documentoOpcional(): ?string
