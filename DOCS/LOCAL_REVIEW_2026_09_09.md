@@ -1,5 +1,27 @@
 # Local UI and operational review — 2026-09-09
 
+## Production parity follow-up — 2026-09-10
+
+Objective: compare the local assignment features and other completed work with
+GitHub and the running production application, and prepare an evidence-based
+handoff for Joel.
+
+| Milestone | Status | Evidence / next action |
+| --- | --- | --- |
+| Locate the project and review its existing progress | Completed | `/Users/pc/crm-bpo`; this report, `AGENTS.md`, `CLAUDE.md`, and project memory reviewed. |
+| Compare local branches, GitHub, and production | Completed | PRs #17 and #18 are merged. Production and `origin/main` are at `8e0d9ad`; the original local branch is six commits behind, with none ahead. No local branch contains commits absent from `origin/main`. |
+| Check assignment visibility and production prerequisites | Completed | Confirmed the browser session's GESTOR role, disabled production autoassignment, matching permissions/schema, working queues and cron, configuration/data differences, and the unapplied nginx timeout configuration. |
+| Prepare the reviewer handoff and validate any corrections | Completed | Findings and operational steps are in `DOCS/PRODUCTION_PARITY_2026_09_10.md`. Local suite: 1,696 passed, 14 deprecated, 5 skipped, 5,363 assertions; Pint and PHPStan passed; zero known pending tenant leaks. No application change or production mutation was necessary for this audit. |
+
+Production inspection is read-only. Database contents, credentials, and local
+demo configuration are not publication artifacts. Token usage, remaining
+context, and cost counters are not exposed in this session and are not estimated.
+
+The audit is complete on `chore/production-parity-audit-20260910`, based on
+current `origin/main`. Next: Joel reviews the documented configuration and data
+repairs and the remaining nginx adjustment. PR #17 is already merged and
+deployed; the historical handoff below is superseded by the September 10 report.
+
 ## Follow-up: persisted name encoding
 
 The reported name was stored with reversible double encoding (`U+00C3 U+0081`
