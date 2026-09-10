@@ -77,11 +77,13 @@ return [
         'cartera_activa' => 'Active portfolio',
         'drawer_nueva' => 'New portfolio',
         'drawer_editar' => 'Edit portfolio',
-        'confirm_eliminar' => 'Delete this portfolio? This cannot be undone if it has no associated cases.',
+        'confirm_eliminar' => 'Delete this portfolio? Its accounts will no longer be available for work. History is preserved. This cannot be undone from this screen.',
     ],
 
     // Step: results
     'resultados' => [
+        'no_contactado' => 'Not contacted',
+        'es_no_contactado' => 'Not contacted (enables the no-contact reason)',
         'n_resultados' => ':n results',
         'nuevo' => 'New result',
         'sin_titulo' => 'No results',
@@ -104,6 +106,9 @@ return [
 
     // Step: management types
     'tipos_gestion' => [
+        'todos_canales' => 'All enabled channels',
+        'canales_permitidos' => 'Allowed channels',
+        'canales_ayuda' => 'Choose one or more channels. With none selected, this type is available in every enabled channel.',
         'n_tipos' => ':n types',
         'nuevo' => 'New type',
         'sin_titulo' => 'No management types',

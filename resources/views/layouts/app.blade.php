@@ -222,6 +222,13 @@
                             </a>
                         @endforeach
                     @endcan
+                    @can('carteras.ver', $proyectoActivo->id)
+                            <a href="{{ route('proyectos.carteras', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                               class="sb-item @if($rid('proyectos.carteras')) active @endif">
+                                <x-ui.icon name="folder" :size="15" />
+                                <span>{{ __('nav.portfolios') }}</span>
+                            </a>
+                    @endcan
                     @can('asignaciones.ver_equipo', $proyectoActivo->id)
                         <a href="{{ route('proyectos.bandeja.equipo', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.bandeja.equipo')) active @endif">

@@ -16,6 +16,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class CatalogoCamposSistemaTest extends TestCase
 {
+    public function test_download_templates_include_native_identity_and_contact_headers(): void
+    {
+        foreach (TargetImportacion::cases() as $target) {
+            $codes = array_column(CatalogoCamposSistema::paraPlantilla($target), 'codigo');
+            self::assertContains('identificacion', $codes);
+            self::assertContains('correo', $codes);
+            self::assertContains('contacto', $codes);
+        }
+    }
+
     public function test_identidad_de_persona_disponible_en_todos_los_targets(): void
     {
         foreach (TargetImportacion::cases() as $target) {

@@ -6,6 +6,7 @@ namespace App\Modules\Asignaciones\Application\UseCases;
 
 use App\Modules\Asignaciones\Application\DTOs\AsignacionMasivaResultado;
 use App\Modules\Notificaciones\Application\Services\GeneradorNotificaciones;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -82,6 +83,7 @@ final readonly class ReasignarCasosEntreEquipos
         }
 
         $pendientesQ = DB::table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos($this->db, $proyectoId)->select('c.id'))
             ->where('proyecto_id', $proyectoId)
             ->where('estado', 'pendiente')
             ->whereIn('usuario_id', $miembrosOrigen)
@@ -112,6 +114,7 @@ final readonly class ReasignarCasosEntreEquipos
                 $idx++;
 
                 DB::table('asignaciones')
+                    ->whereIn('caso_id', CarterasOperativas::casos($this->db, $proyectoId)->select('c.id'))
                     ->where('id', $asignacionId)
                     ->where('proyecto_id', $proyectoId)
                     ->where('estado', 'pendiente')

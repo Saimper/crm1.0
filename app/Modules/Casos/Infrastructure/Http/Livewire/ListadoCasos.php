@@ -12,6 +12,7 @@ use App\Modules\Casos\Application\Services\ConsultaListadoCasos;
 use App\Modules\Casos\Application\Services\PreferenciasColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
@@ -330,9 +331,7 @@ final class ListadoCasos extends Component
 
     private function totalProyecto(int $proyectoId): int
     {
-        return (int) DB::table('casos')
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
+        return CarterasOperativas::casos(DB::connection(), $proyectoId)
             ->count();
     }
 

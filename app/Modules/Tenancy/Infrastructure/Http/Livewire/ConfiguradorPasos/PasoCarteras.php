@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos;
 
+use App\Modules\Tenancy\Application\UseCases\AdministrarDisponibilidad;
 use App\Modules\Tenancy\Domain\ValueObjects\CodigoCartera;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use App\Support\Livewire\AutorizaEnProyectoActivo;
@@ -58,13 +59,13 @@ final class PasoCarteras extends Component
 
     public function mount(ProyectoModel $proyecto): void
     {
-        $this->autorizar();
         $this->proyecto = $proyecto;
+        $this->autorizar();
     }
 
     public function abrirFormCrear(): void
     {
-        $this->autorizar();
+        $this->autorizar('carteras.crear');
         $this->editandoId = null;
         $this->form = ['codigo' => '', 'nombre' => '', 'descripcion' => '', 'activo' => true];
         $this->formVisible = true;
@@ -73,7 +74,7 @@ final class PasoCarteras extends Component
 
     public function abrirFormEditar(int $id): void
     {
-        $this->autorizar();
+        $this->autorizar('carteras.editar');
 
         $row = DB::table('carteras')
             ->where('id', $id)
@@ -103,9 +104,9 @@ final class PasoCarteras extends Component
         $this->resetErrorBag();
     }
 
-    public function guardarCartera(): void
+    public function guardarCartera(AdministrarDisponibilidad $disponibilidad): void
     {
-        $this->autorizar();
+        $this->autorizar($this->editandoId === null ? 'carteras.crear' : 'carteras.editar');
 
         // Editar exige además que la cartera sea de este proyecto. El UPDATE ya
         // filtra por `proyecto_id`, pero sin esto una cartera ajena daba cero
@@ -139,15 +140,14 @@ final class PasoCarteras extends Component
 
         $duplicadoQuery = DB::table('carteras')
             ->where('proyecto_id', $proyectoId)
-            ->where('codigo', $codigoNormalizado)
-            ->whereNull('eliminada_en');
+            ->where('codigo', $codigoNormalizado);
 
         if ($this->editandoId !== null) {
             $duplicadoQuery->where('id', '!=', $this->editandoId);
         }
 
         if ($duplicadoQuery->exists()) {
-            $this->addError('form.codigo', 'Ya existe otra cartera con ese código en el proyecto.');
+            $this->addError('form.codigo', 'Ese código ya pertenece a una cartera del proyecto, activa o eliminada. Usa otro código.');
 
             return;
         }
@@ -167,10 +167,12 @@ final class PasoCarteras extends Component
 
             DB::table('carteras')->insert($payload);
         } else {
-            DB::table('carteras')
-                ->where('id', $this->editandoId)
-                ->where('proyecto_id', $proyectoId)
-                ->update($payload);
+            unset($payload['activo']);
+            DB::transaction(function () use ($payload, $proyectoId, $disponibilidad): void {
+                DB::table('carteras')->where('id', $this->editandoId)
+                    ->where('proyecto_id', $proyectoId)->update($payload);
+                $disponibilidad->cambiarEstadoCartera($proyectoId, (int) $this->editandoId, (bool) $this->form['activo']);
+            });
         }
 
         $this->cerrarForm();
@@ -178,58 +180,28 @@ final class PasoCarteras extends Component
         $this->dispatch('configuracion-paso-completado');
     }
 
-    public function eliminarCartera(int $id): void
+    public function eliminarCartera(int $id, AdministrarDisponibilidad $disponibilidad): void
     {
-        $this->autorizar();
-
-        // 404 si no es de este proyecto: el permiso es por proyecto, así que un
-        // admin de mandante con `proyectos.configurar` en el suyo lo arrastraría
-        // al ajeno si nadie mira la fila.
+        $this->autorizar('carteras.eliminar');
         $this->exigirDelProyecto('carteras', $id);
-
-        $proyectoId = (int) $this->proyecto->id;
-
-        $tieneCasos = DB::table('casos')
-            ->where('cartera_id', $id)
-            ->exists();
-
-        if ($tieneCasos) {
-            session()->flash('paso-carteras-error', 'No se puede eliminar la cartera porque tiene casos asociados.');
-
-            return;
-        }
-
-        DB::table('carteras')
-            ->where('id', $id)
-            ->where('proyecto_id', $proyectoId)
-            ->update(['eliminada_en' => Carbon::now()]);
-
-        session()->flash('paso-carteras-ok', 'Cartera eliminada.');
+        $disponibilidad->eliminarCartera((int) $this->proyecto->id, $id);
+        $this->cerrarForm();
+        session()->flash('paso-carteras-ok', 'Cartera eliminada. Sus cuentas se retiraron de la operación y se conserva el historial.');
         $this->dispatch('configuracion-paso-completado');
     }
 
-    public function toggleActivo(int $id): void
+    public function toggleActivo(int $id, AdministrarDisponibilidad $disponibilidad): void
     {
-        $this->autorizar();
-
+        $this->autorizar('carteras.editar');
         $cartera = $this->filaDelProyecto('carteras', $id);
-
-        $proyectoId = (int) $this->proyecto->id;
-
-        DB::table('carteras')
-            ->where('id', $id)
-            ->where('proyecto_id', $proyectoId)
-            ->update([
-                'activo' => ! (bool) $cartera->activo,
-                'actualizada_en' => Carbon::now(),
-            ]);
-
+        $disponibilidad->cambiarEstadoCartera((int) $this->proyecto->id, $id, ! (bool) $cartera->activo);
         session()->flash('paso-carteras-ok', 'Estado actualizado.');
         $this->dispatch('configuracion-paso-completado');
     }
 
     public function render(): View
     {
+        $this->autorizar();
         $proyectoId = (int) $this->proyecto->id;
         $busqueda = trim($this->busqueda);
 
@@ -259,6 +231,9 @@ final class PasoCarteras extends Component
 
         return view('livewire.tenancy.configurador-pasos.paso-carteras', [
             'carteras' => $carteras,
+            'puedeCrear' => $this->puede('carteras.crear'),
+            'puedeEditar' => $this->puede('carteras.editar'),
+            'puedeEliminar' => $this->puede('carteras.eliminar'),
         ]);
     }
 
@@ -281,18 +256,17 @@ final class PasoCarteras extends Component
         return (int) $this->proyecto->id;
     }
 
-    /**
-     * Defensa en profundidad (patrón F23).
-     *
-     * `proyectos.configurar` es el permiso de la ruta y el único que cubre las
-     * carteras: no existe ningún `carteras.*` en el seeder. Lo tienen
-     * ADMIN_MANDANTE (sobre los proyectos de su mandante) y ADMIN_GLOBAL, este
-     * último vía `Gate::before`. SUPERVISOR no lo tiene.
-     */
-    private function autorizar(): void
+    private function puede(string $permiso): bool
     {
-        abort_if(auth()->user() === null, 403);
+        $user = auth()->user();
+        $projectId = (int) $this->proyecto->id;
 
-        $this->autorizarEn('proyectos.configurar');
+        return $user !== null && ($user->tienePermiso($permiso, $projectId)
+            || $user->tienePermiso('proyectos.configurar', $projectId));
+    }
+
+    private function autorizar(string $permiso = 'carteras.ver'): void
+    {
+        abort_unless($this->puede($permiso), 403);
     }
 }

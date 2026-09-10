@@ -17,6 +17,7 @@ use App\Modules\Cobranza\Domain\Exceptions\NumeroPrestamoYaRegistrado;
 use App\Modules\Cobranza\Domain\ValueObjects\DiasMora;
 use App\Modules\Cobranza\Domain\ValueObjects\MontoCobranza;
 use App\Modules\Cobranza\Domain\ValueObjects\NumeroPrestamo;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
@@ -40,6 +41,8 @@ readonly class RegistrarCasoCobranza
 
     public function execute(RegistrarCasoCobranzaInput $input): RegistrarCasoCobranzaOutput
     {
+        CarterasOperativas::exigirCartera($this->db, $input->proyectoId, $input->carteraId);
+
         if ($this->cobranzaRepo->existeNumeroPrestamoEnProyecto($input->proyectoId, $input->numeroPrestamo)) {
             throw new NumeroPrestamoYaRegistrado(
                 "Número de préstamo '{$input->numeroPrestamo}' ya registrado en el proyecto {$input->proyectoId}."

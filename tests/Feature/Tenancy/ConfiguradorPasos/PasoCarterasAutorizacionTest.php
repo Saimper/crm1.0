@@ -15,19 +15,7 @@ use stdClass;
 use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
 
-/**
- * El `can:proyectos.configurar` de /admin/proyectos/{proyecto}/configurar
- * protege la PÁGINA. Cada acción de este paso es un POST aparte a
- * /livewire/update que vuelve a entrar en el componente sin pasar por ese
- * middleware, con las propiedades que mande el cliente.
- *
- * De ahí las dos comprobaciones distintas que se afirman aquí: que el usuario
- * PUEDA configurar (permiso, 403) y que la cartera SEA del proyecto que la
- * ruta fijó (pertenencia, 404). No hay ningún permiso `carteras.*` en el
- * seeder: `proyectos.configurar` es el único que cubre esta pantalla, y lo
- * tienen ADMIN_MANDANTE sobre los proyectos de su mandante y ADMIN_GLOBAL vía
- * Gate::before.
- */
+/** Portfolio permissions are evaluated per project on every request. */
 final class PasoCarterasAutorizacionTest extends TestCase
 {
     use EscenarioMultiMandante;
@@ -43,13 +31,16 @@ final class PasoCarterasAutorizacionTest extends TestCase
     // (a) quien NO debe poder
     // -----------------------------------------------------------------
 
-    public function test_supervisor_no_puede_montar_el_paso(): void
+    public function test_supervisor_puede_ver_carteras_sin_permiso_de_escritura(): void
     {
         $proyecto = $this->crearProyectoCobranza();
         $this->actingAs($this->crearSupervisor($proyecto));
 
         Livewire::test(PasoCarteras::class, ['proyecto' => $this->modelo($proyecto)])
-            ->assertForbidden();
+            ->assertOk()
+            ->assertViewHas('puedeCrear', false)
+            ->assertViewHas('puedeEditar', false)
+            ->assertViewHas('puedeEliminar', false);
     }
 
     /**

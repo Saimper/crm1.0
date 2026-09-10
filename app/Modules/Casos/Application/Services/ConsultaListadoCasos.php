@@ -6,6 +6,7 @@ namespace App\Modules\Casos\Application\Services;
 
 use App\Modules\Casos\Application\DTOs\FiltrosListadoCasos;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 
@@ -29,7 +30,8 @@ final readonly class ConsultaListadoCasos
             ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
             ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
             ->where('c.proyecto_id', $proyectoId)
-            ->whereNull('c.eliminada_en');
+            ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q));
 
         $tablaCti = CatalogoColumnasCaso::tablaCti($tipoOperacion);
         if ($tablaCti !== null) {

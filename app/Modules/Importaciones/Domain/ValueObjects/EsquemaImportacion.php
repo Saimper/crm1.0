@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Domain\ValueObjects;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\RolContacto;
@@ -154,11 +155,15 @@ final readonly class EsquemaImportacion
         $codigos = [];
 
         foreach ($this->columnas as $columna) {
-            if ($columna->accion === AccionColumna::IGNORAR) {
+            if (! $columna->debePersistirse()) {
                 continue;
             }
 
-            $codigo = $columna->codigoSugerido();
+            if ($columna->accion === AccionColumna::MAPEAR_SISTEMA
+                && ! in_array($columna->campoSistemaMapeado, array_column(CatalogoCamposSistema::paraTarget($this->target), 'codigo'), true)) {
+                throw new EsquemaInvalidoException('El destino de la columna no pertenece a esta operación.');
+            }
+            $codigo = $columna->clavePayload();
 
             if (in_array($codigo, $codigos, true)) {
                 throw new ColisionCodigosCampoException($codigo, $codigo);

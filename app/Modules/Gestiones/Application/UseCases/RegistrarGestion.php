@@ -8,11 +8,14 @@ use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionOutput;
 use App\Modules\Gestiones\Domain\Contracts\ConsultaCompatibilidadResultado;
 use App\Modules\Gestiones\Domain\Contracts\ConsultaResultado;
+use App\Modules\Gestiones\Domain\Contracts\ConsultaTiposPorCanal;
 use App\Modules\Gestiones\Domain\Contracts\GestionRepository;
 use App\Modules\Gestiones\Domain\Entities\Gestion;
 use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Gestiones\Domain\Exceptions\PromesaRequerida;
 use App\Modules\Gestiones\Domain\Exceptions\ResultadoNoAdmitidoPorTipo;
+use App\Support\Database\CarterasOperativas;
+use DomainException;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 
@@ -24,6 +27,7 @@ final readonly class RegistrarGestion
         private ConsultaCompatibilidadResultado $compatibilidad,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
+        private ConsultaTiposPorCanal $tiposPorCanal,
     ) {}
 
     public function execute(RegistrarGestionInput $input): RegistrarGestionOutput
@@ -35,7 +39,23 @@ final readonly class RegistrarGestion
             throw ResultadoNoAdmitidoPorTipo::para($input->tipoGestionId, $input->resultadoId);
         }
 
+        if (! in_array($input->tipoGestionId, $this->tiposPorCanal->idsAdmitidos($input->proyectoId, $input->canalId), true)) {
+            throw new DomainException('El tipo de gestión no está disponible para este canal.');
+        }
+        if (! CarterasOperativas::casos($this->db, $input->proyectoId)
+            ->where('c.id', $input->casoId)->where('c.persona_id', $input->personaId)->exists()) {
+            throw new DomainException('La cuenta ya no está disponible para gestionar.');
+        }
+        if (! $this->db->table('resultados')->where('proyecto_id', $input->proyectoId)
+            ->where('id', $input->resultadoId)->where('activo', true)->exists()) {
+            throw new DomainException('Selecciona un resultado activo de este proyecto.');
+        }
         $banderas = $this->consulta->banderas($input->resultadoId);
+        if ($input->motivoNoContactoId !== null && (! $banderas->esNoContactado
+            || ! $this->db->table('motivos_no_contacto')->where('proyecto_id', $input->proyectoId)
+                ->where('id', $input->motivoNoContactoId)->where('activo', true)->exists())) {
+            throw new DomainException('El motivo de no contacto no está habilitado para este resultado o proyecto.');
+        }
 
         if ($banderas->requiereCompromiso && $input->datosCompromiso === null) {
             throw new PromesaRequerida(

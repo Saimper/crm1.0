@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Personas\Infrastructure\Http\Livewire;
 
 use App\Models\User;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -86,6 +87,7 @@ final class BuscadorGlobal extends Component
                 ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
                 ->where('c.proyecto_id', $proyectoId)
                 ->whereNull('c.eliminada_en')
+                ->where(fn ($q) => CarterasOperativas::filtrar($q))
                 ->whereNull('p.eliminada_en')
                 ->when($carteras !== null, fn ($q) => $q->whereIn('c.cartera_id', $carteras ?? []))
                 ->where(function ($w) use ($like): void {

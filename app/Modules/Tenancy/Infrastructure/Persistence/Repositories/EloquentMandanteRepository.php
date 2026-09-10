@@ -54,9 +54,8 @@ final class EloquentMandanteRepository implements MandanteRepository
 
     public function existePorCodigo(CodigoMandante $codigo): bool
     {
-        return MandanteModel::query()
+        return MandanteModel::withTrashed()
             ->where('codigo', $codigo->asString())
-            ->whereNull('eliminada_en')
             ->exists();
     }
 

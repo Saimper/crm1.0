@@ -23,6 +23,20 @@ enum RolContacto: string
     case CORREO = 'correo';
     case REFERENCIA = 'referencia';
 
+    public static function desdeEncabezado(string $header): self
+    {
+        $normalized = \Normalizer::normalize(mb_strtolower($header), \Normalizer::FORM_D);
+        $normalized = (string) preg_replace('/[\p{Mn}\s_\-\d]+/u', '', (string) $normalized);
+
+        return match ($normalized) {
+            'correo', 'correos', 'correoelectronico', 'email', 'emails', 'mail' => self::CORREO,
+            'telefono', 'telefonos', 'telefonocelular', 'telefonofijo', 'celular', 'celulares',
+            'movil', 'moviles', 'contacto', 'whatsapp', 'phone', 'mobile' => self::TELEFONO,
+            'telefonoreferencia', 'telefonosreferencias', 'contactoreferencia' => self::REFERENCIA,
+            default => self::NINGUNO,
+        };
+    }
+
     public function etiquetaClave(): string
     {
         return 'importaciones.rol_contacto.'.$this->value;

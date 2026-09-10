@@ -37,7 +37,7 @@ final class DescargarPlantillaImportacionController
             abort(403, 'Este target no aplica al tipo de proyecto.');
         }
 
-        $campos = CatalogoCamposSistema::paraTarget($target);
+        $campos = CatalogoCamposSistema::paraPlantilla($target);
         $valoresCatalogo = $this->valoresCatalogoPorCampo($campos, $proyecto_id);
         $filename = 'plantilla_'.$target->value.'_'.now()->format('Ymd_His').'.xlsx';
 

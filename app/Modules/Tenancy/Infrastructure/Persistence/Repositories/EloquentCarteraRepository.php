@@ -56,10 +56,9 @@ final class EloquentCarteraRepository implements CarteraRepository
 
     public function existePorCodigoEnProyecto(int $proyectoId, CodigoCartera $codigo): bool
     {
-        return CarteraModel::query()
+        return CarteraModel::withTrashed()
             ->where('proyecto_id', $proyectoId)
             ->where('codigo', $codigo->asString())
-            ->whereNull('eliminada_en')
             ->exists();
     }
 

@@ -102,7 +102,7 @@ final class PasoCarterasTest extends TestCase
         ]);
     }
 
-    public function test_no_elimina_cartera_con_casos(): void
+    public function test_elimina_cartera_con_casos_conservando_historial(): void
     {
         $proyecto = $this->crearProyectoCobranza();
         $cartera = $this->crearCarteraEn($proyecto);
@@ -128,10 +128,18 @@ final class PasoCarterasTest extends TestCase
         Livewire::test(PasoCarteras::class, ['proyecto' => $modelo])
             ->call('eliminarCartera', $cartera->id);
 
-        $this->assertNull(
-            DB::table('carteras')->where('id', $cartera->id)->value('eliminada_en'),
-            'La cartera no debe quedar marcada como eliminada cuando tiene casos asociados.',
-        );
+        $this->assertNotNull(DB::table('carteras')->where('id', $cartera->id)->value('eliminada_en'));
+        $this->assertDatabaseHas('casos', ['cartera_id' => $cartera->id, 'eliminada_en' => null]);
+    }
+
+    public function test_deleted_portfolio_codes_are_reserved_without_a_database_error(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $portfolio = $this->crearCarteraEn($project, 'RETIRED');
+        Livewire::actingAs($this->crearAdminGlobal())->test(PasoCarteras::class, ['proyecto' => ProyectoModel::findOrFail($project->id)])
+            ->call('eliminarCartera', (int) $portfolio->id)->call('abrirFormCrear')
+            ->set('form.codigo', 'RETIRED')->set('form.nombre', 'Replacement')
+            ->call('guardarCartera')->assertHasErrors('form.codigo');
     }
 
     public function test_emite_evento_paso_completado_al_crear_primera_cartera(): void

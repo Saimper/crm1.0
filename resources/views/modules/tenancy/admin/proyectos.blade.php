@@ -117,7 +117,7 @@
                 <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('tenancy.drawer_new_proyecto') : __('tenancy.drawer_edit_proyecto') }}
                 </div>
-                <button type="button" wire:click="cerrarForm" class="icon-btn" :aria-label="__('tenancy.close')">
+                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('tenancy.close') }}">
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
@@ -165,7 +165,7 @@
                         @if($editandoId !== null)
                             <div class="flex items-center gap-2" style="height:36px;padding:0 10px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:6px;color:var(--text-secondary);">
                                 <span class="badge badge-neutral">{{ $form['tipo_operacion'] }}</span>
-                                <span class="text-xs text-ink-500" style="margin-left:auto;" :title="__('tenancy.not_editable')">{{ __('tenancy.not_editable') }}</span>
+                                <span class="text-xs text-ink-500" style="margin-left:auto;" title="{{ __('tenancy.not_editable') }}">{{ __('tenancy.not_editable') }}</span>
                             </div>
                         @else
                             <select wire:model="form.tipo_operacion"

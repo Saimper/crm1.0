@@ -14,6 +14,7 @@ use App\Modules\Cx\Domain\ValueObjects\DatosResolucionTicket;
 use App\Modules\Cx\Domain\ValueObjects\FechaLimiteSla;
 use App\Modules\Gestiones\Application\DTOs\RegistrarGestionInput;
 use App\Modules\Gestiones\Application\UseCases\RegistrarGestion;
+use App\Modules\Gestiones\Domain\Contracts\ConsultaTiposPorCanal;
 use App\Modules\Gestiones\Domain\ValueObjects\DuracionSegundos;
 use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
@@ -29,6 +30,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
 
@@ -41,10 +43,13 @@ final class NuevaGestion extends Component
 {
     use EmiteWritebackFicha;
 
+    #[Locked]
     public int $casoId = 0;
 
+    #[Locked]
     public int $personaId = 0;
 
+    #[Locked]
     public string $tipoCaso = '';
 
     public ?int $canalId = null;
@@ -111,6 +116,18 @@ final class NuevaGestion extends Component
      * arrastrarlo, y con él todo lo que cuelga: motivo, causa y los campos
      * personalizados del ámbito gestión, que también cambian con el tipo.
      */
+    public function updatedCanalId(): void
+    {
+        $this->tipoGestionId = null;
+        $this->updatedTipoGestionId(null);
+    }
+
+    public function updatedResultadoId(): void
+    {
+        $this->motivoNoContactoId = null;
+        $this->causaId = null;
+    }
+
     public function updatedTipoGestionId(mixed $value): void
     {
         $this->resultadoId = null;
@@ -134,7 +151,7 @@ final class NuevaGestion extends Component
             'canalId' => ['required', 'integer', Rule::exists('canal_proyecto', 'canal_id')
                 ->where('proyecto_id', $proyectoId)
                 ->where('activo', true)],
-            'tipoGestionId' => ['required', 'integer'],
+            'tipoGestionId' => ['required', 'integer', Rule::in(app(ConsultaTiposPorCanal::class)->idsAdmitidos($proyectoId, (int) $this->canalId))],
             'resultadoId' => ['required', 'integer', Rule::exists('resultados', 'id')
                 ->where('proyecto_id', $proyectoId)
                 ->where('activo', true)],
@@ -146,6 +163,12 @@ final class NuevaGestion extends Component
             $this->addError('resultadoId', 'Selecciona un resultado válido.');
 
             return;
+        }
+
+        if ((bool) $resultado->es_no_contactado) {
+            $reglas['motivoNoContactoId'] = ['nullable', 'integer', Rule::exists('motivos_no_contacto', 'id')->where('proyecto_id', $proyectoId)->where('activo', true)];
+        } else {
+            $this->motivoNoContactoId = null;
         }
 
         if ((bool) $resultado->requiere_causa) {
@@ -312,7 +335,7 @@ final class NuevaGestion extends Component
             'contactos' => $this->contactos($proyectoId),
             'requiereCausa' => $resultadoActual ? (bool) $resultadoActual->requiere_causa : false,
             'requiereCompromiso' => $resultadoActual ? (bool) $resultadoActual->requiere_compromiso : false,
-            'esContactoEfectivo' => $resultadoActual ? (bool) $resultadoActual->es_contacto_efectivo : false,
+            'esNoContactado' => $resultadoActual ? (bool) $resultadoActual->es_no_contactado : false,
             'camposGestion' => $camposGestion,
             'plantillasNota' => $this->plantillasNota($proyectoId),
         ]);
@@ -358,6 +381,7 @@ final class NuevaGestion extends Component
     private function tiposGestion(int $proyectoId): Collection
     {
         return DB::table('tipos_gestion')
+            ->whereIn('id', app(ConsultaTiposPorCanal::class)->idsAdmitidos($proyectoId, (int) $this->canalId))
             ->where('proyecto_id', $proyectoId)->where('activo', true)
             ->orderBy('orden')->get();
     }

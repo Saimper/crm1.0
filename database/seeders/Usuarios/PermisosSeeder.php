@@ -143,6 +143,10 @@ final class PermisosSeeder extends Seeder
 
             // F38: permisos del rol ADMIN_MANDANTE (scoped por mandante via usuario_mandante_rol).
             ['codigo' => 'mandante.administrar',    'nombre' => 'Administrar el mandante (F38)',           'grupo' => 'mandante',      'activo' => true],
+            ['codigo' => 'carteras.ver', 'nombre' => 'Ver carteras', 'grupo' => 'carteras', 'activo' => true],
+            ['codigo' => 'carteras.crear', 'nombre' => 'Crear carteras', 'grupo' => 'carteras', 'activo' => true],
+            ['codigo' => 'carteras.editar', 'nombre' => 'Editar y desactivar carteras', 'grupo' => 'carteras', 'activo' => true],
+            ['codigo' => 'carteras.eliminar', 'nombre' => 'Eliminar carteras (conservar historial)', 'grupo' => 'carteras', 'activo' => true],
             ['codigo' => 'proyectos.crear',         'nombre' => 'Crear proyectos del mandante',            'grupo' => 'proyectos',     'activo' => true],
         ];
 

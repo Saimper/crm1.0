@@ -6,6 +6,7 @@ namespace App\Modules\Asignaciones\Application\UseCases;
 
 use App\Modules\Asignaciones\Application\DTOs\RegistrarAsignacionInput;
 use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
@@ -48,10 +49,8 @@ final readonly class AutoasignarCaso
             );
         }
 
-        $caso = $this->db->table('casos')
-            ->where('id', $casoId)
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
+        $caso = CarterasOperativas::casos($this->db, $proyectoId)
+            ->where('c.id', $casoId)
             ->first(['cartera_id']);
 
         if ($caso === null) {

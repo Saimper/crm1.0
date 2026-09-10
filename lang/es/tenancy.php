@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'confirm_delete_mandante' => '¿Eliminar este mandante y retirar sus proyectos de la operación? Se conservará el historial.',
     'autoasignacion' => 'Auto-asignación al gestionar',
     'autoasignacion_ayuda' => 'Si el asesor gestiona una cuenta sin dueño, la cuenta pasa a ser suya. Apagado, solo el supervisor reparte.',
     'accion_editar' => 'Editar datos',
@@ -114,9 +115,9 @@ return [
     'baja_proyecto_titulo' => 'Baja del proyecto',
     'deactivate_hint_proyecto' => 'Lo pausa. Sigue en esta lista y se vuelve a activar cuando quieras.',
     'archive_hint_proyecto' => 'Lo retira de la administración y del selector. Nadie podrá entrar y no hay botón de vuelta.',
-    'btn_archive' => 'Archivar',
+    'btn_archive' => 'Eliminar',
     'confirm_deactivate_proyecto' => '¿Desactivar este proyecto? Deja de operarse, pero sigue aquí y puedes reactivarlo.',
-    'confirm_archive_proyecto' => '¿Archivar este proyecto? Desaparece de la administración y del selector, y nadie podrá volver a entrar. No se borra nada —sus casos y gestiones se conservan—, pero desarchivarlo ya no se hace desde esta pantalla.',
+    'confirm_archive_proyecto' => '¿Eliminar este proyecto? Desaparece de la administración y del selector, y nadie podrá volver a entrar. No se borra nada —sus casos y gestiones se conservan—, pero desarchivarlo ya no se hace desde esta pantalla.',
     'flash_proyecto_guardado' => 'Proyecto guardado.',
     'flash_proyecto_activado' => 'Proyecto activado.',
     'flash_proyecto_desactivado' => 'Proyecto desactivado. Sigue en la lista; puedes reactivarlo.',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Asignaciones\Infrastructure\Http\Livewire;
 
 use App\Modules\Asignaciones\Application\UseCases\ReasignarCasosEntreEquipos;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -80,6 +81,7 @@ final class ReasignarEntreEquipos extends Component
             $pendientesOrigen = $miembrosOrigenIds === []
                 ? 0
                 : (int) DB::table('asignaciones')
+                    ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
                     ->where('proyecto_id', $proyectoId)
                     ->where('estado', 'pendiente')
                     ->whereIn('usuario_id', $miembrosOrigenIds)

@@ -72,7 +72,7 @@
                 <div class="text-md font-semibold">
                     {{ $editandoId === null ? __('tenancy.drawer_new_mandante') : __('tenancy.drawer_edit_mandante') }}
                 </div>
-                <button type="button" wire:click="cerrarForm" class="icon-btn" :aria-label="__('tenancy.close')">
+                <button type="button" wire:click="cerrarForm" class="icon-btn" aria-label="{{ __('tenancy.close') }}">
                     <x-ui.icon name="x" :size="14" />
                 </button>
             </div>
@@ -100,6 +100,9 @@
             </div>
             <div class="drawer-footer">
                 @if($editandoId !== null)
+                    <button type="button" wire:click="eliminar({{ $editandoId }})"
+                            wire:confirm="{{ __('tenancy.confirm_delete_mandante') }}"
+                            class="btn btn-ghost btn-ghost-danger">{{ __('common.delete') }}</button>
                     @php
                         $row = \App\Modules\Tenancy\Infrastructure\Persistence\Models\MandanteModel::query()->find($editandoId);
                     @endphp

@@ -30,6 +30,10 @@ final class PasoCatalogosTipo extends Component
      * @var array<string, array{etiqueta: string, alias: string}>
      */
     private const CATALOGOS = [
+        'motivos_no_contacto' => [
+            'etiqueta' => 'Motivos de no contacto y causas',
+            'alias' => 'tenancy.configurador-pasos.paso-motivos-no-contacto',
+        ],
         'tramos_mora' => [
             'etiqueta' => 'Tramos de mora',
             'alias' => 'tenancy.configurador-pasos.catalogos-tipo.catalogo-tramos-mora',
@@ -134,7 +138,7 @@ final class PasoCatalogosTipo extends Component
     {
         $tipo = TipoOperacion::from((string) $this->proyecto->tipo_operacion);
 
-        return PasoConfiguracion::subPasosCatalogosPorTipo($tipo);
+        return [...PasoConfiguracion::subPasosCatalogosPorTipo($tipo), 'motivos_no_contacto'];
     }
 
     /**
@@ -144,6 +148,9 @@ final class PasoCatalogosTipo extends Component
     {
         $proyectoId = (int) $this->proyecto->id;
         foreach ($aplicables as $codigo) {
+            if ($codigo === 'motivos_no_contacto') {
+                continue;
+            }
             $tieneFila = DB::table($codigo)->where('proyecto_id', $proyectoId)->exists();
             if (! $tieneFila) {
                 return $codigo;

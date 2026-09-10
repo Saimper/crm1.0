@@ -10,5 +10,6 @@ final readonly class BanderasResultado
         public bool $esContactoEfectivo,
         public bool $requiereCompromiso,
         public bool $requiereCausa,
+        public bool $esNoContactado = false,
     ) {}
 }

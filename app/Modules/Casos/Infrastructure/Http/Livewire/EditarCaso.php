@@ -7,10 +7,12 @@ namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Throwable;
 
@@ -67,6 +69,7 @@ final class EditarCaso extends Component
             ->where('c.proyecto_id', $proyectoId)
             ->where('c.public_id', $caso)
             ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q))
             ->select([
                 'c.id', 'c.tipo_caso', 'c.cartera_id', 'c.prioridad', 'c.fecha_ingreso',
                 'p.public_id as persona_public_id',
@@ -104,13 +107,14 @@ final class EditarCaso extends Component
         }
 
         $this->validate([
-            'carteraId' => ['required', 'integer'],
+            'carteraId' => ['required', 'integer', Rule::exists('carteras', 'id')->where('proyecto_id', (int) $proyecto->id)->where('activo', true)->whereNull('eliminada_en')],
             'prioridad' => ['integer', 'min:0', 'max:1000'],
             'fechaIngreso' => ['required', 'date'],
         ]);
 
         $proyectoId = (int) $proyecto->id;
         $ahora = Carbon::now();
+        abort_unless(CarterasOperativas::casos(DB::connection(), $proyectoId)->where('c.id', $this->casoId)->exists(), 404, 'La cuenta ya no está disponible.');
 
         DB::transaction(function () use ($proyectoId, $ahora, $servicioCampos): void {
             DB::table('casos')

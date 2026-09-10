@@ -33,6 +33,7 @@ use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaInput;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
+use App\Support\Database\CarterasOperativas;
 use Carbon\CarbonImmutable;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
@@ -95,6 +96,10 @@ final class ProcesarFilaDinamica
 
         $proyectoId = $esquema->proyectoId;
         $carteraId = $esquema->carteraId;
+        if ($esquema->target !== TargetImportacion::PERSONA && $carteraId !== null
+            && ! CarterasOperativas::carteraDisponible($this->db, $proyectoId, $carteraId)) {
+            throw new ImportacionNoProcesable('La cartera no está activa en este proyecto.');
+        }
 
         $tiposIdentificacion = $input->tiposIdentificacion;
 
@@ -126,6 +131,10 @@ final class ProcesarFilaDinamica
                 $casoId = $this->buscarCasoExistente($esquema->target, $proyectoId, $fila);
                 $casoExistente = $casoId !== null;
             }
+        }
+
+        if ($casoId !== null && ! CarterasOperativas::casos($this->db, $proyectoId)->where('c.id', $casoId)->exists()) {
+            throw new ImportacionNoProcesable('La cuenta pertenece a una cartera desactivada o eliminada.');
         }
 
         $resultado = match ($esquema->modo) {

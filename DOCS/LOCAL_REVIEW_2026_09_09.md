@@ -1,5 +1,141 @@
 # Local UI and operational review — 2026-09-09
 
+## GitHub PR handoff — 2026-09-10
+
+Objective: publish the completed local fixes for Joel to review and merge.
+The user authorized this publication after the local implementation stage.
+
+| Milestone | Status | Evidence / next action |
+| --- | --- | --- |
+| Verify branch and local checks | Completed | Clean working tree; fetched `origin/main` has no commits absent from this branch. Existing full-suite and final regression logs were verified. |
+| Publish the review branch and open the PR | Completed | [PR #19](https://github.com/Saimper/crm1.0/pull/19), from `djneftali:fix/local-administration-catalogs-imports` into `Saimper:main`. |
+| Document the deployment handoff | Completed | PR includes both migrations, validation evidence, compatibility behavior, and manual channel/result/permission configuration. |
+| Review and production deployment | Pending — Joel | Review the PR and GitHub checks, then merge when ready. The existing workflow deploys only after a push to `main` passes CI. |
+
+The PR includes implementation commit `6ea69f0` and the earlier production-parity
+audit documentation. No production deployment or production data change was
+performed during this publication. The workflow already handles database
+backup, migrations, base role/permission seeders, assets, caches, queue restart,
+PHP-FPM reload, and the application healthcheck. The administrator still needs
+to choose each project's channel/type restrictions and supervisor grants after
+deployment. Do not run demo seeders or copy local operational data.
+
+Publication is complete. Next: Joel reviews
+[PR #19](https://github.com/Saimper/crm1.0/pull/19) and its checks before merging.
+Usage, remaining-context, and cost counters are unavailable in this session.
+
+## Local administration, catalogs, and imports — 2026-09-10
+
+Objective: implement the user's reported local administration failures and
+catalog/import improvements before a later production review. Branch:
+`fix/local-administration-catalogs-imports`. Production changes and publication
+are outside this implementation stage.
+
+| Milestone | Status | Scope |
+| --- | --- | --- |
+| Reproduce failures and define behavior | Completed | Soft deletion preserves operational history; disabled/archived portfolios must leave active workflows. |
+| Fix administration and portfolio permissions/visibility | Completed | Global administrator tenant/project deletion; independently assignable portfolio permissions. |
+| Configure management types by channel and explicit no-contact results | Completed | Project-scoped channel/type associations; show contact-failure reasons only when explicitly configured; maintain editable reason catalogs. |
+| Improve native import mapping | Completed | Predefined email/phone destinations, automatic header matching, and manual overrides using the existing import pipeline. |
+| Verify, document, and prepare the local handoff | Completed | Full suite, final hierarchy regressions, PHPStan, Pint, build, Blade compilation, isolation ratchet, and browser checks passed. |
+
+Implementation choices: a management type can serve multiple channels. Existing
+unconfigured types remain available in every enabled channel until explicitly
+restricted. The result flag `es_no_contactado` controls reason selection;
+historical interactions remain unchanged. Native import destinations retain the
+existing operation fields and now include automatic/manual email, phone, and
+reference contact mapping.
+
+Both September 10 migrations have been applied only to the local `crm` database.
+Verification completed: `composer test` reported 1,712 passed, 14 existing
+deprecation notices, 5 skipped, and 5,472 assertions. The final hierarchy
+follow-up (deleting a project also disables its portfolios so queued work stops)
+passed 29 targeted tests / 119 assertions. Pint passed. PHPStan passed across
+the application and at level 8 for the three changed Domain directories; the
+CLI needed `--memory-limit=512M` because the local 128 MB default was exhausted.
+The asset build, Blade cache compilation, and isolation ratchet passed (zero
+known pending leaks). A numerical coverage percentage was not measured: this
+PHP installation has neither Xdebug nor PCOV.
+No usage/context/cost counters are available in this session.
+
+### Local behavior and review paths
+
+- Mandantes and projects: deletion archives the selected hierarchy and records
+  an administrative audit event. Mandante deletion also revokes its integration
+  tokens. Cases, management history, commitments, and assignments are retained.
+- Portfolios: `/proyectos/{id}/carteras` reuses the existing editor. Permissions
+  `carteras.ver`, `carteras.crear`, `carteras.editar`, and `carteras.eliminar`
+  are available to custom project roles. Supervisors receive read access by
+  default; editing/deactivation and deletion require explicit grants. Existing
+  project administrators retain their portfolio administration capabilities.
+- Inactive/deleted portfolios no longer contribute accounts to case lists,
+  search, work views, assignment inboxes/counters, mass assignment, or the
+  integration account preview. New case/management/assignment writes and
+  import processing check availability too. Re-enabling an inactive portfolio
+  restores its accounts; deleted portfolios have no UI restore action. Reserved
+  historical codes cannot cause an unhandled duplicate-key error on recreation.
+- Project configuration → management types: select one or more allowed channels.
+  The table shows the saved association. Empty selection means every enabled
+  channel, preserving existing configuration until the administrator narrows it.
+  Inactive types/channels and forged cross-project combinations are rejected.
+- Project configuration → results: `No contactado` explicitly enables the
+  optional no-contact reason selector. It cannot coexist with effective contact.
+  Switching the channel/type/result clears dependent selections. Reasons and
+  causes are also accessible under type catalogs, using the same existing CRUD.
+- Imports: native destinations are selectable manually. Email/phone/contact
+  headers (including numbered columns) are detected automatically; unrecognized
+  headers can still be mapped manually or kept as custom fields. Contacts use
+  the existing project-scoped person/contact pipeline. Duplicate native
+  destinations and destinations from other operation types are rejected.
+  Downloadable XLSX templates now include `correo` and `contacto`.
+- Browser review also fixed unresolved Alpine translation expressions on the
+  mandante/project editor controls. No customer case or catalog configuration
+  was changed during the UI review. A synthetic CSV was uploaded only through
+  the mapping preview; no import was executed. The temporary verification
+  account and its sessions were removed afterward.
+
+Browser checks at desktop and mobile widths verified the deletion confirmation,
+portfolio page, six channel choices, explicit no-contact checkbox, shared reason
+catalog, and automatic native/contact mapping. The final run had zero JavaScript
+errors and no document-level horizontal overflow. Evidence and successful check
+logs are stored locally under
+`storage/app/private/local-admin-review-20260910/` (not publication artifacts).
+The local application uses the synchronous queue driver, so no local queue
+worker restart was needed.
+
+Local implementation is complete. Next: review the changes on this branch,
+configure each type's intended channels and any supervisor grants in the UI,
+then schedule the later production publication.
+
+Production remains unchanged by this implementation. A later deployment needs
+both September 10 migrations, the normal asset build/cache refresh, and a queue
+worker restart. Do not run demo seeders against production. Custom supervisor
+grants and the desired channel/type assignments are project configuration to be
+chosen by the administrator. No additional channel-specific business outcomes
+were invented or assigned automatically.
+
+## Production parity follow-up — 2026-09-10
+
+Objective: compare the local assignment features and other completed work with
+GitHub and the running production application, and prepare an evidence-based
+handoff for Joel.
+
+| Milestone | Status | Evidence / next action |
+| --- | --- | --- |
+| Locate the project and review its existing progress | Completed | `/Users/pc/crm-bpo`; this report, `AGENTS.md`, `CLAUDE.md`, and project memory reviewed. |
+| Compare local branches, GitHub, and production | Completed | PRs #17 and #18 are merged. Production and `origin/main` are at `8e0d9ad`; the original local branch is six commits behind, with none ahead. No local branch contains commits absent from `origin/main`. |
+| Check assignment visibility and production prerequisites | Completed | Confirmed the browser session's GESTOR role, disabled production autoassignment, matching permissions/schema, working queues and cron, configuration/data differences, and the unapplied nginx timeout configuration. |
+| Prepare the reviewer handoff and validate any corrections | Completed | Findings and operational steps are in `DOCS/PRODUCTION_PARITY_2026_09_10.md`. Local suite: 1,696 passed, 14 deprecated, 5 skipped, 5,363 assertions; Pint and PHPStan passed; zero known pending tenant leaks. No application change or production mutation was necessary for this audit. |
+
+Production inspection is read-only. Database contents, credentials, and local
+demo configuration are not publication artifacts. Token usage, remaining
+context, and cost counters are not exposed in this session and are not estimated.
+
+The audit is complete on `chore/production-parity-audit-20260910`, based on
+current `origin/main`. Next: Joel reviews the documented configuration and data
+repairs and the remaining nginx adjustment. PR #17 is already merged and
+deployed; the historical handoff below is superseded by the September 10 report.
+
 ## Follow-up: persisted name encoding
 
 The reported name was stored with reversible double encoding (`U+00C3 U+0081`

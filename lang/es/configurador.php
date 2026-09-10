@@ -77,11 +77,13 @@ return [
         'cartera_activa' => 'Cartera activa',
         'drawer_nueva' => 'Nueva cartera',
         'drawer_editar' => 'Editar cartera',
-        'confirm_eliminar' => '¿Eliminar esta cartera? No se puede deshacer si no tiene casos asociados.',
+        'confirm_eliminar' => '¿Eliminar esta cartera? Sus cuentas dejarán de estar disponibles para trabajar. El historial se conserva. Esta acción no se puede deshacer desde esta pantalla.',
     ],
 
     // Paso: resultados
     'resultados' => [
+        'no_contactado' => 'No contactado',
+        'es_no_contactado' => 'No contactado (habilita motivo de no contacto)',
         'n_resultados' => ':n resultados',
         'nuevo' => 'Nuevo resultado',
         'sin_titulo' => 'Sin resultados',
@@ -104,6 +106,9 @@ return [
 
     // Paso: tipos de gestión
     'tipos_gestion' => [
+        'todos_canales' => 'Todos los canales activos',
+        'canales_permitidos' => 'Canales permitidos',
+        'canales_ayuda' => 'Selecciona uno o varios canales. Sin marcar ninguno, el tipo estará disponible en todos los canales activos.',
         'n_tipos' => ':n tipos',
         'nuevo' => 'Nuevo tipo',
         'sin_titulo' => 'Sin tipos de gestión',

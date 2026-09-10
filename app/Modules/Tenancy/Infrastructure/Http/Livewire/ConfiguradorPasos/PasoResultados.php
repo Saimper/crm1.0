@@ -36,6 +36,7 @@ final class PasoResultados extends Component
         'nombre' => '',
         'descripcion' => '',
         'es_contacto_efectivo' => false,
+        'es_no_contactado' => false,
         'requiere_compromiso' => false,
         'estado_caso_cierre_id' => null,
         'requiere_causa' => false,
@@ -58,6 +59,7 @@ final class PasoResultados extends Component
             'nombre' => '',
             'descripcion' => '',
             'es_contacto_efectivo' => false,
+            'es_no_contactado' => false,
             'requiere_compromiso' => false,
             'estado_caso_cierre_id' => null,
             'requiere_causa' => false,
@@ -87,6 +89,7 @@ final class PasoResultados extends Component
             'nombre' => (string) $row->nombre,
             'descripcion' => (string) ($row->descripcion ?? ''),
             'es_contacto_efectivo' => (bool) $row->es_contacto_efectivo,
+            'es_no_contactado' => (bool) $row->es_no_contactado,
             'requiere_compromiso' => (bool) $row->requiere_compromiso,
             'estado_caso_cierre_id' => $row->estado_caso_cierre_id === null ? null : (int) $row->estado_caso_cierre_id,
             'requiere_causa' => (bool) $row->requiere_causa,
@@ -113,6 +116,7 @@ final class PasoResultados extends Component
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.descripcion' => ['nullable', 'string', 'max:500'],
             'form.es_contacto_efectivo' => ['required', 'boolean'],
+            'form.es_no_contactado' => ['boolean'],
             'form.requiere_compromiso' => ['required', 'boolean'],
             // Debe ser un estado TERMINAL del propio proyecto: cerrar hacia un
             // estado intermedio dejaria el caso marcado como cerrado pero en un
@@ -151,11 +155,18 @@ final class PasoResultados extends Component
             return;
         }
 
+        if (($this->form['es_no_contactado'] ?? false) && $this->form['es_contacto_efectivo']) {
+            $this->addError('form.es_no_contactado', 'Un resultado no puede ser contacto efectivo y no contactado a la vez.');
+
+            return;
+        }
+
         $payload = [
             'codigo' => $codigo,
             'nombre' => trim((string) $this->form['nombre']),
             'descripcion' => $this->descripcionOpcional(),
             'es_contacto_efectivo' => (bool) $this->form['es_contacto_efectivo'],
+            'es_no_contactado' => (bool) ($this->form['es_no_contactado'] ?? false),
             'requiere_compromiso' => (bool) $this->form['requiere_compromiso'],
             'estado_caso_cierre_id' => $this->form['estado_caso_cierre_id'] === null || $this->form['estado_caso_cierre_id'] === ''
                 ? null
@@ -369,7 +380,7 @@ final class PasoResultados extends Component
             ->orderBy('codigo')
             ->get([
                 'id', 'codigo', 'nombre', 'descripcion',
-                'es_contacto_efectivo', 'requiere_compromiso', 'requiere_causa', 'estado_caso_cierre_id',
+                'es_contacto_efectivo', 'es_no_contactado', 'requiere_compromiso', 'requiere_causa', 'estado_caso_cierre_id',
                 'orden', 'activo',
             ]);
 

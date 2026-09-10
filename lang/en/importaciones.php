@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'contact_columns' => ':count contact columns',
+    'mapping_destination' => 'Column destination',
+    'native_fields' => 'Standard fields',
+    'contact_fields' => 'Person contacts',
     'col_rol_contacto' => 'Creates contacts',
     'rol_contacto' => [
         'ninguno' => '—',

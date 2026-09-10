@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -23,9 +24,7 @@ final class DashboardAnalitico extends Component
         $proyecto = app('tenancy.proyecto_activo');
         $proyectoId = (int) $proyecto->id;
 
-        $distribucionCasos = DB::table('casos')
-            ->where('proyecto_id', $proyectoId)
-            ->whereNull('eliminada_en')
+        $distribucionCasos = CarterasOperativas::casos(DB::connection(), $proyectoId)
             ->select('tipo_caso', DB::raw('count(*) as total'))
             ->groupBy('tipo_caso')
             ->orderByDesc('total')

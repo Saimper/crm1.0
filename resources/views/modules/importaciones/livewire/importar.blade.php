@@ -230,14 +230,21 @@
                                     </span>
                                 </td>
                                 <td class="px-3 py-2">
-                                    <select wire:model.live="columnas.{{ $loop->index }}.accion"
-                                            wire:change="actualizarAccionColumna('{{ $col['nombre_original'] }}', $event.target.value)"
+                                    <select wire:change="seleccionarDestino({{ $loop->index }}, $event.target.value)"
+                                            aria-label="{{ __('importaciones.mapping_destination') }}: {{ $col['nombre_original'] }}"
                                             class="text-xs border-ink-300 rounded">
-                                        @if($col['campo_sistema_mapeado'])
-                                            <option value="mapear_sistema" @selected($col['accion'] === 'mapear_sistema')>→ {{ $col['campo_sistema_mapeado'] }}</option>
-                                        @endif
+                                        <optgroup label="{{ __('importaciones.native_fields') }}">
+                                            @foreach($camposSistema as $campo)
+                                                <option value="sistema:{{ $campo->codigo }}" @selected($col['accion'] === 'mapear_sistema' && $col['campo_sistema_mapeado'] === $campo->codigo)>{{ $campo->etiqueta }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                        <optgroup label="{{ __('importaciones.contact_fields') }}">
+                                            @foreach([\App\Modules\Importaciones\Domain\Enums\RolContacto::TELEFONO, \App\Modules\Importaciones\Domain\Enums\RolContacto::CORREO, \App\Modules\Importaciones\Domain\Enums\RolContacto::REFERENCIA] as $rol)
+                                                <option value="contacto:{{ $rol->value }}" @selected($col['accion'] === 'ignorar' && ($col['rol_contacto'] ?? 'ninguno') === $rol->value)>{{ __($rol->etiquetaClave()) }}</option>
+                                            @endforeach
+                                        </optgroup>
                                         <option value="crear_cp" @selected($col['accion'] === 'crear_cp')>{{ __('importaciones.action_create_cp') }}</option>
-                                        <option value="ignorar" @selected($col['accion'] === 'ignorar')>{{ __('importaciones.action_ignore') }}</option>
+                                        <option value="ignorar" @selected($col['accion'] === 'ignorar' && ($col['rol_contacto'] ?? 'ninguno') === 'ninguno')>{{ __('importaciones.action_ignore') }}</option>
                                     </select>
                                 </td>
                                 {{-- Una columna de teléfonos suele guardarse además como campo
@@ -281,12 +288,13 @@
             @php
                 $mapeadasSistema = collect($columnas)->filter(fn($c) => $c['accion'] === 'mapear_sistema')->count();
                 $crearCP = collect($columnas)->filter(fn($c) => $c['accion'] === 'crear_cp')->count();
-                $ignoradas = collect($columnas)->filter(fn($c) => $c['accion'] === 'ignorar')->count();
+                $ignoradas = collect($columnas)->filter(fn($c) => $c['accion'] === 'ignorar' && ($c['rol_contacto'] ?? 'ninguno') === 'ninguno')->count();
+                $contactosImportados = collect($columnas)->filter(fn($c) => ($c['rol_contacto'] ?? 'ninguno') !== 'ninguno')->count();
                 $tieneIdPersona = collect($columnas)->filter(fn($c) => $c['es_identificador_persona'])->count() > 0;
                 $tieneIdCaso = collect($columnas)->filter(fn($c) => ($c['es_identificador_caso'] ?? false))->count() > 0;
             @endphp
 
-            <div class="flex items-center gap-4 text-xs text-ink-600">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-600">
                 <span class="inline-flex items-center gap-1">
                     <span class="inline-block w-2 h-2 rounded-full bg-brand-500"></span>
                     {{ __('importaciones.mapped_to_system', ['count' => $mapeadasSistema]) }}
@@ -299,6 +307,7 @@
                     <span class="inline-block w-2 h-2 rounded-full bg-ink-300"></span>
                     {{ __('importaciones.ignored', ['count' => $ignoradas]) }}
                 </span>
+                <span>{{ __('importaciones.contact_columns', ['count' => $contactosImportados]) }}</span>
                 @if(! $tieneIdPersona)
                     <span class="text-warning-700 font-medium">{{ __('importaciones.warn_no_persona_id') }}</span>
                 @endif

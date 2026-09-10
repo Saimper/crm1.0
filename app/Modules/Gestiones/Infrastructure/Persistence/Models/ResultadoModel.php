@@ -23,6 +23,7 @@ final class ResultadoModel extends Model
         'activo' => 'boolean',
         'orden' => 'integer',
         'es_contacto_efectivo' => 'boolean',
+        'es_no_contactado' => 'boolean',
         'requiere_compromiso' => 'boolean',
         'requiere_causa' => 'boolean',
         'metadata' => 'array',

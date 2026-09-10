@@ -394,6 +394,72 @@ final class ImportarUnificadoTest extends TestCase
     }
 
     /** @return array{0: stdClass, 1: User} */
+    public function test_predefined_email_and_contact_headers_import_contacts_without_custom_field_permission(): void
+    {
+        [$project] = $this->contextoCobranza();
+        $portfolio = $this->crearCarteraEn($project);
+        $this->crearEstadoCasoEn($project, 'ABIERTO');
+        $csv = "Identificacion,Nombres,Correo,Contacto,Teléfono 2,Email 2\n1700000765,Ana,ana@example.test,61234567,62345678,work@example.test\n";
+        $component = Livewire::test(Importar::class)->set('carteraId', (int) $portfolio->id)
+            ->set('archivo', UploadedFile::fake()->createWithContent('contacts.csv', $csv))
+            ->call('subirArchivo')->assertHasNoErrors();
+        $columns = $component->get('columnas');
+        $this->assertSame(['ninguno', 'ninguno', 'correo', 'telefono', 'telefono', 'correo'], array_column($columns, 'rol_contacto'));
+        $component->call('confirmarMapeo')->assertHasNoErrors()->call('ejecutar')->assertHasNoErrors();
+        $personId = DB::table('personas')->where('proyecto_id', $project->id)->where('identificacion', '1700000765')->value('id');
+        $this->assertNotNull($personId);
+        foreach (['ana@example.test', 'work@example.test', '61234567', '62345678'] as $contact) {
+            $this->assertDatabaseHas('contactos', ['proyecto_id' => $project->id, 'persona_id' => $personId, 'valor' => $contact]);
+        }
+        $this->assertDatabaseHas('importaciones', ['id' => $component->get('importacionId'), 'procesadas' => 1, 'estado' => 'completada']);
+    }
+
+    public function test_manual_destinations_match_unknown_headers_and_reject_duplicate_or_foreign_target_fields(): void
+    {
+        [$project] = $this->contextoCobranza();
+        $portfolio = $this->crearCarteraEn($project);
+        $this->crearEstadoCasoEn($project, 'ABIERTO');
+        $component = Livewire::test(Importar::class)->set('carteraId', (int) $portfolio->id)
+            ->set('archivo', UploadedFile::fake()->createWithContent('manual.csv', "DOC_X,CLIENTE_X,BUZON_X\n1700000766,Luisa,luisa@example.test\n"))
+            ->call('subirArchivo')
+            ->call('seleccionarDestino', 0, 'sistema:identificacion')
+            ->call('seleccionarDestino', 1, 'sistema:nombres')
+            ->call('seleccionarDestino', 2, 'sistema:nombres')->assertHasErrors('columnas')
+            ->call('seleccionarDestino', 2, 'sistema:categoria_ticket_codigo')->assertHasErrors('columnas')
+            ->call('seleccionarDestino', 2, 'contacto:correo')->assertHasNoErrors()
+            ->call('confirmarMapeo')->assertHasNoErrors()->call('ejecutar')->assertHasNoErrors();
+        $this->assertDatabaseHas('personas', ['proyecto_id' => $project->id, 'identificacion' => '1700000766', 'nombres' => 'Luisa']);
+        $this->assertDatabaseHas('contactos', ['proyecto_id' => $project->id, 'valor' => 'luisa@example.test']);
+        $this->assertDatabaseHas('importaciones', ['id' => $component->get('importacionId'), 'procesadas' => 1]);
+    }
+
+    public function test_disabled_portfolio_cannot_be_used_for_a_new_import(): void
+    {
+        [$project] = $this->contextoCobranza();
+        $portfolio = $this->crearCarteraEn($project);
+        DB::table('carteras')->where('id', $portfolio->id)->update(['activo' => false]);
+        Livewire::test(Importar::class)->set('carteraId', (int) $portfolio->id)
+            ->set('archivo', UploadedFile::fake()->createWithContent('disabled.csv', "Identificacion,Nombres\n1700000767,Ana\n"))
+            ->call('subirArchivo')->assertStatus(422);
+        $this->assertDatabaseMissing('personas', ['proyecto_id' => $project->id, 'identificacion' => '1700000767']);
+    }
+
+    public function test_portfolio_disabled_after_mapping_rejects_rows_when_the_worker_runs(): void
+    {
+        [$project] = $this->contextoCobranza();
+        $portfolio = $this->crearCarteraEn($project);
+        $this->crearEstadoCasoEn($project, 'ABIERTO');
+        $component = Livewire::test(Importar::class)->set('carteraId', (int) $portfolio->id)
+            ->set('archivo', UploadedFile::fake()->createWithContent('pending.csv', "Identificacion,Nombres,Correo\n1700000768,Ana,paused@example.test\n"))
+            ->call('subirArchivo')->call('confirmarMapeo')->assertHasNoErrors();
+        DB::table('carteras')->where('id', $portfolio->id)->update(['activo' => false]);
+        $component->call('ejecutar');
+        $this->assertDatabaseMissing('personas', ['proyecto_id' => $project->id, 'identificacion' => '1700000768']);
+        $this->assertDatabaseMissing('contactos', ['proyecto_id' => $project->id, 'valor' => 'paused@example.test']);
+        $this->assertDatabaseHas('importaciones', ['id' => $component->get('importacionId'), 'estado' => 'fallida', 'procesadas' => 0]);
+        $this->assertStringContainsString('cartera no está activa', (string) DB::table('importaciones')->where('id', $component->get('importacionId'))->value('error_global'));
+    }
+
     private function contextoCobranza(): array
     {
         $proyecto = $this->crearProyectoCobranza();
