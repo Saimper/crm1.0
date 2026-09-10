@@ -1,5 +1,29 @@
 # Local UI and operational review — 2026-09-09
 
+## GitHub PR handoff — 2026-09-10
+
+Objective: publish the completed local fixes for Joel to review and merge.
+The user authorized this publication after the local implementation stage.
+
+| Milestone | Status | Evidence / next action |
+| --- | --- | --- |
+| Verify branch and local checks | Completed | Clean working tree; fetched `origin/main` has no commits absent from this branch. Existing full-suite and final regression logs were verified. |
+| Publish the review branch and open the PR | Completed | [PR #19](https://github.com/Saimper/crm1.0/pull/19), from `djneftali:fix/local-administration-catalogs-imports` into `Saimper:main`. |
+| Document the deployment handoff | Completed | PR includes both migrations, validation evidence, compatibility behavior, and manual channel/result/permission configuration. |
+| Review and production deployment | Pending — Joel | Review the PR and GitHub checks, then merge when ready. The existing workflow deploys only after a push to `main` passes CI. |
+
+The PR includes implementation commit `6ea69f0` and the earlier production-parity
+audit documentation. No production deployment or production data change was
+performed during this publication. The workflow already handles database
+backup, migrations, base role/permission seeders, assets, caches, queue restart,
+PHP-FPM reload, and the application healthcheck. The administrator still needs
+to choose each project's channel/type restrictions and supervisor grants after
+deployment. Do not run demo seeders or copy local operational data.
+
+Publication is complete. Next: Joel reviews
+[PR #19](https://github.com/Saimper/crm1.0/pull/19) and its checks before merging.
+Usage, remaining-context, and cost counters are unavailable in this session.
+
 ## Local administration, catalogs, and imports — 2026-09-10
 
 Objective: implement the user's reported local administration failures and
