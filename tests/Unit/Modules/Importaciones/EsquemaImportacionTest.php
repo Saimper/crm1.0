@@ -18,6 +18,25 @@ use PHPUnit\Framework\TestCase;
 
 final class EsquemaImportacionTest extends TestCase
 {
+    public function test_two_headers_cannot_overwrite_the_same_native_destination(): void
+    {
+        $schema = new EsquemaImportacion(TargetImportacion::PERSONA, 1, null, ModoImportacion::UPSERT, [
+            $this->crearColumna('Nombre A', campoSistema: 'nombres', accion: AccionColumna::MAPEAR_SISTEMA),
+            $this->crearColumna('Nombre B', campoSistema: 'nombres', accion: AccionColumna::MAPEAR_SISTEMA),
+        ]);
+        $this->expectException(ColisionCodigosCampoException::class);
+        $schema->validar();
+    }
+
+    public function test_native_destination_must_belong_to_the_import_target(): void
+    {
+        $schema = new EsquemaImportacion(TargetImportacion::PERSONA, 1, null, ModoImportacion::UPSERT, [
+            $this->crearColumna('Saldo', campoSistema: 'saldo_total', accion: AccionColumna::MAPEAR_SISTEMA),
+        ]);
+        $this->expectException(EsquemaInvalidoException::class);
+        $schema->validar();
+    }
+
     private function crearColumna(
         string $nombre,
         TipoCampo $tipo = TipoCampo::TEXTO_CORTO,

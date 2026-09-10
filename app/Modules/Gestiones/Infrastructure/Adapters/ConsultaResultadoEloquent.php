@@ -19,6 +19,7 @@ final class ConsultaResultadoEloquent implements ConsultaResultado
             esContactoEfectivo: (bool) $row->es_contacto_efectivo,
             requiereCompromiso: (bool) $row->requiere_compromiso,
             requiereCausa: (bool) $row->requiere_causa,
+            esNoContactado: (bool) $row->es_no_contactado,
         );
     }
 }

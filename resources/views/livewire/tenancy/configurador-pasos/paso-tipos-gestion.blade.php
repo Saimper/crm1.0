@@ -94,6 +94,7 @@
                     <tr>
                         <th style="width:160px;">{{ __('configurador.campo_codigo') }}</th>
                         <th>{{ __('common.name') }}</th>
+                        <th>{{ __('configurador.tipos_gestion.canales_permitidos') }}</th>
                         <th class="num" style="width:70px;">{{ __('configurador.campo_orden') }}</th>
                         <th style="width:110px;">{{ __('configurador.campo_estado') }}</th>
                         <th style="width:60px;"></th>
@@ -104,6 +105,7 @@
                         <tr wire:key="paso-tipo-{{ $t->id }}" wire:click="abrirFormEditar({{ $t->id }})">
                             <td><span class="font-mono text-sm">{{ $t->codigo }}</span></td>
                             <td><span class="font-medium">{{ $t->nombre }}</span></td>
+                            <td class="text-sm">{{ isset($canalesPorTipo[$t->id]) ? $canalesPorTipo[$t->id]->pluck('nombre')->join(', ') : __('configurador.tipos_gestion.todos_canales') }}</td>
                             <td class="num">{{ $t->orden }}</td>
                             <td>
                                 <span class="inline-flex items-center gap-1.5">
@@ -160,6 +162,18 @@
                         </div>
                     </div>
                 </div>
+                <fieldset class="mt-4 space-y-2">
+                    <legend class="field-label">{{ __('configurador.tipos_gestion.canales_permitidos') }}</legend>
+                    <p class="text-sm text-ink-600">{{ __('configurador.tipos_gestion.canales_ayuda') }}</p>
+                    @foreach($canales as $canal)
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" wire:model="form.canales" value="{{ $canal->canal_id }}" />
+                            <span>{{ $canal->etiqueta ?? $canal->nombre_global }}</span>
+                        </label>
+                    @endforeach
+                    @error('form.canales')<div class="field-error">{{ $message }}</div>@enderror
+                    @error('form.canales.*')<div class="field-error">{{ $message }}</div>@enderror
+                </fieldset>
             </div>
             <div class="drawer-footer">
                 @if($editandoId !== null)

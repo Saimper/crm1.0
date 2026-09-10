@@ -6,6 +6,7 @@ namespace App\Modules\Asignaciones\Application\UseCases;
 
 use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
 use App\Modules\Notificaciones\Application\Services\GeneradorNotificaciones;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\ConnectionInterface;
 
 /**
@@ -44,6 +45,7 @@ final readonly class ReasignarAsignacionAUsuario
     public function execute(int $proyectoId, int $asignacionId, int $nuevoUsuarioId): void
     {
         $asignacion = $this->db->table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos($this->db, $proyectoId)->select('c.id'))
             ->where('id', $asignacionId)
             ->where('proyecto_id', $proyectoId)
             ->first();
@@ -75,6 +77,7 @@ final readonly class ReasignarAsignacionAUsuario
 
         $this->db->transaction(function () use ($asignacionId, $proyectoId, $cambios): void {
             $this->db->table('asignaciones')
+                ->whereIn('caso_id', CarterasOperativas::casos($this->db, $proyectoId)->select('c.id'))
                 ->where('id', $asignacionId)
                 ->where('proyecto_id', $proyectoId)
                 ->whereIn('estado', self::ESTADOS_REASIGNABLES)

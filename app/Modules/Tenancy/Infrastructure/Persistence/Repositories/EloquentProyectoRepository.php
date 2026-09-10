@@ -63,10 +63,9 @@ final class EloquentProyectoRepository implements ProyectoRepository
 
     public function existePorCodigoEnMandante(int $mandanteId, CodigoProyecto $codigo): bool
     {
-        return ProyectoModel::query()
+        return ProyectoModel::withTrashed()
             ->where('mandante_id', $mandanteId)
             ->where('codigo', $codigo->asString())
-            ->whereNull('eliminada_en')
             ->exists();
     }
 

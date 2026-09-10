@@ -35,6 +35,7 @@ final class RolPermisoSeeder extends Seeder
         // determina la tabla pivote usuario_mandante_rol y la evaluación en
         // User::tienePermiso (ruta mandante).
         'ADMIN_MANDANTE' => [
+            'carteras.ver', 'carteras.crear', 'carteras.editar', 'carteras.eliminar',
             // Bandera del rol
             'mandante.administrar',
             // Proyectos del mandante
@@ -74,6 +75,7 @@ final class RolPermisoSeeder extends Seeder
             'entidades.ver', 'entidades.crear', 'entidades.editar', 'entidades.eliminar',
         ],
         'SUPERVISOR' => [
+            'carteras.ver',
             // Gestiones
             'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar', 'gestiones.exportar',
             // Compromisos

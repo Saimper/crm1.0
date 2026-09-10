@@ -33,7 +33,7 @@
 
         <div>
             <label for="gestion-type" class="block text-xs font-medium text-ink-700">{{ __('casos.field_gestion_type') }}</label>
-            <select wire:model.live="tipoGestionId" id="gestion-type"
+            <select wire:model.live="tipoGestionId" id="gestion-type" @disabled($canalId === null)
                     class="select mt-1">
                 <option value="">—</option>
                 @foreach($tiposGestion as $t)
@@ -67,7 +67,7 @@
             </select>
         </div>
 
-        @if(! $esContactoEfectivo && $resultadoId)
+        @if($esNoContactado && $resultadoId)
             <div>
                 <label for="gestion-reason" class="block text-xs font-medium text-ink-700">{{ __('casos.field_no_contact_reason') }}</label>
                 <select wire:model="motivoNoContactoId" id="gestion-reason"
@@ -77,6 +77,7 @@
                         <option value="{{ $m->id }}">{{ $m->nombre }}</option>
                     @endforeach
                 </select>
+                @error('motivoNoContactoId')<div class="field-error">{{ $message }}</div>@enderror
             </div>
         @endif
 

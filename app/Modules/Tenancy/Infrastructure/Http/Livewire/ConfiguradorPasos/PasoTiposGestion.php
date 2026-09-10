@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos;
 
+use App\Modules\Tenancy\Application\UseCases\ConfigurarCanalesTipoGestion;
 use App\Modules\Tenancy\Infrastructure\Persistence\Models\ProyectoModel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use stdClass;
 
@@ -28,12 +30,14 @@ use stdClass;
  */
 final class PasoTiposGestion extends Component
 {
+    #[Locked]
     public ProyectoModel $proyecto;
 
     public string $busqueda = '';
 
     public bool $formVisible = false;
 
+    #[Locked]
     public ?int $editandoId = null;
 
     /** @var array<string, mixed> */
@@ -42,6 +46,7 @@ final class PasoTiposGestion extends Component
         'nombre' => '',
         'orden' => 0,
         'activo' => true,
+        'canales' => [],
     ];
 
     public function mount(ProyectoModel $proyecto): void
@@ -164,7 +169,7 @@ final class PasoTiposGestion extends Component
     {
         $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
         $this->editandoId = null;
-        $this->form = ['codigo' => '', 'nombre' => '', 'orden' => 0, 'activo' => true];
+        $this->form = ['codigo' => '', 'nombre' => '', 'orden' => 0, 'activo' => true, 'canales' => []];
         $this->formVisible = true;
         $this->resetErrorBag();
     }
@@ -188,6 +193,8 @@ final class PasoTiposGestion extends Component
             'nombre' => (string) $row->nombre,
             'orden' => (int) $row->orden,
             'activo' => (bool) $row->activo,
+            'canales' => DB::table('canal_tipo_gestion')->where('proyecto_id', (int) $this->proyecto->id)
+                ->where('tipo_gestion_id', $id)->pluck('canal_id')->map(fn ($id): string => (string) $id)->all(),
         ];
         $this->formVisible = true;
         $this->resetErrorBag();
@@ -200,7 +207,7 @@ final class PasoTiposGestion extends Component
         $this->resetErrorBag();
     }
 
-    public function guardar(): void
+    public function guardar(ConfigurarCanalesTipoGestion $canales): void
     {
         $this->authorize('proyectos.configurar', (int) $this->proyecto->id);
 
@@ -209,6 +216,8 @@ final class PasoTiposGestion extends Component
             'form.nombre' => ['required', 'string', 'max:150'],
             'form.orden' => ['required', 'integer', 'min:0'],
             'form.activo' => ['required', 'boolean'],
+            'form.canales' => ['array'],
+            'form.canales.*' => ['integer', 'distinct'],
         ], [], [
             'form.codigo' => 'código',
             'form.nombre' => 'nombre',
@@ -239,16 +248,17 @@ final class PasoTiposGestion extends Component
             'actualizada_en' => Carbon::now(),
         ];
 
-        if ($this->editandoId === null) {
-            $payload['proyecto_id'] = $proyectoId;
-            $payload['creada_en'] = Carbon::now();
-            DB::table('tipos_gestion')->insert($payload);
-        } else {
-            DB::table('tipos_gestion')
-                ->where('id', $this->editandoId)
-                ->where('proyecto_id', $proyectoId)
-                ->update($payload);
-        }
+        DB::transaction(function () use ($payload, $proyectoId, $canales): void {
+            if ($this->editandoId === null) {
+                $tipoId = (int) DB::table('tipos_gestion')->insertGetId($payload + [
+                    'proyecto_id' => $proyectoId, 'creada_en' => Carbon::now(),
+                ]);
+            } else {
+                $tipoId = $this->editandoId;
+                DB::table('tipos_gestion')->where('id', $tipoId)->where('proyecto_id', $proyectoId)->update($payload);
+            }
+            $canales->execute($proyectoId, $tipoId, array_map('intval', $this->form['canales'] ?? []));
+        });
 
         $this->cerrarForm();
         session()->flash('paso-tipos-gestion-ok', 'Tipo de gestión guardado.');
@@ -337,6 +347,9 @@ final class PasoTiposGestion extends Component
         return view('livewire.tenancy.configurador-pasos.paso-tipos-gestion', [
             'canales' => $this->canalesDelProyecto(),
             'tipos' => $tipos,
+            'canalesPorTipo' => DB::table('canal_tipo_gestion as ctg')
+                ->join('canales as c', 'c.id', '=', 'ctg.canal_id')->where('ctg.proyecto_id', $proyectoId)
+                ->orderBy('c.nombre')->get(['ctg.tipo_gestion_id', 'c.nombre'])->groupBy('tipo_gestion_id'),
         ]);
     }
 }

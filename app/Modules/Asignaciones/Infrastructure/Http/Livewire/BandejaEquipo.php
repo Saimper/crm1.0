@@ -7,6 +7,7 @@ namespace App\Modules\Asignaciones\Infrastructure\Http\Livewire;
 use App\Models\User;
 use App\Modules\Asignaciones\Application\UseCases\ReasignarAsignacionAUsuario;
 use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +70,7 @@ final class BandejaEquipo extends Component
         $nuevaPrioridad = max(0, min(9, $nuevaPrioridad));
 
         DB::table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
             ->where('id', $asignacionId)
             ->where('proyecto_id', $proyectoId)
             ->update(['prioridad' => $nuevaPrioridad]);
@@ -100,6 +102,7 @@ final class BandejaEquipo extends Component
         // hay forma de saber que la cuenta acaba de volver a circulación, que es
         // justo lo que hay que contarle al supervisor.
         $estabaCerrada = DB::table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
             ->where('id', $asignacionId)
             ->where('proyecto_id', $proyectoId)
             ->value('estado') === 'cerrada';
@@ -196,7 +199,8 @@ final class BandejaEquipo extends Component
                 ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
                 ->where('a.proyecto_id', $proyectoId)
                 ->whereIn('a.usuario_id', $usuariosQuery)
-                ->whereNull('c.eliminada_en');
+                ->whereNull('c.eliminada_en')
+                ->where(fn ($q) => CarterasOperativas::filtrar($q));
 
             if ($this->estadoFiltro !== 'todos') {
                 $query->where('a.estado', $this->estadoFiltro);
@@ -233,6 +237,7 @@ final class BandejaEquipo extends Component
                 ->paginate(25);
 
             $conteoPorEstado = DB::table('asignaciones')
+                ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
                 ->where('proyecto_id', $proyectoId)
                 ->whereIn('usuario_id', $miembroIds)
                 ->selectRaw('estado, count(*) as total')
@@ -241,6 +246,7 @@ final class BandejaEquipo extends Component
 
             $conteoPorMiembro = DB::table('asignaciones as a')
                 ->join('users as u', 'u.id', '=', 'a.usuario_id')
+                ->whereIn('a.caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
                 ->where('a.proyecto_id', $proyectoId)
                 ->whereIn('a.usuario_id', $miembroIds)
                 ->selectRaw('u.id, u.name, a.estado, count(*) as total')

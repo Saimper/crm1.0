@@ -9,6 +9,7 @@ use App\Modules\Importaciones\Domain\Catalogo\CampoSistema;
 use App\Modules\Importaciones\Domain\Catalogo\CatalogoCamposSistema;
 use App\Modules\Importaciones\Domain\Catalogo\SinonimosCampoSistema;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
+use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 
 /**
@@ -58,6 +59,7 @@ final readonly class InferirEsquemaDesdeHeaders
             $tipoInferido = $this->inferidor->inferir($valoresColumna);
 
             $campoMapeado = $this->buscarMatchSistema($header, $mapaSistema);
+            $rolContacto = RolContacto::desdeEncabezado($header);
 
             // Dos columnas no pueden alimentar el mismo campo del sistema: la segunda
             // sobrescribiría a la primera en columnasParaSistema(). La degradamos a
@@ -74,7 +76,9 @@ final readonly class InferirEsquemaDesdeHeaders
                 $accion = AccionColumna::MAPEAR_SISTEMA;
                 $camposTomados[$campoMapeado] = $header;
             } else {
-                $accion = AccionColumna::CREAR_CP;
+                $accion = $rolContacto === RolContacto::NINGUNO
+                    ? AccionColumna::CREAR_CP
+                    : AccionColumna::IGNORAR;
             }
 
             $columnas[] = new ColumnaExcel(
@@ -83,6 +87,7 @@ final readonly class InferirEsquemaDesdeHeaders
                 campoSistemaMapeado: $campoMapeado,
                 esIdentificadorPersona: false,
                 accion: $accion,
+                rolContacto: $rolContacto,
             );
         }
 
@@ -128,7 +133,9 @@ final readonly class InferirEsquemaDesdeHeaders
             return $campo->codigo;
         }
 
-        return SinonimosCampoSistema::buscar($header);
+        $codigo = SinonimosCampoSistema::buscar($header);
+
+        return $codigo !== null && isset($mapaSistema[$this->normalizar($codigo)]) ? $codigo : null;
     }
 
     /**

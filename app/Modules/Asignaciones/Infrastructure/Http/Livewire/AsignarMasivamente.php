@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Asignaciones\Infrastructure\Http\Livewire;
 
 use App\Modules\Asignaciones\Application\UseCases\AsignarCasosAEquipo;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -82,6 +83,7 @@ final class AsignarMasivamente extends Component
             ->where('c.proyecto_id', $proyectoId)
             ->whereNull('c.cerrado_en')
             ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q))
             ->count();
 
         $miembrosActivos = null;

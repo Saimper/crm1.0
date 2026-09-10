@@ -8,6 +8,7 @@ use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
 use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -123,6 +124,7 @@ final class VistaDeTrabajo extends Component
             ->where('c.proyecto_id', $proyectoId)
             ->where('c.persona_id', $persona->id)
             ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q))
             ->select([
                 'c.id', 'c.public_id', 'c.tipo_caso', 'c.prioridad',
                 'c.cartera_id', 'c.fecha_ingreso', 'c.cerrado_en',

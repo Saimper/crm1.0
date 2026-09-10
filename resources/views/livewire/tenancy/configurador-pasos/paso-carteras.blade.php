@@ -12,10 +12,12 @@
             <x-ui.search-input wire:model.live.debounce.300ms="busqueda"
                                placeholder="{{ __('common.search') }}…" />
             <x-slot:acciones>
+                @if($puedeCrear)
                 <button type="button" wire:click="abrirFormCrear" class="btn btn-primary">
                     <x-ui.icon name="plus" :size="14" />
                     <span>{{ __('configurador.carteras.nueva') }}</span>
                 </button>
+                @endif
             </x-slot:acciones>
         </x-ui.toolbar>
 
@@ -43,7 +45,7 @@
                 </thead>
                 <tbody>
                     @foreach($carteras as $c)
-                        <tr wire:key="paso-cartera-{{ $c->id }}" wire:click="abrirFormEditar({{ $c->id }})">
+                        <tr wire:key="paso-cartera-{{ $c->id }}" @if($puedeEditar) wire:click="abrirFormEditar({{ $c->id }})" @endif>
                             <td><span class="font-mono text-sm">{{ $c->codigo }}</span></td>
                             <td><span class="font-medium">{{ $c->nombre }}</span></td>
                             <td><span class="text-sm text-ink-600">{{ $c->descripcion ?? '—' }}</span></td>
@@ -54,7 +56,15 @@
                                     {{ $c->activo ? __('configurador.carteras.activa') : __('configurador.carteras.inactiva') }}
                                 </span>
                             </td>
-                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
+                            <td>
+                                @if($puedeEliminar)
+                                    <button type="button" wire:click.stop="eliminarCartera({{ $c->id }})"
+                                            wire:confirm="{{ __('configurador.carteras.confirm_eliminar') }}"
+                                            class="btn btn-ghost text-danger-600">{{ __('common.delete') }}</button>
+                                @elseif($puedeEditar)
+                                    <x-ui.icon name="chevron-right" :size="14" />
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -102,7 +112,7 @@
                 </div>
             </div>
             <div class="drawer-footer">
-                @if($editandoId !== null)
+                @if($editandoId !== null && $puedeEliminar)
                     <button type="button"
                             wire:click="eliminarCartera({{ $editandoId }})"
                             wire:confirm="{{ __('configurador.carteras.confirm_eliminar') }}"

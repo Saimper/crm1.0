@@ -309,13 +309,17 @@ final class ExportarGestionesTest extends TestCase
             canalId: $cascada['canal_id'],
             tipoGestionId: $cascada['tipo_gestion_id'],
             resultadoId: $cascada['resultado_id'],
-            motivoNoContactoId: $cascada['motivo_no_contacto_id'],
+            motivoNoContactoId: null,
             causaId: $cascada['causa_id'],
             usuarioId: (int) $usuario->id,
             notas: $notas,
             duracion: $duracion === null ? null : new DuracionSegundos($duracion),
             creadaEn: new DateTimeImmutable($creadaEn ?? Carbon::now('UTC')->toDateTimeString()),
         ));
+
+        // Historical rows may predate the explicit no-contact result flag.
+        DB::table('gestiones')->where('public_id', $publicId)
+            ->update(['motivo_no_contacto_id' => $cascada['motivo_no_contacto_id']]);
 
         return $publicId;
     }

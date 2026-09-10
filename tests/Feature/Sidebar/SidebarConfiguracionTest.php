@@ -16,10 +16,11 @@ use Tests\TestCase;
  * Regresión de sidebar tras la consolidación F36 P8.
  *
  * El wizard "Configurar proyecto" absorbe los flujos de definición de
- * Carteras, Catálogos comunes (estados/tipos gestión/resultados/motivos),
+ * Catálogos comunes (estados/tipos gestión/resultados/motivos),
  * Catálogos tipo-específicos y Campos personalizados. Los links directos
  * del sidebar de proyecto a esas rutas se eliminan; solo queda
- * "Configurar proyecto" como puerta de entrada para ADMIN_GLOBAL.
+ * "Configurar proyecto" as the catalog entry point. Portfolios also have a
+ * dedicated route for users with independent portfolio permissions.
  */
 final class SidebarConfiguracionTest extends TestCase
 {
@@ -32,7 +33,7 @@ final class SidebarConfiguracionTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_admin_global_ve_solo_configurar_proyecto_y_no_carteras_directo(): void
+    public function test_admin_global_ve_configurador_y_acceso_directo_a_carteras(): void
     {
         [$proyecto, $admin] = $this->escenarioAdmin();
 
@@ -44,7 +45,7 @@ final class SidebarConfiguracionTest extends TestCase
             route('admin.proyectos.configurar.editar', ['proyecto' => $proyecto->public_id]),
             false,
         );
-        $resp->assertDontSee(
+        $resp->assertSee(
             '/proyectos/'.$proyecto->id.'/carteras',
             false,
         );

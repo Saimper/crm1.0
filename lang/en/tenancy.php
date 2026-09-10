@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'confirm_delete_mandante' => 'Delete this client and remove its projects from operations? History will be retained.',
     'autoasignacion' => 'Self-assign on interaction',
     'autoasignacion_ayuda' => 'When an agent works an unassigned account, it becomes theirs. When off, only the supervisor assigns.',
     'accion_editar' => 'Edit details',
@@ -114,7 +115,7 @@ return [
     'baja_proyecto_titulo' => 'Taking the project down',
     'deactivate_hint_proyecto' => 'Pauses it. It stays on this list and can be switched back on whenever you want.',
     'archive_hint_proyecto' => 'Pulls it out of administration and the project picker. Nobody can enter it, and there is no way back.',
-    'btn_archive' => 'Archive',
+    'btn_archive' => 'Delete',
     'confirm_deactivate_proyecto' => 'Deactivate this project? It stops operating, but stays here and you can reactivate it.',
     'confirm_archive_proyecto' => 'Archive this project? It disappears from administration and from the project picker, and nobody can enter it again. Nothing is deleted —its cases and interactions are kept— but unarchiving is no longer done from this screen.',
     'flash_proyecto_guardado' => 'Project saved.',

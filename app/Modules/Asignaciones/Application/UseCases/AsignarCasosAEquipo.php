@@ -6,6 +6,7 @@ namespace App\Modules\Asignaciones\Application\UseCases;
 
 use App\Modules\Asignaciones\Application\DTOs\AsignacionMasivaResultado;
 use App\Modules\Notificaciones\Application\Services\GeneradorNotificaciones;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
@@ -68,6 +69,7 @@ final readonly class AsignarCasosAEquipo
             ->where('c.proyecto_id', $proyectoId)
             ->whereNull('c.cerrado_en')
             ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q))
             ->select(['c.id'])
             ->orderBy('c.id');
 

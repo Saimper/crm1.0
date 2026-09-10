@@ -164,7 +164,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
                 ->middleware('can:importaciones.crear')
                 ->name('proyectos.importaciones.plantilla');
 
-            // /proyectos/{id}/catalogos y /carteras eliminadas en F36 P9 — los flujos
+            Route::view('/carteras', 'tenancy::carteras-page')
+                ->middleware('can:carteras.ver')
+                ->name('proyectos.carteras');
+
+            // /proyectos/{id}/catalogos eliminada en F36 P9 — los flujos
             // de definición se centralizaron en el wizard "Configurar proyecto".
             Route::view('/usuarios', 'usuarios::admin.gestion-usuarios-proyecto-page')
                 ->middleware('can:usuarios.gestionar')

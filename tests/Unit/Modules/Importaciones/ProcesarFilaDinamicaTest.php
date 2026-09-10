@@ -30,6 +30,17 @@ use PHPUnit\Framework\TestCase;
 
 final class ProcesarFilaDinamicaTest extends TestCase
 {
+    private function builderWithActivePortfolio(): Builder
+    {
+        $builder = $this->createMock(Builder::class);
+        $builder->method('where')->willReturnSelf();
+        $builder->method('whereNull')->willReturnSelf();
+        $builder->method('whereExists')->willReturnSelf();
+        $builder->method('exists')->willReturn(true);
+
+        return $builder;
+    }
+
     private function crearColumna(
         string $nombre,
         TipoCampo $tipo = TipoCampo::TEXTO_CORTO,
@@ -68,7 +79,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
     private function configurarDbParaNuevoCaso(ConnectionInterface $db): void
     {
         $db->method('table')->willReturnCallback(function (string $table): mixed {
-            $builder = $this->createMock(Builder::class);
+            $builder = $this->builderWithActivePortfolio();
             $builder->method('where')->willReturnSelf();
             $builder->method('orderBy')->willReturnSelf();
 
@@ -88,7 +99,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
      */
     private function configurarDbParaCasoExistente(ConnectionInterface $db): void
     {
-        $builder = $this->createMock(Builder::class);
+        $builder = $this->builderWithActivePortfolio();
         $builder->method('where')->willReturnSelf();
         $builder->method('value')->willReturn(99);
 
@@ -104,6 +115,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(42);
 
+        $db = $this->createMock(ConnectionInterface::class);
+        $this->configurarDbParaNuevoCaso($db);
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
             $this->createMock(RegistrarPersona::class),
@@ -111,7 +124,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(RegistrarCasoTicketCx::class),
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
-            $this->createMock(ConnectionInterface::class),
+            $db,
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
@@ -139,7 +152,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver->method('lookup')->willReturn(null);
 
         $db = $this->createMock(ConnectionInterface::class);
-        $db->method('table')->willReturn($this->createMock(Builder::class));
+        $db->method('table')->willReturn($this->builderWithActivePortfolio());
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -223,7 +236,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(10);
 
-        $builder = $this->createMock(Builder::class);
+        $builder = $this->builderWithActivePortfolio();
         $builder->method('where')->willReturnSelf();
         $builder->method('value')->willReturn(99);
 
@@ -267,7 +280,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(10);
 
-        $builder = $this->createMock(Builder::class);
+        $builder = $this->builderWithActivePortfolio();
         $builder->method('where')->willReturnSelf();
         $builder->method('value')->willReturn(99);
 
@@ -310,6 +323,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
 
         $db = $this->createMock(ConnectionInterface::class);
+        $this->configurarDbParaNuevoCaso($db);
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -344,6 +358,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver->method('lookup')->willReturn(42);
 
         $db = $this->createMock(ConnectionInterface::class);
+        $this->configurarDbParaNuevoCaso($db);
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -379,6 +394,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver->method('lookup')->willReturn(null);
 
         $db = $this->createMock(ConnectionInterface::class);
+        $this->configurarDbParaNuevoCaso($db);
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -469,7 +485,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(10);
 
-        $builder = $this->createMock(Builder::class);
+        $builder = $this->builderWithActivePortfolio();
         $builder->method('where')->willReturnSelf();
         $builder->method('value')->willReturn(99);
 

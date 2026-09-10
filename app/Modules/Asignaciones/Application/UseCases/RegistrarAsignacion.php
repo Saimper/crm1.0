@@ -8,6 +8,7 @@ use App\Modules\Asignaciones\Application\DTOs\RegistrarAsignacionInput;
 use App\Modules\Asignaciones\Domain\Contracts\AsignacionRepository;
 use App\Modules\Asignaciones\Domain\Entities\Asignacion;
 use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -24,6 +25,10 @@ final readonly class RegistrarAsignacion
             throw new TransicionAsignacionInvalida(
                 'Esta cuenta ya tiene una asignación en el proyecto.'
             );
+        }
+
+        if (! CarterasOperativas::casos($this->db, $input->proyectoId)->where('c.id', $input->casoId)->exists()) {
+            throw new TransicionAsignacionInvalida('La cuenta ya no está disponible para asignar.');
         }
 
         $asignacion = Asignacion::registrar(

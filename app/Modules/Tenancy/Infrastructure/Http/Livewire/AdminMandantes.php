@@ -6,6 +6,7 @@ namespace App\Modules\Tenancy\Infrastructure\Http\Livewire;
 
 use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
 use App\Modules\Tenancy\Application\DTOs\RegistrarMandanteInput;
+use App\Modules\Tenancy\Application\UseCases\AdministrarDisponibilidad;
 use App\Modules\Tenancy\Application\UseCases\RegistrarMandante;
 use App\Modules\Tenancy\Domain\Exceptions\CodigoMandanteDuplicado;
 use App\Modules\Tenancy\Domain\ValueObjects\CodigoMandante;
@@ -115,7 +116,7 @@ final class AdminMandantes extends Component
         $codigoFinal = GeneradorCodigo::resolverConflicto(
             $codigoBase,
             function (string $candidato): bool {
-                $q = MandanteModel::query()->where('codigo', $candidato);
+                $q = MandanteModel::withTrashed()->where('codigo', $candidato);
                 if ($this->editandoId !== null) {
                     $q->where('id', '!=', $this->editandoId);
                 }
@@ -187,6 +188,18 @@ final class AdminMandantes extends Component
 
         MandanteModel::query()->where('id', $id)->update(['activo' => true]);
         session()->flash('admin-mandantes-ok', 'Mandante activado.');
+    }
+
+    public function eliminar(int $id, AdministrarDisponibilidad $disponibilidad): void
+    {
+        $this->soloAdminGlobal();
+        DB::transaction(function () use ($id, $disponibilidad): void {
+            $disponibilidad->eliminarMandante($id);
+            DB::table('personal_access_tokens')
+                ->where('name', EmitirSanctumTokenDesdeJwt::nombreDeToken($id))->delete();
+        });
+        $this->cerrarForm();
+        session()->flash('admin-mandantes-ok', 'Mandante eliminado. Su historial se conserva.');
     }
 
     public function render(): View

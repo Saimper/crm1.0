@@ -34,6 +34,7 @@
                     <tr>
                         <th style="width:160px;">{{ __('configurador.campo_codigo') }}</th>
                         <th>{{ __('common.name') }}</th>
+                        <th>{{ __('configurador.resultados.no_contactado') }}</th>
                         <th style="width:90px;">{{ __('configurador.resultados.col_compromiso') }}</th>
                         <th style="width:70px;">{{ __('configurador.resultados.col_causa') }}</th>
                         <th style="width:90px;">{{ __('configurador.resultados.col_contacto_efectivo') }}</th>
@@ -47,6 +48,7 @@
                         <tr wire:key="paso-resultado-{{ $r->id }}" wire:click="abrirFormEditar({{ $r->id }})">
                             <td><span class="font-mono text-sm">{{ $r->codigo }}</span></td>
                             <td><span class="font-medium">{{ $r->nombre }}</span></td>
+                            <td>{{ $r->es_no_contactado ? __('configurador.resultados.si') : '—' }}</td>
                             <td>
                                 @if($r->requiere_compromiso)
                                     <span class="badge badge-warning">{{ __('configurador.resultados.si') }}</span>
@@ -121,6 +123,11 @@
                             <input type="checkbox" wire:model="form.es_contacto_efectivo"/>
                             <span class="text-base text-ink-600">{{ __('configurador.resultados.es_contacto_efectivo') }}</span>
                         </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" wire:model="form.es_no_contactado"/>
+                            <span class="text-base text-ink-600">{{ __('configurador.resultados.es_no_contactado') }}</span>
+                        </label>
+                        @error('form.es_no_contactado')<div class="field-error">{{ $message }}</div>@enderror
                         <label class="flex items-center gap-2">
                             <input type="checkbox" wire:model="form.requiere_compromiso"/>
                             <span class="text-base text-ink-600">{{ __('configurador.resultados.requiere_compromiso') }}</span>

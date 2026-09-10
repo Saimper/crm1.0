@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Tenancy\Infrastructure\Http\Livewire;
 
 use App\Modules\Tenancy\Application\DTOs\RegistrarProyectoInput;
+use App\Modules\Tenancy\Application\UseCases\AdministrarDisponibilidad;
 use App\Modules\Tenancy\Application\UseCases\RegistrarProyecto;
 use App\Modules\Tenancy\Domain\Exceptions\CodigoProyectoDuplicadoEnMandante;
 use App\Modules\Tenancy\Domain\ValueObjects\CodigoProyecto;
@@ -148,7 +149,7 @@ final class AdminProyectos extends Component
         $codigoFinal = GeneradorCodigo::resolverConflicto(
             $codigoBase,
             function (string $candidato) use ($mandanteId): bool {
-                $q = ProyectoModel::query()
+                $q = ProyectoModel::withTrashed()
                     ->where('mandante_id', $mandanteId)
                     ->where('codigo', $candidato);
                 if ($this->editandoId !== null) {
@@ -242,7 +243,7 @@ final class AdminProyectos extends Component
      * Se marca `eliminada_en` y no se borra la fila (§4): del `proyecto_id`
      * cuelga la operación entera, y una gestión no se borra nunca (§13.11).
      */
-    public function archivar(int $id): void
+    public function archivar(int $id, AdministrarDisponibilidad $disponibilidad): void
     {
         $row = ProyectoModel::query()->find($id);
         if ($row === null) {
@@ -254,10 +255,7 @@ final class AdminProyectos extends Component
         // tendrá que reactivarlo a mano en vez de encontrarse el proyecto
         // operando otra vez por sorpresa. Por otro, las consultas que sólo miran
         // esa bandera y no el borrado lógico tampoco lo dejarán entrar.
-        ProyectoModel::query()->where('id', $id)->update([
-            'activo' => false,
-            'eliminada_en' => now(),
-        ]);
+        $disponibilidad->eliminarProyecto($id);
 
         $this->cerrarForm();
         session()->flash('admin-proyectos-ok', __('tenancy.flash_proyecto_archivado'));

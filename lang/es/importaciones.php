@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'contact_columns' => ':count columnas de contactos',
+    'mapping_destination' => 'Destino de la columna',
+    'native_fields' => 'Campos predeterminados',
+    'contact_fields' => 'Contactos de la persona',
     'col_rol_contacto' => 'Genera contactos',
     'rol_contacto' => [
         'ninguno' => '—',

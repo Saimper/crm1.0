@@ -15,6 +15,7 @@ use App\Modules\Venta\Domain\Entities\CasoLeadVenta;
 use App\Modules\Venta\Domain\Exceptions\CodigoLeadYaRegistrado;
 use App\Modules\Venta\Domain\ValueObjects\CodigoLead;
 use App\Modules\Venta\Domain\ValueObjects\ValorEstimadoVenta;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
@@ -34,6 +35,8 @@ readonly class RegistrarCasoLeadVenta
 
     public function execute(RegistrarCasoLeadVentaInput $input): RegistrarCasoLeadVentaOutput
     {
+        CarterasOperativas::exigirCartera($this->db, $input->proyectoId, $input->carteraId);
+
         if ($this->ventaRepo->existeCodigoEnProyecto($input->proyectoId, $input->codigoLead)) {
             throw new CodigoLeadYaRegistrado(
                 "Código de lead '{$input->codigoLead}' ya registrado en el proyecto {$input->proyectoId}."

@@ -15,6 +15,7 @@ use App\Modules\Cx\Domain\Entities\CasoTicketCx;
 use App\Modules\Cx\Domain\Exceptions\CodigoTicketYaRegistrado;
 use App\Modules\Cx\Domain\ValueObjects\AsuntoTicket;
 use App\Modules\Cx\Domain\ValueObjects\CodigoTicket;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
@@ -35,6 +36,8 @@ readonly class RegistrarCasoTicketCx
 
     public function execute(RegistrarCasoTicketCxInput $input): RegistrarCasoTicketCxOutput
     {
+        CarterasOperativas::exigirCartera($this->db, $input->proyectoId, $input->carteraId);
+
         if ($this->cxRepo->existeCodigoEnProyecto($input->proyectoId, $input->codigoTicket)) {
             throw new CodigoTicketYaRegistrado(
                 "Código de ticket '{$input->codigoTicket}' ya registrado en el proyecto {$input->proyectoId}."

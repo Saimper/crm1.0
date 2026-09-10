@@ -9,6 +9,7 @@ use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
 use App\Modules\Asignaciones\Application\UseCases\CerrarAsignacion;
 use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\Asignaciones\Domain\Exceptions\TransicionAsignacionInvalida;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
@@ -110,6 +111,7 @@ final class Bandeja extends Component
         $usuarioId = (int) auth()->id();
 
         $asignacion = DB::table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
             ->where('id', $asignacionId)
             ->where('proyecto_id', $proyectoId)
             ->where('usuario_id', $usuarioId)
@@ -147,7 +149,8 @@ final class Bandeja extends Component
             ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
             ->where('a.proyecto_id', $proyectoId)
             ->where('a.usuario_id', $usuarioId)
-            ->whereNull('c.eliminada_en');
+            ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q));
 
         if ($this->estadoFiltro !== 'todos') {
             $query->where('a.estado', $this->estadoFiltro);
@@ -182,6 +185,7 @@ final class Bandeja extends Component
             ->paginate(20);
 
         $conteoPorEstado = DB::table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
             ->where('proyecto_id', $proyectoId)
             ->where('usuario_id', $usuarioId)
             ->selectRaw('estado, count(*) as total')
@@ -210,6 +214,7 @@ final class Bandeja extends Component
         $consulta = DB::table('casos as c')
             ->where('c.proyecto_id', $proyectoId)
             ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q))
             ->whereNotExists(fn (Builder $q) => $q
                 ->from('asignaciones as asg')
                 ->whereColumn('asg.caso_id', 'c.id')
@@ -261,6 +266,7 @@ final class Bandeja extends Component
             ->paginate(20);
 
         $conteoPorEstado = DB::table('asignaciones')
+            ->whereIn('caso_id', CarterasOperativas::casos(DB::connection(), $proyectoId)->select('c.id'))
             ->where('proyecto_id', $proyectoId)
             ->where('usuario_id', (int) auth()->id())
             ->selectRaw('estado, count(*) as total')

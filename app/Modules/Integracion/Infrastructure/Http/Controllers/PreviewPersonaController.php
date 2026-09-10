@@ -6,6 +6,7 @@ namespace App\Modules\Integracion\Infrastructure\Http\Controllers;
 
 use App\Models\User;
 use App\Modules\Integracion\Application\UseCases\EmitirSanctumTokenDesdeJwt;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +63,7 @@ final class PreviewPersonaController
                 $sub->select('id')->from('personas')->where('public_id', $persona->public_id);
             })
             ->whereNull('c.eliminada_en')
+            ->where(fn ($q) => CarterasOperativas::filtrar($q))
             ->select('c.public_id', 'c.tipo_caso', 'ec.nombre as estado')
             ->get();
 

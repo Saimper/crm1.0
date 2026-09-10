@@ -35,6 +35,18 @@ final class CatalogoCamposSistema
         return [...self::camposPersona(), ...self::camposDelTarget($target)];
     }
 
+    /** @return list<CampoSistema> */
+    public static function paraPlantilla(TargetImportacion $target): array
+    {
+        return [
+            ...self::paraTarget($target),
+            new CampoSistema('correo', 'Correo electrónico', false, 'string', null,
+                'Se agrega a los contactos de la persona. Puedes añadir correo_2, correo_3, etc.', false, 'persona@example.test'),
+            new CampoSistema('contacto', 'Teléfono de contacto', false, 'string', null,
+                'Se agrega a los contactos de la persona. Puedes añadir telefono_2, telefono_3, etc.', false, '61234567'),
+        ];
+    }
+
     /**
      * Identidad de persona: común a todos los targets.
      *

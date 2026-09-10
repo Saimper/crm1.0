@@ -222,6 +222,63 @@ final class Importar extends Component
         }
     }
 
+    public function seleccionarDestino(int $index, string $destino): void
+    {
+        $this->autorizarEn('importaciones.crear');
+        if (! isset($this->columnas[$index])) {
+            return;
+        }
+
+        $target = $this->target();
+        if ($target === null) {
+            return;
+        }
+
+        $field = null;
+        $role = RolContacto::NINGUNO;
+        if (str_starts_with($destino, 'sistema:')) {
+            $field = substr($destino, 8);
+            $available = array_column(CatalogoCamposSistema::paraTarget($target), 'codigo');
+            if (! in_array($field, $available, true)) {
+                $this->addError('columnas', 'Selecciona un campo disponible para esta operación.');
+
+                return;
+            }
+            foreach ($this->columnas as $otherIndex => $column) {
+                if ($otherIndex !== $index && $column['accion'] === AccionColumna::MAPEAR_SISTEMA->value
+                    && $column['campo_sistema_mapeado'] === $field) {
+                    $this->addError('columnas', 'Ese campo ya recibe otra columna. Cambia primero su destino.');
+
+                    return;
+                }
+            }
+            $action = AccionColumna::MAPEAR_SISTEMA;
+        } elseif (str_starts_with($destino, 'contacto:')) {
+            $role = RolContacto::tryFrom(substr($destino, 9)) ?? RolContacto::NINGUNO;
+            if ($role === RolContacto::NINGUNO) {
+                return;
+            }
+            $action = AccionColumna::IGNORAR;
+        } else {
+            $action = AccionColumna::tryFrom($destino);
+            if ($action === null || $action === AccionColumna::MAPEAR_SISTEMA) {
+                return;
+            }
+        }
+
+        $this->resetErrorBag('columnas');
+        $this->columnas[$index]['accion'] = $action->value;
+        $this->columnas[$index]['campo_sistema_mapeado'] = $field;
+        $this->columnas[$index]['rol_contacto'] = $role->value;
+        if ($field !== 'identificacion' && $this->columnas[$index]['es_identificador_persona']) {
+            $this->columnas[$index]['es_identificador_persona'] = false;
+            $this->columnaIdentificadorNombre = '';
+        }
+        if ($field === 'identificacion') {
+            $this->marcarComoIdentificador($this->columnas[$index]['nombre_original']);
+        }
+    }
+
     public function marcarComoIdentificador(string $nombreOriginal): void
     {
         foreach ($this->columnas as $i => $col) {
@@ -521,7 +578,7 @@ final class Importar extends Component
         $target = $this->target();
 
         $carteras = $target !== TargetImportacion::PERSONA
-            ? DB::table('carteras')->where('proyecto_id', $proyectoId)->where('activo', true)->orderBy('nombre')->get()
+            ? DB::table('carteras')->where('proyecto_id', $proyectoId)->where('activo', true)->whereNull('eliminada_en')->orderBy('nombre')->get()
             : collect();
 
         $progreso = null;
@@ -730,6 +787,9 @@ final class Importar extends Component
     {
         if ($this->carteraId !== null) {
             $this->exigirDelProyecto('carteras', $this->carteraId);
+            abort_unless(DB::table('carteras')->where('id', $this->carteraId)
+                ->where('proyecto_id', $this->proyectoId())->where('activo', true)->whereNull('eliminada_en')->exists(),
+                422, 'Selecciona una cartera activa.');
         }
     }
 

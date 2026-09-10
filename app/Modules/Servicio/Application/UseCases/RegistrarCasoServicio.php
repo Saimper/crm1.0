@@ -14,6 +14,7 @@ use App\Modules\Servicio\Domain\Contracts\CasoServicioRepository;
 use App\Modules\Servicio\Domain\Entities\CasoServicio;
 use App\Modules\Servicio\Domain\Exceptions\CodigoServicioYaRegistrado;
 use App\Modules\Servicio\Domain\ValueObjects\CodigoServicio;
+use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
@@ -30,6 +31,8 @@ readonly class RegistrarCasoServicio
 
     public function execute(RegistrarCasoServicioInput $input): RegistrarCasoServicioOutput
     {
+        CarterasOperativas::exigirCartera($this->db, $input->proyectoId, $input->carteraId);
+
         if ($this->servicioRepo->existeCodigoEnProyecto($input->proyectoId, $input->codigoServicio)) {
             throw new CodigoServicioYaRegistrado(
                 "Código de servicio '{$input->codigoServicio}' ya registrado en el proyecto {$input->proyectoId}."
