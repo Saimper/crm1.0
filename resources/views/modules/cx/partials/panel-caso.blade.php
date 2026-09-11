@@ -1,63 +1,53 @@
 @php
     /** @var object|null $ticket */
+    $tonoPrioridad = fn (?string $codigo): string => match (strtoupper((string) $codigo)) {
+        'URGENTE' => 'danger',
+        'ALTA', 'MEDIA' => 'warning',
+        default => 'success',
+    };
 @endphp
 
 @if($ticket)
-    <div class="rounded-md border border-brand-100 bg-brand-50 p-4 space-y-3">
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <div class="text-[10px] uppercase tracking-wider text-brand-700">{{ __('cx.panel_label') }}</div>
-                <div class="text-lg font-semibold text-brand-900 font-mono">{{ $ticket->codigo_ticket }}</div>
-                <div class="text-sm text-brand-900 mt-0.5">{{ $ticket->asunto }}</div>
-            </div>
-            @if($ticket->prioridad_nombre)
-                @php
-                    $badge = match (strtoupper((string) $ticket->prioridad_codigo)) {
-                        'URGENTE' => 'bg-danger-50 text-danger-700',
-                        'ALTA'    => 'bg-warning-50 text-warning-800',
-                        'MEDIA'   => 'bg-warning-50 text-warning-700',
-                        default   => 'bg-success-50 text-success-800',
-                    };
-                @endphp
-                <span class="inline-block rounded px-2 py-1 text-xs font-medium {{ $badge }}">
-                    {{ $ticket->prioridad_nombre }}
-                </span>
-            @endif
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="min-w-0">
+            <div class="label-xs">{{ __('cx.panel_label') }}</div>
+            <div class="font-mono text-4xl font-semibold text-ink mt-0.5 truncate">{{ $ticket->codigo_ticket }}</div>
+            <div class="text-md text-ink mt-1">{{ $ticket->asunto }}</div>
         </div>
-
-        @if($ticket->descripcion)
-            <div class="text-xs text-brand-900/80 whitespace-pre-line">{{ $ticket->descripcion }}</div>
+        @if($ticket->prioridad_nombre)
+            <x-ui.badge :tone="$tonoPrioridad($ticket->prioridad_codigo)">{{ $ticket->prioridad_nombre }}</x-ui.badge>
         @endif
+    </div>
 
-        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div>
-                <dt class="text-brand-700">{{ __('cx.categoria') }}</dt>
-                <dd class="font-medium text-brand-900">{{ $ticket->categoria_nombre ?? '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-brand-700">{{ __('cx.sla') }}</dt>
-                <dd class="font-medium text-brand-900">{{ $ticket->sla_nombre ?? '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-brand-700">{{ __('cx.escalamiento') }}</dt>
-                <dd class="font-medium text-brand-900">{{ $ticket->escalamiento_nombre ?? 'N1' }}</dd>
-            </div>
-            <div>
-                <dt class="text-brand-700">{{ __('cx.reportado') }}</dt>
-                <dd class="font-medium text-brand-900">
-                    {{ hora_local($ticket->fecha_reporte) }}
+    @if($ticket->descripcion)
+        <div class="mt-3 text-sm text-ink-600 whitespace-pre-line">{{ $ticket->descripcion }}</div>
+    @endif
+
+    <dl class="mt-4 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-y-3.5 gap-x-5">
+        <div>
+            <dt class="text-xs text-ink-500">{{ __('cx.categoria') }}</dt>
+            <dd class="text-md font-medium text-ink mt-0.5">{{ $ticket->categoria_nombre ?? '—' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs text-ink-500">{{ __('cx.sla') }}</dt>
+            <dd class="text-md font-medium text-ink mt-0.5">{{ $ticket->sla_nombre ?? '—' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs text-ink-500">{{ __('cx.escalamiento') }}</dt>
+            <dd class="text-md font-medium text-ink mt-0.5">{{ $ticket->escalamiento_nombre ?? 'N1' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs text-ink-500">{{ __('cx.reportado') }}</dt>
+            <dd class="font-mono text-md font-medium text-ink mt-0.5">{{ hora_local($ticket->fecha_reporte) }}</dd>
+        </div>
+        @if($ticket->fecha_limite_sla)
+            <div class="col-span-full">
+                <dt class="text-xs text-ink-500">{{ __('cx.limite_sla') }}</dt>
+                <dd class="font-mono text-md font-semibold text-ink mt-0.5">
+                    {{ hora_local($ticket->fecha_limite_sla) }}
+                    <span class="font-sans text-xs font-normal text-ink-500">· {{ hace_cuanto($ticket->fecha_limite_sla) }}</span>
                 </dd>
             </div>
-            @if($ticket->fecha_limite_sla)
-                <div class="col-span-2 sm:col-span-4">
-                    <dt class="text-brand-700">{{ __('cx.limite_sla') }}</dt>
-                    <dd class="font-semibold text-brand-900">
-                        {{ hora_local($ticket->fecha_limite_sla) }}
-                        @php $diff = \Illuminate\Support\Carbon::parse($ticket->fecha_limite_sla)->diffForHumans(); @endphp
-                        <span class="text-[10px] text-brand-700">· {{ $diff }}</span>
-                    </dd>
-                </div>
-            @endif
-        </dl>
-    </div>
+        @endif
+    </dl>
 @endif

@@ -1,317 +1,297 @@
 {{-- El atajo iba en `.window`, así que también disparaba mientras se escribía
      en el panel de entidades vinculadas, que es otro componente Livewire vivo
-     en la misma pantalla. Acotado al formulario, y con Cmd para macOS. --}}
-<div class="bg-white border border-ink-200 rounded-lg p-4"
+     en la misma pantalla. Acotado al formulario, y con Cmd para macOS.
+
+     La raíz es la que hace scroll cuando la columna va pegada (≥1536px): así la
+     barra de guardar queda siempre a la vista, con los campos condicionales
+     desplegados o sin ellos. --}}
+<div class="flex flex-col flex-1 min-h-0 2xl:overflow-y-auto"
      x-data
      @keydown.ctrl.enter="$wire.guardar()"
      @keydown.meta.enter="$wire.guardar()">
 
-    <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('casos.gestion_title') }}</h3>
+    <div class="px-[18px] py-4 flex flex-col gap-3.5">
         @if(session('nueva-gestion-ok'))
-            <div class="text-xs text-success-700 bg-success-50 border border-success-200 rounded px-2 py-1"
-                 x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false, 3000)">
+            <div class="alert alert-success text-sm" x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false, 3000)">
                 {{ session('nueva-gestion-ok') }}
             </div>
         @endif
-    </div>
+        @error('general')<div class="alert alert-danger text-sm">{{ $message }}</div>@enderror
 
-    @error('general')<div class="mt-2 text-xs text-danger-700 bg-danger-50 border border-danger-200 rounded px-2 py-1">{{ $message }}</div>@enderror
-
-    <div class="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
+        {{-- Canal: chips, no desplegable. Son pocos y se eligen de un vistazo. --}}
         <div>
-            <label for="gestion-channel" class="block text-xs font-medium text-ink-700">{{ __('casos.field_channel') }}</label>
-            <select wire:model.live="canalId" id="gestion-channel"
-                    class="select mt-1">
-                <option value="">—</option>
+            <span class="field-label" id="gestion-channel-label">{{ __('casos.field_channel') }}</span>
+            <div class="flex gap-1.5 flex-wrap" role="group" aria-labelledby="gestion-channel-label" id="gestion-channel">
                 @foreach($canales as $c)
-                    <option value="{{ $c->id }}">{{ $c->nombre }}</option>
+                    <button type="button" wire:click="elegirCanal({{ (int) $c->id }})" wire:key="canal-{{ $c->id }}"
+                            class="chip {{ (int) $canalId === (int) $c->id ? 'active' : '' }}"
+                            aria-pressed="{{ (int) $canalId === (int) $c->id ? 'true' : 'false' }}">{{ $c->nombre }}</button>
                 @endforeach
-            </select>
-            @error('canalId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+            </div>
+            @error('canalId')<div class="field-error">{{ $message }}</div>@enderror
         </div>
 
-        <div>
-            <label for="gestion-type" class="block text-xs font-medium text-ink-700">{{ __('casos.field_gestion_type') }}</label>
-            <select wire:model.live="tipoGestionId" id="gestion-type" @disabled($canalId === null)
-                    class="select mt-1">
-                <option value="">—</option>
-                @foreach($tiposGestion as $t)
-                    <option value="{{ $t->id }}">{{ $t->nombre }}</option>
-                @endforeach
-            </select>
-            @error('tipoGestionId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-        </div>
-
-        <div>
-            <label for="gestion-result" class="block text-xs font-medium text-ink-700">{{ __('casos.field_result') }}</label>
-            {{-- Deshabilitado hasta que haya tipo: la lista depende de él. --}}
-            <select wire:model.live="resultadoId" id="gestion-result" @disabled($tipoGestionId === null)
-                    class="select mt-1">
-                <option value="">{{ $tipoGestionId === null ? __('casos.pick_type_first') : '—' }}</option>
-                @foreach($resultados as $r)
-                    <option value="{{ $r->id }}">{{ $r->nombre }}</option>
-                @endforeach
-            </select>
-            @error('resultadoId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-        </div>
-
-        <div>
-            <label for="gestion-contact" class="block text-xs font-medium text-ink-700">{{ __('casos.field_contact_used') }}</label>
-            <select wire:model="contactoId" id="gestion-contact"
-                    class="select mt-1">
-                <option value="">—</option>
-                @foreach($contactos as $co)
-                    <option value="{{ $co->id }}">{{ ucfirst($co->tipo) }} · {{ $co->valor }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        @if($esNoContactado && $resultadoId)
+        <div class="grid grid-cols-2 gap-3">
             <div>
-                <label for="gestion-reason" class="block text-xs font-medium text-ink-700">{{ __('casos.field_no_contact_reason') }}</label>
-                <select wire:model="motivoNoContactoId" id="gestion-reason"
-                        class="select mt-1">
-                    <option value="">—</option>
-                    @foreach($motivos as $m)
-                        <option value="{{ $m->id }}">{{ $m->nombre }}</option>
+                <label for="gestion-type" class="field-label">{{ __('casos.field_gestion_type') }}</label>
+                <select wire:model.live="tipoGestionId" id="gestion-type" @disabled($canalId === null)
+                        class="select disabled:bg-surface-100 disabled:text-ink-400">
+                    <option value="">{{ $canalId === null ? __('casos.pick_channel_first') : __('casos.pick_type') }}</option>
+                    @foreach($tiposGestion as $t)
+                        <option value="{{ $t->id }}">{{ $t->nombre }}</option>
                     @endforeach
                 </select>
-                @error('motivoNoContactoId')<div class="field-error">{{ $message }}</div>@enderror
+                @error('tipoGestionId')<div class="field-error">{{ $message }}</div>@enderror
             </div>
-        @endif
 
-        @if($requiereCausa)
             <div>
-                <label for="gestion-cause" class="block text-xs font-medium text-ink-700">
-                    {{ __('casos.field_cause') }} <span class="text-danger-600">*</span>
-                </label>
-                <select wire:model="causaId" id="gestion-cause"
-                        class="select mt-1">
-                    <option value="">—</option>
-                    @foreach($causas as $ca)
-                        <option value="{{ $ca->id }}">{{ $ca->nombre }}</option>
+                <label for="gestion-result" class="field-label">{{ __('casos.field_result') }}</label>
+                {{-- Deshabilitado hasta que haya tipo: la lista depende de él. --}}
+                <select wire:model.live="resultadoId" id="gestion-result" @disabled($tipoGestionId === null)
+                        class="select disabled:bg-surface-100 disabled:text-ink-400">
+                    <option value="">{{ $tipoGestionId === null ? __('casos.pick_type_first') : __('casos.pick_result') }}</option>
+                    @foreach($resultados as $r)
+                        <option value="{{ $r->id }}">{{ $r->nombre }}</option>
                     @endforeach
                 </select>
-                @error('causaId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+                @error('resultadoId')<div class="field-error">{{ $message }}</div>@enderror
             </div>
-        @endif
 
-        <div>
-            <label for="gestion-duration" class="block text-xs font-medium text-ink-700">{{ __('casos.field_duration') }}</label>
-            <input type="number" min="0" step="1" wire:model="duracionSegundos" id="gestion-duration"
-                   class="input mt-1"/>
-        </div>
-    </div>
-
-    {{-- Notas: ancho completo, crece con lo que se escribe hasta ocho líneas, y
-         cuenta lo que queda. Antes eran dos filas fijas para 2.000 caracteres. --}}
-    <div class="mt-3" x-data="{
-            notas: $wire.entangle('notas'),
-            get restantes() { return 2000 - (this.notas ?? '').length },
-            crecer(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 176) + 'px' },
-            pegar(texto) {
-                this.notas = (this.notas ?? '').trim() === '' ? texto : (this.notas.trim() + ' ' + texto);
-                $nextTick(() => this.crecer($refs.notas));
-            },
-         }">
-        <div class="flex items-baseline justify-between">
-            <label for="gestion-notes" class="block text-xs font-medium text-ink-700">{{ __('casos.field_notes') }}</label>
-            <span class="text-[10px]" :class="restantes < 0 ? 'text-danger-600' : 'text-ink-400'" x-text="restantes"></span>
-        </div>
-
-        @if($plantillasNota->isNotEmpty())
-            <div class="mt-1 flex flex-wrap gap-1">
-                @foreach($plantillasNota as $plantilla)
-                    <button type="button" x-on:click="pegar(@js($plantilla->texto))"
-                            class="rounded-full border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600 hover:border-brand-400 hover:text-brand-700">
-                        {{ $plantilla->etiqueta }}
-                    </button>
-                @endforeach
+            <div>
+                <label for="gestion-contact" class="field-label">{{ __('casos.field_contact_used') }}</label>
+                <select wire:model="contactoId" id="gestion-contact" class="select">
+                    <option value="">—</option>
+                    @foreach($contactos as $co)
+                        <option value="{{ $co->id }}">{{ ucfirst($co->tipo) }} · {{ $co->valor }}</option>
+                    @endforeach
+                </select>
             </div>
-        @endif
 
-        <textarea wire:model="notas" id="gestion-notes" x-ref="notas" rows="3" maxlength="2000"
-                  x-init="crecer($el)" x-on:input="crecer($el)"
-                  class="mt-1 block w-full resize-none text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"
-                  placeholder="{{ __('casos.notes_placeholder') }}"></textarea>
-    </div>
+            <div>
+                <label for="gestion-duration" class="field-label">{{ __('casos.field_duration') }}</label>
+                <input type="number" min="0" step="1" wire:model="duracionSegundos" id="gestion-duration" class="input font-mono"/>
+            </div>
 
-    {{-- Campos personalizados ámbito gestion × tipo_gestion. Solo aparecen cuando
-         el tipo seleccionado tiene definiciones; se persisten junto a la gestión. --}}
-    @if($tipoGestionId && $camposGestion->isNotEmpty())
-        <div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
-            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2 text-ink-600" style="letter-spacing:0.06em;">
-                {{ __('casos.custom_fields_title') }}
-            </h4>
-            <div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
-                @foreach($camposGestion as $campo)
+            @if($esNoContactado && $resultadoId)
+                <div class="col-span-full">
+                    <label for="gestion-reason" class="field-label">{{ __('casos.field_no_contact_reason') }}</label>
+                    <select wire:model="motivoNoContactoId" id="gestion-reason" class="select">
+                        <option value="">—</option>
+                        @foreach($motivos as $m)
+                            <option value="{{ $m->id }}">{{ $m->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('motivoNoContactoId')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+            @endif
+
+            @if($requiereCausa)
+                <div class="col-span-full">
+                    <label for="gestion-cause" class="field-label">{{ __('casos.field_cause') }} <span class="text-danger-500">*</span></label>
+                    <select wire:model="causaId" id="gestion-cause" class="select">
+                        <option value="">—</option>
+                        @foreach($causas as $ca)
+                            <option value="{{ $ca->id }}">{{ $ca->nombre }}</option>
+                        @endforeach
+                    </select>
+                    @error('causaId')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+            @endif
+        </div>
+
+        {{-- Bloque de compromiso: sólo cuando el resultado lo exige. Se guarda en
+             la misma transacción que la gestión. Un solo aspecto para los cuatro
+             tipos: el color queda para los estados, no para el tipo de proyecto. --}}
+        @if($requiereCompromiso && $tipoCaso === 'cobranza')
+            <div class="border border-ink-200 rounded-lg px-3.5 pt-3 pb-3.5 bg-surface-50">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-sm font-semibold text-ink">{{ __('casos.promise_title') }}</span>
+                    <span class="text-xs text-ink-500">{{ __('casos.saved_with_gestion') }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="block text-xs font-medium text-ink-700">
-                            {{ $campo->etiqueta }}
-                            @if($campo->obligatorio)<span class="text-danger-600">*</span>@endif
-                        </label>
-
-                        <x-cp.control :campo="$campo" model="valoresCamposGestion.{{ $campo->codigo }}" />
+                        <label class="field-label" for="promesa-monto">{{ __('casos.promise_amount') }} <span class="text-danger-500">*</span></label>
+                        <div class="flex items-stretch h-9 border border-ink-200 rounded-md bg-white overflow-hidden focus-within:border-brand-500 focus-within:shadow-focus">
+                            <span class="px-2.5 text-sm text-ink-500 border-r border-ink-200 flex items-center bg-surface-50">{{ moneda_local() }}</span>
+                            <input type="text" id="promesa-monto" wire:model="promesaMonto" placeholder="{{ numero_local(0) }}"
+                                   class="flex-1 min-w-0 h-full border-0 px-2.5 text-base font-mono focus:outline-none focus:ring-0"/>
+                        </div>
+                        @error('promesaMonto')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
-                @endforeach
-            </div>
-        </div>
-    @endif
-
-
-    @if($requiereCompromiso && $tipoCaso === 'cobranza')
-        <div class="mt-3 rounded-md border border-warning-200 bg-warning-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-warning-700">{{ __('casos.promise_title') }}</div>
-            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-warning-700">
-                        {{ __('casos.promise_amount') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="text" wire:model="promesaMonto" placeholder="{{ numero_local(0) }}"
-                           class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500"/>
-                    @error('promesaMonto')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-warning-700">
-                        {{ __('casos.promise_date') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="date" wire:model="promesaFecha"
-                           class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500"/>
-                    @error('promesaFecha')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-warning-700">{{ __('casos.promise_payment_type') }}</label>
-                    <select wire:model="promesaTipoPagoId"
-                            class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500">
-                        <option value="">—</option>
-                        @foreach($tiposPago as $tp)
-                            <option value="{{ $tp->id }}">{{ $tp->nombre }}</option>
-                        @endforeach
-                    </select>
+                    <div>
+                        <label class="field-label" for="promesa-fecha">{{ __('casos.promise_date') }} <span class="text-danger-500">*</span></label>
+                        <input type="date" id="promesa-fecha" wire:model="promesaFecha" class="input font-mono"/>
+                        @error('promesaFecha')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-span-full">
+                        <label class="field-label" for="promesa-tipo-pago">{{ __('casos.promise_payment_type') }}</label>
+                        <select id="promesa-tipo-pago" wire:model="promesaTipoPagoId" class="select">
+                            <option value="">—</option>
+                            @foreach($tiposPago as $tp)
+                                <option value="{{ $tp->id }}">{{ $tp->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if($requiereCompromiso && $tipoCaso === 'lead_venta')
-        <div class="mt-3 rounded-md border border-success-200 bg-success-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-success-800">{{ __('casos.close_title') }}</div>
-            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-success-700">
-                        {{ __('casos.close_amount') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="text" wire:model="cierreMonto" placeholder="{{ numero_local(0) }}"
-                           class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500"/>
-                    @error('cierreMonto')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+        @if($requiereCompromiso && $tipoCaso === 'lead_venta')
+            <div class="border border-ink-200 rounded-lg px-3.5 pt-3 pb-3.5 bg-surface-50">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-sm font-semibold text-ink">{{ __('casos.close_title') }}</span>
+                    <span class="text-xs text-ink-500">{{ __('casos.saved_with_gestion') }}</span>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-success-700">
-                        {{ __('casos.close_estimated_date') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="date" wire:model="cierreFechaEstimada"
-                           class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500"/>
-                    @error('cierreFechaEstimada')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-success-700">{{ __('casos.close_funnel_stage') }}</label>
-                    <select wire:model="cierreEtapaEmbudoId"
-                            class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500">
-                        <option value="">—</option>
-                        @foreach($etapasEmbudo as $ee)
-                            <option value="{{ $ee->id }}">{{ $ee->nombre }} ({{ $ee->probabilidad_cierre }}%)</option>
-                        @endforeach
-                    </select>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="field-label" for="cierre-monto">{{ __('casos.close_amount') }} <span class="text-danger-500">*</span></label>
+                        <div class="flex items-stretch h-9 border border-ink-200 rounded-md bg-white overflow-hidden focus-within:border-brand-500 focus-within:shadow-focus">
+                            <span class="px-2.5 text-sm text-ink-500 border-r border-ink-200 flex items-center bg-surface-50">{{ moneda_local() }}</span>
+                            <input type="text" id="cierre-monto" wire:model="cierreMonto" placeholder="{{ numero_local(0) }}"
+                                   class="flex-1 min-w-0 h-full border-0 px-2.5 text-base font-mono focus:outline-none focus:ring-0"/>
+                        </div>
+                        @error('cierreMonto')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label" for="cierre-fecha">{{ __('casos.close_estimated_date') }} <span class="text-danger-500">*</span></label>
+                        <input type="date" id="cierre-fecha" wire:model="cierreFechaEstimada" class="input font-mono"/>
+                        @error('cierreFechaEstimada')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-span-full">
+                        <label class="field-label" for="cierre-etapa">{{ __('casos.close_funnel_stage') }}</label>
+                        <select id="cierre-etapa" wire:model="cierreEtapaEmbudoId" class="select">
+                            <option value="">—</option>
+                            @foreach($etapasEmbudo as $ee)
+                                <option value="{{ $ee->id }}">{{ $ee->nombre }} ({{ $ee->probabilidad_cierre }}%)</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if($requiereCompromiso && $tipoCaso === 'servicio')
-        <div class="mt-3 rounded-md border border-brand-200 bg-brand-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-brand-800">{{ __('casos.service_action_title') }}</div>
-            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-brand-900">
-                        {{ __('casos.service_action_desc') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="text" wire:model="accionDescripcion" maxlength="500"
-                           placeholder="{{ __('casos.service_action_desc_ph') }}"
-                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
-                    @error('accionDescripcion')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+        @if($requiereCompromiso && $tipoCaso === 'servicio')
+            <div class="border border-ink-200 rounded-lg px-3.5 pt-3 pb-3.5 bg-surface-50">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-sm font-semibold text-ink">{{ __('casos.service_action_title') }}</span>
+                    <span class="text-xs text-ink-500">{{ __('casos.saved_with_gestion') }}</span>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-brand-900">
-                        {{ __('casos.service_scheduled_date') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="datetime-local" wire:model="accionFechaProgramada"
-                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
-                    @error('accionFechaProgramada')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-brand-900">{{ __('casos.service_action_type') }}</label>
-                    <select wire:model="accionTipoAccionId"
-                            class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500">
-                        <option value="">—</option>
-                        @foreach($tiposAccionServicio as $ta)
-                            <option value="{{ $ta->id }}">{{ $ta->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-brand-900">{{ __('casos.service_technician') }}</label>
-                    <input type="text" wire:model="accionTecnicoAsignado" maxlength="150"
-                           placeholder="{{ __('casos.service_technician_ph') }}"
-                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="col-span-full">
+                        <label class="field-label" for="accion-descripcion">{{ __('casos.service_action_desc') }} <span class="text-danger-500">*</span></label>
+                        <input type="text" id="accion-descripcion" wire:model="accionDescripcion" maxlength="500"
+                               placeholder="{{ __('casos.service_action_desc_ph') }}" class="input"/>
+                        @error('accionDescripcion')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label" for="accion-fecha">{{ __('casos.service_scheduled_date') }} <span class="text-danger-500">*</span></label>
+                        <input type="datetime-local" id="accion-fecha" wire:model="accionFechaProgramada" class="input font-mono"/>
+                        @error('accionFechaProgramada')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label" for="accion-tipo">{{ __('casos.service_action_type') }}</label>
+                        <select id="accion-tipo" wire:model="accionTipoAccionId" class="select">
+                            <option value="">—</option>
+                            @foreach($tiposAccionServicio as $ta)
+                                <option value="{{ $ta->id }}">{{ $ta->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-span-full">
+                        <label class="field-label" for="accion-tecnico">{{ __('casos.service_technician') }}</label>
+                        <input type="text" id="accion-tecnico" wire:model="accionTecnicoAsignado" maxlength="150"
+                               placeholder="{{ __('casos.service_technician_ph') }}" class="input"/>
+                    </div>
                 </div>
             </div>
-        </div>
-    @endif
+        @endif
 
-    @if($requiereCompromiso && $tipoCaso === 'ticket_cx')
-        <div class="mt-3 rounded-md border border-brand-100 bg-brand-50 p-3">
-            <div class="text-xs font-semibold uppercase tracking-wider text-brand-700">{{ __('casos.resolution_title') }}</div>
-            <div class="mt-2 grid grid-cols-[repeat(auto-fit,minmax(min(100%,160px),1fr))] gap-3">
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium text-brand-900">
-                        {{ __('casos.resolution_action') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="text" wire:model="resolucionAccion" maxlength="500"
-                           placeholder="{{ __('casos.resolution_action_ph') }}"
-                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
-                    @error('resolucionAccion')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+        @if($requiereCompromiso && $tipoCaso === 'ticket_cx')
+            <div class="border border-ink-200 rounded-lg px-3.5 pt-3 pb-3.5 bg-surface-50">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-sm font-semibold text-ink">{{ __('casos.resolution_title') }}</span>
+                    <span class="text-xs text-ink-500">{{ __('casos.saved_with_gestion') }}</span>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-brand-900">
-                        {{ __('casos.resolution_deadline') }} <span class="text-danger-600">*</span>
-                    </label>
-                    <input type="datetime-local" wire:model="resolucionFechaLimite"
-                           class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500"/>
-                    @error('resolucionFechaLimite')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                </div>
-                <div class="sm:col-span-3 pt-2 mt-2 border-t border-brand-100">
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-700 mb-1">{{ __('casos.escalation_section') }}</div>
-                    <label class="block text-xs font-medium text-brand-900">{{ __('casos.escalation_level') }}</label>
-                    <select wire:model="resolucionNivelEscalamientoId"
-                            class="mt-1 block w-full text-sm rounded border-brand-300 focus:border-brand-500 focus:ring-brand-500">
-                        <option value="">—</option>
-                        @foreach($nivelesEscalamiento as $ne)
-                            <option value="{{ $ne->id }}">{{ $ne->nombre }}</option>
-                        @endforeach
-                    </select>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="col-span-full">
+                        <label class="field-label" for="resolucion-accion">{{ __('casos.resolution_action') }} <span class="text-danger-500">*</span></label>
+                        <input type="text" id="resolucion-accion" wire:model="resolucionAccion" maxlength="500"
+                               placeholder="{{ __('casos.resolution_action_ph') }}" class="input"/>
+                        @error('resolucionAccion')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label" for="resolucion-fecha">{{ __('casos.resolution_deadline') }} <span class="text-danger-500">*</span></label>
+                        <input type="datetime-local" id="resolucion-fecha" wire:model="resolucionFechaLimite" class="input font-mono"/>
+                        @error('resolucionFechaLimite')<div class="field-error">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="field-label" for="resolucion-nivel">{{ __('casos.escalation_section') }} · {{ __('casos.escalation_level') }}</label>
+                        <select id="resolucion-nivel" wire:model="resolucionNivelEscalamientoId" class="select">
+                            <option value="">—</option>
+                            @foreach($nivelesEscalamiento as $ne)
+                                <option value="{{ $ne->id }}">{{ $ne->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
+        @endif
+
+        {{-- Campos personalizados ámbito gestion × tipo_gestion. Solo aparecen cuando
+             el tipo seleccionado tiene definiciones; se persisten junto a la gestión. --}}
+        @if($tipoGestionId && $camposGestion->isNotEmpty())
+            <div class="pt-3 border-t border-ink-200">
+                <h4 class="text-sm font-semibold text-ink mb-2">{{ __('casos.custom_fields_title') }}</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    @foreach($camposGestion as $campo)
+                        <div @class(['col-span-full' => in_array((string) $campo->tipo, ['texto_largo', 'seleccion_multiple'], true)])>
+                            <label class="field-label">
+                                {{ $campo->etiqueta }}
+                                @if($campo->obligatorio)<span class="text-danger-500">*</span>@endif
+                            </label>
+                            <x-cp.control :campo="$campo" model="valoresCamposGestion.{{ $campo->codigo }}" clase="input" />
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Notas: crece con lo que se escribe hasta ocho líneas y cuenta lo que queda. --}}
+        <div x-data="{
+                notas: $wire.entangle('notas'),
+                get restantes() { return 2000 - (this.notas ?? '').length },
+                crecer(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 176) + 'px' },
+                pegar(texto) {
+                    this.notas = (this.notas ?? '').trim() === '' ? texto : (this.notas.trim() + ' ' + texto);
+                    $nextTick(() => this.crecer($refs.notas));
+                },
+             }">
+            <div class="flex items-baseline justify-between mb-1.5">
+                <label for="gestion-notes" class="field-label mb-0">{{ __('casos.field_notes') }}</label>
+                <span class="text-xs font-mono" :class="restantes < 0 ? 'text-danger-500' : 'text-ink-400'" x-text="restantes"></span>
+            </div>
+
+            @if($plantillasNota->isNotEmpty())
+                <div class="flex gap-1.5 flex-wrap mb-2">
+                    @foreach($plantillasNota as $plantilla)
+                        <button type="button" x-on:click="pegar(@js($plantilla->texto))" class="chip h-6 px-[9px] text-xs">{{ $plantilla->etiqueta }}</button>
+                    @endforeach
+                </div>
+            @endif
+
+            <textarea wire:model="notas" id="gestion-notes" x-ref="notas" rows="3" maxlength="2000"
+                      x-init="crecer($el)" x-on:input="crecer($el)"
+                      class="textarea resize-none min-h-[72px]"
+                      placeholder="{{ __('casos.notes_placeholder') }}"></textarea>
         </div>
-    @endif
+    </div>
 
     {{-- Pegada abajo: con los campos condicionales desplegados el botón se iba
          fuera de pantalla y había que rebuscarlo. --}}
-    <div class="sticky bottom-0 -mx-4 -mb-4 mt-4 flex items-center justify-between gap-3
-                border-t border-ink-200 bg-white/95 px-4 py-3 backdrop-blur">
-        <div class="text-[10px] text-ink-500">{{ __('casos.ctrl_enter_hint') }}</div>
-        <button type="button" wire:click="guardar" wire:loading.attr="disabled"
-                class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-md hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:opacity-60">
+    <div class="sticky bottom-0 mt-auto px-[18px] py-3 border-t border-ink-200 bg-white/95 backdrop-blur rounded-b-lg flex items-center justify-between gap-3">
+        <span class="text-xs text-ink-400">{{ __('casos.ctrl_enter_hint') }}</span>
+        <button type="button" wire:click="guardar" wire:loading.attr="disabled" wire:target="guardar"
+                class="btn btn-primary h-9 px-4 font-semibold disabled:opacity-70">
             <span wire:loading.remove wire:target="guardar">{{ __('casos.submit_gestion') }}</span>
             <span wire:loading wire:target="guardar">{{ __('common.saving') }}</span>
         </button>

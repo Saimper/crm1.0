@@ -61,9 +61,12 @@ final readonly class ConsultaFichaTrabajo
             ->leftJoin('compromisos_cierre_venta as cv', fn ($join) => $join->on('cv.compromiso_id', '=', 'co.id')->on('cv.proyecto_id', '=', 'co.proyecto_id'))
             ->leftJoin('compromisos_resolucion_ticket as rt', fn ($join) => $join->on('rt.compromiso_id', '=', 'co.id')->on('rt.proyecto_id', '=', 'co.proyecto_id'))
             ->leftJoin('compromisos_accion_servicio as sa', fn ($join) => $join->on('sa.compromiso_id', '=', 'co.id')->on('sa.proyecto_id', '=', 'co.proyecto_id'))
+            ->leftJoin('tipos_pago as tp', fn ($join) => $join->on('tp.id', '=', 'pp.tipo_pago_id')->on('tp.proyecto_id', '=', 'co.proyecto_id'))
+            ->leftJoin('users as u', 'u.id', '=', 'co.usuario_id')
             ->where('co.proyecto_id', $proyectoId)->whereIn('co.caso_id', $casos)
             ->where('co.estado', 'pendiente')->whereNull('co.eliminada_en')
-            ->select(['co.id', 'co.public_id', 'co.caso_id', 'co.tipo_compromiso', 'co.fecha_vencimiento'])
+            ->select(['co.id', 'co.public_id', 'co.caso_id', 'co.tipo_compromiso', 'co.fecha_vencimiento',
+                'tp.nombre as tipo_pago_nombre', 'u.name as usuario_nombre'])
             ->selectRaw('COALESCE(pp.monto, cv.monto_cierre) as monto, COALESCE(pp.moneda, cv.moneda) as moneda, COALESCE(rt.accion_comprometida, sa.descripcion_accion) as detalle')
             ->orderBy('co.fecha_vencimiento')->orderBy('co.id')->get();
     }

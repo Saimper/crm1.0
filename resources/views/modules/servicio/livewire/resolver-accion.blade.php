@@ -1,49 +1,31 @@
-<div>
-    <div class="flex items-center gap-2">
-        <button type="button" wire:click="abrir('ejecutada')"
-                class="inline-flex items-center px-3 py-1.5 bg-success-600 text-white text-xs font-medium rounded hover:bg-success-700">
-            {{ __('servicio.btn_ejecutada') }}
-        </button>
-        <button type="button" wire:click="abrir('fallida')"
-                class="inline-flex items-center px-3 py-1.5 bg-danger-600 text-white text-xs font-medium rounded hover:bg-danger-700">
-            {{ __('servicio.btn_fallida') }}
-        </button>
-        <button type="button" wire:click="abrir('cancelada')"
-                class="inline-flex items-center px-3 py-1.5 bg-ink-500 text-white text-xs font-medium rounded hover:bg-ink-600">
-            {{ __('servicio.btn_cancelar') }}
-        </button>
-    </div>
+{{-- Botones de resolver un compromiso pendiente. Van en línea junto a
+     «Editar»: cumplir en verde sólido, romper en rojo sin relleno, cancelar
+     sin peso. El modal pide la fecha de resolución porque el dominio la exige. --}}
+<div class="inline-flex flex-wrap items-center gap-1.5">
+    <button type="button" wire:click="abrir('ejecutada')" class="btn btn-sm btn-success">{{ __('servicio.btn_ejecutada') }}</button>
+    <button type="button" wire:click="abrir('fallida')" class="btn btn-sm btn-secondary text-danger-600 border-danger-200 hover:bg-danger-50">{{ __('servicio.btn_fallida') }}</button>
+    <button type="button" wire:click="abrir('cancelada')" class="btn btn-sm btn-ghost text-ink-500">{{ __('servicio.btn_cancelar') }}</button>
 
     @if(session('accion-resuelta'))
-        <div class="mt-2 text-xs text-success-700 bg-success-50 border border-success-200 rounded px-2 py-1"
-             x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false, 3000)">
+        <span class="text-xs text-success-700" x-data="{show:true}" x-show="show" x-init="setTimeout(()=>show=false, 3000)">
             {{ session('accion-resuelta') }}
-        </div>
+        </span>
     @endif
 
     @if($modalAbierto)
-        <div class="fixed inset-0 z-40 flex items-center justify-center bg-ink-900/40"
-             wire:key="modal-resolver-servicio-{{ $compromisoId }}">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-5">
-                <div class="text-sm font-semibold text-ink-900 mb-2">
-                    {{ __('servicio.modal_title') }} <span class="capitalize">{{ $accion }}</span>
-                </div>
-                <label class="block text-xs font-medium text-ink-700">{{ __('servicio.fecha_resolucion') }}</label>
-                <input type="date" wire:model="fechaResolucion"
-                       class="mt-1 block w-full text-sm rounded border-ink-300 focus:border-brand-500 focus:ring-brand-500"/>
-                @error('fechaResolucion')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
-                @error('accion')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+        <div class="scrim" wire:click="cerrar" wire:key="scrim-resolver-servicio-{{ $compromisoId }}"></div>
+        <div class="modal max-w-[400px] p-5" role="dialog" aria-modal="true" wire:key="modal-resolver-servicio-{{ $compromisoId }}">
+            <div class="text-md font-semibold text-ink mb-3">
+                {{ __('servicio.modal_title') }} <span class="capitalize">{{ $accion }}</span>
+            </div>
+            <label class="field-label" for="fecha-resolver-servicio-{{ $compromisoId }}">{{ __('servicio.fecha_resolucion') }}</label>
+            <input type="date" id="fecha-resolver-servicio-{{ $compromisoId }}" wire:model="fechaResolucion" class="input font-mono"/>
+            @error('fechaResolucion')<div class="field-error">{{ $message }}</div>@enderror
+            @error('accion')<div class="field-error">{{ $message }}</div>@enderror
 
-                <div class="mt-4 flex items-center justify-end gap-2">
-                    <button type="button" wire:click="cerrar"
-                            class="px-3 py-1.5 text-xs text-ink-700 border border-ink-300 rounded hover:bg-ink-50">
-                        {{ __('common.cancel') }}
-                    </button>
-                    <button type="button" wire:click="confirmar"
-                            class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
-                        {{ __('common.confirm') }}
-                    </button>
-                </div>
+            <div class="mt-4 flex items-center justify-end gap-2">
+                <button type="button" wire:click="cerrar" class="btn btn-secondary btn-sm">{{ __('common.cancel') }}</button>
+                <button type="button" wire:click="confirmar" class="btn btn-primary btn-sm">{{ __('common.confirm') }}</button>
             </div>
         </div>
     @endif

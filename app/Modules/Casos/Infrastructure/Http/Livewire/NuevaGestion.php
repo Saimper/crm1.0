@@ -32,6 +32,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Throwable;
 
@@ -123,6 +124,13 @@ final class NuevaGestion extends Component
         $this->updatedTipoGestionId(null);
     }
 
+    /** El canal se elige con chips, no con un desplegable; la cascada es la misma. */
+    public function elegirCanal(int $canalId): void
+    {
+        $this->canalId = $canalId;
+        $this->updatedCanalId();
+    }
+
     public function updatedResultadoId(): void
     {
         $this->motivoNoContactoId = null;
@@ -135,6 +143,26 @@ final class NuevaGestion extends Component
         $this->motivoNoContactoId = null;
         $this->causaId = null;
         $this->valoresCamposGestion = [];
+    }
+
+    /**
+     * «Usar» junto a un contacto de la ficha: rellena el contacto de la gestión
+     * sin ir a buscarlo en el desplegable. Sólo acepta contactos de esta persona,
+     * porque el id lo elige el navegador.
+     */
+    #[On('usar-contacto')]
+    public function usarContacto(int $contactoId): void
+    {
+        $existe = DB::table('contactos')
+            ->where('proyecto_id', (int) app('tenancy.proyecto_activo')->id)
+            ->where('persona_id', $this->personaId)
+            ->where('id', $contactoId)
+            ->where('activo', true)
+            ->exists();
+
+        if ($existe) {
+            $this->contactoId = $contactoId;
+        }
     }
 
     public function guardar(RegistrarGestion $useCase, ServicioCamposPersonalizados $servicioCampos): void

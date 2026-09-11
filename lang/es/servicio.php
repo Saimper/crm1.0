@@ -3,6 +3,9 @@
 return [
     // Panel caso servicio
     'panel_label' => 'Caso de servicio · Servicio técnico',
+    'codigo' => 'Código',
+    'tipo_accion' => 'Tipo de acción',
+    'estado_tecnico' => 'Estado técnico',
     'direccion' => 'Dirección',
     'tecnico_asignado' => 'Técnico asignado',
     'solicitud' => 'Solicitud',

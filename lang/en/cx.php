@@ -3,6 +3,9 @@
 return [
     // Panel caso CX
     'panel_label' => 'CX case · Ticket',
+    'ticket' => 'Ticket',
+    'asunto' => 'Subject',
+    'prioridad' => 'Priority',
     'categoria' => 'Category',
     'sla' => 'SLA',
     'escalamiento' => 'Escalation',
