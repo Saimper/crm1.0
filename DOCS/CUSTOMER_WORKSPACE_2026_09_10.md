@@ -2,8 +2,8 @@
 
 Implementation branch: `feat/customer-workspace-history-settings`.
 Scope: the eight decisions accepted in the September 10 functional review.
-This implementation is prepared for pull-request review; it has not been deployed
-to production.
+Review PR: https://github.com/Saimper/crm1.0/pull/20. This implementation has not
+been deployed to production.
 
 ## Operational model
 

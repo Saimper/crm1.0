@@ -9,7 +9,12 @@ automatic-import-return correction for Joel (`@Saimper`) to review and deploy.
 | --- | --- | --- |
 | Confirm base and scope | Completed | Upstream PR 19 is merged. Upstream main has the same tree as the previously tested base; branch fast-forwarded without changing application code. |
 | Prepare review and deployment notes | Completed | Full scope and three migrations documented in CUSTOMER_WORKSPACE_2026_09_10.md. Existing verification: 1,848 passed / 6,246 assertions; Pint, PHPStan and builds passed. |
-| Publish branch and request Joel's review | In progress | Commit the reviewed files, push to the existing fork, and open the upstream PR against main. |
+| Publish branch and hand off to Joel | Completed | Upstream PR #20 opened against main from the existing fork. Joel (@Saimper) is mentioned in the review/deployment instructions; GitHub denied formal reviewer assignment for the fork author's account. |
+
+PR: https://github.com/Saimper/crm1.0/pull/20. Application commit: `574fb84`.
+The PR is ready for Joel's review; it has not been merged or deployed. Local
+validation remains the completed suite recorded above; GitHub CI is reported
+separately on the PR.
 
 Private backups, recovery scripts and business data remain excluded from Git.
 Production deployment remains with Joel after review. Usage/context/cost counters
