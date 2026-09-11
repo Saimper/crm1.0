@@ -171,7 +171,7 @@ return [
     // Rediseño de la Vista de Trabajo (2026-09): pestañas, resumen y formulario
     'tab_summary' => 'Resumen',
     'tab_history' => 'Historial',
-    'tab_fields' => 'Campos',
+    'tab_fields' => 'Información del cliente',
     'tab_commitments' => 'Compromisos',
     'balance_label' => 'Saldo',
     'days_overdue' => ':days días de mora',

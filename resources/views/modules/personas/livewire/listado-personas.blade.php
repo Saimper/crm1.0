@@ -1,4 +1,15 @@
-<div class="page client-directory">
+<div class="page client-directory" x-data="{
+    menuColumnas: false,
+    columnas: { documento: true, cuenta: true, cartera: false, saldo: true, mora: true, estado: false },
+    claveColumnas: @js('crm-client-columns-v1-'.auth()->id().'-'.app('tenancy.proyecto_activo')->id),
+    init() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(this.claveColumnas) || '{}');
+            Object.keys(this.columnas).forEach(key => { if (typeof saved?.[key] === 'boolean') this.columnas[key] = saved[key]; });
+        } catch (_) {}
+        this.$watch('columnas', value => { try { localStorage.setItem(this.claveColumnas, JSON.stringify(value)); } catch (_) {} });
+    }
+}">
     <div class="page-header">
         <div>
             <h1 class="page-title">Clientes</h1>
@@ -27,6 +38,19 @@
             @if($busqueda !== '' || $tipoPersona !== '')
                 <button type="button" wire:click="limpiarFiltros" class="btn btn-ghost btn-sm">{{ __('personas.clear_filters') }}</button>
             @endif
+            <div class="client-column-picker" x-on:click.outside="menuColumnas = false" x-on:keydown.escape.stop="menuColumnas = false; $refs.columnToggle.focus()">
+                <button type="button" x-ref="columnToggle" class="btn btn-secondary btn-sm" aria-controls="client-column-options" :aria-expanded="menuColumnas" x-on:click="menuColumnas = !menuColumnas" title="Elegir columnas">
+                    <x-ui.icon name="settings" :size="16" /> Columnas
+                </button>
+                <div id="client-column-options" x-show="menuColumnas" x-cloak class="client-column-options">
+                    <p>Columnas visibles</p>
+                    <label><input type="checkbox" checked disabled /> Cliente <span>Siempre visible</span></label>
+                    @foreach(['documento' => 'Documento', 'cuenta' => ucfirst($rotuloCasos), 'cartera' => 'Cartera', 'saldo' => 'Saldo', 'mora' => 'Mora', 'estado' => 'Estado'] as $clave => $etiqueta)
+                        <label><input type="checkbox" x-model="columnas.{{ $clave }}" /> {{ $etiqueta }}</label>
+                    @endforeach
+                    <button type="button" class="btn-link" x-on:click="columnas = { documento: true, cuenta: true, cartera: false, saldo: true, mora: true, estado: false }">Restablecer</button>
+                </div>
+            </div>
             @can('personas.exportar', (int) app('tenancy.proyecto_activo')->id)
                 {{-- Sin wire:navigate: es una descarga, no una pantalla. El href lleva los filtros puestos. --}}
                 <a href="{{ $urlExportar }}" class="btn btn-secondary btn-sm">
@@ -54,11 +78,13 @@
             </div>
         @else
             <div class="overflow-x-auto">
-                <table class="table client-table">
+                <table class="table client-table client-configurable-table">
                     <thead>
                         <tr>
                             <th scope="col">Cliente</th>
-                            <th scope="col"><div class="client-account-grid"><span>{{ ucfirst($rotuloCasos) }}</span><span class="text-right">Saldo</span><span class="text-right">Mora</span><span class="sr-only">Abrir ficha</span></div></th>
+                            @foreach(['documento' => 'Documento', 'cuenta' => ucfirst($rotuloCasos), 'cartera' => 'Cartera', 'saldo' => 'Saldo', 'mora' => 'Mora', 'estado' => 'Estado'] as $clave => $etiqueta)
+                                <th scope="col" x-show="columnas.{{ $clave }}">{{ $etiqueta }}</th>
+                            @endforeach
                         </tr>
                     </thead>
                     <tbody>
@@ -66,40 +92,34 @@
                             @php
                                 $nombre = trim(($p->nombres ?? '').' '.($p->apellidos ?? '')) ?: (string) ($p->razon_social ?? '');
                                 $url = route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $p->public_id]);
+                                $cuentasCliente = $cuentasPorPersona->get($p->id, collect());
                             @endphp
-                            <tr wire:key="persona-{{ $p->id }}">
-                                <td class="client-identity">
+                            <tr wire:key="persona-{{ $p->id }}" class="client-clickable-row"
+                                x-on:click="if (!$event.target.closest('a,button,input,select') && !window.getSelection()?.toString()) { const link = $el.querySelector('.client-name'); if ($event.metaKey || $event.ctrlKey) { window.open(link.href, '_blank', 'noopener'); } else { link.click(); } }">
+                                <td class="client-identity" data-label="Cliente">
                                     <a href="{{ $url }}" wire:navigate class="client-name">{{ $nombre !== '' && $nombre === mb_strtoupper($nombre) ? mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8') : ($nombre ?: '—') }}</a>
-                                    <div class="client-document">{{ $p->tipo_identificacion_codigo }} {{ $p->identificacion }}</div>
-
                                 </td>
-                                <td class="client-accounts">
-                                    <div class="client-account-list">
-                                        @foreach($cuentasPorPersona->get($p->id, collect()) as $cuenta)
-                                            <a href="{{ $url }}?caso={{ $cuenta->public_id }}" wire:navigate
-                                               class="client-account-grid client-account-link">
-                                                <div class="min-w-0">
-                                                    <span class="client-reference">{{ $cuenta->referencia }}</span>
-                                                    <span class="client-account-meta">{{ $cuenta->cartera_nombre }} <span class="client-state">{{ $cuenta->estado_nombre }}</span></span>
-                                                </div>
-                                                <span class="client-balance">
-                                                    @if($cuenta->tipo_caso === 'cobranza')
-                                                        <span class="client-currency">{{ $cuenta->moneda }}</span> {{ $cuenta->saldo_total === null ? '—' : numero_local($cuenta->saldo_total) }}
-                                                    @else
-                                                        <span class="sr-only">No aplica</span>—
-                                                    @endif
-                                                </span>
-                                                <span class="client-overdue">
-                                                    @if($cuenta->tipo_caso === 'cobranza')
-                                                        {{ $cuenta->dias_mora === null ? '—' : numero_local($cuenta->dias_mora, 0).' días' }}
-                                                    @else
-                                                        <span class="sr-only">No aplica</span>—
-                                                    @endif
-                                                </span>
-                                                <x-ui.icon name="chevron-right" :size="14" />
-                                            </a>
-                                        @endforeach
-                                    </div>
+                                <td x-show="columnas.documento" data-label="Documento"><span class="client-document">{{ $p->tipo_identificacion_codigo }} {{ $p->identificacion }}</span></td>
+                                <td x-show="columnas.cuenta" data-label="{{ ucfirst($rotuloCasos) }}">
+                                    @foreach($cuentasCliente as $cuenta)
+                                        <a class="client-column-value client-reference" href="{{ $url }}?caso={{ $cuenta->public_id }}" wire:navigate>{{ $cuenta->referencia }}</a>
+                                    @endforeach
+                                </td>
+                                <td x-show="columnas.cartera" data-label="Cartera">
+                                    @foreach($cuentasCliente as $cuenta)<span class="client-column-value">{{ $cuenta->cartera_nombre }}</span>@endforeach
+                                </td>
+                                <td x-show="columnas.saldo" data-label="Saldo">
+                                    @foreach($cuentasCliente as $cuenta)
+                                        <span class="client-column-value client-balance">{{ $cuenta->tipo_caso === 'cobranza' && $cuenta->saldo_total !== null ? $cuenta->moneda.' '.numero_local($cuenta->saldo_total) : '—' }}</span>
+                                    @endforeach
+                                </td>
+                                <td x-show="columnas.mora" data-label="Mora">
+                                    @foreach($cuentasCliente as $cuenta)
+                                        <span class="client-column-value client-overdue">{{ $cuenta->tipo_caso === 'cobranza' && $cuenta->dias_mora !== null ? numero_local($cuenta->dias_mora, 0).' días' : '—' }}</span>
+                                    @endforeach
+                                </td>
+                                <td x-show="columnas.estado" data-label="Estado">
+                                    @foreach($cuentasCliente as $cuenta)<span class="client-column-value">{{ $cuenta->estado_nombre }}</span>@endforeach
                                 </td>
                             </tr>
                         @endforeach

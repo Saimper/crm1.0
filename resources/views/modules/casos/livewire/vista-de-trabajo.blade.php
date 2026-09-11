@@ -1,7 +1,4 @@
 @php
-    $rotulo = ucfirst($rotuloCaso);
-    $totalCampos = array_sum(array_map(fn (array $g): int => count($g['campos']), $gruposCamposCaso));
-
     $nombreCompromiso = fn (string $tipo): string => match ($tipo) {
         'promesa_pago'      => __('casos.commitment_promise'),
         'cierre_venta'      => __('casos.commitment_close'),
@@ -80,6 +77,64 @@
                     @endforeach
                 </div>
             @endif
+        @if($casoActivo)
+            {{-- ---- Resumen ---- --}}
+            <div id="panel-resumen" aria-label="Resumen" class="workspace-header-summary">
+                @if($compromisoActivo)
+                    <section>
+                        <h3 class="text-base font-semibold text-ink mb-2.5">{{ __('casos.pending_commitment') }}</h3>
+                        <div class="border border-success-200 bg-success-50 rounded-lg px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-semibold text-ink">{{ $nombreCompromiso($compromisoActivo->tipo_compromiso) }}</span>
+
+                                    @if($compromisoActivo->monto !== null)
+                                        <span class="font-mono font-semibold text-ink">{{ $compromisoActivo->moneda }} {{ numero_local($compromisoActivo->monto) }}</span>
+                                    @elseif($compromisoActivo->detalle)
+                                        <span class="text-ink">{{ $compromisoActivo->detalle }}</span>
+                                    @endif
+                                </div>
+                                <div class="text-sm text-ink-600 mt-0.5">
+                                    {{ __('casos.expires_on', ['date' => fecha_local($compromisoActivo->fecha_vencimiento)]) }}
+                                    @if($compromisoActivo->tipo_pago_nombre) · {{ $compromisoActivo->tipo_pago_nombre }} @endif
+
+                                </div>
+                            </div>
+                            @if($puedeGestionarCaso)
+                                <div class="flex gap-1.5 items-center flex-wrap">
+                                    @can('compromisos.crear', $proyectoActivo->id)
+                                        <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
+                                           wire:navigate class="btn btn-secondary btn-sm">{{ __('common.edit') }}</a>
+                                    @endcan
+                                    @include('casos::partials.resolver-compromiso', ['compromiso' => $compromisoActivo, 'clave' => 'resumen'])
+                                </div>
+                            @endif
+                        </div>
+                    </section>
+                @endif
+
+                <section aria-label="Resumen de la cuenta">
+                    @if($casoActivo->tipo_caso === 'cobranza')
+                        <dl class="workspace-balances">
+                            <div><dt>Saldo pendiente</dt><dd>{{ $casoActivo->moneda }} {{ $casoActivo->saldo_total === null ? '—' : numero_local($casoActivo->saldo_total) }}</dd></div>
+                            <div><dt>Mora</dt><dd class="workspace-balance-secondary">{{ $casoActivo->dias_mora === null ? '—' : numero_local($casoActivo->dias_mora, 0).' días' }}</dd></div>
+                            <div><dt>Cuota mensual</dt><dd class="workspace-balance-secondary">{{ $casoCobranza?->cuota_mensual === null ? '—' : $casoActivo->moneda.' '.numero_local($casoCobranza->cuota_mensual) }}</dd></div>
+                        </dl>
+                    @else
+                        <dl class="vt-dl text-sm">
+                            @if($casoActivo->tipo_caso === 'ticket_cx')
+                                @include('cx::partials.resumen-caso', ['ticket' => $casoTicketCx])
+                            @elseif($casoActivo->tipo_caso === 'lead_venta')
+                                @include('venta::partials.resumen-caso', ['lead' => $casoLeadVenta])
+                            @else
+                                @include('servicio::partials.resumen-caso', ['servicio' => $casoServicio])
+                            @endif
+                        </dl>
+                    @endif
+                </section>
+
+            </div>
+        @endif
         </section>
 
         <section class="workspace-accounts">
@@ -139,103 +194,50 @@
                     <x-ui.alert tone="danger" class="mt-2">{{ $message }}</x-ui.alert>
                 @enderror
             @endif
+        @if($casoActivo)
+            {{-- ---- Cuenta: la ficha completa, en lectura ---- --}}
+            <details id="panel-cuenta" class="workspace-header-account" wire:key="account-details-{{ $casoActivo->id }}">
+                <summary>Detalles de {{ $rotuloCaso }}</summary>
+                <section>
+                    @if($casoActivo->tipo_caso === 'cobranza')
+                        @include('cobranza::partials.panel-caso', ['cobranza' => $casoCobranza])
+                    @elseif($casoActivo->tipo_caso === 'ticket_cx')
+                        @include('cx::partials.panel-caso', ['ticket' => $casoTicketCx])
+                    @elseif($casoActivo->tipo_caso === 'lead_venta')
+                        @include('venta::partials.panel-caso', ['lead' => $casoLeadVenta])
+                    @elseif($casoActivo->tipo_caso === 'servicio')
+                        @include('servicio::partials.panel-caso', ['servicio' => $casoServicio])
+                    @endif
+                    @can('casos.editar', $proyectoActivo->id)
+                        <div class="flex justify-end mt-3">
+                            <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
+                               wire:navigate class="btn btn-secondary btn-sm">
+                                <x-ui.icon name="edit" :size="13" />
+                                <span>{{ __('casos.edit_case', ['entidad' => $rotuloCaso]) }}</span>
+                            </a>
+                        </div>
+                    @endcan
+                </section>
+
+            </details>
+        @endif
         </section>
     </aside>
 
     {{-- ================= CENTRO: pestañas de la cuenta ================= --}}
-    <section aria-label="Información de la cuenta" class="vt-col-mid card overflow-hidden" x-data="{ tab: 'resumen' }">
+    <section aria-label="Información de la cuenta" class="vt-col-mid card overflow-hidden" x-data="{ tab: 'campos' }">
         @if($casoActivo)
             <div class="flex items-end justify-between gap-3 px-5 border-b border-ink-200 flex-wrap">
                 <div class="vt-tabs" role="tablist" aria-label="Información del cliente" x-on:keydown.arrow-right.prevent="$event.target.nextElementSibling?.focus()" x-on:keydown.arrow-left.prevent="$event.target.previousElementSibling?.focus()">
-                    <button type="button" role="tab" id="tab-resumen" aria-controls="panel-resumen" :aria-selected="tab === 'resumen'" class="vt-tab" :class="{ active: tab === 'resumen' }" x-on:click="tab = 'resumen'">{{ __('casos.tab_summary') }}</button>
+                    <button type="button" role="tab" id="tab-campos" aria-controls="panel-campos" :aria-selected="tab === 'campos'" class="vt-tab" :class="{ active: tab === 'campos' }" x-on:click="tab = 'campos'">{{ __('casos.tab_fields') }}</button>
                     <button type="button" role="tab" id="tab-historial" aria-controls="panel-historial" :aria-selected="tab === 'historial'" class="vt-tab" :class="{ active: tab === 'historial' }" x-on:click="tab = 'historial'">
                         {{ __('casos.tab_history') }} <span class="count">{{ $historial->count() }}</span>
                     </button>
-                    <button type="button" role="tab" id="tab-cuenta" aria-controls="panel-cuenta" :aria-selected="tab === 'cuenta'" class="vt-tab" :class="{ active: tab === 'cuenta' }" x-on:click="tab = 'cuenta'">{{ $rotulo }}</button>
-                    @if($gruposCamposCaso !== [])
-                        <button type="button" role="tab" id="tab-campos" aria-controls="panel-campos" :aria-selected="tab === 'campos'" class="vt-tab" :class="{ active: tab === 'campos' }" x-on:click="tab = 'campos'">
-                            {{ __('casos.tab_fields') }} <span class="count">{{ $totalCampos }}</span>
-                        </button>
-                    @endif
                     <button type="button" role="tab" id="tab-compromisos" aria-controls="panel-compromisos" :aria-selected="tab === 'compromisos'" class="vt-tab" :class="{ active: tab === 'compromisos' }" x-on:click="tab = 'compromisos'">
                         {{ __('casos.tab_commitments') }}
                         @if($compromisosPendientes->isNotEmpty())<span class="count">{{ $compromisosPendientes->count() }}</span>@endif
                     </button>
                 </div>
-            </div>
-
-            {{-- ---- Resumen ---- --}}
-            <div id="panel-resumen" role="tabpanel" aria-labelledby="tab-resumen" x-show="tab === 'resumen'" class="p-5 flex flex-col gap-6">
-                @if($compromisoActivo)
-                    <section>
-                        <h3 class="text-base font-semibold text-ink mb-2.5">{{ __('casos.pending_commitment') }}</h3>
-                        <div class="border border-success-200 bg-success-50 rounded-lg px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="font-semibold text-ink">{{ $nombreCompromiso($compromisoActivo->tipo_compromiso) }}</span>
-
-                                    @if($compromisoActivo->monto !== null)
-                                        <span class="font-mono font-semibold text-ink">{{ $compromisoActivo->moneda }} {{ numero_local($compromisoActivo->monto) }}</span>
-                                    @elseif($compromisoActivo->detalle)
-                                        <span class="text-ink">{{ $compromisoActivo->detalle }}</span>
-                                    @endif
-                                </div>
-                                <div class="text-sm text-ink-600 mt-0.5">
-                                    {{ __('casos.expires_on', ['date' => fecha_local($compromisoActivo->fecha_vencimiento)]) }}
-                                    @if($compromisoActivo->tipo_pago_nombre) · {{ $compromisoActivo->tipo_pago_nombre }} @endif
-
-                                </div>
-                            </div>
-                            @if($puedeGestionarCaso)
-                                <div class="flex gap-1.5 items-center flex-wrap">
-                                    @can('compromisos.crear', $proyectoActivo->id)
-                                        <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
-                                           wire:navigate class="btn btn-secondary btn-sm">{{ __('common.edit') }}</a>
-                                    @endcan
-                                    @include('casos::partials.resolver-compromiso', ['compromiso' => $compromisoActivo, 'clave' => 'resumen'])
-                                </div>
-                            @endif
-                        </div>
-                    </section>
-                @endif
-
-                <section aria-label="Resumen de la cuenta">
-                    @if($casoActivo->tipo_caso === 'cobranza')
-                        <dl class="workspace-balances">
-                            <div><dt>Saldo pendiente</dt><dd>{{ $casoActivo->moneda }} {{ $casoActivo->saldo_total === null ? '—' : numero_local($casoActivo->saldo_total) }}</dd></div>
-                            <div><dt>Mora</dt><dd class="workspace-balance-secondary">{{ $casoActivo->dias_mora === null ? '—' : numero_local($casoActivo->dias_mora, 0).' días' }}</dd></div>
-                            <div><dt>Cuota mensual</dt><dd class="workspace-balance-secondary">{{ $casoCobranza?->cuota_mensual === null ? '—' : $casoActivo->moneda.' '.numero_local($casoCobranza->cuota_mensual) }}</dd></div>
-                        </dl>
-                    @else
-                        <dl class="vt-dl text-sm">
-                            @if($casoActivo->tipo_caso === 'ticket_cx')
-                                @include('cx::partials.resumen-caso', ['ticket' => $casoTicketCx])
-                            @elseif($casoActivo->tipo_caso === 'lead_venta')
-                                @include('venta::partials.resumen-caso', ['lead' => $casoLeadVenta])
-                            @else
-                                @include('servicio::partials.resumen-caso', ['servicio' => $casoServicio])
-                            @endif
-                        </dl>
-                    @endif
-                </section>
-
-                <section>
-                    <div class="flex items-center justify-between mb-1.5">
-                        <h3 class="text-base font-semibold text-ink">{{ __('casos.recent_activity') }}</h3>
-                        @if($historial->count() > 3)
-                            <button type="button" x-on:click="tab = 'historial'" class="btn-link -mr-2">{{ __('casos.see_full_history') }} ›</button>
-                        @endif
-                    </div>
-                    @if($historial->isEmpty())
-                        <p class="text-sm text-ink-500">{{ __('casos.no_gestions_desc') }}</p>
-                    @else
-                        <x-ui.timeline>
-                            @foreach($historial->take(3) as $g)
-                                @include('casos::partials.gestion-reciente', ['g' => $g])
-                            @endforeach
-                        </x-ui.timeline>
-                    @endif
-                </section>
             </div>
 
             {{-- ---- Historial ---- --}}
@@ -259,29 +261,10 @@
                 @endif
             </div>
 
-            {{-- ---- Cuenta: la ficha completa, en lectura ---- --}}
-            <div id="panel-cuenta" role="tabpanel" aria-labelledby="tab-cuenta" x-show="tab === 'cuenta'" x-cloak class="p-5 flex flex-col gap-6">
-                <section>
-                    @if($casoActivo->tipo_caso === 'cobranza')
-                        @include('cobranza::partials.panel-caso', ['cobranza' => $casoCobranza])
-                    @elseif($casoActivo->tipo_caso === 'ticket_cx')
-                        @include('cx::partials.panel-caso', ['ticket' => $casoTicketCx])
-                    @elseif($casoActivo->tipo_caso === 'lead_venta')
-                        @include('venta::partials.panel-caso', ['lead' => $casoLeadVenta])
-                    @elseif($casoActivo->tipo_caso === 'servicio')
-                        @include('servicio::partials.panel-caso', ['servicio' => $casoServicio])
-                    @endif
-                    @can('casos.editar', $proyectoActivo->id)
-                        <div class="flex justify-end mt-3">
-                            <a href="{{ route('proyectos.casos.editar', ['proyecto_id' => $proyectoActivo->id, 'caso' => $casoActivo->public_id]) }}"
-                               wire:navigate class="btn btn-secondary btn-sm">
-                                <x-ui.icon name="edit" :size="13" />
-                                <span>{{ __('casos.edit_case', ['entidad' => $rotuloCaso]) }}</span>
-                            </a>
-                        </div>
-                    @endcan
-                </section>
-
+            {{-- ---- Campos: los datos de la cuenta, en lectura y por grupo.
+                 Se editan en «Editar cuenta», que es la pantalla dueña del dato. ---- --}}
+            <div id="panel-campos" role="tabpanel" aria-labelledby="tab-campos" x-show="tab === 'campos'" class="px-5 pt-2 pb-5">
+                @include('casos::partials.campos-lectura')
                 @can('entidades.ver', $proyectoActivo->id)
                     <livewire:entidades.panel-vinculadas
                         :proyectoId="(int) $proyectoActivo->id"
@@ -297,14 +280,6 @@
                         :key="'panel-ent-persona-'.$persona->id.'-caso-'.$casoActivo->id" />
                 @endcan
             </div>
-
-            {{-- ---- Campos: los datos de la cuenta, en lectura y por grupo.
-                 Se editan en «Editar cuenta», que es la pantalla dueña del dato. ---- --}}
-            @if($gruposCamposCaso !== [])
-                <div id="panel-campos" role="tabpanel" aria-labelledby="tab-campos" x-show="tab === 'campos'" x-cloak class="px-5 pt-2 pb-5">
-                    @include('casos::partials.campos-lectura')
-                </div>
-            @endif
 
             {{-- ---- Compromisos ---- --}}
             <div id="panel-compromisos" role="tabpanel" aria-labelledby="tab-compromisos" x-show="tab === 'compromisos'" x-cloak class="p-5 flex flex-col gap-6">
