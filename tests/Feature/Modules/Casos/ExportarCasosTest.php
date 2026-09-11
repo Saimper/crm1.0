@@ -195,7 +195,7 @@ final class ExportarCasosTest extends TestCase
 
         $this->assertCount(1, $filas);
         $fila = $filas[0];
-        $this->assertSame('1234.56', $fila['saldo_total']);
+        $this->assertSame('1234.560', $fila['saldo_total']);
         $this->assertSame('45', $fila['dias_mora']);
         $this->assertSame('Tramo 31-60', $fila['tramo_mora']);
         $this->assertSame('2026-09-02', $fila['dias_mora_confirmado_en'], 'Fecha de calendario: tal cual.');
@@ -242,7 +242,7 @@ final class ExportarCasosTest extends TestCase
         $csv = $this->actingAs($this->crearSupervisor($proyecto))->get($this->url($proyecto))->assertOk()->streamedContent();
         $fila = $this->filasDe($csv)[0];
 
-        $this->assertSame('1500.00', $fila['valor_estimado']);
+        $this->assertSame('1500.000', $fila['valor_estimado']);
         $this->assertSame('Web', $fila['origen_lead']);
         $this->assertArrayNotHasKey('tramo_mora', $fila, 'El tramo es de cobranza; en venta no hay columna.');
     }

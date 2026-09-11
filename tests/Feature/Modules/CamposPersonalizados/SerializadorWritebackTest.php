@@ -64,7 +64,7 @@ final class SerializadorWritebackTest extends TestCase
         $this->assertSame('ABC-1', $out['ref']);
         $this->assertSame('30', $out['edad']);
         $this->assertSame('1', $out['vip']);
-        $this->assertSame('1500.50', $out['saldo']);
+        $this->assertSame('1500.500', $out['saldo']);
         $this->assertSame('Activo', $out['estado']);          // seleccion_unica → etiqueta
         $this->assertSame('Rojo, Verde', $out['tags']);       // seleccion_multiple → etiquetas
         $this->assertArrayNotHasKey('sin_valor', $out);       // null/vacío descartado

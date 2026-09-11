@@ -52,6 +52,7 @@ final class ListadoPersonas extends Component
     public function render(): View
     {
         $proyectoId = (int) app('tenancy.proyecto_activo')->id;
+        abort_unless($this->usuario()->tienePermiso('casos.ver', $proyectoId), 403);
         $filtros = FiltrosListadoPersonas::desde($this->busqueda, $this->tipoPersona);
         $consulta = app(ConsultaListadoPersonas::class);
 
@@ -61,6 +62,7 @@ final class ListadoPersonas extends Component
             ->aplicarFiltros(
                 $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $carteras),
                 $filtros,
+                $carteras,
             )
             ->select([
                 'p.id', 'p.public_id', 'p.tipo_persona',
@@ -70,6 +72,7 @@ final class ListadoPersonas extends Component
                 $consulta->totalCasos($carteras),
             ])
             ->orderByDesc('p.creada_en')
+            ->orderByDesc('p.id')
             ->paginate(25);
 
         // El mismo recorte que la lista: si la cabecera dijera «1.200 personas
@@ -81,6 +84,7 @@ final class ListadoPersonas extends Component
 
         return view('personas::livewire.listado-personas', [
             'personas' => $personas,
+            'cuentasPorPersona' => $consulta->cuentasDePersonas($proyectoId, $personas->pluck('id')->map(fn ($id): int => (int) $id)->all(), $carteras)->groupBy('persona_id'),
             'totalProyecto' => $totalProyecto,
             'urlExportar' => route('proyectos.personas.exportar', ['proyecto_id' => $proyectoId] + $filtros->comoParametros()),
         ]);

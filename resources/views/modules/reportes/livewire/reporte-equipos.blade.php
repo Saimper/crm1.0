@@ -42,12 +42,12 @@
                                 <div class="text-[10px] text-ink-500 font-mono">{{ $eq->codigo }}</div>
                             </td>
                             <td class="px-3 py-2 text-right font-mono">{{ $f['miembros_count'] }}</td>
-                            <td class="px-3 py-2 text-right font-mono">{{ number_format($f['total_gestiones']) }}</td>
-                            <td class="px-3 py-2 text-right font-mono">{{ number_format($f['cuentas_intentadas']) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-success-700">{{ number_format($f['cuentas_gestionadas']) }}</td>
-                            <td class="px-3 py-2 text-right font-mono">{{ number_format($f['efectividad'], 1) }}%</td>
-                            <td class="px-3 py-2 text-right font-mono text-warning-700">{{ number_format($f['compromisos_vigentes']) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-danger-700">{{ number_format($f['compromisos_vencidos']) }}</td>
+                            <td class="px-3 py-2 text-right font-mono">{{ numero_local($f['total_gestiones'], 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono">{{ numero_local($f['cuentas_intentadas'], 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-success-700">{{ numero_local($f['cuentas_gestionadas'], 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono">{{ numero_local($f['efectividad'], 1) }}%</td>
+                            <td class="px-3 py-2 text-right font-mono text-warning-700">{{ numero_local($f['compromisos_vigentes'], 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-danger-700">{{ numero_local($f['compromisos_vencidos'], 0) }}</td>
                             <td class="px-3 py-2 text-center">
                                 <button type="button" wire:click="expandir({{ $eq->id }})"
                                         class="text-xs text-brand-700 hover:underline">
@@ -77,10 +77,10 @@
                                                     <tr>
                                                         <td class="px-2 py-1">{{ $m['nombre'] }}</td>
                                                         <td class="px-2 py-1 text-ink-500">{{ $m['email'] }}</td>
-                                                        <td class="px-2 py-1 text-right font-mono">{{ number_format($m['total']) }}</td>
-                                                        <td class="px-2 py-1 text-right font-mono">{{ number_format($m['intentadas']) }}</td>
-                                                        <td class="px-2 py-1 text-right font-mono text-success-700">{{ number_format($m['gestionadas']) }}</td>
-                                                        <td class="px-2 py-1 text-right font-mono">{{ number_format($m['efectividad'], 1) }}%</td>
+                                                        <td class="px-2 py-1 text-right font-mono">{{ numero_local($m['total'], 0) }}</td>
+                                                        <td class="px-2 py-1 text-right font-mono">{{ numero_local($m['intentadas'], 0) }}</td>
+                                                        <td class="px-2 py-1 text-right font-mono text-success-700">{{ numero_local($m['gestionadas'], 0) }}</td>
+                                                        <td class="px-2 py-1 text-right font-mono">{{ numero_local($m['efectividad'], 1) }}%</td>
                                                     </tr>
                                                 @endforeach
                                             </tbody>

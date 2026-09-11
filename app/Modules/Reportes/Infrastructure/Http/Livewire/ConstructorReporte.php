@@ -277,7 +277,7 @@ final class ConstructorReporte extends Component
         $usuario = Auth::user();
         abort_unless($usuario instanceof User, 401);
 
-        return $usuario->carterasPermitidas($this->proyectoActivoId());
+        return $usuario->carterasPermitidasParaPermiso('reportes.constructor.gestionar', $this->proyectoActivoId());
     }
 
     private function guardas(): void

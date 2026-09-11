@@ -118,6 +118,7 @@ final class AdminRolesCustom extends Component
         }
 
         $this->cerrarForm();
+        $this->dispatch('roles-actualizados');
         session()->flash('roles-custom-ok', 'Rol custom guardado.');
     }
 
@@ -143,6 +144,7 @@ final class AdminRolesCustom extends Component
         }
 
         session()->flash('roles-custom-ok', 'Rol custom eliminado.');
+        $this->dispatch('roles-actualizados');
     }
 
     public function render(): View

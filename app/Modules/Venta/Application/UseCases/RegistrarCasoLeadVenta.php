@@ -8,6 +8,7 @@ use App\Modules\Casos\Domain\Contracts\CasoRepository;
 use App\Modules\Casos\Domain\Entities\Caso;
 use App\Modules\Casos\Domain\Events\CasoCreado;
 use App\Modules\Casos\Domain\ValueObjects\TipoCaso;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaInput;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaOutput;
 use App\Modules\Venta\Domain\Contracts\CasoLeadVentaRepository;
@@ -31,6 +32,7 @@ readonly class RegistrarCasoLeadVenta
         private CasoLeadVentaRepository $ventaRepo,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
+        private RegionalConfiguration $regional,
     ) {}
 
     public function execute(RegistrarCasoLeadVentaInput $input): RegistrarCasoLeadVentaOutput
@@ -43,9 +45,10 @@ readonly class RegistrarCasoLeadVenta
             );
         }
 
+        $moneda = $input->moneda ?? $this->regional->forProject($input->proyectoId)->currency;
         $ahora = new DateTimeImmutable;
 
-        return $this->db->transaction(function () use ($input, $ahora): RegistrarCasoLeadVentaOutput {
+        return $this->db->transaction(function () use ($input, $ahora, $moneda): RegistrarCasoLeadVentaOutput {
             $caso = Caso::registrar(
                 publicId: (string) Str::ulid(),
                 proyectoId: $input->proyectoId,
@@ -67,7 +70,7 @@ readonly class RegistrarCasoLeadVenta
                 productoVentaId: $input->productoVentaId,
                 etapaEmbudoId: $input->etapaEmbudoId,
                 valorEstimado: $input->valorEstimadoMonto !== null
-                    ? new ValorEstimadoVenta($input->valorEstimadoMonto, $input->moneda)
+                    ? new ValorEstimadoVenta($input->valorEstimadoMonto, $moneda)
                     : null,
                 origenLead: $input->origenLead,
                 fechaPrimerContacto: $input->fechaPrimerContacto,

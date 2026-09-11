@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace App\Modules\Usuarios\Infrastructure\Providers;
 
 use App\Models\User;
+use App\Modules\Usuarios\Domain\Contracts\AccesoACuenta;
+use App\Modules\Usuarios\Domain\Contracts\AccesoAReparto;
 use App\Modules\Usuarios\Domain\RolesCustom\Contracts\RepositorioRolCustom;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminEquiposProyecto;
+use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminRolesBase;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminRolesCustom;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\AdminUsuarios;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\GestionUsuariosProyecto;
 use App\Modules\Usuarios\Infrastructure\Http\Livewire\MatrizPermisos;
 use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminGlobal;
 use App\Modules\Usuarios\Infrastructure\Http\Middleware\RequiereAdminMandanteOGlobal;
+use App\Modules\Usuarios\Infrastructure\Persistence\Repositories\AccesoACuentaEloquent;
+use App\Modules\Usuarios\Infrastructure\Persistence\Repositories\AccesoARepartoEloquent;
 use App\Modules\Usuarios\Infrastructure\Persistence\Repositories\RepositorioRolCustomEloquent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
@@ -41,6 +46,7 @@ final class UsuariosServiceProvider extends ServiceProvider
         'usuario_global_rol',
         'usuario_mandante_rol',
         'rol_permiso',
+        'rol_proyecto_permiso',
         'rol_custom_permiso',
         'roles_custom',
         'roles',
@@ -51,6 +57,8 @@ final class UsuariosServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RepositorioRolCustom::class, RepositorioRolCustomEloquent::class);
+        $this->app->bind(AccesoACuenta::class, AccesoACuentaEloquent::class);
+        $this->app->bind(AccesoAReparto::class, AccesoARepartoEloquent::class);
     }
 
     public function boot(Router $router): void
@@ -63,6 +71,7 @@ final class UsuariosServiceProvider extends ServiceProvider
         Livewire::component('usuarios.gestion-usuarios-proyecto', GestionUsuariosProyecto::class);
         Livewire::component('usuarios.admin-equipos-proyecto', AdminEquiposProyecto::class);
         Livewire::component('usuarios.admin-roles-custom', AdminRolesCustom::class);
+        Livewire::component('usuarios.admin-roles-base', AdminRolesBase::class);
         Livewire::component('usuarios.matriz-permisos', MatrizPermisos::class);
 
         $this->invalidarMemoDePermisos();

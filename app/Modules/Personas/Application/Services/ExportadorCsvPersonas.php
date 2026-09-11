@@ -6,7 +6,7 @@ namespace App\Modules\Personas\Application\Services;
 
 use App\Modules\Auditoria\Domain\Contracts\RegistroDeExportaciones;
 use App\Modules\Personas\Application\DTOs\FiltrosListadoPersonas;
-use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Support\Csv\RespuestaCsv;
 use Illuminate\Support\Carbon;
 use stdClass;
@@ -30,7 +30,6 @@ final readonly class ExportadorCsvPersonas
 
     public function __construct(
         private ConsultaListadoPersonas $consulta,
-        private RelojDelMandante $reloj,
         private RegistroDeExportaciones $registro,
     ) {}
 
@@ -46,12 +45,13 @@ final readonly class ExportadorCsvPersonas
 
         // Una sola vez, fuera del stream: la zona no cambia entre filas y
         // resolverla por fila sería una lectura de configuración por persona.
-        $zona = $this->reloj->zonaDe((int) $proyecto->mandante_id);
+        $zona = app(RegionalConfiguration::class)->forProject((int) $proyecto->id)->timezone;
 
         $q = $this->consulta
             ->aplicarFiltros(
                 $this->consulta->recortarACarteras($this->consulta->consultaBase($proyectoId), $carterasPermitidas),
                 $filtros,
+                $carterasPermitidas,
             )
             ->select([
                 'p.id', 'p.tipo_persona',

@@ -28,7 +28,7 @@ final class EvaluadorReglas
     /**
      * @param  array<string, mixed>  $reglas
      */
-    public function validar(TipoCampo $tipo, mixed $valor, array $reglas, bool $obligatorio, string $etiqueta): void
+    public function validar(TipoCampo $tipo, mixed $valor, array $reglas, bool $obligatorio, string $etiqueta, ?string $timezone = null): void
     {
         $esVacio = $this->esVacio($tipo, $valor);
 
@@ -43,7 +43,7 @@ final class EvaluadorReglas
             TipoCampo::TEXTO_CORTO, TipoCampo::TEXTO_LARGO => $this->validarTexto((string) $valor, $reglas, $etiqueta),
             TipoCampo::NUMERO_ENTERO => $this->validarNumeroEntero($valor, $reglas, $etiqueta),
             TipoCampo::NUMERO_DECIMAL, TipoCampo::MONEDA => $this->validarNumeroDecimal($valor, $reglas, $etiqueta),
-            TipoCampo::FECHA, TipoCampo::FECHA_HORA => $this->validarFecha((string) $valor, $reglas, $etiqueta),
+            TipoCampo::FECHA, TipoCampo::FECHA_HORA => $this->validarFecha((string) $valor, $reglas, $etiqueta, $timezone),
             TipoCampo::BOOLEANO => $this->validarBooleano($valor, $etiqueta),
             TipoCampo::SELECCION_UNICA => null, // La existencia del opcion_id se valida en Application.
             TipoCampo::SELECCION_MULTIPLE => $this->validarSeleccionMultiple($valor, $etiqueta),
@@ -114,42 +114,51 @@ final class EvaluadorReglas
     }
 
     /** @param array<string, mixed> $reglas */
-    private function validarFecha(string $valor, array $reglas, string $etiqueta): void
+    private function validarFecha(string $valor, array $reglas, string $etiqueta, ?string $timezone): void
     {
-        $timestamp = strtotime($valor);
-        if ($timestamp === false) {
+        $timestamp = $this->timestamp($valor, $timezone);
+        if ($timestamp === null) {
             throw new ReglaViolada("El campo «{$etiqueta}» no es una fecha válida.");
         }
         if (isset($reglas['min'])) {
-            $minTs = strtotime((string) $reglas['min']);
-            if ($minTs !== false && $timestamp < $minTs) {
+            $minTs = $this->timestamp((string) $reglas['min'], $timezone);
+            if ($minTs !== null && $timestamp < $minTs) {
                 throw new ReglaViolada("El campo «{$etiqueta}» no puede ser anterior a {$reglas['min']}.");
             }
         }
         if (isset($reglas['max'])) {
-            $maxTs = strtotime((string) $reglas['max']);
-            if ($maxTs !== false && $timestamp > $maxTs) {
+            $maxTs = $this->timestamp((string) $reglas['max'], $timezone);
+            if ($maxTs !== null && $timestamp > $maxTs) {
                 throw new ReglaViolada("El campo «{$etiqueta}» no puede ser posterior a {$reglas['max']}.");
             }
         }
-        $this->validarMarcadoresTemporales($timestamp, $reglas, $etiqueta, $valor);
+        $this->validarMarcadoresTemporales($timestamp, $reglas, $etiqueta, $valor, $timezone);
+    }
+
+    private function timestamp(string $value, ?string $timezone): ?int
+    {
+        try {
+            return (new \DateTimeImmutable($value, new \DateTimeZone($timezone ?? date_default_timezone_get())))->getTimestamp();
+        } catch (\Exception) {
+            return null;
+        }
     }
 
     /** @param array<string, mixed> $reglas */
-    private function validarMarcadoresTemporales(int $timestamp, array $reglas, string $etiqueta, string $valor): void
+    private function validarMarcadoresTemporales(int $timestamp, array $reglas, string $etiqueta, string $valor, ?string $timezone): void
     {
         $tipo = str_contains($valor, 'T') || str_contains($valor, ':')
             ? TipoCampo::FECHA_HORA
             : TipoCampo::FECHA;
 
         if (isset($reglas['fecha_minima']) && is_string($reglas['fecha_minima']) && $reglas['fecha_minima'] !== '') {
-            $minimo = MarcadorTemporal::desde($reglas['fecha_minima']);
+            $minimo = MarcadorTemporal::desde($reglas['fecha_minima'], $timezone);
             if ($timestamp < $minimo->paraComparar($tipo)) {
                 throw ReglaViolada::fechaAnteriorAMinimo($etiqueta, $this->describirMarcador($reglas['fecha_minima']));
             }
         }
         if (isset($reglas['fecha_maxima']) && is_string($reglas['fecha_maxima']) && $reglas['fecha_maxima'] !== '') {
-            $maximo = MarcadorTemporal::desde($reglas['fecha_maxima']);
+            $maximo = MarcadorTemporal::desde($reglas['fecha_maxima'], $timezone);
             if ($timestamp > $maximo->paraComparar($tipo)) {
                 throw ReglaViolada::fechaPosteriorAMaximo($etiqueta, $this->describirMarcador($reglas['fecha_maxima']));
             }
@@ -171,7 +180,7 @@ final class EvaluadorReglas
      *
      * @param  array<string, mixed>  $reglas
      */
-    public function valorAutoFill(TipoCampo $tipo, array $reglas, ContextoUsuarioProyecto $ctx): ?string
+    public function valorAutoFill(TipoCampo $tipo, array $reglas, ContextoUsuarioProyecto $ctx, ?string $timezone = null): ?string
     {
         $token = $reglas['auto_fill'] ?? null;
         if (! is_string($token) || $token === '') {
@@ -184,8 +193,8 @@ final class EvaluadorReglas
         }
 
         return match ($auto) {
-            AutoFill::NOW => MarcadorTemporal::desde('ahora')->paraAutoFill($tipo),
-            AutoFill::TODAY => MarcadorTemporal::desde('hoy')->paraAutoFill($tipo),
+            AutoFill::NOW => MarcadorTemporal::desde('ahora', $timezone)->paraAutoFill($tipo),
+            AutoFill::TODAY => MarcadorTemporal::desde('hoy', $timezone)->paraAutoFill($tipo),
             AutoFill::USUARIO_NOMBRE => $ctx->usuarioNombre,
             AutoFill::USUARIO_EMAIL => $ctx->usuarioEmail,
             AutoFill::PROYECTO_CODIGO => $ctx->proyectoCodigo,

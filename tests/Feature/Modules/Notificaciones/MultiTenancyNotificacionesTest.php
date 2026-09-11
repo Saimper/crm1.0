@@ -38,13 +38,22 @@ final class MultiTenancyNotificacionesTest extends TestCase
             'activo' => true,
         ]);
 
+        $commitments = [];
+        foreach ([$proyectoA, $proyectoB] as $project) {
+            $commitments[$project->id] = DB::table('compromisos')->insertGetId([
+                'public_id' => (string) Str::ulid(), 'proyecto_id' => $project->id,
+                'caso_id' => $this->crearCasoEn($project), 'tipo_compromiso' => 'promesa_pago',
+                'estado' => 'pendiente', 'fecha_vencimiento' => now()->addDay()->toDateString(), 'usuario_id' => $u->id,
+            ]);
+        }
+
         DB::table('notificaciones')->insert([
             'public_id' => (string) Str::ulid(),
             'proyecto_id' => $proyectoA->id,
             'destinatario_usuario_id' => $u->id,
             'tipo' => 'compromiso_por_vencer',
             'entidad_tipo' => 'compromiso',
-            'entidad_id' => 9001,
+            'entidad_id' => $commitments[$proyectoA->id],
             'titulo' => 'Aviso A',
             'creada_en' => Carbon::now(),
         ]);
@@ -54,7 +63,7 @@ final class MultiTenancyNotificacionesTest extends TestCase
             'destinatario_usuario_id' => $u->id,
             'tipo' => 'compromiso_por_vencer',
             'entidad_tipo' => 'compromiso',
-            'entidad_id' => 9002,
+            'entidad_id' => $commitments[$proyectoB->id],
             'titulo' => 'Aviso B',
             'creada_en' => Carbon::now(),
         ]);
@@ -64,6 +73,7 @@ final class MultiTenancyNotificacionesTest extends TestCase
 
         $c = Livewire::test(ListadoNotificaciones::class);
         $items = $c->viewData('notificaciones');
+        $this->assertCount(1, $items);
         foreach ($items as $n) {
             $this->assertNotSame('Aviso B', $n->titulo);
         }

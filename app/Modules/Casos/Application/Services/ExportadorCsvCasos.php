@@ -9,6 +9,7 @@ use App\Modules\Casos\Application\DTOs\FiltrosListadoCasos;
 use App\Modules\Casos\Domain\Columnas\CatalogoColumnasCaso;
 use App\Modules\Casos\Domain\Columnas\ColumnaCaso;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Support\Csv\RespuestaCsv;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Carbon;
@@ -63,7 +64,7 @@ final readonly class ExportadorCsvCasos
         $esCobranza = $tipoOperacion === 'cobranza';
 
         // Una vez, fuera del stream: no cambia entre filas.
-        $zona = $this->reloj->zonaDe((int) $proyecto->mandante_id);
+        $zona = app(RegionalConfiguration::class)->forProject((int) $proyecto->id)->timezone;
 
         $especificas = CatalogoColumnasCaso::especificasDe($tipoOperacion);
         $campos = $this->camposDeCasoDelProyecto($proyectoId);

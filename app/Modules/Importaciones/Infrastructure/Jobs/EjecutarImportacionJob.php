@@ -106,6 +106,10 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
 
             $importacion->refresh();
 
+            if ($importacion->estado !== EstadoImportacion::COMPLETADA->value) {
+                return;
+            }
+
             Event::dispatch(new ImportacionIniciada(
                 importacionId: (int) $importacion->id,
                 proyectoId: $proyectoId,
@@ -121,6 +125,10 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
                 duplicadas: (int) $importacion->duplicadas,
             ));
         } catch (Throwable $e) {
+            if ($this->terminadaSinFallo($proyectoId)) {
+                return;
+            }
+
             // El motor ya describió y marcó lo suyo; lo que llega de fuera del
             // caso de uso (el refresh, un dispatch) se describe aquí.
             $fallo = $e instanceof FalloDeImportacion
@@ -131,12 +139,19 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
             // el motor, y ningún fallo queda mudo aunque ocurra fuera de él.
             ImportacionModel::query()->sinScopeProyecto()
                 ->where('id', $this->importacionId)
+                ->where('proyecto_id', $proyectoId)
+                ->whereIn('estado', [EstadoImportacion::PENDIENTE->value, EstadoImportacion::PREPARADA->value, EstadoImportacion::PROCESANDO->value])
                 ->whereNull('error_global')
                 ->update([
                     'estado' => EstadoImportacion::FALLIDA->value,
                     'error_global' => $fallo->motivo,
                     'terminado_en' => CarbonImmutable::now(),
                 ]);
+
+            // A cancellation racing the failure write keeps its final status and events.
+            if ($this->terminadaSinFallo($proyectoId)) {
+                return;
+            }
 
             Event::dispatch(new ImportacionFallada(
                 importacionId: $this->importacionId,
@@ -151,5 +166,15 @@ final class EjecutarImportacionJob implements ShouldBeUnique, ShouldQueue
             // y en el log del worker, y ahí tampoco tiene que ir el SQL.
             $this->fail($e instanceof FalloDeImportacion ? $e : FalloDeImportacion::desde($fallo));
         }
+    }
+
+    /** @phpstan-impure Reads a state that another connection may change. */
+    private function terminadaSinFallo(int $proyectoId): bool
+    {
+        return ImportacionModel::query()->sinScopeProyecto()
+            ->where('id', $this->importacionId)
+            ->where('proyecto_id', $proyectoId)
+            ->whereIn('estado', [EstadoImportacion::COMPLETADA->value, EstadoImportacion::CANCELADA->value])
+            ->exists();
     }
 }

@@ -14,6 +14,7 @@ use App\Modules\Gestiones\Domain\Entities\Gestion;
 use App\Modules\Gestiones\Domain\Events\GestionRegistrada;
 use App\Modules\Gestiones\Domain\Exceptions\PromesaRequerida;
 use App\Modules\Gestiones\Domain\Exceptions\ResultadoNoAdmitidoPorTipo;
+use App\Modules\Usuarios\Domain\Contracts\AccesoACuenta;
 use App\Support\Database\CarterasOperativas;
 use DomainException;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -28,6 +29,7 @@ final readonly class RegistrarGestion
         private ConnectionInterface $db,
         private Dispatcher $eventos,
         private ConsultaTiposPorCanal $tiposPorCanal,
+        private AccesoACuenta $acceso,
     ) {}
 
     public function execute(RegistrarGestionInput $input): RegistrarGestionOutput
@@ -82,6 +84,11 @@ final readonly class RegistrarGestion
         );
 
         $persistida = $this->db->transaction(function () use ($gestion, $input): Gestion {
+            // Serialize with transfers; the author never becomes the owner merely by collaborating.
+            $this->db->table('casos')->where('proyecto_id', $input->proyectoId)->where('id', $input->casoId)->lockForUpdate()->first();
+            if (! $this->acceso->puedeGestionar($input->usuarioId, $input->proyectoId, $input->casoId)) {
+                throw new DomainException('No tienes permiso para gestionar esta cuenta. Conserva su asesor responsable; solicita colaboración al supervisor.');
+            }
             $guardada = $this->repositorio->save($gestion);
 
             $this->eventos->dispatch(new GestionRegistrada(

@@ -1,50 +1,43 @@
 <div class="page" style="padding-top:16px;">
 
-    {{-- Compromiso vigente alert (full-width arriba) --}}
-    @if($compromisoActivo)
-        <x-ui.alert tone="success" style="margin-bottom:16px;">
-            <div class="flex items-center flex-wrap gap-3">
-                <div>
-                    <div class="text-xs uppercase-spaced font-semibold text-success-700">
-                        {{ __('casos.active_commitment') }}
-                    </div>
-                    <div class="text-md font-medium text-ink">
-                        {{ __('casos.expires', ['date' => \Illuminate\Support\Carbon::parse($compromisoActivo->fecha_vencimiento)->format('d/m/Y')]) }}
-                        @if(isset($compromisoActivo->promesa) && $compromisoActivo->promesa)
-                            · <span class="font-mono">{{ $compromisoActivo->promesa->moneda }} {{ number_format((float) $compromisoActivo->promesa->monto, 2, '.', ',') }}</span>
-                        @elseif(isset($compromisoActivo->cierre) && $compromisoActivo->cierre)
-                            · <span class="font-mono">{{ $compromisoActivo->cierre->moneda }} {{ number_format((float) $compromisoActivo->cierre->monto_cierre, 2, '.', ',') }}</span>
-                            @if($compromisoActivo->cierre->etapa_nombre) · {{ $compromisoActivo->cierre->etapa_nombre }} @endif
-                        @elseif(isset($compromisoActivo->resolucion) && $compromisoActivo->resolucion)
-                            · {{ $compromisoActivo->resolucion->accion_comprometida }}
-                            @if($compromisoActivo->resolucion->escalamiento_nombre) · {{ $compromisoActivo->resolucion->escalamiento_nombre }} @endif
-                        @elseif(isset($compromisoActivo->accion) && $compromisoActivo->accion)
-                            · {{ $compromisoActivo->accion->descripcion_accion }}
-                            @if($compromisoActivo->accion->tipo_accion_nombre) · {{ $compromisoActivo->accion->tipo_accion_nombre }} @endif
-                            @if($compromisoActivo->accion->tecnico_asignado) · {{ $compromisoActivo->accion->tecnico_asignado }} @endif
-                        @endif
-                    </div>
-                </div>
-                <div class="alert-actions">
-                    @can('compromisos.crear', $proyectoActivo->id)
-                        <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $compromisoActivo->public_id]) }}"
-                           wire:navigate class="btn btn-ghost btn-sm">
-                            <x-ui.icon name="edit" :size="13" />
-                            <span>{{ __('common.edit') }}</span>
-                        </a>
-                    @endcan
-                    @if($casoActivo && $casoActivo->tipo_caso === 'cobranza' && $compromisoActivo->tipo_compromiso === 'promesa_pago')
-                        <livewire:cobranza.resolver-promesa :compromisoId="$compromisoActivo->id" :key="'resolver-promesa-'.$compromisoActivo->id" />
-                    @elseif($casoActivo && $casoActivo->tipo_caso === 'ticket_cx' && $compromisoActivo->tipo_compromiso === 'resolucion_ticket')
-                        <livewire:cx.resolver-resolucion :compromisoId="$compromisoActivo->id" :key="'resolver-resolucion-'.$compromisoActivo->id" />
-                    @elseif($casoActivo && $casoActivo->tipo_caso === 'lead_venta' && $compromisoActivo->tipo_compromiso === 'cierre_venta')
-                        <livewire:venta.resolver-cierre :compromisoId="$compromisoActivo->id" :key="'resolver-cierre-'.$compromisoActivo->id" />
-                    @elseif($casoActivo && $casoActivo->tipo_caso === 'servicio' && $compromisoActivo->tipo_compromiso === 'accion_servicio')
-                        <livewire:servicio.resolver-accion :compromisoId="$compromisoActivo->id" :key="'resolver-accion-'.$compromisoActivo->id" />
-                    @endif
-                </div>
+    @if($compromisosPendientes->isNotEmpty())
+        <x-ui.card title="Compromisos pendientes de esta persona" class="mb-4">
+            <div class="overflow-x-auto">
+                <table class="table table-compact">
+                    <thead><tr><th>Cuenta y cartera</th><th>Compromiso</th><th>Vencimiento</th><th>Importe / detalle</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach($compromisosPendientes as $pendiente)
+                            @php $cuentaCompromiso = $casos->firstWhere('id', $pendiente->caso_id); @endphp
+                            <tr wire:key="pendiente-{{ $pendiente->id }}">
+                                <td>
+                                    <button type="button" wire:click="seleccionarCaso('{{ $cuentaCompromiso->public_id }}')" class="font-mono text-sm text-brand-500">{{ $cuentaCompromiso->referencia }}</button>
+                                    <div class="text-xs text-ink-500">{{ $cuentaCompromiso->cartera_nombre }}</div>
+                                </td>
+                                <td>{{ match($pendiente->tipo_compromiso) { 'promesa_pago' => 'Promesa de pago', 'cierre_venta' => 'Cierre de venta', 'resolucion_ticket' => 'Resolución', default => 'Acción de servicio' } }}</td>
+                                <td class="font-mono">{{ fecha_local($pendiente->fecha_vencimiento) }}</td>
+                                <td class="font-mono">@if($pendiente->monto !== null){{ $pendiente->moneda }} {{ numero_local($pendiente->monto) }}@else{{ $pendiente->detalle ?? '—' }}@endif</td>
+                                <td>
+                                    @if($casoActivo && (int) $casoActivo->id === (int) $pendiente->caso_id && $puedeGestionarCaso)
+                                        @can('compromisos.crear', $proyectoActivo->id)
+                                            <a href="{{ route('proyectos.compromisos.editar', ['proyecto_id' => $proyectoActivo->id, 'compromiso' => $pendiente->public_id]) }}" wire:navigate class="btn btn-ghost btn-sm">Editar</a>
+                                        @endcan
+                                        @if($pendiente->tipo_compromiso === 'promesa_pago')
+                                            <livewire:cobranza.resolver-promesa :compromisoId="$pendiente->id" :key="'resolver-promesa-'.$pendiente->id" />
+                                        @elseif($pendiente->tipo_compromiso === 'resolucion_ticket')
+                                            <livewire:cx.resolver-resolucion :compromisoId="$pendiente->id" :key="'resolver-resolucion-'.$pendiente->id" />
+                                        @elseif($pendiente->tipo_compromiso === 'cierre_venta')
+                                            <livewire:venta.resolver-cierre :compromisoId="$pendiente->id" :key="'resolver-cierre-'.$pendiente->id" />
+                                        @elseif($pendiente->tipo_compromiso === 'accion_servicio')
+                                            <livewire:servicio.resolver-accion :compromisoId="$pendiente->id" :key="'resolver-accion-'.$pendiente->id" />
+                                        @endif
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-        </x-ui.alert>
+        </x-ui.card>
     @endif
 
     {{-- Grid 3 columnas: identidad+caso | form gestión | historial --}}
@@ -65,7 +58,7 @@
                         <div class="text-xs text-ink-500" style="margin-top:4px;">
                             {{ ucfirst($persona->tipo_persona) }}
                             @if($persona->tipo_persona === 'fisica' && $persona->fecha_nacimiento)
-                                · {{ __('casos.born_abbrev') }} {{ \Illuminate\Support\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y') }}
+                                · {{ __('casos.born_abbrev') }} {{ fecha_local($persona->fecha_nacimiento) }}
                             @endif
                         </div>
                     </div>
@@ -132,7 +125,15 @@
                                     style="text-align:left;padding:10px 8px;border-radius:6px;background:{{ $activo ? 'var(--primary-soft)' : 'transparent' }};border:1px solid {{ $activo ? 'var(--primary-soft-border)' : 'transparent' }};gap:10px;cursor:pointer;width:100%;">
                                 <x-ui.badge :tone="$tipoTone">{{ ucfirst(str_replace('_', ' ', $c->tipo_caso)) }}</x-ui.badge>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-base font-medium text-ink">{{ $c->cartera_nombre }}</div>
+                                    <div class="font-mono text-base font-semibold text-ink">{{ $c->referencia }}</div>
+                                    <div class="text-xs text-ink-500">{{ $c->cartera_nombre }}</div>
+                                    @if($c->tipo_caso === 'cobranza')
+                                        <div class="flex flex-wrap gap-2 mt-2 text-sm">
+                                            <span class="font-mono font-medium">{{ $c->moneda }} {{ $c->saldo_total === null ? '—' : numero_local($c->saldo_total) }}</span>
+                                            <span class="text-ink-500">{{ $c->dias_mora === null ? 'Mora sin dato' : numero_local($c->dias_mora, 0).' días de mora' }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="text-xs text-ink-500 mt-1">Asesor: {{ $c->asesor_nombre ?? 'Sin asignar' }}</div>
                                     <div class="text-xs text-ink-500">
                                         {{ $c->estado_caso_nombre }}
                                         @if($c->tiene_compromiso_vigente)
@@ -146,7 +147,7 @@
                                     <div class="text-xs text-ink-400">
                                         @if($c->fecha_ultima_gestion)
                                             {{ $c->resultado_ultimo_nombre ?? __('casos.last_outcome_none') }}
-                                            · {{ hora_local($c->fecha_ultima_gestion, 'd/m/Y') }}
+                                            · {{ hora_local($c->fecha_ultima_gestion) }}
                                         @else
                                             {{ __('casos.last_outcome_never') }}
                                         @endif
@@ -260,13 +261,13 @@
                                             </span>
                                         </div>
                                         <div class="text-xs text-ink-500" style="margin-top:2px;">
-                                            {{ __('casos.expiry_label', ['date' => \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y')]) }}
+                                            {{ __('casos.expiry_label', ['date' => fecha_local($c->fecha_vencimiento)]) }}
                                         </div>
                                     </div>
                                     <div class="text-xs text-ink-600 text-right">
                                         @if($c->fecha_resolucion)
                                             {{ __('casos.resolved_label') }}<br>
-                                            <span class="font-mono">{{ \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') }}</span>
+                                            <span class="font-mono">{{ fecha_local($c->fecha_resolucion) }}</span>
                                         @else
                                             <span class="text-ink-500">{{ __('casos.no_date') }}</span>
                                         @endif
@@ -289,7 +290,7 @@
                         vinculo="persona"
                         :vinculoId="(int) $persona->id"
                         :carteraId="(int) ($casoActivo->cartera_id ?? 0) ?: null"
-                        :key="'panel-ent-persona-'.$persona->id" />
+                        :key="'panel-ent-persona-'.$persona->id.'-caso-'.$casoActivo->id" />
                 @endcan
             @endif
         </div>
@@ -297,13 +298,17 @@
         {{-- Col centro: formulario nueva gestión. Los campos personalizados del CASO
              se editan en "Editar caso"; aquí los del ámbito gestión van inline en NuevaGestion. --}}
         <div class="vt-col-mid">
-            @if($casoActivo)
+            @if($casoActivo && $puedeGestionarCaso)
                 <x-ui.card :title="__('casos.register_gestion_title')">
                     <livewire:casos.nueva-gestion
                         :casoId="$casoActivo->id"
                         :personaId="$persona->id"
                         :tipoCaso="$casoActivo->tipo_caso"
                         :key="'nueva-gestion-'.$casoActivo->id" />
+                </x-ui.card>
+            @elseif($casoActivo)
+                <x-ui.card title="Cuenta en consulta">
+                    <p class="text-sm text-ink-500">Puedes consultar esta cuenta. Para registrar gestiones debe estar asignada a ti o contar con permiso de colaboración.</p>
                 </x-ui.card>
             @else
                 <x-ui.card>

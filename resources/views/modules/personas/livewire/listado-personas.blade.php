@@ -1,8 +1,8 @@
 <div class="page">
     <div class="page-header">
         <div>
-            <h1 class="page-title">{{ __('personas.title_list') }}</h1>
-            <div class="page-subtitle">{{ __('personas.subtitle_registered', ['count' => $totalProyecto]) }}</div>
+            <h1 class="page-title">Clientes</h1>
+            <div class="page-subtitle">{{ numero_local($totalProyecto, 0).' personas con '.$rotuloCasos.' en carteras activas' }}</div>
         </div>
         <div class="flex items-center gap-2">
             @can('personas.crear', app('tenancy.proyecto_activo')->id)
@@ -18,7 +18,7 @@
     <div class="card">
         <x-ui.toolbar :count="__('personas.results', ['count' => $personas->total()])">
             <x-ui.search-input width="300px" wire:model.live.debounce.300ms="busqueda"
-                               placeholder="{{ __('personas.search_placeholder') }}" />
+                               placeholder="Buscar persona, identificación o cuenta…" />
             <select wire:model.live="tipoPersona" class="input" style="width:160px;">
                 <option value="">{{ __('personas.all_types') }}</option>
                 <option value="fisica">{{ __('personas.type_physical') }}</option>
@@ -43,64 +43,63 @@
         @if($personas->isEmpty())
             <div class="empty">
                 <div class="empty-icon"><x-ui.icon name="user" :size="32" /></div>
-                <div class="empty-title">{{ __('personas.empty_title') }}</div>
+                <div class="empty-title">Sin {{ $rotuloCasos }} en operación</div>
                 <div class="empty-desc">
                     @if($busqueda !== '' || $tipoPersona !== '')
                         {{ __('personas.empty_with_filters') }}
                     @else
-                        {{ __('personas.empty_no_filters') }}
+                        {{ 'Las personas aparecen aquí cuando tienen una cuenta en una cartera activa. Las cuentas retiradas se consultan en Histórico.' }}
                     @endif
                 </div>
             </div>
         @else
-            <table class="table table-compact table-clickable">
-                <thead>
-                    <tr>
-                        <th style="width:80px;">{{ __('personas.col_type') }}</th>
-                        <th style="width:170px;">{{ __('personas.col_id_doc') }}</th>
-                        <th>{{ __('personas.col_name') }}</th>
-                        <th class="num" style="width:80px;">{{ __('personas.col_cases', ['entidades' => $rotuloCasos]) }}</th>
-                        <th style="width:130px;">{{ __('personas.col_created') }}</th>
-                        <th style="width:60px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($personas as $p)
-                        @php
-                            // El nombre se toma de la columna que lo tenga: una persona
-                            // marcada como física puede traer razón social (y al revés)
-                            // según cómo venga la fuente importada.
-                            $nombre = trim(($p->nombres ?? '').' '.($p->apellidos ?? ''));
-                            $nombre = $nombre !== '' ? $nombre : trim((string) ($p->razon_social ?? ''));
-                            $url = route('proyectos.trabajo', [
-                                'proyecto_id' => app('tenancy.proyecto_activo')->id,
-                                'persona' => $p->public_id,
-                            ]);
-                        @endphp
-                        <tr wire:key="persona-{{ $p->id }}" onclick="window.Livewire.navigate('{{ $url }}')">
-                            <td>
-                                <x-ui.badge :tone="$p->tipo_persona === 'juridica' ? 'info' : 'neutral'" size="sm">
-                                    {{ ucfirst($p->tipo_persona) }}
-                                </x-ui.badge>
-                            </td>
-                            <td>
-                                <span class="font-mono text-sm">
-                                    {{ $p->tipo_identificacion_codigo ?? '' }}
-                                    {{ $p->identificacion }}
-                                </span>
-                            </td>
-                            <td><span class="font-medium">{{ $nombre !== '' ? $nombre : '—' }}</span></td>
-                            <td class="num">{{ $p->total_casos }}</td>
-                            <td class="text-sm text-ink-600">
-                                {{ hora_local($p->creada_en, 'd/m/Y') }}
-                            </td>
-                            <td class="text-ink-400"><x-ui.icon name="chevron-right" :size="14" /></td>
+            <div class="overflow-x-auto">
+                <table class="table table-compact">
+                    <thead>
+                        <tr>
+                            <th>Persona</th>
+                            <th>{{ ucfirst($rotuloCasos) }} de la persona</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach($personas as $p)
+                            @php
+                                $nombre = trim(($p->nombres ?? '').' '.($p->apellidos ?? '')) ?: (string) ($p->razon_social ?? '');
+                                $url = route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $p->public_id]);
+                            @endphp
+                            <tr wire:key="persona-{{ $p->id }}">
+                                <td class="align-top min-w-[200px]">
+                                    <a href="{{ $url }}" wire:navigate class="font-semibold text-ink hover:text-brand-500">{{ $nombre ?: '—' }}</a>
+                                    <div class="font-mono text-xs text-ink-500 mt-1">{{ $p->tipo_identificacion_codigo }} {{ $p->identificacion }}</div>
+                                    <div class="text-xs text-ink-500 mt-2">{{ numero_local($p->total_casos, 0) }} {{ $rotuloCasos }} en operación</div>
+                                </td>
+                                <td class="min-w-[420px]">
+                                    <div class="grid gap-2">
+                                        @foreach($cuentasPorPersona->get($p->id, collect()) as $cuenta)
+                                            <a href="{{ $url }}?caso={{ $cuenta->public_id }}" wire:navigate
+                                               class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-surface-100">
+                                                <div>
+                                                    <div class="font-mono text-sm font-semibold text-ink">{{ $cuenta->referencia }}</div>
+                                                    <div class="text-xs text-ink-500 mt-1">{{ $cuenta->cartera_nombre }} · {{ $cuenta->estado_nombre }}</div>
+                                                </div>
+                                                @if($cuenta->tipo_caso === 'cobranza')
+                                                    <div class="text-right">
+                                                        <div class="font-mono font-medium text-ink">{{ $cuenta->moneda }} {{ $cuenta->saldo_total === null ? '—' : numero_local($cuenta->saldo_total) }}</div>
+                                                        <div class="text-xs text-ink-500 mt-1">Mora: {{ $cuenta->dias_mora === null ? 'Sin dato' : numero_local($cuenta->dias_mora, 0).' días' }}</div>
+                                                    </div>
+                                                @endif
+                                                <x-ui.icon name="chevron-right" :size="14" />
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-            <div class="card-header" style="border-top:1px solid var(--border);border-bottom:0;">
+            <div class="card-footer">
                 {{ $personas->links() }}
             </div>
         @endif

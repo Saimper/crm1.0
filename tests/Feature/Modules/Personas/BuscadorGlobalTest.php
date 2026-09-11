@@ -37,8 +37,8 @@ final class BuscadorGlobalTest extends TestCase
         $proyecto = $this->crearProyectoCobranza();
         $ajeno = $this->crearProyectoCobranza();
 
-        $this->crearPersonaEn($proyecto, '7300000001');
-        $this->crearPersonaEn($ajeno, '7300000002');
+        $this->crearCasoEn($proyecto, ['persona' => $this->crearPersonaEn($proyecto, '7300000001')]);
+        $this->crearCasoEn($ajeno, ['persona' => $this->crearPersonaEn($ajeno, '7300000002')]);
 
         $this->activarProyecto($proyecto);
         $this->actingAs($this->crearSupervisor($proyecto));

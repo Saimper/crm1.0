@@ -75,6 +75,7 @@ final class RolPermisoSeeder extends Seeder
             'entidades.ver', 'entidades.crear', 'entidades.editar', 'entidades.eliminar',
         ],
         'SUPERVISOR' => [
+            'historico.ver', 'historico.exportar', 'casos.colaborar',
             'carteras.ver',
             // Gestiones
             'gestiones.ver', 'gestiones.crear', 'gestiones.editar', 'gestiones.administrar', 'gestiones.exportar',
@@ -131,6 +132,7 @@ final class RolPermisoSeeder extends Seeder
             'entidades.ver', 'entidades.crear', 'entidades.editar',
         ],
         'AUDITOR' => [
+            'historico.ver',
             // Solo lectura operativa. Exporta actividad (gestiones, compromisos,
             // con identificación y notas), nunca el padrón ni la cartera.
             'gestiones.ver', 'gestiones.exportar',
@@ -157,6 +159,7 @@ final class RolPermisoSeeder extends Seeder
         $rolIds = DB::table('roles')->pluck('id', 'codigo')->all();
         /** @var array<string, int> $permisoIds */
         $permisoIds = DB::table('permisos')->pluck('id', 'codigo')->all();
+        $configurados = DB::table('roles')->whereNotNull('configurado_en')->pluck('codigo')->all();
 
         // ADMIN_GLOBAL: mapeo explícito a todos los permisos para consistencia en la tabla,
         // aunque su Gate::before corta antes de consultar permisos.
@@ -169,6 +172,9 @@ final class RolPermisoSeeder extends Seeder
         }
 
         foreach (self::MATRIZ as $rolCodigo => $codigos) {
+            if (in_array($rolCodigo, $configurados, true)) {
+                continue;
+            }
             $rolId = $rolIds[$rolCodigo] ?? null;
             if ($rolId === null) {
                 continue;

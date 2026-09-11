@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenancy\Application\Services;
 
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
+use App\Modules\Tenancy\Domain\ValueObjects\RegionalSettings;
+use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -20,54 +23,52 @@ use Illuminate\Support\Facades\DB;
  * último tramo de cada turno de tarde— se contabilizaba al día siguiente, y el
  * informe diario del supervisor nunca cuadraba con lo que había visto pasar.
  *
- * Cachea por mandante dentro de la petición: se llama una vez por fila pintada.
+ * RegionalConfiguration caches inherited settings within the request/job.
+ * An explicit project ID also applies project overrides in console operations.
  */
 final class RelojDelMandante
 {
-    /** @var array<int, object{zona_horaria: string, moneda: string, locale: string, inicio_semana: int}> */
-    private array $cache = [];
-
     public function zonaDe(?int $mandanteId): string
     {
-        return $this->config($mandanteId)->zona_horaria;
+        return app(RegionalConfiguration::class)->forMandante($mandanteId)->timezone;
     }
 
     public function monedaDe(?int $mandanteId): string
     {
-        return $this->config($mandanteId)->moneda;
+        return app(RegionalConfiguration::class)->forMandante($mandanteId)->currency;
     }
 
     public function localeDe(?int $mandanteId): string
     {
-        return $this->config($mandanteId)->locale;
+        return (string) (DB::table('mandantes')->where('id', $mandanteId)->value('locale') ?? config('app.locale', 'es'));
     }
 
     public function inicioSemanaDe(?int $mandanteId): int
     {
-        return $this->config($mandanteId)->inicio_semana;
+        return app(RegionalConfiguration::class)->forMandante($mandanteId)->weekStartsOn;
     }
 
     /** La zona del mandante activo, o la de la plataforma si no hay ninguno. */
     public function zonaActiva(): string
     {
-        return $this->zonaDe($this->mandanteActivoId());
+        return $this->settings()->timezone;
     }
 
     public function monedaActiva(): string
     {
-        return $this->monedaDe($this->mandanteActivoId());
+        return $this->settings()->currency;
     }
 
     /** Un instante UTC, expresado en la hora del cliente. Para mostrar. */
-    public function enZona(Carbon|string|null $instante, ?int $mandanteId = null): ?Carbon
+    public function enZona(DateTimeInterface|string|null $instante, ?int $mandanteId = null, ?int $proyectoId = null): ?Carbon
     {
         if ($instante === null) {
             return null;
         }
 
-        $carbon = $instante instanceof Carbon ? $instante->copy() : Carbon::parse($instante, 'UTC');
+        $carbon = $instante instanceof DateTimeInterface ? Carbon::instance($instante) : Carbon::parse($instante, 'UTC');
 
-        return $carbon->setTimezone($this->zonaDe($mandanteId ?? $this->mandanteActivoId()));
+        return $carbon->setTimezone($this->settings($mandanteId, $proyectoId)->timezone);
     }
 
     /**
@@ -79,14 +80,14 @@ final class RelojDelMandante
      *
      * @param  'hoy'|'ayer'|'semana'|'mes'  $rango
      */
-    public function inicioDe(string $rango, ?int $mandanteId = null): Carbon
+    public function inicioDe(string $rango, ?int $mandanteId = null, ?int $proyectoId = null): Carbon
     {
-        $zona = $this->zonaDe($mandanteId ?? $this->mandanteActivoId());
+        $zona = $this->settings($mandanteId, $proyectoId)->timezone;
         $ahora = Carbon::now($zona);
 
         $inicio = match ($rango) {
             'ayer' => $ahora->copy()->subDay()->startOfDay(),
-            'semana' => $ahora->copy()->startOfWeek($this->inicioSemanaDe($mandanteId ?? $this->mandanteActivoId())),
+            'semana' => $ahora->copy()->startOfWeek($this->settings($mandanteId, $proyectoId)->weekStartsOn),
             'mes' => $ahora->copy()->startOfMonth(),
             default => $ahora->copy()->startOfDay(),
         };
@@ -95,9 +96,9 @@ final class RelojDelMandante
     }
 
     /** El fin del rango, en UTC. Exclusivo por arriba lo decide quien consulta. */
-    public function finDe(string $rango, ?int $mandanteId = null): Carbon
+    public function finDe(string $rango, ?int $mandanteId = null, ?int $proyectoId = null): Carbon
     {
-        $zona = $this->zonaDe($mandanteId ?? $this->mandanteActivoId());
+        $zona = $this->settings($mandanteId, $proyectoId)->timezone;
         $ahora = Carbon::now($zona);
 
         $fin = match ($rango) {
@@ -122,9 +123,9 @@ final class RelojDelMandante
      * @param  'hoy'|'ayer'|'semana'|'mes'|string  $clave  Cualquier otra cosa cuenta como «hoy».
      * @return array{desde: Carbon, hasta: Carbon}
      */
-    public function rangoPreestablecido(string $clave, ?int $mandanteId = null): array
+    public function rangoPreestablecido(string $clave, ?int $mandanteId = null, ?int $proyectoId = null): array
     {
-        $ahora = Carbon::now($this->zonaDe($mandanteId ?? $this->mandanteActivoId()));
+        $ahora = Carbon::now($this->settings($mandanteId, $proyectoId)->timezone);
 
         [$desde, $hasta] = match ($clave) {
             'ayer' => [$ahora->copy()->subDay()->startOfDay(), $ahora->copy()->subDay()->endOfDay()],
@@ -150,9 +151,9 @@ final class RelojDelMandante
      * @param  string  $hasta  'Y-m-d'
      * @return array{desde: Carbon, hasta: Carbon}
      */
-    public function rangoDeFechas(string $desde, string $hasta, ?int $mandanteId = null): array
+    public function rangoDeFechas(string $desde, string $hasta, ?int $mandanteId = null, ?int $proyectoId = null): array
     {
-        $zona = $this->zonaDe($mandanteId ?? $this->mandanteActivoId());
+        $zona = $this->settings($mandanteId, $proyectoId)->timezone;
 
         return [
             'desde' => Carbon::parse($desde, $zona)->startOfDay()->setTimezone('UTC'),
@@ -167,9 +168,9 @@ final class RelojDelMandante
      * de resolución—, que no llevan hora y por tanto están en el calendario de
      * quien opera, no en UTC.
      */
-    public function hoy(?int $mandanteId = null): string
+    public function hoy(?int $mandanteId = null, ?int $proyectoId = null): string
     {
-        return Carbon::now($this->zonaDe($mandanteId ?? $this->mandanteActivoId()))->toDateString();
+        return Carbon::now($this->settings($mandanteId, $proyectoId)->timezone)->toDateString();
     }
 
     /**
@@ -181,57 +182,12 @@ final class RelojDelMandante
      * revienta porque le falta una propiedad deja sin pintar la pantalla entera
      * por un dato que tiene un valor por defecto perfectamente válido.
      */
-    private function mandanteActivoId(): ?int
+    private function settings(?int $mandanteId = null, ?int $proyectoId = null): RegionalSettings
     {
-        if (app()->bound('tenancy.mandante_activo')) {
-            $id = app('tenancy.mandante_activo')->id ?? null;
+        $configuration = app(RegionalConfiguration::class);
 
-            return $id !== null ? (int) $id : null;
-        }
-
-        if (app()->bound('tenancy.proyecto_activo')) {
-            $id = app('tenancy.proyecto_activo')->mandante_id ?? null;
-
-            return $id !== null ? (int) $id : null;
-        }
-
-        return null;
-    }
-
-    private function config(?int $mandanteId): object
-    {
-        if ($mandanteId === null) {
-            return $this->porDefecto();
-        }
-
-        return $this->cache[$mandanteId] ??= $this->leer($mandanteId);
-    }
-
-    private function leer(int $mandanteId): object
-    {
-        $fila = DB::table('mandantes')
-            ->where('id', $mandanteId)
-            ->first(['zona_horaria', 'moneda', 'locale', 'inicio_semana']);
-
-        if ($fila === null) {
-            return $this->porDefecto();
-        }
-
-        return (object) [
-            'zona_horaria' => (string) ($fila->zona_horaria ?: config('tenancy.zona_horaria_por_defecto')),
-            'moneda' => (string) ($fila->moneda ?: config('tenancy.moneda_por_defecto')),
-            'locale' => (string) ($fila->locale ?: config('app.locale')),
-            'inicio_semana' => (int) ($fila->inicio_semana ?: 1),
-        ];
-    }
-
-    private function porDefecto(): object
-    {
-        return (object) [
-            'zona_horaria' => (string) config('tenancy.zona_horaria_por_defecto', 'UTC'),
-            'moneda' => (string) config('tenancy.moneda_por_defecto', 'USD'),
-            'locale' => (string) config('app.locale', 'es'),
-            'inicio_semana' => 1,
-        ];
+        return $proyectoId !== null || $mandanteId === null
+            ? $configuration->forProject($proyectoId)
+            : $configuration->forMandante($mandanteId);
     }
 }

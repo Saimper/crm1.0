@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
@@ -33,10 +34,12 @@ final class DashboardOperativo extends Component
 
     public function render(): View
     {
-        abort_unless(auth()->user()?->tienePermiso('reportes.operativos') === true, 403);
+        $usuario = auth()->user();
+        abort_unless($usuario !== null && $usuario->tienePermiso('reportes.operativos'), 403);
 
         $proyecto = app('tenancy.proyecto_activo');
         $proyectoId = (int) $proyecto->id;
+        $carteras = $usuario->carterasPermitidasParaPermiso('reportes.operativos', $proyectoId);
 
         // Cualquier valor fuera del selector cuenta como «hoy», igual que en el
         // reloj: así la etiqueta y el enlace de exportar dicen lo mismo que la consulta.
@@ -56,7 +59,7 @@ final class DashboardOperativo extends Component
             ->pluck('id')
             ->all();
 
-        $gestionesBase = DB::table('gestiones')
+        $gestionesBase = CarterasOperativas::filtrarVinculados(DB::table('gestiones'), 'gestiones', carterasPermitidas: $carteras)
             ->where('proyecto_id', $proyectoId)
             ->whereBetween('creada_en', [$desde, $hasta])
             ->whereNull('eliminada_en');
@@ -69,13 +72,13 @@ final class DashboardOperativo extends Component
         $efectividad = $cuentasIntentadas === 0 ? 0.0 : round(($cuentasGestionadas / $cuentasIntentadas) * 100, 1);
 
         $hoy = $reloj->hoy();
-        $compromisosVigentes = DB::table('compromisos')
+        $compromisosVigentes = CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
             ->where('proyecto_id', $proyectoId)
             ->where('estado', 'pendiente')
             ->whereDate('fecha_vencimiento', '>=', $hoy)
             ->whereNull('eliminada_en')
             ->count();
-        $compromisosVencidos = DB::table('compromisos')
+        $compromisosVencidos = CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
             ->where('proyecto_id', $proyectoId)
             ->where('estado', 'pendiente')
             ->whereDate('fecha_vencimiento', '<', $hoy)
@@ -95,7 +98,7 @@ final class DashboardOperativo extends Component
             $rankingSelect[] = DB::raw('0 as cuentas_gestionadas');
         }
 
-        $ranking = DB::table('gestiones as g')
+        $ranking = CarterasOperativas::filtrarVinculados(DB::table('gestiones as g'), 'g', carterasPermitidas: $carteras)
             ->join('users as u', 'u.id', '=', 'g.usuario_id')
             ->where('g.proyecto_id', $proyectoId)
             ->whereBetween('g.creada_en', [$desde, $hasta])
@@ -106,7 +109,7 @@ final class DashboardOperativo extends Component
             ->limit(10)
             ->get();
 
-        $gestionesDelRango = DB::table('gestiones as g')
+        $gestionesDelRango = CarterasOperativas::filtrarVinculados(DB::table('gestiones as g'), 'g', carterasPermitidas: $carteras)
             ->leftJoin('casos as ca', 'ca.id', '=', 'g.caso_id')
             ->leftJoin('personas as pe', 'pe.id', '=', 'g.persona_id')
             ->leftJoin('resultados as r', 'r.id', '=', 'g.resultado_id')

@@ -35,9 +35,9 @@ final class ExportarPersonasTest extends TestCase
         $proyectoB = $this->crearProyectoCx($mandante);
         $proyectoAjeno = $this->crearProyectoCobranza($this->crearMandante());
 
-        $this->crearPersonaEn($proyectoA, '1000000001');
-        $this->crearPersonaEn($proyectoB, '2000000002');
-        $this->crearPersonaEn($proyectoAjeno, '3000000003');
+        $this->crearPersonaOperativaEn($proyectoA, '1000000001');
+        $this->crearPersonaOperativaEn($proyectoB, '2000000002');
+        $this->crearPersonaOperativaEn($proyectoAjeno, '3000000003');
 
         $csv = $this->actingAs($this->crearSupervisor($proyectoA))
             ->get($this->url($proyectoA))
@@ -53,11 +53,11 @@ final class ExportarPersonasTest extends TestCase
     public function test_el_csv_devuelve_las_mismas_filas_que_el_listado_con_los_mismos_filtros(): void
     {
         $proyecto = $this->crearProyectoCobranza();
-        $this->crearPersonaEn($proyecto, '5000000001');
-        $this->crearPersonaEn($proyecto, '5000000002');
-        $juridica = $this->crearPersonaEn($proyecto, '5000000003');
+        $this->crearPersonaOperativaEn($proyecto, '5000000001');
+        $this->crearPersonaOperativaEn($proyecto, '5000000002');
+        $juridica = $this->crearPersonaOperativaEn($proyecto, '5000000003');
         DB::table('personas')->where('id', $juridica->id)->update(['tipo_persona' => 'juridica', 'razon_social' => 'Empresa 5000']);
-        $this->crearPersonaEn($proyecto, '7000000004');
+        $this->crearPersonaOperativaEn($proyecto, '7000000004');
 
         $supervisor = $this->crearSupervisor($proyecto);
         $this->activarProyecto($proyecto);
@@ -96,7 +96,7 @@ final class ExportarPersonasTest extends TestCase
     public function test_un_parametro_con_forma_de_array_no_rompe_la_descarga(): void
     {
         $proyecto = $this->crearProyectoCobranza();
-        $this->crearPersonaEn($proyecto);
+        $this->crearPersonaOperativaEn($proyecto);
 
         $this->actingAs($this->crearSupervisor($proyecto))
             ->get($this->url($proyecto).'?q[]=x&tipo[]=1')
@@ -106,8 +106,8 @@ final class ExportarPersonasTest extends TestCase
     public function test_el_filtro_de_tipo_estrecha_y_nunca_amplia(): void
     {
         $proyecto = $this->crearProyectoCobranza();
-        $this->crearPersonaEn($proyecto, '8000000001');
-        $juridica = $this->crearPersonaEn($proyecto, '8000000002');
+        $this->crearPersonaOperativaEn($proyecto, '8000000001');
+        $juridica = $this->crearPersonaOperativaEn($proyecto, '8000000002');
         DB::table('personas')->where('id', $juridica->id)->update(['tipo_persona' => 'juridica']);
 
         $csv = $this->actingAs($this->crearSupervisor($proyecto))
@@ -122,7 +122,7 @@ final class ExportarPersonasTest extends TestCase
     {
         $mandante = $this->crearMandante();
         $proyecto = $this->crearProyectoCobranza($mandante);
-        $this->crearPersonaEn($proyecto, '9000000001');
+        $this->crearPersonaOperativaEn($proyecto, '9000000001');
         $supervisor = $this->crearSupervisor($proyecto);
 
         $this->actingAs($supervisor)->get($this->url($proyecto, ['q' => '9000']))->assertOk()->streamedContent();
@@ -146,7 +146,7 @@ final class ExportarPersonasTest extends TestCase
         DB::table('mandantes')->where('id', $mandante->id)->update(['zona_horaria' => 'America/Panama']);
         $proyecto = $this->crearProyectoCobranza($mandante);
 
-        $persona = $this->crearPersonaEn($proyecto, '6000000001');
+        $persona = $this->crearPersonaOperativaEn($proyecto, '6000000001');
         // 01:30 UTC del 8 son las 20:30 del 7 en Panamá; la fecha de nacimiento
         // es de calendario y no se mueve.
         DB::table('personas')->where('id', $persona->id)->update([
@@ -159,7 +159,7 @@ final class ExportarPersonasTest extends TestCase
 
         $this->assertSame('2026-09-07 20:30:00', $fila['creada_en']);
         $this->assertSame('1990-01-01', $fila['fecha_nacimiento']);
-        $this->assertSame('0', $fila['total_casos']);
+        $this->assertSame('1', $fila['total_casos']);
     }
 
     /**
@@ -228,5 +228,13 @@ final class ExportarPersonasTest extends TestCase
         fclose($flujo);
 
         return $filas;
+    }
+
+    private function crearPersonaOperativaEn(stdClass $proyecto, ?string $identificacion = null): stdClass
+    {
+        $persona = $this->crearPersonaEn($proyecto, $identificacion);
+        $this->crearCasoEn($proyecto, ['persona' => $persona]);
+
+        return $persona;
     }
 }

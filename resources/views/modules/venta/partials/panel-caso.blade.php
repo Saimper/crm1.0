@@ -1,6 +1,6 @@
 @php
     /** @var object|null $lead */
-    $fmt = fn ($monto) => number_format((float) $monto, 2, '.', ',');
+    $fmt = fn ($monto) => numero_local($monto);
 @endphp
 
 @if($lead)
@@ -39,14 +39,14 @@
             <div>
                 <dt class="text-ink-500">{{ __('venta.primer_contacto') }}</dt>
                 <dd class="font-medium text-ink">
-                    {{ \Illuminate\Support\Carbon::parse($lead->fecha_primer_contacto)->format('d/m/Y') }}
+                    {{ fecha_local($lead->fecha_primer_contacto) }}
                 </dd>
             </div>
             @if($lead->fecha_estimada_cierre)
                 <div class="col-span-2 sm:col-span-4">
                     <dt class="text-ink-500">{{ __('venta.cierre_estimado') }}</dt>
                     <dd class="font-semibold text-ink">
-                        {{ \Illuminate\Support\Carbon::parse($lead->fecha_estimada_cierre)->format('d/m/Y') }}
+                        {{ fecha_local($lead->fecha_estimada_cierre) }}
                         @php $diff = \Illuminate\Support\Carbon::parse($lead->fecha_estimada_cierre)->diffForHumans(); @endphp
                         <span class="text-[10px] text-ink-500">· {{ $diff }}</span>
                     </dd>

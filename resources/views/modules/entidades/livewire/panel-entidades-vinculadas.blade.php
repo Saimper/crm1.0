@@ -77,7 +77,7 @@
                                     <tr>
                                         <td>{{ $r->titulo ?? '—' }}</td>
                                         <td class="text-ink-500">
-                                            {{ \Illuminate\Support\Carbon::parse($r->creado_en)->format('d/m/Y H:i') }}
+                                            {{ hora_local($r->creado_en) }}
                                         </td>
                                         <td class="text-right">
                                             @if(auth()->user()->tienePermiso('entidades.editar', $proyectoId))

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Notificaciones\Application\Services;
 
+use App\Support\Database\CarterasOperativas;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -26,7 +28,7 @@ final readonly class GeneradorNotificaciones
 
         $total = 0;
 
-        $porVencer = DB::table('compromisos as c')
+        $porVencer = $this->compromisosOperativos()
             ->select([
                 'c.id', 'c.public_id', 'c.proyecto_id', 'c.usuario_id',
                 'c.tipo_compromiso', 'c.fecha_vencimiento', 'c.caso_id',
@@ -57,7 +59,7 @@ final readonly class GeneradorNotificaciones
             );
         }
 
-        $vencidos = DB::table('compromisos as c')
+        $vencidos = $this->compromisosOperativos()
             ->select([
                 'c.id', 'c.proyecto_id', 'c.usuario_id',
                 'c.tipo_compromiso', 'c.fecha_vencimiento', 'c.caso_id',
@@ -147,7 +149,7 @@ final readonly class GeneradorNotificaciones
         $limiteInferior = $ahora->toDateTimeString();
         $limiteSuperior = $ahora->copy()->addHours($umbralHoras)->toDateTimeString();
 
-        $enRiesgo = DB::table('compromisos as c')
+        $enRiesgo = $this->compromisosOperativos()
             ->join('compromisos_resolucion_ticket as rt', 'rt.compromiso_id', '=', 'c.id')
             ->select([
                 'c.id', 'c.proyecto_id', 'c.usuario_id', 'c.caso_id',
@@ -206,5 +208,15 @@ final readonly class GeneradorNotificaciones
             'metadata' => json_encode($metadata, JSON_UNESCAPED_UNICODE),
             'creada_en' => now(),
         ]);
+    }
+
+    private function compromisosOperativos(): Builder
+    {
+        return CarterasOperativas::filtrarVinculados(DB::table('compromisos as c'), 'c')
+            ->whereExists(fn (Builder $project) => $project->selectRaw('1')->from('proyectos as notification_project')
+                ->join('mandantes as notification_client', 'notification_client.id', '=', 'notification_project.mandante_id')
+                ->whereColumn('notification_project.id', 'c.proyecto_id')
+                ->where('notification_project.activo', true)->whereNull('notification_project.eliminada_en')
+                ->where('notification_client.activo', true)->whereNull('notification_client.eliminada_en'));
     }
 }

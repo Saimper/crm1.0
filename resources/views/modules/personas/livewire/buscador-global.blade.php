@@ -51,7 +51,7 @@
                     </div>
                 @else
                     @if($personas->isNotEmpty())
-                        <div class="label-xs" style="padding:12px 16px 4px;">{{ __('personas.search_section_persons') }}</div>
+                        <div class="label-xs" style="padding:12px 16px 4px;">Clientes</div>
                         @foreach($personas as $p)
                             @php
                                 $nombre = $p->tipo_persona === 'juridica'
@@ -67,41 +67,17 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="text-base font-medium" style="color:var(--text);">{{ $nombre !== '' ? $nombre : '—' }}</div>
                                     <div class="font-mono text-xs text-ink-500">{{ $p->identificacion }}</div>
-                                </div>
-                            </a>
-                        @endforeach
-                    @endif
-
-                    @if($casos->isNotEmpty())
-                        <div class="label-xs" style="padding:12px 16px 4px;">{{ __('personas.search_section_cases', ['entidades' => $rotuloCasos]) }}</div>
-                        @foreach($casos as $c)
-                            @php
-                                $nombre = $c->tipo_persona === 'juridica'
-                                    ? (string) ($c->razon_social ?? '')
-                                    : trim((string) ($c->nombres ?? '').' '.(string) ($c->apellidos ?? ''));
-                                $tone = match ($c->tipo_caso) {
-                                    'cobranza'   => 'warning',
-                                    'ticket_cx'  => 'info',
-                                    'lead_venta' => 'success',
-                                    'servicio'   => 'primary',
-                                    default      => 'neutral',
-                                };
-                            @endphp
-                            <a href="{{ route('proyectos.trabajo', ['proyecto_id' => $proyectoActivo->id, 'persona' => $c->persona_public_id, 'caso' => $c->caso_public_id]) }}"
-                               wire:navigate
-                               x-on:click="open = false"
-                               style="gap:10px;padding:10px 16px;text-decoration:none;color:inherit;"
-                               class="flex items-center hover:bg-surface-100">
-                                <x-ui.badge :tone="$tone">{{ ucfirst(str_replace('_', ' ', $c->tipo_caso)) }}</x-ui.badge>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-base font-medium" style="color:var(--text);">{{ $nombre !== '' ? $nombre : '—' }}</div>
-                                    <div class="text-xs text-ink-500">
-                                        {{ $c->cartera_nombre }} · {{ $c->estado_caso_nombre }}
+                                    <div class="flex flex-wrap gap-1 mt-2">
+                                        @foreach($casos->where('persona_id', $p->id)->take(3) as $cuenta)
+                                            <span class="text-xs text-ink-500 rounded border border-border px-2 py-1">{{ $cuenta->referencia }} · {{ $cuenta->cartera_nombre }}</span>
+                                        @endforeach
+                                        @if($casos->where('persona_id', $p->id)->count() > 3)<span class="text-xs text-ink-500">+{{ $casos->where('persona_id', $p->id)->count() - 3 }} cuentas</span>@endif
                                     </div>
                                 </div>
                             </a>
                         @endforeach
                     @endif
+
                 @endif
             </div>
 

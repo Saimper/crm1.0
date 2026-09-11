@@ -63,10 +63,18 @@ final class RomperCompromisosVencidosCommand extends Command
             ->where('compromisos.estado', 'pendiente')
             ->whereNull('compromisos.eliminada_en')
             ->join('proyectos', 'proyectos.id', '=', 'compromisos.proyecto_id')
+            ->join('casos as scheduled_case', 'scheduled_case.id', '=', 'compromisos.caso_id')
+            ->join('carteras as scheduled_portfolio', 'scheduled_portfolio.id', '=', 'scheduled_case.cartera_id')
+            ->join('personas as scheduled_person', 'scheduled_person.id', '=', 'scheduled_case.persona_id')
+            ->join('mandantes as scheduled_client', 'scheduled_client.id', '=', 'proyectos.mandante_id')
+            ->whereNull('scheduled_case.eliminada_en')->whereNull('scheduled_person.eliminada_en')
+            ->where('scheduled_portfolio.activo', true)->whereNull('scheduled_portfolio.eliminada_en')
+            ->where('proyectos.activo', true)->whereNull('proyectos.eliminada_en')
+            ->where('scheduled_client.activo', true)->whereNull('scheduled_client.eliminada_en')
             ->where(function ($q) use ($reloj): void {
-                foreach ($this->mandantesConSuHoy($reloj) as $mandanteId => $hoyLocal) {
+                foreach ($this->proyectosConSuHoy($reloj) as $projectId => $hoyLocal) {
                     $q->orWhere(fn ($w) => $w
-                        ->where('proyectos.mandante_id', $mandanteId)
+                        ->where('compromisos.proyecto_id', $projectId)
                         ->whereDate('compromisos.fecha_vencimiento', '<', $hoyLocal));
                 }
             })
@@ -133,12 +141,12 @@ final class RomperCompromisosVencidosCommand extends Command
      *
      * @return array<int, string> mandante_id => 'Y-m-d'
      */
-    private function mandantesConSuHoy(RelojDelMandante $reloj): array
+    private function proyectosConSuHoy(RelojDelMandante $reloj): array
     {
         $hoyPorMandante = [];
 
-        foreach (DB::table('mandantes')->pluck('id') as $mandanteId) {
-            $hoyPorMandante[(int) $mandanteId] = $reloj->hoy((int) $mandanteId);
+        foreach (DB::table('proyectos')->pluck('id') as $projectId) {
+            $hoyPorMandante[(int) $projectId] = $reloj->hoy(proyectoId: (int) $projectId);
         }
 
         return $hoyPorMandante;

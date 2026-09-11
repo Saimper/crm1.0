@@ -10,7 +10,6 @@ use App\Modules\Compromisos\Application\Services\ConsultaListadoCompromisos;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -72,9 +71,11 @@ final class ListadoCompromisos extends Component
 
         $usuario = Auth::user();
         abort_unless($usuario instanceof User, 401);
+        abort_unless($usuario->tienePermiso('compromisos.ver', $proyectoId), 403);
 
         // El límite por cartera del rol (F22) va antes que cualquier filtro.
-        $base = $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $usuario->carterasPermitidas($proyectoId));
+        $base = $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $usuario->carterasPermitidasParaPermiso('compromisos.ver', $proyectoId));
+        $resumen = $consulta->resumen($base, $hoy);
 
         $compromisos = $consulta
             ->aplicarFiltros($base, $filtros, $hoy)
@@ -87,22 +88,8 @@ final class ListadoCompromisos extends Component
                 'u.name as usuario_nombre',
             ])
             ->orderByDesc('co.fecha_vencimiento')
+            ->orderByDesc('co.id')
             ->paginate(25);
-
-        $resumen = [
-            'pendientes' => (int) DB::table('compromisos')
-                ->where('proyecto_id', $proyectoId)->whereNull('eliminada_en')
-                ->where('estado', 'pendiente')->count(),
-            'vencidos' => (int) DB::table('compromisos')
-                ->where('proyecto_id', $proyectoId)->whereNull('eliminada_en')
-                ->where('estado', 'pendiente')->where('fecha_vencimiento', '<', $hoy)->count(),
-            'cumplidos' => (int) DB::table('compromisos')
-                ->where('proyecto_id', $proyectoId)->whereNull('eliminada_en')
-                ->where('estado', 'cumplido')->count(),
-            'rotos' => (int) DB::table('compromisos')
-                ->where('proyecto_id', $proyectoId)->whereNull('eliminada_en')
-                ->where('estado', 'roto')->count(),
-        ];
 
         return view('compromisos::livewire.listado-compromisos', [
             'compromisos' => $compromisos,

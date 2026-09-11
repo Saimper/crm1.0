@@ -6,6 +6,8 @@ namespace Tests\Feature\Modules\Compromisos;
 
 use App\Models\User;
 use App\Modules\Compromisos\Infrastructure\Http\Livewire\EditarCompromiso;
+use App\Modules\Tenancy\Application\UseCases\SaveRegionalSettings;
+use App\Modules\Tenancy\Domain\ValueObjects\RegionalSettings;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -45,7 +47,7 @@ final class EditarCompromisoTest extends TestCase
             ->call('guardar')
             ->assertHasNoErrors();
 
-        $this->assertSame('12345.67',
+        $this->assertSame('12345.670',
             (string) DB::table('compromisos_promesa_pago')->where('compromiso_id', $compromiso->id)->value('monto')
         );
     }
@@ -69,6 +71,38 @@ final class EditarCompromisoTest extends TestCase
         // El componente aborta con 409; Livewire lo traduce a respuesta HTTP.
         Livewire::test(EditarCompromiso::class, ['compromiso' => $compromiso->public_id])
             ->assertStatus(409);
+    }
+
+    public function test_localized_amount_preserves_three_decimals_and_original_form_value(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $supervisor = $this->crearSupervisor($project);
+        $this->activarProyecto($project);
+        $this->actingAs($supervisor);
+        app(SaveRegionalSettings::class)->execute((int) $project->mandante_id, (int) $project->id,
+            new RegionalSettings(decimalPlaces: 3, decimalSeparator: ',', thousandsSeparator: '.'));
+        $commitment = $this->compromisoPendiente($project, 'promesa_pago', $supervisor);
+        Livewire::test(EditarCompromiso::class, ['compromiso' => $commitment->public_id])
+            ->assertSet('monto', '500,000')
+            ->set('monto', '1.234,567')->call('guardar')->assertHasNoErrors()
+            ->assertSet('monto', '1.234,567');
+        $this->assertSame('1234.567', DB::table('compromisos_promesa_pago')->where('compromiso_id', $commitment->id)->value('monto'));
+    }
+
+    public function test_local_timestamp_is_validated_and_saved_as_utc_once(): void
+    {
+        $project = $this->crearProyectoCx();
+        $supervisor = $this->crearSupervisor($project);
+        $this->activarProyecto($project);
+        $this->actingAs($supervisor);
+        app(SaveRegionalSettings::class)->execute((int) $project->mandante_id, (int) $project->id,
+            new RegionalSettings(timezone: 'America/Panama'));
+        $commitment = $this->compromisoPendiente($project, 'resolucion_ticket', $supervisor);
+        Livewire::test(EditarCompromiso::class, ['compromiso' => $commitment->public_id])
+            ->set('fechaLimiteSla', '2026-02-30T15:30')->call('guardar')->assertHasErrors('fechaLimiteSla')
+            ->set('fechaLimiteSla', '2026-09-10T15:30')->call('guardar')->assertHasNoErrors()
+            ->assertSet('fechaLimiteSla', '2026-09-10T15:30');
+        $this->assertSame('2026-09-10 20:30:00', DB::table('compromisos_resolucion_ticket')->where('compromiso_id', $commitment->id)->value('fecha_limite_sla'));
     }
 
     public function test_compromiso_de_otro_proyecto_no_se_carga(): void

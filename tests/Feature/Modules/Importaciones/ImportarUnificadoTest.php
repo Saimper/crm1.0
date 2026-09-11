@@ -444,7 +444,7 @@ final class ImportarUnificadoTest extends TestCase
         $this->assertDatabaseMissing('personas', ['proyecto_id' => $project->id, 'identificacion' => '1700000767']);
     }
 
-    public function test_portfolio_disabled_after_mapping_rejects_rows_when_the_worker_runs(): void
+    public function test_portfolio_disabled_after_mapping_is_rejected_before_queueing(): void
     {
         [$project] = $this->contextoCobranza();
         $portfolio = $this->crearCarteraEn($project);
@@ -453,11 +453,11 @@ final class ImportarUnificadoTest extends TestCase
             ->set('archivo', UploadedFile::fake()->createWithContent('pending.csv', "Identificacion,Nombres,Correo\n1700000768,Ana,paused@example.test\n"))
             ->call('subirArchivo')->call('confirmarMapeo')->assertHasNoErrors();
         DB::table('carteras')->where('id', $portfolio->id)->update(['activo' => false]);
-        $component->call('ejecutar');
+        $component->call('ejecutar')->assertHasErrors(['columnas']);
         $this->assertDatabaseMissing('personas', ['proyecto_id' => $project->id, 'identificacion' => '1700000768']);
         $this->assertDatabaseMissing('contactos', ['proyecto_id' => $project->id, 'valor' => 'paused@example.test']);
-        $this->assertDatabaseHas('importaciones', ['id' => $component->get('importacionId'), 'estado' => 'fallida', 'procesadas' => 0]);
-        $this->assertStringContainsString('cartera no está activa', (string) DB::table('importaciones')->where('id', $component->get('importacionId'))->value('error_global'));
+        $this->assertDatabaseHas('importaciones', ['id' => $component->get('importacionId'), 'estado' => 'preparada', 'procesadas' => 0]);
+        $this->assertNull(DB::table('importaciones')->where('id', $component->get('importacionId'))->value('iniciado_en'));
     }
 
     private function contextoCobranza(): array

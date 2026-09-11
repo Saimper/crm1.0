@@ -49,6 +49,8 @@
         </div>
     </div>
 
+    <livewire:tenancy.regional-settings :mandante-id="(int) $proyecto->mandante_id" :project-id="(int) $proyecto->id" :key="'regional-project-'.$proyecto->id" />
+
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
         <button type="button" wire:click="guardarSinAvance" class="btn btn-ghost">{{ __('common.save') }}</button>
         <button type="button" wire:click="guardar" class="btn btn-primary">

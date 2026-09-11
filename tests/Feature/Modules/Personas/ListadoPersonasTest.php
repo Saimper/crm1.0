@@ -30,8 +30,8 @@ final class ListadoPersonasTest extends TestCase
     public function test_supervisor_ve_personas_del_proyecto(): void
     {
         $proyecto = $this->crearProyectoCobranza();
-        $this->crearPersonaEn($proyecto, '1111111111');
-        $this->crearPersonaEn($proyecto, '2222222222');
+        $this->crearPersonaOperativaEn($proyecto, '1111111111');
+        $this->crearPersonaOperativaEn($proyecto, '2222222222');
 
         $this->actuarComoSupervisor($proyecto);
 
@@ -42,8 +42,8 @@ final class ListadoPersonasTest extends TestCase
     public function test_filtro_busqueda_funciona(): void
     {
         $proyecto = $this->crearProyectoCobranza();
-        $this->crearPersonaEn($proyecto, '7777777777');
-        $this->crearPersonaEn($proyecto, '8888888888');
+        $this->crearPersonaOperativaEn($proyecto, '7777777777');
+        $this->crearPersonaOperativaEn($proyecto, '8888888888');
 
         $this->actuarComoSupervisor($proyecto);
 
@@ -56,8 +56,8 @@ final class ListadoPersonasTest extends TestCase
     {
         $proyectoA = $this->crearProyectoCobranza();
         $proyectoB = $this->crearProyectoCx();
-        $this->crearPersonaEn($proyectoA, '1010101010');
-        $this->crearPersonaEn($proyectoB, '2020202020');
+        $this->crearPersonaOperativaEn($proyectoA, '1010101010');
+        $this->crearPersonaOperativaEn($proyectoB, '2020202020');
 
         $this->actuarComoSupervisor($proyectoA);
 
@@ -142,5 +142,13 @@ final class ListadoPersonasTest extends TestCase
     {
         $this->activarProyecto($proyecto);
         $this->actingAs($this->crearSupervisor($proyecto));
+    }
+
+    private function crearPersonaOperativaEn(stdClass $proyecto, ?string $identificacion = null): stdClass
+    {
+        $persona = $this->crearPersonaEn($proyecto, $identificacion);
+        $this->crearCasoEn($proyecto, ['persona' => $persona]);
+
+        return $persona;
     }
 }

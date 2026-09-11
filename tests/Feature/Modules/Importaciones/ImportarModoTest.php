@@ -45,7 +45,7 @@ final class ImportarModoTest extends TestCase
 
         $wizard->set('modo', 'merge')->call('ejecutar')->assertHasNoErrors()->assertSet('paso', 4);
 
-        $this->assertSame('500.00', $this->saldoCapitalDe($proyecto));
+        $this->assertSame('500.000', $this->saldoCapitalDe($proyecto));
         $this->assertSame('completada', (string) DB::table('importaciones')->where('id', $wizard->get('importacionId'))->value('estado'));
     }
 
@@ -55,7 +55,7 @@ final class ImportarModoTest extends TestCase
 
         $wizard->set('modo', 'upsert')->call('ejecutar')->assertHasNoErrors()->assertSet('paso', 4);
 
-        $this->assertSame('100.00', $this->saldoCapitalDe($proyecto));
+        $this->assertSame('100.000', $this->saldoCapitalDe($proyecto));
     }
 
     public function test_tras_encolar_la_columna_modo_y_el_json_del_esquema_dicen_lo_mismo(): void
@@ -70,6 +70,24 @@ final class ImportarModoTest extends TestCase
         $this->assertSame('merge', json_decode((string) $importacion->esquema, true)['modo']);
     }
 
+    public function test_importing_a_returned_account_needs_no_additional_checkbox_even_in_insert_mode(): void
+    {
+        [$project, $wizard] = $this->wizardEnElPaso3ConCasoDeSaldo500(true);
+        $wizard->assertSee('se reincorporarán automáticamente')
+            ->assertDontSee('Reincorporar las coincidencias archivadas')
+            ->set('modo', 'insert')->call('ejecutar')->assertHasNoErrors()->assertSet('paso', 4);
+
+        $import = DB::table('importaciones')->where('id', $wizard->get('importacionId'))->first();
+        $destinationId = json_decode($import->esquema, true)['cartera_id'];
+        $case = DB::table('casos_cobranza')->where('proyecto_id', $project->id)->where('numero_prestamo', 'PR-MODO')->sole();
+        $this->assertSame('completada', $import->estado);
+        $this->assertSame(0, $import->omitidas);
+        $this->assertSame(0, $import->duplicadas);
+        $this->assertSame('100.000', $this->saldoCapitalDe($project));
+        $this->assertDatabaseHas('casos', ['id' => $case->caso_id, 'cartera_id' => $destinationId]);
+        $this->assertSame(1, DB::table('caso_cartera_movimientos')->where('proyecto_id', $project->id)->count());
+    }
+
     /**
      * Deja el wizard en el paso 3 con un caso de cobranza ya cargado (saldo 500)
      * al que el archivo trae saldo 100. Lo prepara un ADMIN_GLOBAL porque la
@@ -77,7 +95,7 @@ final class ImportarModoTest extends TestCase
      *
      * @return array{0: stdClass, 1: Testable}
      */
-    private function wizardEnElPaso3ConCasoDeSaldo500(): array
+    private function wizardEnElPaso3ConCasoDeSaldo500(bool $returning = false): array
     {
         $proyecto = $this->crearProyectoCobranza();
         $cartera = $this->crearCarteraEn($proyecto, 'CART_T');
@@ -99,6 +117,11 @@ final class ImportarModoTest extends TestCase
             'creada_en' => Carbon::now(),
             'actualizada_en' => Carbon::now(),
         ]);
+
+        if ($returning) {
+            DB::table('carteras')->where('id', $cartera->id)->update(['activo' => false, 'eliminada_en' => now()]);
+            $cartera = $this->crearCarteraEn($proyecto, 'CART_RETURN');
+        }
 
         $this->activarProyecto($proyecto);
         $this->actingAs($this->crearAdminGlobal());

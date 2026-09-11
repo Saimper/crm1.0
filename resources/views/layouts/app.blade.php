@@ -182,17 +182,19 @@
                         </a>
                     @endcan
                     @can('personas.ver', $proyectoActivo->id)
+                      @can('casos.ver', $proyectoActivo->id)
                         <a href="{{ route('proyectos.personas.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.personas.*')) active @endif">
+                           class="sb-item @if($rid('proyectos.personas.*', 'proyectos.casos.*', 'proyectos.trabajo')) active @endif">
                             <x-ui.icon name="user" :size="15" />
-                            <span>{{ __('nav.people') }}</span>
+                            <span>Clientes</span>
                         </a>
+                      @endcan
                     @endcan
-                    @can('casos.ver', $proyectoActivo->id)
-                        <a href="{{ route('proyectos.casos.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.casos.*', 'proyectos.trabajo')) active @endif">
-                            <x-ui.icon name="folder" :size="15" />
-                            <span>{{ \Illuminate\Support\Str::ucfirst($rotuloCasos) }}</span>
+                    @can('historico.ver', $proyectoActivo->id)
+                        <a href="{{ route('proyectos.historico.lista', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
+                           class="sb-item @if($rid('proyectos.historico.*')) active @endif">
+                            <x-ui.icon name="clock" :size="15" />
+                            <span>Histórico</span>
                         </a>
                     @endcan
                     @can('compromisos.ver', $proyectoActivo->id)
@@ -206,12 +208,19 @@
                         @php
                             $entidadesProyecto = \Illuminate\Support\Facades\DB::table('entidades_configurables')
                                 ->where('proyecto_id', $proyectoActivo->id)
+                                ->where('relacion_con', 'ninguna')
                                 ->whereNull('eliminada_en')
                                 ->where('activo', true)
+                                ->where(fn ($q) => $q->whereNull('cartera_id')->orWhereExists(fn ($portfolio) => $portfolio
+                                    ->selectRaw('1')->from('carteras')
+                                    ->whereColumn('carteras.id', 'entidades_configurables.cartera_id')
+                                    ->whereColumn('carteras.proyecto_id', 'entidades_configurables.proyecto_id')
+                                    ->where('carteras.activo', true)->whereNull('carteras.eliminada_en')))
                                 ->orderBy('nombre')
-                                ->select(['id', 'nombre', 'icono'])
+                                ->select(['id', 'nombre', 'icono', 'cartera_id'])
                                 ->limit(15)
-                                ->get();
+                                ->get()
+                                ->filter(fn ($entity) => auth()->user()->tienePermiso('entidades.ver', (int) $proyectoActivo->id, $entity->cartera_id === null ? null : (int) $entity->cartera_id));
                         @endphp
                         @foreach($entidadesProyecto as $ent)
                             <a href="{{ route('proyectos.entidades.registros', ['proyecto_id' => $proyectoActivo->id, 'entidad_id' => $ent->id]) }}"
@@ -254,7 +263,7 @@
                         <a href="{{ route('proyectos.equipos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
                            class="sb-item @if($rid('proyectos.equipos')) active @endif">
                             <x-ui.icon name="briefcase" :size="15" />
-                            <span>{{ __('nav.teams') }}</span>
+                            <span>Equipos de gestores</span>
                         </a>
                     @endcan
                 </div>
@@ -342,14 +351,9 @@
                     <div class="sb-group">
                         <div class="sb-group-title">{{ __('nav.group_permissions') }}</div>
                         <a href="{{ route('proyectos.admin.roles-custom', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.admin.roles-custom')) active @endif">
+                           class="sb-item @if($rid('proyectos.admin.roles-custom', 'proyectos.admin.matriz-permisos')) active @endif">
                             <x-ui.icon name="shield" :size="15" />
-                            <span>{{ __('nav.custom_roles') }}</span>
-                        </a>
-                        <a href="{{ route('proyectos.admin.matriz-permisos', ['proyecto_id' => $proyectoActivo->id]) }}" wire:navigate
-                           class="sb-item @if($rid('proyectos.admin.matriz-permisos')) active @endif">
-                            <x-ui.icon name="hash" :size="15" />
-                            <span>{{ __('nav.permissions_matrix') }}</span>
+                            <span>Roles y permisos</span>
                         </a>
                     </div>
                 @endcan

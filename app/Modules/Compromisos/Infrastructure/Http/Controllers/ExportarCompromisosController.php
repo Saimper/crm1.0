@@ -36,7 +36,7 @@ final class ExportarCompromisosController
         return $this->exportador->responder(
             $proyecto,
             FiltrosListadoCompromisos::desdeRequest($request),
-            $usuario->carterasPermitidas($proyecto_id),
+            $usuario->carterasPermitidasParaPermiso('compromisos.exportar', $proyecto_id),
         );
     }
 }

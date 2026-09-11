@@ -30,7 +30,7 @@ interface CampoPersonalizadoImportacionRepository
      * Persiste valores de campos personalizados en lote usando
      * INSERT ON DUPLICATE KEY UPDATE.
      *
-     * @param  list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string}>  $lote
+     * @param  list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string, solo_vacios?: bool}>  $lote
      */
     public function guardarValoresEnLote(array $lote): void;
 

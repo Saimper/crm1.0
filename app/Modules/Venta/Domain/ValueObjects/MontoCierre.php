@@ -12,10 +12,10 @@ final readonly class MontoCierre
         public string $monto,
         public string $moneda = 'USD',
     ) {
-        if (! preg_match('/^\d+(\.\d{1,2})?$/', $monto)) {
+        if (! is_numeric($monto) || ! preg_match('/^\d+(\.\d{1,3})?$/D', $monto)) {
             throw new DatosCierreInvalidos("Monto de cierre inválido: {$monto}.");
         }
-        if (bccomp($monto, '0', 2) <= 0) {
+        if (bccomp($monto, '0', 3) <= 0) {
             throw new DatosCierreInvalidos('El monto de cierre debe ser mayor que cero.');
         }
         if (! preg_match('/^[A-Z]{3}$/', $moneda)) {

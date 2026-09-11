@@ -29,6 +29,56 @@ final class EntidadesConfigurablesTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
+    public function test_person_linked_entity_requires_a_same_project_person(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $other = $this->crearProyectoCobranza();
+        $foreign = $this->crearPersonaEn($other);
+        $service = app(ServicioEntidades::class);
+        $entity = $service->crearEntidad($project->id, 'PERSON_DATA', 'Datos complementarios', relacion: RelacionEntidad::PERSONA);
+        foreach ([null, $foreign->id] as $personId) {
+            try {
+                $service->crearRegistro($project->id, $entity, 'Invalid', [], personaId: $personId);
+                $this->fail('A linked record must have a valid same-project owner.');
+            } catch (\RuntimeException $e) {
+                $this->assertNotEmpty($e->getMessage());
+            }
+        }
+        $this->assertDatabaseCount('entidades_registros', 0);
+        $person = $this->crearPersonaEn($project);
+        $record = $service->crearRegistro($project->id, $entity, 'Valid', [], personaId: $person->id);
+        $this->assertDatabaseHas('entidades_registros', ['id' => $record, 'persona_id' => $person->id]);
+    }
+
+    public function test_archived_definition_cannot_be_opened_or_receive_new_records(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $this->activarProyecto($project);
+        $this->actingAs($this->crearAdminGlobal());
+        $service = app(ServicioEntidades::class);
+        $entity = $service->crearEntidad($project->id, 'RETIRED', 'Retirada');
+        $service->eliminarEntidad($project->id, $entity);
+        Livewire::test(GestorRegistrosEntidad::class, ['proyectoId' => $project->id, 'entidadId' => $entity])->assertNotFound();
+        $this->expectException(\RuntimeException::class);
+        $service->crearRegistro($project->id, $entity, 'Invalid', []);
+    }
+
+    public function test_editing_a_record_through_another_definition_does_not_change_it(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $service = app(ServicioEntidades::class);
+        $one = $service->crearEntidad($project->id, 'ONE', 'Primera');
+        $two = $service->crearEntidad($project->id, 'TWO', 'Segunda');
+        $record = $service->crearRegistro($project->id, $one, 'Original', []);
+        try {
+            $service->actualizarRegistro($project->id, $two, $record, 'Wrong', []);
+            $this->fail('Mismatched record definition must be refused.');
+        } catch (\RuntimeException $e) {
+            $this->assertNotEmpty($e->getMessage());
+        }
+        $this->assertDatabaseHas('entidades_registros', ['id' => $record, 'titulo' => 'Original']);
+    }
+
     // ====== Admin (definir entidades) ======
 
     public function test_gestor_y_supervisor_no_pueden_entrar_admin_entidades(): void

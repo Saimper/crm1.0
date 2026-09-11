@@ -54,7 +54,7 @@ final class EditarCasoTest extends TestCase
 
         // F36-Q: el saldo del CTI ya no es editable desde esta pantalla.
         $this->assertSame(
-            '1000.00',
+            '1000.000',
             (string) DB::table('casos_cobranza')->where('caso_id', $casoId)->value('saldo_capital')
         );
     }

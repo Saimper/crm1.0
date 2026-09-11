@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Notificaciones\Infrastructure\Http\Livewire;
 
+use App\Modules\Notificaciones\Application\Services\ConsultaNotificacionesOperativas;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
@@ -35,9 +35,8 @@ final class BadgeNotificaciones extends Component
             return;
         }
 
-        $this->noLeidas = (int) DB::table('notificaciones')
-            ->where('proyecto_id', (int) $proyectoActivo->id)
-            ->where('destinatario_usuario_id', (int) auth()->id())
+        $this->noLeidas = (int) app(ConsultaNotificacionesOperativas::class)
+            ->paraUsuario((int) $proyectoActivo->id, (int) auth()->id())
             ->whereNull('leida_en')
             ->count();
     }

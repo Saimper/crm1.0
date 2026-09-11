@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,15 +31,17 @@ final class ReporteEquipos extends Component
 
     public function render(): View
     {
-        abort_unless(auth()->user()?->tienePermiso('reportes.operativos') === true, 403);
+        $usuario = auth()->user();
+        abort_unless($usuario !== null && $usuario->tienePermiso('reportes.operativos'), 403);
 
         $proyecto = app('tenancy.proyecto_activo');
         $proyectoId = (int) $proyecto->id;
+        $carteras = $usuario->carterasPermitidasParaPermiso('reportes.operativos', $proyectoId);
 
         $rango = $this->rangoActual();
         $desde = $rango['desde'];
         $hasta = $rango['hasta'];
-        $hoy = Carbon::today();
+        $hoy = app(RelojDelMandante::class)->hoy();
 
         $resultadosEfectivos = DB::table('resultados')
             ->where('proyecto_id', $proyectoId)
@@ -69,7 +73,7 @@ final class ReporteEquipos extends Component
                 continue;
             }
 
-            $gestionesQ = DB::table('gestiones')
+            $gestionesQ = CarterasOperativas::filtrarVinculados(DB::table('gestiones'), 'gestiones', carterasPermitidas: $carteras)
                 ->where('proyecto_id', $proyectoId)
                 ->whereBetween('creada_en', [$desde, $hasta])
                 ->whereIn('usuario_id', $miembroIds)
@@ -82,14 +86,14 @@ final class ReporteEquipos extends Component
                 : (clone $gestionesQ)->whereIn('resultado_id', $resultadosEfectivos)->distinct()->count('caso_id');
             $efectividad = $intentadas === 0 ? 0.0 : round(($gestionadas / $intentadas) * 100, 1);
 
-            $compromisosVigentes = DB::table('compromisos')
+            $compromisosVigentes = CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
                 ->where('proyecto_id', $proyectoId)
                 ->where('estado', 'pendiente')
                 ->whereIn('usuario_id', $miembroIds)
                 ->whereDate('fecha_vencimiento', '>=', $hoy)
                 ->whereNull('eliminada_en')
                 ->count();
-            $compromisosVencidos = DB::table('compromisos')
+            $compromisosVencidos = CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
                 ->where('proyecto_id', $proyectoId)
                 ->where('estado', 'pendiente')
                 ->whereIn('usuario_id', $miembroIds)
@@ -117,6 +121,7 @@ final class ReporteEquipos extends Component
                 $desde,
                 $hasta,
                 $resultadosEfectivos,
+                $carteras,
             );
         }
 
@@ -131,6 +136,7 @@ final class ReporteEquipos extends Component
     /**
      * @param  array<int, object>  $_
      * @param  list<int>  $resultadosEfectivos
+     * @param  list<int>|null  $carteras
      * @return list<array<string, mixed>>
      */
     private function breakdownPorMiembro(
@@ -139,6 +145,7 @@ final class ReporteEquipos extends Component
         Carbon $desde,
         Carbon $hasta,
         array $resultadosEfectivos,
+        ?array $carteras,
     ): array {
         $rows = DB::table('equipo_usuario as eu')
             ->join('users as u', 'u.id', '=', 'eu.usuario_id')
@@ -155,7 +162,7 @@ final class ReporteEquipos extends Component
 
         $res = [];
         foreach ($rows as $u) {
-            $q = DB::table('gestiones')
+            $q = CarterasOperativas::filtrarVinculados(DB::table('gestiones'), 'gestiones', carterasPermitidas: $carteras)
                 ->where('proyecto_id', $proyectoId)
                 ->where('usuario_id', $u->id)
                 ->whereBetween('creada_en', [$desde, $hasta])
@@ -200,29 +207,10 @@ final class ReporteEquipos extends Component
     /** @return array{desde: Carbon, hasta: Carbon, etiqueta: string} */
     private function rangoActual(): array
     {
-        $ahora = Carbon::now();
+        $range = app(RelojDelMandante::class)->rangoPreestablecido($this->rango);
 
-        return match ($this->rango) {
-            'hoy' => [
-                'desde' => $ahora->copy()->startOfDay(),
-                'hasta' => $ahora->copy()->endOfDay(),
-                'etiqueta' => 'Hoy',
-            ],
-            'ayer' => [
-                'desde' => $ahora->copy()->subDay()->startOfDay(),
-                'hasta' => $ahora->copy()->subDay()->endOfDay(),
-                'etiqueta' => 'Ayer',
-            ],
-            'semana' => [
-                'desde' => $ahora->copy()->subDays(6)->startOfDay(),
-                'hasta' => $ahora->copy()->endOfDay(),
-                'etiqueta' => 'Últimos 7 días',
-            ],
-            default => [
-                'desde' => $ahora->copy()->startOfMonth(),
-                'hasta' => $ahora->copy()->endOfDay(),
-                'etiqueta' => 'Mes en curso',
-            ],
-        };
+        return $range + ['etiqueta' => match ($this->rango) {
+            'hoy' => 'Hoy', 'ayer' => 'Ayer', 'semana' => 'Últimos 7 días', default => 'Mes en curso',
+        }];
     }
 }

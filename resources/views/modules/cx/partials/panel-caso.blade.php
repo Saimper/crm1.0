@@ -45,14 +45,14 @@
             <div>
                 <dt class="text-brand-700">{{ __('cx.reportado') }}</dt>
                 <dd class="font-medium text-brand-900">
-                    {{ \Illuminate\Support\Carbon::parse($ticket->fecha_reporte)->format('d/m/Y H:i') }}
+                    {{ hora_local($ticket->fecha_reporte) }}
                 </dd>
             </div>
             @if($ticket->fecha_limite_sla)
                 <div class="col-span-2 sm:col-span-4">
                     <dt class="text-brand-700">{{ __('cx.limite_sla') }}</dt>
                     <dd class="font-semibold text-brand-900">
-                        {{ \Illuminate\Support\Carbon::parse($ticket->fecha_limite_sla)->format('d/m/Y H:i') }}
+                        {{ hora_local($ticket->fecha_limite_sla) }}
                         @php $diff = \Illuminate\Support\Carbon::parse($ticket->fecha_limite_sla)->diffForHumans(); @endphp
                         <span class="text-[10px] text-brand-700">· {{ $diff }}</span>
                     </dd>

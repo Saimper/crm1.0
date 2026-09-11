@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Venta\Infrastructure\Http\Livewire;
 
 use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use App\Modules\Venta\Application\UseCases\CancelarCierre;
 use App\Modules\Venta\Application\UseCases\MarcarCierreGanado;
 use App\Modules\Venta\Application\UseCases\MarcarCierrePerdido;
+use App\Support\Livewire\AutorizaCompromisoOperativo;
 use App\Support\Livewire\AutorizaEnProyectoActivo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
@@ -21,6 +23,7 @@ use Throwable;
  */
 final class ResolverCierre extends Component
 {
+    use AutorizaCompromisoOperativo;
     use AutorizaEnProyectoActivo;
 
     /**
@@ -40,7 +43,7 @@ final class ResolverCierre extends Component
     public function mount(int $compromisoId): void
     {
         $this->compromisoId = $compromisoId;
-        $this->fechaResolucion = (new DateTimeImmutable)->format('Y-m-d');
+        $this->fechaResolucion = app(RelojDelMandante::class)->hoy();
     }
 
     public function abrir(string $accion): void
@@ -77,10 +80,11 @@ final class ResolverCierre extends Component
 
         // Y que el compromiso sea de este proyecto: el permiso es por proyecto,
         // tenerlo en el propio no autoriza a tocar el del ajeno.
-        $this->exigirDelProyecto('compromisos', $this->compromisoId);
+        $this->exigirCompromisoOperativo($this->compromisoId, $this->accion === 'cancelado' ? 'compromisos.cancelar' : 'compromisos.resolver');
 
         $input = new ResolverCompromisoInput(
             compromisoId: $this->compromisoId,
+            proyectoId: $this->proyectoActivoId(),
             fechaResolucion: new DateTimeImmutable($this->fechaResolucion),
         );
 

@@ -9,12 +9,38 @@
         <div>
             <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('asignaciones.bulk_section_title', ['entidades' => $rotuloCasos]) }}</h3>
             <p class="text-xs text-ink-500 mt-1">
-                {!! __('asignaciones.bulk_section_desc', ['entidad' => $rotuloCaso, 'un' => $rotuloArticulo]) !!}
+                Asigna cuentas sin dueño a un asesor o repártelas entre los gestores de un equipo. Cada nueva tanda toma las siguientes cuentas disponibles y conserva las asignaciones existentes.
             </p>
         </div>
 
         <form wire:submit.prevent="asignar" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            @error('reparto')<div class="alert alert-danger md:col-span-2" role="alert">{{ $message }}</div>@enderror
             <div>
+                <label for="bulk-portfolio" class="field-label">Cartera</label>
+                <select id="bulk-portfolio" wire:model.live="carteraId" class="select">
+                    <option value="">Todas las carteras autorizadas</option>
+                    @foreach($carteras as $cartera)<option value="{{ $cartera->id }}">{{ $cartera->nombre }}</option>@endforeach
+                </select>
+                @error('carteraId')<p class="text-danger-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label for="bulk-destination" class="field-label">Asignar a</label>
+                <select id="bulk-destination" wire:model.live="destino" class="select">
+                    <option value="asesor">Un asesor</option>
+                    <option value="equipo">Un equipo de gestores</option>
+                </select>
+                @error('destino')<p class="text-danger-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                @if($destino === 'asesor')
+                    <label for="bulk-advisor" class="field-label">Asesor destino</label>
+                    <select id="bulk-advisor" wire:model="asesorId" class="select">
+                        <option value="">Seleccionar asesor…</option>
+                        @foreach($asesores as $asesor)<option value="{{ $asesor->id }}">{{ $asesor->name }}</option>@endforeach
+                    </select>
+                    @error('asesorId')<p class="text-danger-600">{{ $message }}</p>@enderror
+                    <p class="field-help">Puede recibir cuentas sin pertenecer a un equipo.</p>
+                @else
                 <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_target_team') }}</label>
                 <select wire:model.live="equipoId" class="mt-1 block w-full border-ink-300 rounded-md text-sm">
                     <option value="">{{ __('asignaciones.select_placeholder') }}</option>
@@ -23,9 +49,10 @@
                     @endforeach
                 </select>
                 @error('equipoId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
+                @endif
                 <div class="mt-1 text-[11px] text-ink-500">
-                    {{ __('asignaciones.cases_unassigned', ['count' => number_format($casosSinAsignar), 'entidades' => $rotuloCasos]) }}
-                    @if($miembrosActivos !== null)
+                    {{ __('asignaciones.cases_unassigned', ['count' => numero_local($casosSinAsignar, 0), 'entidades' => $rotuloCasos]) }}
+                    @if($destino === 'equipo' && $miembrosActivos !== null)
                         · {{ __('asignaciones.active_members', ['count' => $miembrosActivos]) }}
                     @endif
                 </div>
@@ -34,6 +61,7 @@
                 <label class="block text-xs font-medium text-ink-700">{{ __('asignaciones.label_limit') }}</label>
                 <input type="number" wire:model="limite" min="0"
                        class="mt-1 block w-full border-ink-300 rounded-md text-sm"/>
+                <p class="field-help">Ejemplo: 150 para el primer asesor; repite con otro asesor para las siguientes 150. Cero reparte todas las elegibles.</p>
                 @error('limite')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
             </div>
             <div class="md:col-span-2 flex justify-end">

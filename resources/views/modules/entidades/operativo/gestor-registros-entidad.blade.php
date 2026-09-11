@@ -13,13 +13,17 @@
                 <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ $entidad->nombre }}</h3>
                 <p class="text-xs text-ink-500 mt-1">{{ $entidad->descripcion ?? '' }}</p>
             </div>
-            @if(auth()->user()->tienePermiso('entidades.crear', $proyectoId) && ! $formVisible)
+            @if(auth()->user()->tienePermiso('entidades.crear', $proyectoId) && ! $formVisible && ($entidad->relacion_con === 'ninguna' || $casoId !== null || $personaId !== null))
                 <button type="button" wire:click="abrirFormCrear"
                         class="px-3 py-1.5 text-xs text-white bg-brand-600 rounded hover:bg-brand-700">
                     {{ __('entidades.new_record') }}
                 </button>
             @endif
         </section>
+
+        @if($entidad->relacion_con !== 'ninguna' && $casoId === null && $personaId === null)
+            <p class="text-sm text-ink-600">Los registros vinculados se crean desde la ficha de la persona o cuenta correspondiente.</p>
+        @endif
 
         @if($formVisible)
             <section class="rounded-lg border border-brand-200 bg-brand-50 p-4">
@@ -76,7 +80,7 @@
                             <tr>
                                 <td class="px-3 py-2">{{ $r->titulo ?? '—' }}</td>
                                 <td class="px-3 py-2 text-xs text-ink-500">
-                                    {{ \Illuminate\Support\Carbon::parse($r->creado_en)->format('d/m/Y H:i') }}
+                                    {{ hora_local($r->creado_en) }}
                                 </td>
                                 <td class="px-3 py-2 text-right text-xs space-x-2">
                                     @if(auth()->user()->tienePermiso('entidades.editar', $proyectoId))

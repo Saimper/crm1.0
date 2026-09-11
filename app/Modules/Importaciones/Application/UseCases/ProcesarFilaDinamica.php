@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Application\UseCases;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Casos\Domain\Contracts\ReincorporacionDeCuenta;
 use App\Modules\Cobranza\Application\DTOs\RegistrarCasoCobranzaInput;
 use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use App\Modules\Cobranza\Domain\Exceptions\DatosCasoCobranzaInvalidos;
@@ -14,6 +15,7 @@ use App\Modules\Contactos\Domain\ValueObjects\ExtractorDeContactos;
 use App\Modules\Cx\Application\DTOs\RegistrarCasoTicketCxInput;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
 use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
+use App\Modules\Importaciones\Application\Services\FormatoDeImportacion;
 use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Domain\Enums\EstadoFila;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
@@ -31,6 +33,7 @@ use App\Modules\Personas\Domain\ValueObjects\TipoPersona;
 use App\Modules\Servicio\Application\DTOs\RegistrarCasoServicioInput;
 use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\ValueObjects\RegionalSettings;
 use App\Modules\Venta\Application\DTOs\RegistrarCasoLeadVentaInput;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use App\Support\Database\CarterasOperativas;
@@ -47,9 +50,7 @@ use Throwable;
  * NO persiste valores de campos personalizados directamente; los retorna
  * para que el job los acumule y llame a guardarValoresEnLote() en batch.
  *
- * No es `readonly` porque memoriza el mandante de cada proyecto: hace falta
- * para anclar la mora al calendario del cliente y no se va a consultar por
- * cada una de las 8.000 filas de un archivo.
+ * Regional configuration is resolved and cached by the tenancy service.
  */
 final class ProcesarFilaDinamica
 {
@@ -69,9 +70,6 @@ final class ProcesarFilaDinamica
         'caso_servicio' => 'codigo_servicio',
     ];
 
-    /** @var array<int, int|null> proyecto_id → mandante_id */
-    private array $mandantePorProyecto = [];
-
     public function __construct(
         private readonly ResolverPersonaImportacion $personaResolver,
         private readonly RegistrarPersona $registrarPersona,
@@ -83,16 +81,41 @@ final class ProcesarFilaDinamica
         private readonly AltaContactosEnLote $altaContactos,
         private readonly DescriptorDeFalloImportacion $descriptor,
         private readonly RelojDelMandante $reloj,
+        private readonly FormatoDeImportacion $formato,
+        private readonly ?ReincorporacionDeCuenta $reincorporacion = null,
     ) {}
 
     public function execute(ProcesarFilaInput $input): ResultadoFilaConValoresCp
+    {
+        // Standalone row processing has the same atomicity as the queued worker.
+        // A returned invalid/omitted row must undo an earlier portfolio movement.
+        $nivel = $this->db->transactionLevel();
+        $this->db->beginTransaction();
+        try {
+            $resultado = $this->procesar($input);
+            if ($resultado->resultadoFila->estado === EstadoFila::PROCESADA) {
+                $this->db->commit();
+            } else {
+                $this->db->rollBack();
+            }
+
+            return $resultado;
+        } catch (Throwable $e) {
+            if ($this->db->transactionLevel() > $nivel) {
+                $this->db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    private function procesar(ProcesarFilaInput $input): ResultadoFilaConValoresCp
     {
         $esquema = $input->esquema;
         $fila = $input->fila;
 
         $columnaIdentidad = $esquema->columnaIdentificador();
         $identKey = $columnaIdentidad?->clavePayload();
-        $valorIdentidad = $identKey !== null ? ($fila[$identKey] ?? '') : '';
+        $valorIdentidad = $identKey !== null ? trim($fila[$identKey] ?? '') : '';
 
         $proyectoId = $esquema->proyectoId;
         $carteraId = $esquema->carteraId;
@@ -121,9 +144,10 @@ final class ProcesarFilaDinamica
 
         $casoId = null;
         $casoExistente = false;
+        $casoReincorporado = false;
 
         if ($esquema->target !== TargetImportacion::PERSONA && $carteraId !== null) {
-            $casoKey = $fila['id_cpelegido'] ?? '';
+            $casoKey = trim($fila['id_cpelegido'] ?? '');
             if ($casoKey !== '' && isset($input->casosExistentes[$casoKey])) {
                 $casoId = $input->casosExistentes[$casoKey];
                 $casoExistente = true;
@@ -133,14 +157,42 @@ final class ProcesarFilaDinamica
             }
         }
 
-        if ($casoId !== null && ! CarterasOperativas::casos($this->db, $proyectoId)->where('c.id', $casoId)->exists()) {
-            throw new ImportacionNoProcesable('La cuenta pertenece a una cartera desactivada o eliminada.');
+        if ($casoId !== null) {
+            $cuenta = $this->db->table('casos')->where('proyecto_id', $proyectoId)->where('id', $casoId)->lockForUpdate()->first();
+            if ($cuenta === null || 'caso_'.$cuenta->tipo_caso !== $esquema->target->value) {
+                return new ResultadoFilaConValoresCp(ResultadoFila::invalida('La cuenta no corresponde a la operación de esta importación.'), []);
+            }
+            if (! $this->db->table('personas')->where('proyecto_id', $proyectoId)->where('id', $cuenta->persona_id)->whereNull('eliminada_en')->exists()) {
+                return new ResultadoFilaConValoresCp(ResultadoFila::omitida('La persona de esta cuenta está archivada. No se modificó la cuenta.'), []);
+            }
+            if ($valorIdentidad !== '' && (int) $cuenta->persona_id !== $personaId) {
+                return new ResultadoFilaConValoresCp(ResultadoFila::invalida('El número de cuenta pertenece a otra persona. Revisa la identificación.'), []);
+            }
+            if (! CarterasOperativas::casos($this->db, $proyectoId)->where('c.id', $casoId)->exists()) {
+                if ($cuenta->eliminada_en !== null) {
+                    throw new FilaNoImportable('La cuenta está archivada individualmente y no está disponible para reincorporar.');
+                }
+                if (! $esquema->reincorporarArchivadas || $esquema->autorizadoPorId === null || $esquema->autorizadoPorId <= 0) {
+                    throw new FilaNoImportable('La importación no tiene una autorización de procesamiento válida. Vuelve a prepararla antes de importar.');
+                }
+                $importacionId = (int) $this->db->table('importacion_filas')->where('proyecto_id', $proyectoId)->where('id', $input->importacionFilaId)->value('importacion_id');
+                ($this->reincorporacion ?? throw new FilaNoImportable('La reincorporación no está disponible.'))->execute($proyectoId, $casoId, (int) $carteraId, $importacionId, $esquema->autorizadoPorId);
+                $casoReincorporado = true;
+            } elseif ((int) $cuenta->cartera_id !== $carteraId) {
+                return new ResultadoFilaConValoresCp(ResultadoFila::omitida('La cuenta ya pertenece a otra cartera activa. Se conserva allí con su responsable; usa la ficha para colaborar.'), []);
+            }
         }
 
-        $resultado = match ($esquema->modo) {
-            ModoImportacion::INSERT => $this->procesarInsert(
-                $input, $personaId, $personaExistente, $casoId, $casoExistente,
-            ),
+        // An archived debt becomes operational again with the incoming data.
+        // INSERT/SKIP still leave active duplicates untouched; MERGE keeps its
+        // explicit promise to fill only empty fields, including on reinstatement.
+        $modo = $casoReincorporado && in_array($esquema->modo, [ModoImportacion::INSERT, ModoImportacion::SKIP_DUPLICADOS], true)
+            ? ModoImportacion::UPSERT : $esquema->modo;
+
+        $resultado = match ($modo) {
+            ModoImportacion::INSERT => $casoExistente
+                ? new ResultadoFilaConValoresCp(ResultadoFila::duplicada('La cuenta ya existe en el proyecto', $casoId), [])
+                : $this->crearCaso($input, $fila, $esquema, $proyectoId, $carteraId, $personaId, $personaExistente, $tipoIdentId),
             ModoImportacion::UPDATE => $this->procesarUpdate(
                 $input, $fila, $esquema, $proyectoId, $casoId, $casoExistente,
             ),
@@ -256,6 +308,9 @@ final class ProcesarFilaDinamica
             if ($codigo !== '' && isset($tiposIdentificacion[$codigo])) {
                 return (int) $tiposIdentificacion[$codigo];
             }
+            if ($codigo !== '') {
+                throw new FilaNoImportable('El tipo de identificación no está registrado. Corrige el código antes de importar.');
+            }
         }
 
         $primerTipo = reset($tiposIdentificacion);
@@ -278,7 +333,7 @@ final class ProcesarFilaDinamica
             return null;
         }
 
-        $valorUnique = $fila['id_cpelegido'] ?? '';
+        $valorUnique = trim($fila['id_cpelegido'] ?? '');
 
         if ($valorUnique === '') {
             return null;
@@ -308,38 +363,6 @@ final class ProcesarFilaDinamica
         }
 
         return $fila[$columna->campoSistemaMapeado] ?? null;
-    }
-
-    private function procesarInsert(
-        ProcesarFilaInput $input,
-        ?int $personaId,
-        bool $personaExistente,
-        ?int $casoId,
-        bool $casoExistente,
-    ): ResultadoFilaConValoresCp {
-        if ($casoExistente) {
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::duplicada('El caso ya existe en el proyecto', $casoId),
-                [],
-                fueInsert: false,
-            );
-        }
-
-        if ($personaExistente) {
-            $valoresCp = $this->acumularValoresCp($input, $personaId);
-
-            return new ResultadoFilaConValoresCp(
-                ResultadoFila::duplicada('La persona ya existe, pero el caso no se creará en modo INSERT', $personaId),
-                $valoresCp,
-                fueInsert: false,
-            );
-        }
-
-        return new ResultadoFilaConValoresCp(
-            ResultadoFila::invalida('Modo INSERT requiere que la persona ya exista para asociar el caso'),
-            [],
-            fueInsert: false,
-        );
     }
 
     /**
@@ -553,7 +576,7 @@ final class ProcesarFilaDinamica
         // Una lectura por fila, no una por campo: con diez campos mutables en
         // cobranza eran diez consultas por cada fila en modo «completar vacíos».
         $actual = $mergeOnly
-            ? $this->db->table($tabla)->where('caso_id', $casoId)->first()
+            ? $this->db->table($tabla)->where('proyecto_id', $proyectoId)->where('caso_id', $casoId)->first()
             : null;
 
         $update = [];
@@ -569,11 +592,17 @@ final class ProcesarFilaDinamica
                 continue;
             }
 
-            if ($mergeOnly && ! $this->estaVacio($campo, $actual === null ? null : ($actual->{$campo} ?? null))) {
+            $columnaPersistida = $campo === 'valor_estimado_monto' ? 'valor_estimado' : $campo;
+            if ($mergeOnly && ! $this->estaVacio($campo, $actual === null ? null : ($actual->{$columnaPersistida} ?? null))) {
                 continue;
             }
 
-            $update[$campo] = $valor;
+            if (in_array($campo, ['monto_original', 'saldo_capital', 'saldo_interes', 'saldo_total', 'cuota_mensual', 'valor_estimado_monto'], true)) {
+                $valor = $this->decimal($campo, $fila, $esquema);
+            } elseif (str_starts_with($campo, 'fecha_')) {
+                $valor = $this->fecha($campo, $fila, $esquema)?->format(str_contains($valor, ':') ? 'Y-m-d H:i:s' : 'Y-m-d');
+            }
+            $update[$columnaPersistida] = $valor;
         }
 
         if ($target === TargetImportacion::CASO_COBRANZA && array_key_exists('dias_mora', $update)) {
@@ -585,7 +614,7 @@ final class ProcesarFilaDinamica
 
         if ($update !== []) {
             $update['actualizada_en'] = CarbonImmutable::now();
-            $this->db->table($tabla)->where('caso_id', $casoId)->update($update);
+            $this->db->table($tabla)->where('proyecto_id', $proyectoId)->where('caso_id', $casoId)->update($update);
         }
 
         return null;
@@ -605,7 +634,8 @@ final class ProcesarFilaDinamica
             return $valorActual === null;
         }
 
-        return $valorActual === null || (string) $valorActual === '' || (float) $valorActual === 0.0;
+        return $valorActual === null || (string) $valorActual === ''
+            || (is_numeric($valorActual) && (float) $valorActual === 0.0);
     }
 
     /**
@@ -646,23 +676,13 @@ final class ProcesarFilaDinamica
             return $e->getMessage();
         }
 
-        $hoy = $this->reloj->hoy($this->mandanteDe($proyectoId));
+        $hoy = $this->reloj->hoy(proyectoId: $proyectoId);
 
         $update['dias_mora'] = $diasMora->dias;
         $update['dias_mora_actualizado_en'] = $hoy;
         $update['dias_mora_confirmado_en'] = $hoy;
 
         return null;
-    }
-
-    private function mandanteDe(int $proyectoId): ?int
-    {
-        if (! array_key_exists($proyectoId, $this->mandantePorProyecto)) {
-            $mandanteId = $this->db->table('proyectos')->where('id', $proyectoId)->value('mandante_id');
-            $this->mandantePorProyecto[$proyectoId] = $mandanteId === null ? null : (int) $mandanteId;
-        }
-
-        return $this->mandantePorProyecto[$proyectoId];
     }
 
     /**
@@ -801,7 +821,7 @@ final class ProcesarFilaDinamica
         array $fila,
         EsquemaImportacion $esquema,
     ): int {
-        $idUnico = $fila['id_cpelegido'] ?? (string) Str::ulid();
+        $idUnico = isset($fila['id_cpelegido']) ? trim($fila['id_cpelegido']) : (string) Str::ulid();
 
         return match ($target) {
             TargetImportacion::CASO_COBRANZA => $this->registrarCobranza->execute(
@@ -813,6 +833,7 @@ final class ProcesarFilaDinamica
                     fechaIngreso: $fechaIngreso,
                     prioridad: 1,
                     numeroPrestamo: $idUnico,
+                    moneda: $this->formatoRegional($esquema)->currency,
                     montoOriginal: $this->decimal('monto_original', $fila, $esquema),
                     saldoCapital: $this->decimal('saldo_capital', $fila, $esquema),
                     saldoInteres: $this->decimal('saldo_interes', $fila, $esquema),
@@ -849,6 +870,7 @@ final class ProcesarFilaDinamica
                     fechaIngreso: $fechaIngreso,
                     prioridad: 1,
                     codigoLead: $idUnico,
+                    moneda: $this->formatoRegional($esquema)->currency,
                     valorEstimadoMonto: $this->decimal('valor_estimado_monto', $fila, $esquema),
                     origenLead: $this->texto('origen_lead', $fila, $esquema),
                     fechaPrimerContacto: $this->fecha('fecha_primer_contacto', $fila, $esquema),
@@ -888,7 +910,7 @@ final class ProcesarFilaDinamica
 
     /**
      * Decimal normalizado como string (el DTO del CTI espera string para no perder precisión).
-     * Acepta "1,250.40", "$1.250,40", "1250.40" y "(120.00)" como negativo contable.
+     * Uses the selected input profile; ambiguous separators are never inferred.
      *
      * @param  array<string, string>  $fila
      */
@@ -899,39 +921,7 @@ final class ProcesarFilaDinamica
             return null;
         }
 
-        $negativo = str_starts_with($bruto, '(') && str_ends_with($bruto, ')');
-        $limpio = (string) preg_replace('/[^0-9,.\-]/', '', $bruto);
-        $limpio = $this->unificarSeparadorDecimal($limpio);
-
-        if ($limpio === '' || ! is_numeric($limpio)) {
-            return null;
-        }
-
-        return $negativo ? '-'.ltrim($limpio, '-') : $limpio;
-    }
-
-    /**
-     * Deja un único punto como separador decimal, eliminando separadores de miles.
-     * "1.250,40" → "1250.40"; "1,250.40" → "1250.40"; "1250,40" → "1250.40".
-     */
-    private function unificarSeparadorDecimal(string $numero): string
-    {
-        $ultimaComa = strrpos($numero, ',');
-        $ultimoPunto = strrpos($numero, '.');
-
-        if ($ultimaComa !== false && $ultimoPunto !== false) {
-            return $ultimaComa > $ultimoPunto
-                ? str_replace(',', '.', str_replace('.', '', $numero))
-                : str_replace(',', '', $numero);
-        }
-
-        if ($ultimaComa !== false) {
-            return substr_count($numero, ',') === 1 && strlen($numero) - $ultimaComa <= 3
-                ? str_replace(',', '.', $numero)
-                : str_replace(',', '', $numero);
-        }
-
-        return $numero;
+        return $this->formatoRegional($esquema)->parseNumber($bruto);
     }
 
     /**
@@ -967,15 +957,11 @@ final class ProcesarFilaDinamica
             return null;
         }
 
-        try {
-            return new DateTimeImmutable($bruto);
-        } catch (Throwable) {
-            return null;
-        }
+        return $this->formatoRegional($esquema)->parseDate($bruto, str_contains($bruto, ':'));
     }
 
     /**
-     * @return list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string}>
+     * @return list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string, solo_vacios?: bool}>
      */
     private function acumularValoresCp(
         ProcesarFilaInput $input,
@@ -1003,19 +989,27 @@ final class ProcesarFilaDinamica
             $valores[] = [
                 'campo_id' => $mapaEntry['id'],
                 'entidad_id' => $entidadId,
-                'valor' => $this->mapearValorPorTipo($columna, $valor),
+                'valor' => $this->mapearValorPorTipo($columna, $valor, $input->esquema),
                 'tipo' => $mapaEntry['tipo'],
+                ...($input->esquema->modo === ModoImportacion::MERGE ? ['solo_vacios' => true] : []),
             ];
         }
 
         return $valores;
     }
 
-    private function mapearValorPorTipo(ColumnaExcel $columna, string $valor): mixed
+    private function formatoRegional(EsquemaImportacion $esquema): RegionalSettings
+    {
+        return $this->formato->para($esquema);
+    }
+
+    private function mapearValorPorTipo(ColumnaExcel $columna, string $valor, EsquemaImportacion $esquema): mixed
     {
         return match ($columna->tipoInferido) {
             TipoCampo::NUMERO_ENTERO => (int) $valor,
-            TipoCampo::NUMERO_DECIMAL => (float) str_replace(',', '', $valor),
+            TipoCampo::NUMERO_DECIMAL, TipoCampo::MONEDA => $this->formatoRegional($esquema)->parseNumber($valor),
+            TipoCampo::FECHA => $this->formatoRegional($esquema)->parseDate($valor)->format('Y-m-d'),
+            TipoCampo::FECHA_HORA => $this->formatoRegional($esquema)->parseDate($valor, true)->format('Y-m-d H:i:s'),
             TipoCampo::BOOLEANO => in_array(strtolower(trim($valor)), ['true', '1', 'si', 'sí', 'yes'], true),
             default => $valor,
         };

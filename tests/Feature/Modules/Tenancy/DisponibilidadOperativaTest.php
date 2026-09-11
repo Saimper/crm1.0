@@ -13,7 +13,7 @@ use App\Modules\Importaciones\Application\UseCases\ProcesarFilaDinamica;
 use App\Modules\Importaciones\Application\UseCases\ProcesarFilaInput;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
-use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoProcesable;
+use App\Modules\Importaciones\Domain\Exceptions\FilaNoImportable;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Tenancy\Application\UseCases\AdministrarDisponibilidad;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\AdminMandantes;
@@ -63,7 +63,7 @@ final class DisponibilidadOperativaTest extends TestCase
         $this->assertSame(0, app(ConsultaListadoCasos::class)->consultaBase((int) $project->id, 'cobranza')->count());
         Livewire::test(Bandeja::class)->assertViewHas('totalGeneral', 0);
         Livewire::test(VistaDeTrabajo::class, ['persona' => $person->public_id])
-            ->assertViewHas('casos', fn ($cases) => $cases->isEmpty());
+            ->assertNotFound();
         $this->assertSame($history, DB::table('gestiones')->where('caso_id', $caseId)->get()->toJson());
         try {
             app(RegistrarGestion::class)->execute($input);
@@ -74,6 +74,8 @@ final class DisponibilidadOperativaTest extends TestCase
 
         $availability->cambiarEstadoCartera((int) $project->id, (int) $portfolio->id, true);
         $this->assertSame(1, app(ConsultaListadoCasos::class)->consultaBase((int) $project->id, 'cobranza')->count());
+        Livewire::test(VistaDeTrabajo::class, ['persona' => $person->public_id])
+            ->assertViewHas('casos', fn ($cases) => $cases->count() === 1);
         $availability->eliminarCartera((int) $project->id, (int) $portfolio->id);
         $availability->cambiarEstadoCartera((int) $project->id, (int) $portfolio->id, true);
         $this->assertSame(0, app(ConsultaListadoCasos::class)->consultaBase((int) $project->id, 'cobranza')->count());
@@ -81,20 +83,24 @@ final class DisponibilidadOperativaTest extends TestCase
         $this->assertDatabaseHas('casos', ['id' => $caseId, 'eliminada_en' => null]);
     }
 
-    public function test_import_into_an_active_portfolio_cannot_update_a_matching_account_from_a_disabled_portfolio(): void
+    public function test_direct_row_processing_without_import_authorization_cannot_reincorporate_an_account(): void
     {
         $project = $this->crearProyectoCobranza();
         $active = $this->crearCarteraEn($project);
         $disabled = $this->crearCarteraEn($project);
         $caseId = $this->crearCasoEn($project, ['cartera' => $disabled]);
         DB::table('carteras')->where('id', $disabled->id)->update(['activo' => false]);
-        $this->expectException(ImportacionNoProcesable::class);
-        $this->expectExceptionMessage('cartera desactivada');
-        app(ProcesarFilaDinamica::class)->execute(new ProcesarFilaInput(
-            fila: ['id_cpelegido' => 'RETIRED_ACCOUNT'],
-            esquema: new EsquemaImportacion(TargetImportacion::CASO_COBRANZA, (int) $project->id, (int) $active->id, ModoImportacion::UPDATE, []),
-            importacionFilaId: 1, mapaCampos: [], casosExistentes: ['RETIRED_ACCOUNT' => $caseId],
-        ));
+        try {
+            app(ProcesarFilaDinamica::class)->execute(new ProcesarFilaInput(
+                fila: ['id_cpelegido' => 'RETIRED_ACCOUNT'],
+                esquema: new EsquemaImportacion(TargetImportacion::CASO_COBRANZA, (int) $project->id, (int) $active->id, ModoImportacion::UPDATE, []),
+                importacionFilaId: 1, mapaCampos: [], casosExistentes: ['RETIRED_ACCOUNT' => $caseId],
+            ));
+            $this->fail('Direct processing must require server-side import authorization.');
+        } catch (FilaNoImportable $error) {
+            $this->assertStringContainsString('autorización de procesamiento válida', $error->getMessage());
+        }
+        $this->assertDatabaseHas('casos', ['id' => $caseId, 'cartera_id' => $disabled->id]);
     }
 
     public function test_global_administrator_can_delete_mandante_with_projects_while_preserving_other_tenants(): void

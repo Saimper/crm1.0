@@ -21,7 +21,7 @@ final readonly class MarcadorTemporal
 {
     private function __construct(public CarbonImmutable $instante) {}
 
-    public static function desde(string $expresion): self
+    public static function desde(string $expresion, ?string $timezone = null): self
     {
         $expresion = trim($expresion);
         if ($expresion === '') {
@@ -29,24 +29,24 @@ final readonly class MarcadorTemporal
         }
 
         if ($expresion === 'hoy') {
-            return new self(CarbonImmutable::today());
+            return new self(CarbonImmutable::today($timezone));
         }
         if ($expresion === 'ahora') {
-            return new self(CarbonImmutable::now());
+            return new self(CarbonImmutable::now($timezone));
         }
 
         if (preg_match('/^([+-])(\d+)d$/', $expresion, $m) === 1) {
             $signo = $m[1] === '-' ? -1 : 1;
             $dias = $signo * (int) $m[2];
 
-            return new self(CarbonImmutable::today()->addDays($dias));
+            return new self(CarbonImmutable::today($timezone)->addDays($dias));
         }
 
-        $ts = @strtotime($expresion);
-        if ($ts === false) {
+        try {
+            $carbon = CarbonImmutable::parse($expresion, $timezone);
+        } catch (\Exception) {
             throw new ReglaViolada("Marcador temporal inválido: «{$expresion}».");
         }
-        $carbon = CarbonImmutable::createFromTimestamp($ts);
 
         return new self($carbon);
     }

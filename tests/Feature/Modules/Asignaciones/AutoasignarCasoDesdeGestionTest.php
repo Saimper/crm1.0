@@ -127,6 +127,13 @@ final class AutoasignarCasoDesdeGestionTest extends TestCase
             'fecha_asignacion' => '2026-09-01',
         ]);
 
+        DB::table('rol_proyecto_permiso')->insert([
+            'proyecto_id' => $ctx['proyecto']->id,
+            'rol_id' => DB::table('roles')->where('codigo', 'GESTOR')->value('id'),
+            'permiso_id' => DB::table('permisos')->where('codigo', 'casos.colaborar')->value('id'),
+            'permitido' => true,
+        ]);
+
         $this->gestionar($ctx);
 
         $this->assertSame(
@@ -134,6 +141,30 @@ final class AutoasignarCasoDesdeGestionTest extends TestCase
             (int) DB::table('asignaciones')->where('caso_id', $ctx['casoId'])->value('usuario_id'),
             'Robar una cuenta en silencio es peor que no asignarla.'
         );
+        $this->assertSame(1, $this->asignacionesDe($ctx['casoId']));
+        $this->assertDatabaseHas('gestiones', [
+            'proyecto_id' => $ctx['proyecto']->id, 'caso_id' => $ctx['casoId'], 'usuario_id' => $ctx['gestor']->id,
+        ]);
+    }
+
+    public function test_managing_another_owner_without_cooperation_is_rejected_without_writes(): void
+    {
+        $ctx = $this->escenario(permite: true);
+        $owner = $this->crearGestor($ctx['proyecto']);
+        DB::table('asignaciones')->insert([
+            'public_id' => (string) Str::ulid(), 'proyecto_id' => $ctx['proyecto']->id,
+            'caso_id' => $ctx['casoId'], 'usuario_id' => $owner->id, 'fecha_asignacion' => '2026-09-01',
+        ]);
+
+        try {
+            $this->gestionar($ctx);
+            self::fail('Cooperation must be explicitly granted to manage another advisor’s account.');
+        } catch (\DomainException $exception) {
+            self::assertStringContainsString('No tienes permiso para gestionar esta cuenta', $exception->getMessage());
+            $this->assertDatabaseMissing('gestiones', ['proyecto_id' => $ctx['proyecto']->id, 'caso_id' => $ctx['casoId']]);
+            $this->assertDatabaseHas('asignaciones', ['proyecto_id' => $ctx['proyecto']->id, 'caso_id' => $ctx['casoId'], 'usuario_id' => $owner->id]);
+            $this->assertSame(1, $this->asignacionesDe($ctx['casoId']));
+        }
     }
 
     public function test_la_gestion_queda_registrada_aunque_no_se_pueda_asignar(): void

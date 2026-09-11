@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Cobranza\Application\Console\Commands;
 
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,11 @@ final class AsignarTramosMoraCommand extends Command
         $proyecto = $this->option('proyecto');
 
         $proyectos = DB::table('tramos_mora')
+            ->whereExists(fn ($project) => $project->selectRaw('1')->from('proyectos as scheduled_project')
+                ->join('mandantes as scheduled_client', 'scheduled_client.id', '=', 'scheduled_project.mandante_id')
+                ->whereColumn('scheduled_project.id', 'tramos_mora.proyecto_id')
+                ->where('scheduled_project.activo', true)->whereNull('scheduled_project.eliminada_en')
+                ->where('scheduled_client.activo', true)->whereNull('scheduled_client.eliminada_en'))
             ->where('activo', true)
             ->when($proyecto !== null, fn ($q) => $q->where('proyecto_id', (int) $proyecto))
             ->distinct()
@@ -90,13 +96,13 @@ final class AsignarTramosMoraCommand extends Command
         $cambios = 0;
         $sinTramo = 0;
 
-        DB::table('casos_cobranza as cc')
+        CarterasOperativas::filtrarVinculados(DB::table('casos_cobranza as cc'), 'cc')
             ->join('casos as k', 'k.id', '=', 'cc.caso_id')
             ->where('k.proyecto_id', $proyectoId)
             ->whereNotNull('cc.dias_mora')
             ->select(['cc.caso_id', 'cc.dias_mora', 'cc.tramo_mora_id'])
             ->orderBy('cc.caso_id')
-            ->chunk(1000, function ($casos) use ($tramos, $seco, &$cambios, &$sinTramo): void {
+            ->chunk(1000, function ($casos) use ($tramos, $seco, $proyectoId, &$cambios, &$sinTramo): void {
                 $porTramo = [];
 
                 foreach ($casos as $caso) {
@@ -122,9 +128,10 @@ final class AsignarTramosMoraCommand extends Command
 
                 // Una sentencia por tramo en vez de una por caso: con carteras de
                 // decenas de miles de filas la diferencia es de minutos a segundos.
-                DB::transaction(function () use ($porTramo): void {
+                DB::transaction(function () use ($porTramo, $proyectoId): void {
                     foreach ($porTramo as $tramoId => $casoIds) {
-                        DB::table('casos_cobranza')
+                        CarterasOperativas::filtrarVinculados(DB::table('casos_cobranza'), 'casos_cobranza')
+                            ->where('proyecto_id', $proyectoId)
                             ->whereIn('caso_id', $casoIds)
                             ->update(['tramo_mora_id' => $tramoId]);
                     }

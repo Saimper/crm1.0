@@ -44,7 +44,7 @@
         @break
 
     @case('numero_decimal')
-        <input type="number" step="0.01" inputmode="decimal" wire:model="{{ $model }}" @disabled($disabled)
+        <input type="number" step="{{ app(\App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration::class)->forProject()->decimalPlaces === 3 ? '0.001' : '0.01' }}" inputmode="decimal" wire:model="{{ $model }}" @disabled($disabled)
                placeholder="0.00" class="{{ $numerico }}"/>
         @break
 
@@ -52,8 +52,8 @@
         {{-- El símbolo va fuera del input: dentro contaminaría el valor que se
              guarda y el validador de decimal lo rechazaría. --}}
         <div class="mt-1 flex items-center gap-1">
-            <span class="text-xs text-ink-500">{{ __('casos.currency_symbol') }}</span>
-            <input type="number" step="0.01" inputmode="decimal" wire:model="{{ $model }}" @disabled($disabled)
+            <span class="text-xs text-ink-500">{{ moneda_local() }}</span>
+            <input type="number" step="{{ app(\App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration::class)->forProject()->decimalPlaces === 3 ? '0.001' : '0.01' }}" inputmode="decimal" wire:model="{{ $model }}" @disabled($disabled)
                    placeholder="0.00" class="{{ $numerico }}"/>
         </div>
         @break

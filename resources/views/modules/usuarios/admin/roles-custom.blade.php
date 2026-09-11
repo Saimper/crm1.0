@@ -18,28 +18,6 @@
     </div>
 
     <div class="space-y-3">
-        <div class="card card-pad">
-            <div class="text-sm text-ink-500 font-semibold" style="text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">
-                {{ __('usuarios.section_base_roles') }}
-            </div>
-            <div class="space-y-2">
-                @foreach($rolesBase as $rb)
-                    <div class="flex items-center justify-between" style="padding:6px 0;">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="badge badge-neutral">{{ __('usuarios.badge_system') }}</span>
-                                <span class="font-semibold font-mono">{{ $rb->codigo }}</span>
-                                <span class="text-ink-600">{{ $rb->nombre }}</span>
-                            </div>
-                            @if($rb->descripcion)
-                                <div class="text-sm text-ink-500" style="margin-top:2px;">{{ $rb->descripcion }}</div>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
         @if($rolesCustom->isEmpty())
             <div class="card">
                 <div class="empty">

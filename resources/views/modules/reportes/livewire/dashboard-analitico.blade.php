@@ -32,7 +32,7 @@
                                         {{ ucfirst(str_replace('_', ' ', (string) $d->tipo_caso)) }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-2 text-right font-mono">{{ number_format($d->total) }}</td>
+                                <td class="px-4 py-2 text-right font-mono">{{ numero_local($d->total, 0) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -71,7 +71,7 @@
                                 <td class="px-3 py-2">
                                     <span class="inline-block rounded px-2 py-0.5 text-xs {{ $badge }}">{{ $c->estado }}</span>
                                 </td>
-                                <td class="px-3 py-2 text-right font-mono">{{ number_format($c->total) }}</td>
+                                <td class="px-3 py-2 text-right font-mono">{{ numero_local($c->total, 0) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -96,7 +96,7 @@
                         <div class="flex-1 bg-ink-100 rounded h-4 overflow-hidden">
                             <div class="bg-brand-600 h-4" style="width: {{ $porcent }}%"></div>
                         </div>
-                        <div class="w-16 text-right font-mono">{{ number_format($m->total) }}</div>
+                        <div class="w-16 text-right font-mono">{{ numero_local($m->total, 0) }}</div>
                     </div>
                 @endforeach
             </div>
@@ -105,7 +105,7 @@
 
     <section class="rounded-lg border border-ink-200 bg-white overflow-hidden">
         <div class="px-4 py-3 border-b border-ink-200 bg-ink-50 text-xs font-semibold uppercase tracking-wider text-ink-600">
-            {{ __('reportes.chart_effectiveness', ['total' => number_format($totalGestiones)]) }}
+            {{ __('reportes.chart_effectiveness', ['total' => numero_local($totalGestiones, 0)]) }}
         </div>
         @if($efectividadPorResultado->isEmpty())
             <div class="p-4 text-sm text-ink-500">{{ __('reportes.empty_data') }}</div>
@@ -131,7 +131,7 @@
                                     <span class="inline-block rounded px-1.5 py-0.5 text-[10px] bg-ink-100 text-ink-700">{{ __('reportes.no') }}</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-2 text-right font-mono">{{ number_format($r->total) }}</td>
+                            <td class="px-3 py-2 text-right font-mono">{{ numero_local($r->total, 0) }}</td>
                             <td class="px-3 py-2 text-right font-mono text-brand-700">{{ $pct }}%</td>
                         </tr>
                     @endforeach
@@ -151,8 +151,8 @@
                 <tbody class="divide-y divide-ink-100">
                     @foreach($topDias as $d)
                         <tr>
-                            <td class="px-4 py-2 font-mono text-xs">{{ \Illuminate\Support\Carbon::parse($d->dia)->format('d/m/Y') }}</td>
-                            <td class="px-4 py-2 text-right font-mono">{{ number_format($d->total) }}</td>
+                            <td class="px-4 py-2 font-mono text-xs">{{ fecha_local($d->dia) }}</td>
+                            <td class="px-4 py-2 text-right font-mono">{{ numero_local($d->total, 0) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

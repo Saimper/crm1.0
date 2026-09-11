@@ -9,6 +9,7 @@ use App\Modules\Cobranza\Domain\Entities\CompromisoPromesaPago;
 use App\Modules\Cobranza\Domain\ValueObjects\FechaPromesa;
 use App\Modules\Cobranza\Domain\ValueObjects\MontoPromesa;
 use App\Modules\Cobranza\Infrastructure\Persistence\Models\CompromisoPromesaPagoModel;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +17,9 @@ final class EloquentCompromisoPromesaPagoRepository implements CompromisoPromesa
 {
     public function save(CompromisoPromesaPago $promesa): CompromisoPromesaPago
     {
+        $regional = app(RegionalConfiguration::class)->forProject($promesa->proyectoId);
+        $regional->validateCanonical($promesa->monto->monto);
+
         $model = CompromisoPromesaPagoModel::query()->sinScopeProyecto()->find($promesa->compromisoId)
             ?? new CompromisoPromesaPagoModel;
 

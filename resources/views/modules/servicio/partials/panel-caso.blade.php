@@ -31,14 +31,14 @@
             <div>
                 <dt class="text-brand-700">{{ __('servicio.solicitud') }}</dt>
                 <dd class="font-medium text-brand-900">
-                    {{ \Illuminate\Support\Carbon::parse($servicio->fecha_solicitud)->format('d/m/Y') }}
+                    {{ fecha_local($servicio->fecha_solicitud) }}
                 </dd>
             </div>
             @if($servicio->fecha_programada)
                 <div class="col-span-2">
                     <dt class="text-brand-700">{{ __('servicio.programada') }}</dt>
                     <dd class="font-semibold text-brand-900">
-                        {{ \Illuminate\Support\Carbon::parse($servicio->fecha_programada)->format('d/m/Y H:i') }}
+                        {{ hora_local($servicio->fecha_programada) }}
                         @php $diff = \Illuminate\Support\Carbon::parse($servicio->fecha_programada)->diffForHumans(); @endphp
                         <span class="text-[10px] text-brand-700">· {{ $diff }}</span>
                     </dd>

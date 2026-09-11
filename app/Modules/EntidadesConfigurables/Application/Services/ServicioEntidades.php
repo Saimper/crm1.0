@@ -10,6 +10,7 @@ use App\Modules\EntidadesConfigurables\Domain\ValueObjects\RelacionEntidad;
 use App\Modules\EntidadesConfigurables\Infrastructure\Persistence\Models\EntidadConfigurableModel;
 use App\Modules\EntidadesConfigurables\Infrastructure\Persistence\Models\EntidadRegistroModel;
 use App\Support\Codigo\GeneradorCodigo;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -41,6 +42,9 @@ final readonly class ServicioEntidades
         ?string $descripcion = null,
         ?string $icono = null,
     ): int {
+        if ($carteraId !== null) {
+            CarterasOperativas::exigirCartera(DB::connection(), $proyectoId, $carteraId);
+        }
         // Defensa en profundidad: aunque el Livewire ya normaliza, otras vías
         // (importación masiva, tests directos) pueden pasar entrada cruda.
         $codigo = GeneradorCodigo::normalizar($codigo, 80);
@@ -119,7 +123,12 @@ final readonly class ServicioEntidades
             ->sinScopeProyecto()
             ->where('proyecto_id', $proyectoId)
             ->where('activo', true)
-            ->whereNull('eliminada_en');
+            ->whereNull('eliminada_en')
+            ->where(fn ($q) => $q->whereNull('cartera_id')->orWhereExists(fn ($portfolio) => $portfolio
+                ->selectRaw('1')->from('carteras')
+                ->whereColumn('carteras.id', 'entidades_configurables.cartera_id')
+                ->whereColumn('carteras.proyecto_id', 'entidades_configurables.proyecto_id')
+                ->where('carteras.activo', true)->whereNull('carteras.eliminada_en')));
 
         if ($carteraId !== null) {
             $q->where(function ($w) use ($carteraId): void {
@@ -144,20 +153,24 @@ final readonly class ServicioEntidades
         ?int $personaId = null,
         ?int $usuarioId = null,
     ): int {
-        $entidad = EntidadConfigurableModel::query()
-            ->sinScopeProyecto()
-            ->where('proyecto_id', $proyectoId)
-            ->where('id', $entidadId)
-            ->whereNull('eliminada_en')
-            ->first();
-
-        if ($entidad === null) {
-            throw new RuntimeException('Entidad configurable no encontrada.');
-        }
-
         return DB::transaction(function () use (
-            $proyectoId, $entidad, $titulo, $valoresPorCodigo, $casoId, $personaId, $usuarioId,
+            $proyectoId, $entidadId, $titulo, $valoresPorCodigo, $casoId, $personaId, $usuarioId,
         ): int {
+            $entidad = EntidadConfigurableModel::query()
+                ->sinScopeProyecto()
+                ->where('proyecto_id', $proyectoId)
+                ->where('id', $entidadId)
+                ->whereNull('eliminada_en')
+                ->where('activo', true)
+                ->lockForUpdate()
+                ->first();
+
+            if ($entidad === null) {
+                throw new RuntimeException('Entidad configurable no encontrada.');
+            }
+
+            $this->validarVinculo($proyectoId, $entidad, $casoId, $personaId);
+
             $registro = new EntidadRegistroModel;
             $registro->public_id = (string) Str::ulid();
             $registro->proyecto_id = $proyectoId;
@@ -190,10 +203,19 @@ final readonly class ServicioEntidades
         array $valoresPorCodigo,
     ): void {
         DB::transaction(function () use ($proyectoId, $entidadId, $registroId, $titulo, $valoresPorCodigo): void {
+            $entidad = EntidadConfigurableModel::query()->sinScopeProyecto()->where('proyecto_id', $proyectoId)
+                ->where('id', $entidadId)->where('activo', true)->whereNull('eliminada_en')->lockForUpdate()->first();
+            $registro = EntidadRegistroModel::query()->sinScopeProyecto()->where('proyecto_id', $proyectoId)
+                ->where('entidad_configurable_id', $entidadId)->where('id', $registroId)->whereNull('eliminado_en')->lockForUpdate()->first();
+            if ($entidad === null || $registro === null) {
+                throw new RuntimeException('El registro o la entidad ya no están disponibles.');
+            }
+            $this->validarVinculo($proyectoId, $entidad, $registro->caso_id, $registro->persona_id);
             EntidadRegistroModel::query()
                 ->sinScopeProyecto()
                 ->where('proyecto_id', $proyectoId)
                 ->where('id', $registroId)
+                ->where('entidad_configurable_id', $entidadId)
                 ->whereNull('eliminado_en')
                 ->update(['titulo' => $titulo]);
 
@@ -211,11 +233,65 @@ final readonly class ServicioEntidades
 
     public function eliminarRegistro(int $proyectoId, int $registroId): void
     {
-        EntidadRegistroModel::query()
-            ->sinScopeProyecto()
-            ->where('proyecto_id', $proyectoId)
-            ->where('id', $registroId)
-            ->update(['eliminado_en' => now()]);
+        DB::transaction(function () use ($proyectoId, $registroId): void {
+            $registro = EntidadRegistroModel::query()
+                ->sinScopeProyecto()
+                ->where('proyecto_id', $proyectoId)
+                ->where('id', $registroId)
+                ->whereNull('eliminado_en')->first();
+            if ($registro === null) {
+                throw new RuntimeException('El registro ya no está disponible.');
+            }
+            $entidad = EntidadConfigurableModel::query()->sinScopeProyecto()->where('proyecto_id', $proyectoId)
+                ->where('id', $registro->entidad_configurable_id)->where('activo', true)
+                ->whereNull('eliminada_en')->lockForUpdate()->first();
+            if ($entidad === null) {
+                throw new RuntimeException('La entidad ya no está disponible.');
+            }
+            // Use the same definition-before-record lock order as updates.
+            $registro = EntidadRegistroModel::query()->sinScopeProyecto()->where('proyecto_id', $proyectoId)
+                ->where('id', $registroId)->where('entidad_configurable_id', $entidad->id)
+                ->whereNull('eliminado_en')->lockForUpdate()->first();
+            if ($registro === null) {
+                throw new RuntimeException('El registro ya no está disponible.');
+            }
+            $this->validarVinculo($proyectoId, $entidad, $registro->caso_id, $registro->persona_id);
+            $registro->eliminado_en = now()->toImmutable();
+            $registro->save();
+        });
+    }
+
+    private function validarVinculo(int $proyectoId, EntidadConfigurableModel $entidad, ?int $casoId, ?int $personaId): void
+    {
+        if (! DB::table('proyectos as p')->join('mandantes as m', 'm.id', '=', 'p.mandante_id')
+            ->where('p.id', $proyectoId)->where('p.activo', true)->whereNull('p.eliminada_en')
+            ->where('m.activo', true)->whereNull('m.eliminada_en')->exists()) {
+            throw new RuntimeException('El proyecto ya no está disponible.');
+        }
+        if ($entidad->cartera_id !== null) {
+            CarterasOperativas::exigirCartera(DB::connection(), $proyectoId, (int) $entidad->cartera_id);
+        }
+        if ($entidad->relacion_con === 'persona' && $personaId === null) {
+            throw new RuntimeException('Crea este registro desde la ficha de la persona correspondiente.');
+        }
+        if ($entidad->relacion_con === 'caso' && $casoId === null) {
+            throw new RuntimeException('Crea este registro desde la ficha de la cuenta correspondiente.');
+        }
+        if ($personaId !== null && ! DB::table('personas')->where('proyecto_id', $proyectoId)->where('id', $personaId)->whereNull('eliminada_en')->exists()) {
+            throw new RuntimeException('La persona no pertenece a este proyecto.');
+        }
+        if ($casoId !== null) {
+            $caso = CarterasOperativas::exigirCaso(DB::connection(), $proyectoId, $casoId);
+            if (($personaId !== null && (int) $caso->persona_id !== $personaId)
+                || ($entidad->cartera_id !== null && (int) $caso->cartera_id !== (int) $entidad->cartera_id)) {
+                throw new RuntimeException('La cuenta no pertenece al proyecto, la persona o la cartera de esta entidad.');
+            }
+        }
+        if ($personaId !== null && $entidad->cartera_id !== null
+            && ! CarterasOperativas::casos(DB::connection(), $proyectoId)->where('c.persona_id', $personaId)
+                ->where('c.cartera_id', (int) $entidad->cartera_id)->exists()) {
+            throw new RuntimeException('La persona no tiene cuentas activas en la cartera de esta entidad.');
+        }
     }
 
     /**

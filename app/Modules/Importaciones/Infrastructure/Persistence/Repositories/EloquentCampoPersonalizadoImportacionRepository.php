@@ -6,6 +6,7 @@ namespace App\Modules\Importaciones\Infrastructure\Persistence\Repositories;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
@@ -99,25 +100,104 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
             return;
         }
 
-        $ahora = CarbonImmutable::now();
-        $opciones = $this->opcionesDeLote($lote);
-        $rows = array_map(fn (array $item): array => $this->filaNormalizada($item, $ahora, $opciones), $lote);
-        $actualizables = [...self::COLUMNAS_VALOR, 'actualizada_en'];
+        $this->db->transaction(function () use ($lote): void {
+            $ahora = CarbonImmutable::now();
+            $opciones = $this->opcionesDeLote($lote);
+            $moneyItems = array_values(array_filter($lote, static fn (array $item): bool => $item['tipo'] === 'moneda'));
+            $projects = [];
+            $currencies = [];
+            if ($moneyItems !== []) {
+                $fieldIds = array_values(array_unique(array_column($moneyItems, 'campo_id')));
+                $projects = $this->db->table('campos_personalizados')->whereIn('id', $fieldIds)->pluck('proyecto_id', 'id')->all();
+                foreach ($this->db->table('valores_campo_personalizado')->whereIn('campo_personalizado_id', $fieldIds)
+                    ->whereIn('entidad_id', array_values(array_unique(array_column($moneyItems, 'entidad_id'))))
+                    ->get(['campo_personalizado_id', 'entidad_id', 'valor_moneda_codigo']) as $existing) {
+                    $currencies[$existing->campo_personalizado_id.':'.$existing->entidad_id] = $existing->valor_moneda_codigo;
+                }
+            }
+            $rows = array_map(fn (array $item): array => $this->filaNormalizada($item, $ahora, $opciones, $projects, $currencies), $lote);
+            if (array_filter($lote, static fn (array $item): bool => $item['solo_vacios'] ?? false) !== []) {
+                $rows = $this->conservarCamposLlenos($rows, $lote);
+            }
+            $actualizables = [...self::COLUMNAS_VALOR, 'actualizada_en'];
 
-        foreach (array_chunk($rows, self::CHUNK_UPSERT) as $chunk) {
-            $this->db->table('valores_campo_personalizado')
-                ->upsert($chunk, ['campo_personalizado_id', 'entidad_id'], $actualizables);
+            foreach (array_chunk($rows, self::CHUNK_UPSERT) as $chunk) {
+                $this->db->table('valores_campo_personalizado')
+                    ->upsert($chunk, ['campo_personalizado_id', 'entidad_id'], $actualizables);
+            }
+        });
+    }
+
+    /**
+     * Lock the stored values and retain the first filled value within the batch.
+     * The importer holds its account locks until this batch transaction commits.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @param  list<array{campo_id: int, entidad_id: int, valor: mixed, tipo: string, solo_vacios?: bool}>  $lote
+     * @return list<array<string, mixed>>
+     */
+    private function conservarCamposLlenos(array $rows, array $lote): array
+    {
+        $existing = [];
+        foreach ($this->db->table('valores_campo_personalizado')
+            ->whereIn('campo_personalizado_id', array_values(array_unique(array_column($lote, 'campo_id'))))
+            ->whereIn('entidad_id', array_values(array_unique(array_column($lote, 'entidad_id'))))
+            ->lockForUpdate()->get() as $value) {
+            $existing[$value->campo_personalizado_id.':'.$value->entidad_id] = (array) $value;
         }
+
+        $updates = [];
+        foreach ($rows as $index => $row) {
+            $key = $row['campo_personalizado_id'].':'.$row['entidad_id'];
+            if (($lote[$index]['solo_vacios'] ?? false) && $this->tieneValor($existing[$key] ?? [])) {
+                continue;
+            }
+            $updates[$key] = $row;
+            $existing[$key] = $row;
+        }
+
+        return array_values($updates);
+    }
+
+    /** @param array<string, mixed> $row */
+    private function tieneValor(array $row): bool
+    {
+        foreach (self::COLUMNAS_VALOR as $column) {
+            // A currency label alone is not an amount. Zero and false ARE values.
+            $value = $row[$column] ?? null;
+            if ($column === 'valor_moneda_codigo' || $value === null || (is_string($value) && trim($value) === '')) {
+                continue;
+            }
+            if ($column === 'valor_opciones_ids' && in_array($value, ['[]', 'null', []], true)) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
      * @param  array{campo_id: int, entidad_id: int, valor: mixed, tipo?: string}  $item
      * @param  array<int, array<string, int>>  $opciones
+     * @param  array<int, mixed>  $projects
+     * @param  array<string, mixed>  $currencies
      * @return array<string, mixed>
      */
-    private function filaNormalizada(array $item, CarbonImmutable $ahora, array $opciones): array
+    private function filaNormalizada(array $item, CarbonImmutable $ahora, array $opciones, array $projects, array $currencies): array
     {
         $campoId = (int) $item['campo_id'];
+
+        $currency = null;
+        if (($item['tipo'] ?? '') === 'moneda') {
+            $projectId = (int) ($projects[$campoId] ?? 0);
+            $regional = app(RegionalConfiguration::class)->forProject($projectId);
+            if ($item['valor'] !== null && $item['valor'] !== '') {
+                $regional->validateCanonical((string) $item['valor']);
+            }
+            $currency = $currencies[$campoId.':'.(int) $item['entidad_id']] ?? $regional->currency;
+        }
 
         return [
             'campo_personalizado_id' => $campoId,
@@ -130,6 +210,7 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
                 $item['valor'],
                 $opciones[$campoId] ?? [],
             ),
+            ...($currency === null ? [] : ['valor_moneda_codigo' => $currency]),
         ];
     }
 
@@ -222,15 +303,15 @@ final readonly class EloquentCampoPersonalizadoImportacionRepository implements 
             'texto_corto' => ['valor_texto_corto' => $valor !== null ? mb_substr((string) $valor, 0, 255) : null],
             'texto_largo' => ['valor_texto_largo' => $valor !== null ? (string) $valor : null],
             'numero_entero' => ['valor_numero_entero' => $valor !== null ? (int) $valor : null],
-            'numero_decimal' => ['valor_numero_decimal' => $valor !== null ? (float) $valor : null],
+            'numero_decimal' => ['valor_numero_decimal' => $valor !== null ? (string) $valor : null],
             'fecha' => ['valor_fecha' => $valor !== null ? (string) $valor : null],
             'fecha_hora' => ['valor_fecha_hora' => $valor !== null ? (string) $valor : null],
             'booleano' => ['valor_booleano' => $valor !== null ? (bool) $valor : null],
             'seleccion_unica' => ['valor_opcion_id' => $this->idOpcion($valor, $opciones)],
             'seleccion_multiple' => ['valor_opciones_ids' => $this->idsOpciones($valor, $opciones)],
             'moneda' => [
-                'valor_moneda_monto' => $valor !== null ? (float) $valor : null,
-                'valor_moneda_codigo' => 'USD',
+                'valor_moneda_monto' => $valor !== null ? (string) $valor : null,
+                'valor_moneda_codigo' => null,
             ],
             default => ['valor_texto_corto' => $valor !== null ? (string) $valor : null],
         };

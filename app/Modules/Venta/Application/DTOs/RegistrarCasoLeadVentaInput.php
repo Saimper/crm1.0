@@ -19,7 +19,7 @@ final readonly class RegistrarCasoLeadVentaInput
         public ?int $productoVentaId = null,
         public ?int $etapaEmbudoId = null,
         public ?string $valorEstimadoMonto = null,
-        public string $moneda = 'USD',
+        public ?string $moneda = null,
         public ?string $origenLead = null,
         public ?DateTimeImmutable $fechaPrimerContacto = null,
         public ?DateTimeImmutable $fechaEstimadaCierre = null,

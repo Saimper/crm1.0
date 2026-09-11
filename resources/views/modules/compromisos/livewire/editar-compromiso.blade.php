@@ -47,6 +47,7 @@
                 <div>
                     <label class="field-label">{{ __('compromisos.field_sla_deadline') }}</label>
                     <input type="datetime-local" wire:model="fechaLimiteSla" class="input"/>
+                    @error('fechaLimiteSla')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
                     <label class="field-label">{{ __('compromisos.field_escalation_level') }}</label>
@@ -86,6 +87,7 @@
                 <div>
                     <label class="field-label">{{ __('compromisos.field_scheduled_date') }}</label>
                     <input type="datetime-local" wire:model="fechaProgramada" class="input"/>
+                    @error('fechaProgramada')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
                     <label class="field-label">{{ __('compromisos.field_action_type') }}</label>

@@ -186,6 +186,11 @@ final class ListadoNotificacionesAutorizacionTest extends TestCase
     private function crearNotificacion(stdClass $proyecto, int $destinatarioId): int
     {
         $casoId = $this->crearCasoEn($proyecto);
+        $commitmentId = DB::table('compromisos')->insertGetId([
+            'public_id' => (string) Str::ulid(), 'proyecto_id' => $proyecto->id,
+            'caso_id' => $casoId, 'tipo_compromiso' => 'promesa_pago', 'estado' => 'pendiente',
+            'fecha_vencimiento' => now()->subDay()->toDateString(), 'usuario_id' => $destinatarioId,
+        ]);
 
         return (int) DB::table('notificaciones')->insertGetId([
             'public_id' => (string) Str::ulid(),
@@ -193,7 +198,7 @@ final class ListadoNotificacionesAutorizacionTest extends TestCase
             'destinatario_usuario_id' => $destinatarioId,
             'tipo' => 'compromiso_vencido',
             'entidad_tipo' => 'compromiso',
-            'entidad_id' => $casoId,
+            'entidad_id' => $commitmentId,
             'titulo' => 'Compromiso vencido',
             'mensaje' => 'Revisa el compromiso.',
             'metadata' => json_encode(['caso_id' => $casoId]),

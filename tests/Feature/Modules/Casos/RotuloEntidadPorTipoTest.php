@@ -75,7 +75,7 @@ final class RotuloEntidadPorTipoTest extends TestCase
         }
     }
 
-    public function test_el_menu_lateral_rotula_la_entidad_segun_el_tipo_de_proyecto(): void
+    public function test_el_menu_lateral_unifica_clientes_y_cuentas_en_todos_los_tipos(): void
     {
         foreach (self::PALABRA as $tipo => [, $plural]) {
             $proyecto = $this->crearProyecto($tipo);
@@ -88,7 +88,7 @@ final class RotuloEntidadPorTipoTest extends TestCase
 
             $this->assertIsString($html);
             $this->assertStringContainsString(
-                '<span>'.ucfirst($plural).'</span>',
+                '<span>Clientes</span>',
                 $html,
                 "entrada del menú lateral en {$tipo}"
             );

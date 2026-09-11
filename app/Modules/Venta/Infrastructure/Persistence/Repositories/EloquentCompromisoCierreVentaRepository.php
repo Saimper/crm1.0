@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Venta\Infrastructure\Persistence\Repositories;
 
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Modules\Venta\Domain\Contracts\CompromisoCierreVentaRepository;
 use App\Modules\Venta\Domain\Entities\CompromisoCierreVenta;
 use App\Modules\Venta\Domain\ValueObjects\FechaCierreEstimada;
@@ -16,6 +17,9 @@ final class EloquentCompromisoCierreVentaRepository implements CompromisoCierreV
 {
     public function save(CompromisoCierreVenta $cierre): CompromisoCierreVenta
     {
+        $regional = app(RegionalConfiguration::class)->forProject($cierre->proyectoId);
+        $regional->validateCanonical($cierre->monto->monto);
+
         $model = CompromisoCierreVentaModel::query()->sinScopeProyecto()->find($cierre->compromisoId)
             ?? new CompromisoCierreVentaModel;
 

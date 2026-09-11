@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Importaciones\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\ConsultaCoincidenciasImportacion;
 use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
+use App\Modules\Importaciones\Application\Services\FormatoDeImportacion;
 use App\Modules\Importaciones\Application\Services\LectorCsv;
 use App\Modules\Importaciones\Application\Services\LectorXlsx;
 use App\Modules\Importaciones\Application\UseCases\CancelarImportacion;
@@ -23,6 +26,7 @@ use App\Modules\Importaciones\Domain\Enums\RolContacto;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionEnCursoNoEditable;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoEncontrada;
+use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoProcesable;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
@@ -59,6 +63,8 @@ final class Importar extends Component
     public ?int $carteraId = null;
 
     public string $modo = 'upsert';
+
+    public string $formatoEntrada = 'proyecto';
 
     public $archivo = null;
 
@@ -159,6 +165,7 @@ final class Importar extends Component
 
         /** @var UploadedFile $file */
         $file = $this->archivo;
+        $this->formatoEntrada = in_array(strtolower($file->getClientOriginalExtension()), ['xlsx', 'xlsm'], true) ? 'estandar' : 'proyecto';
 
         try {
             [$headers, $muestra] = $this->leerArchivo($file);
@@ -418,6 +425,7 @@ final class Importar extends Component
             carteraId: $target === TargetImportacion::PERSONA ? null : $this->carteraId,
             modo: ModoImportacion::from($this->modo),
             columnas: $columnas,
+            formatoEntrada: $this->formatoEntrada,
         );
 
         try {
@@ -531,8 +539,8 @@ final class Importar extends Component
         }
 
         try {
-            $encolar->execute($this->importacionId, $modo);
-        } catch (ImportacionEnCursoNoEditable|ImportacionNoEncontrada $e) {
+            $encolar->execute($this->importacionId, $modo, (int) auth()->id(), $this->formatoEntrada);
+        } catch (ImportacionEnCursoNoEditable|ImportacionNoEncontrada|ImportacionNoProcesable $e) {
             $this->addError('columnas', $this->motivoParaPantalla($e));
 
             return;
@@ -566,6 +574,7 @@ final class Importar extends Component
         $this->archivoListo = false;
         $this->paso = 1;
         $this->modo = 'upsert';
+        $this->formatoEntrada = 'proyecto';
     }
 
     public function render(): View
@@ -576,9 +585,14 @@ final class Importar extends Component
 
         $disponibles = CatalogoCamposSistema::targetsDisponibles($tipoOperacion);
         $target = $this->target();
+        $usuario = auth()->user();
+        $carterasPermitidas = $usuario instanceof User
+            ? $usuario->carterasPermitidasParaPermiso('importaciones.procesar', $proyectoId) : [];
 
         $carteras = $target !== TargetImportacion::PERSONA
-            ? DB::table('carteras')->where('proyecto_id', $proyectoId)->where('activo', true)->whereNull('eliminada_en')->orderBy('nombre')->get()
+            ? DB::table('carteras')->where('proyecto_id', $proyectoId)->where('activo', true)->whereNull('eliminada_en')
+                ->when($carterasPermitidas !== null, fn ($q) => $q->whereIn('id', $carterasPermitidas))
+                ->orderBy('nombre')->get()
             : collect();
 
         $progreso = null;
@@ -631,6 +645,9 @@ final class Importar extends Component
             'historial' => $historial,
             'tipoOperacion' => $tipoOperacion,
             'proyectoId' => $proyectoId,
+            'coincidencias' => $this->paso === 3 && $this->importacionId !== null
+                ? app(ConsultaCoincidenciasImportacion::class)->execute($proyectoId, $this->importacionId) : null,
+            'vistaRegional' => $this->paso === 3 ? app(FormatoDeImportacion::class)->vistaPrevia($preview, $importacionActual?->esquema, $this->formatoEntrada) : [],
         ]);
     }
 
