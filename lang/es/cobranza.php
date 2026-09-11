@@ -3,6 +3,8 @@
 return [
     // Panel caso cobranza
     'panel_label' => 'Cuenta de cobranza · Préstamo',
+    'prestamo' => 'Préstamo',
+    'cuota_de' => 'cuota :pagadas/:totales',
     'saldo_total' => 'Saldo total',
     'saldo_capital' => 'Saldo capital',
     'saldo_interes' => 'Saldo interés',

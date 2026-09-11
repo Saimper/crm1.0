@@ -978,24 +978,22 @@
     .alert .alert-actions { margin-left: auto; display: flex; gap: 6px; }
     .alert .btn { height: 26px; padding: 0 10px; font-size: 12px; }
 
-    /* timeline */
-    .tl-item { display: grid; grid-template-columns: 16px 1fr; gap: 10px; padding: 10px 12px; cursor: pointer; transition: background var(--t-fast) var(--ease); border-radius: var(--r-6); }
-    .tl-item:hover { background: var(--bg-hover); }
-    .tl-rail { position: relative; }
-    .tl-rail::before {
-        content: ""; position: absolute; left: 7px; top: 0; bottom: -10px;
-        width: 1px; background: var(--border);
-    }
-    .tl-rail .tl-dot {
-        position: absolute; left: 4px; top: 6px;
-        width: 8px; height: 8px;
-        border-radius: 50%; background: var(--bg-elev);
-        border: 2px solid var(--text-muted);
-    }
-    .tl-item:last-child .tl-rail::before { display: none; }
-    .tl-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .tl-title { font-size: 13px; font-weight: 500; color: var(--text); margin-top: 2px; }
-    .tl-detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+    /* Timeline de gestiones: punto | texto | hora, filas separadas por una línea fina */
+    .tl-item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; column-gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--bg-subtle); }
+    .tl-rail { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 5px; }
+    .tl-rail::after { content: ""; flex: 1; width: 1px; background: var(--border); }
+    .tl-item:last-child .tl-rail::after { display: none; }
+    .tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--border-strong); box-shadow: 0 0 0 3px var(--bg-subtle); }
+    .tl-dot-success { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+    .tl-dot-warning { background: var(--warning); box-shadow: 0 0 0 3px var(--warning-soft); }
+    .tl-dot-danger  { background: var(--danger);  box-shadow: 0 0 0 3px var(--danger-soft); }
+    .tl-dot-info    { background: var(--info);    box-shadow: 0 0 0 3px var(--info-soft); }
+    .tl-dot-primary { background: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .tl-title { font-size: 13px; color: var(--text); }
+    .tl-title strong { font-weight: 600; }
+    .tl-detail { font-size: 13px; color: var(--text-secondary); margin-top: 2px; overflow-wrap: anywhere; }
+    .tl-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-tertiary); margin-top: 3px; }
+    .tl-time { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
     /* Donut svg helper */
     .donut-center { font-family: var(--font-mono); font-size: 22px; font-weight: 600; }
@@ -1003,30 +1001,111 @@
     /* horizontal scroll (tabs row) */
     .scroll-x { overflow-x: auto; }
 
-    /* ---------- Vista de Trabajo grid (extensión propia, no en mockup) ---------- */
-    .vt-grid {
-        display: grid;
-        grid-template-columns: minmax(260px, 320px) minmax(320px, 1fr) minmax(260px, 360px);
-        gap: 16px;
-        align-items: start;
-    }
+    /* ---------- Vista de Trabajo ----------
+       Móvil: una columna. Desde 1024: identidad | centro, con el formulario de
+       gestión debajo a todo lo ancho. Desde 1536: tres columnas y el formulario
+       pegado a la derecha, con su propio scroll, para que el botón de guardar no
+       se vaya nunca de la pantalla. */
+    .vt-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
     .vt-col-left, .vt-col-mid, .vt-col-right { min-width: 0; }
-    @media (max-width: 1400px) {
-        .vt-grid { grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr); }
+    @media (min-width: 1024px) {
+        .vt-grid { grid-template-columns: 280px minmax(0, 1fr); }
         .vt-col-right { grid-column: 1 / -1; }
     }
+    @media (min-width: 1536px) {
+        .vt-grid { grid-template-columns: 300px minmax(0, 1fr) 400px; }
+        .vt-col-right {
+            grid-column: auto;
+            position: sticky;
+            top: 0;
+            max-height: calc(100dvh - var(--header-h) - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+    }
     @media (max-width: 1023px) {
-        .vt-grid { grid-template-columns: 1fr; }
-        .vt-col-right { grid-column: auto; }
         .app-header .search-global { width: 32px; min-width: 32px; max-width: 32px; padding: 0; justify-content: center; border: 0; background: transparent; }
         .search-global > span { display: none; }
     }
 
+    /* Pestañas dentro de la tarjeta central (Resumen · Historial · Cuenta …) */
+    .vt-tabs { display: flex; gap: 2px; overflow-x: auto; }
+    .vt-tab {
+        flex-shrink: 0;
+        height: 44px; padding: 0 12px; margin-bottom: -1px;
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: var(--text-tertiary);
+        background: transparent; border: 0; border-bottom: 2px solid transparent;
+        white-space: nowrap; cursor: pointer;
+        transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+    }
+    .vt-tab:hover { color: var(--text); }
+    .vt-tab.active { color: var(--text); font-weight: 600; border-bottom-color: var(--primary); }
+    .vt-tab .count {
+        font-size: 11px; line-height: 16px; padding: 0 6px;
+        border-radius: 999px;
+        color: var(--text-tertiary); background: var(--bg-subtle);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Control segmentado (Todas · Efectivas) */
+    .seg { display: inline-flex; background: var(--bg-subtle); border-radius: 7px; padding: 2px; }
+    .seg-btn {
+        height: 26px; padding: 0 12px; border-radius: 5px;
+        font-size: 12px; font-weight: 500; color: var(--text-tertiary);
+        background: transparent; border: 0; cursor: pointer;
+        transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+    }
+    .seg-btn.active { background: var(--bg-elev); color: var(--text); box-shadow: var(--shadow-sm); }
+
+    /* Botón de texto en color de marca: «+ Crear cuenta», «Ver historial completo ›» */
+    .btn-link {
+        display: inline-flex; align-items: center; gap: 4px;
+        height: 26px; padding: 0 8px; border-radius: 5px;
+        font-size: 12px; font-weight: 500; color: var(--primary);
+        background: transparent; border: 0; cursor: pointer; white-space: nowrap;
+        transition: background var(--t-fast) var(--ease);
+    }
+    .btn-link:hover { background: var(--primary-soft); text-decoration: none; }
+
+    /* El canal se elige con chips; el activo va de marca */
+    .chip.active, .chip.active:hover { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    /* Fila de contacto en la tarjeta de identidad */
+    .vt-contacto { display: flex; align-items: center; gap: 10px; padding: 7px 8px; margin: 0 -8px; border-radius: var(--r-6); }
+    .vt-contacto:hover { background: var(--bg); }
+    .vt-contacto-icono {
+        width: 26px; height: 26px; border-radius: var(--r-6); flex-shrink: 0;
+        background: var(--bg-subtle); color: var(--text-secondary);
+        display: grid; place-items: center;
+    }
+
+    /* Tarjeta de cuenta en el selector de la izquierda */
+    .vt-cuenta {
+        display: block; width: 100%; text-align: left;
+        padding: 10px 12px; border-radius: var(--r-8);
+        background: var(--bg-elev); border: 1px solid var(--border);
+        cursor: pointer; transition: border-color var(--t-fast) var(--ease);
+    }
+    .vt-cuenta:hover { border-color: var(--border-strong); }
+    .vt-cuenta.active { background: var(--primary-soft); border-color: var(--primary-soft-border); }
+
+    /* Lista definición del resumen: etiqueta | valor */
+    .vt-dl { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 16px; row-gap: 8px; align-items: baseline; }
+    .vt-dl dt { color: var(--text-tertiary); }
+    .vt-dl dd { margin: 0; min-width: 0; }
+    @media (max-width: 639px) { .vt-dl { grid-template-columns: 120px minmax(0, 1fr); } }
+
+    /* Campo personalizado en lectura: «copiar» sólo al pasar el ratón */
+    .cp-valor .cp-copiar { opacity: 0; transition: opacity var(--t-fast) var(--ease); }
+    .cp-valor:hover .cp-copiar, .cp-valor .cp-copiar:focus-visible { opacity: 1; }
+
     /* Acordeón de los datos del caso en la Vista de Trabajo */
+    .cp-grupo > summary { list-style: none; }
     .cp-grupo > summary::-webkit-details-marker { display: none; }
     .cp-grupo > summary .cp-grupo-flecha { transition: transform 150ms var(--ease); flex: none; }
     .cp-grupo[open] > summary .cp-grupo-flecha { transform: rotate(90deg); }
-    .cp-grupo + .cp-grupo { border-top: 1px solid var(--border); }
+    .cp-grupo + .cp-grupo { border-top: 1px solid var(--bg-subtle); }
 
     /* ---------- Mobile sidebar drawer ---------- */
     @media (max-width: 767px) {
