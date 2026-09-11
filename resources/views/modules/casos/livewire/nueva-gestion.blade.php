@@ -5,7 +5,7 @@
      La raíz es la que hace scroll cuando la columna va pegada (≥1536px): así la
      barra de guardar queda siempre a la vista, con los campos condicionales
      desplegados o sin ellos. --}}
-<div class="flex flex-col flex-1 min-h-0 2xl:overflow-y-auto"
+<div class="workspace-gestion-form flex flex-col flex-1 min-h-0"
      x-data
      @keydown.ctrl.enter="$wire.guardar()"
      @keydown.meta.enter="$wire.guardar()">
@@ -31,7 +31,7 @@
             @error('canalId')<div class="field-error">{{ $message }}</div>@enderror
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="workspace-gestion-fields grid grid-cols-2 gap-3">
             <div>
                 <label for="gestion-type" class="field-label">{{ __('casos.field_gestion_type') }}</label>
                 <select wire:model.live="tipoGestionId" id="gestion-type" @disabled($canalId === null)
@@ -57,6 +57,9 @@
                 @error('resultadoId')<div class="field-error">{{ $message }}</div>@enderror
             </div>
 
+            <details class="workspace-optional-fields col-span-full" @if($errors->has('contactoId') || $errors->has('duracionSegundos')) open @endif>
+                <summary>Contacto y duración @if($contactoId)<span class="text-brand-700">· Seleccionado</span>@endif</summary>
+                <div class="grid grid-cols-1 gap-3 pt-3">
             <div>
                 <label for="gestion-contact" class="field-label">{{ __('casos.field_contact_used') }}</label>
                 <select wire:model="contactoId" id="gestion-contact" class="select">
@@ -71,6 +74,11 @@
                 <label for="gestion-duration" class="field-label">{{ __('casos.field_duration') }}</label>
                 <input type="number" min="0" step="1" wire:model="duracionSegundos" id="gestion-duration" class="input font-mono"/>
             </div>
+
+                @error('contactoId')<div class="field-error">{{ $message }}</div>@enderror
+                @error('duracionSegundos')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+            </details>
 
             @if($esNoContactado && $resultadoId)
                 <div class="col-span-full">
@@ -268,7 +276,7 @@
              }">
             <div class="flex items-baseline justify-between mb-1.5">
                 <label for="gestion-notes" class="field-label mb-0">{{ __('casos.field_notes') }}</label>
-                <span class="text-xs font-mono" :class="restantes < 0 ? 'text-danger-500' : 'text-ink-400'" x-text="restantes"></span>
+                <span x-show="restantes < 200" class="text-xs" :class="restantes < 0 ? 'text-danger-500' : 'text-ink-400'" x-text="restantes"></span>
             </div>
 
             @if($plantillasNota->isNotEmpty())
@@ -288,8 +296,8 @@
 
     {{-- Pegada abajo: con los campos condicionales desplegados el botón se iba
          fuera de pantalla y había que rebuscarlo. --}}
-    <div class="sticky bottom-0 mt-auto px-[18px] py-3 border-t border-ink-200 bg-white/95 backdrop-blur rounded-b-lg flex items-center justify-between gap-3">
-        <span class="text-xs text-ink-400">{{ __('casos.ctrl_enter_hint') }}</span>
+    <div class="workspace-gestion-footer sticky bottom-0 mt-auto px-[18px] py-3 border-t border-ink-200 bg-white rounded-b-lg flex items-center justify-between gap-3">
+        <span class="workspace-shortcut" title="{{ __('casos.ctrl_enter_hint') }}">Ctrl / ⌘ ↵</span>
         <button type="button" wire:click="guardar" wire:loading.attr="disabled" wire:target="guardar"
                 class="btn btn-primary h-9 px-4 font-semibold disabled:opacity-70">
             <span wire:loading.remove wire:target="guardar">{{ __('casos.submit_gestion') }}</span>

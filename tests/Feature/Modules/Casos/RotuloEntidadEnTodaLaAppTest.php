@@ -205,7 +205,7 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
             $this->assertIsString($html);
             $this->assertStringContainsString("Buscar persona o {$singular}", $html, "buscador global en {$tipo}");
             $this->assertStringContainsString('Clientes', $html, "espacio unificado en {$tipo}");
-            $this->assertStringContainsString(ucfirst($plural).' de la persona', $html, "cuentas agrupadas en {$tipo}");
+            $this->assertStringContainsString('<span>'.ucfirst($plural).'</span>', $html, "cuentas agrupadas en {$tipo}");
         }
     }
 

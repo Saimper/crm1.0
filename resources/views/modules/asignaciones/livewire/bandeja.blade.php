@@ -22,7 +22,7 @@
         </x-ui.alert>
     @endif
 
-    <x-ui.card padding="p-4">
+    <div class="queue-toolbar">
         <div class="flex flex-wrap items-center gap-2">
             @php
                 $chips = [
@@ -38,33 +38,29 @@
                 }
             @endphp
             @foreach($chips as $valor => $chip)
-                @php
-                    $activo = $estadoFiltro === $valor;
-                    $activeClass = $activo
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
-                        : 'bg-white text-ink-700 border-surface-border hover:bg-surface-50';
-                @endphp
                 <button type="button"
                         wire:click="$set('estadoFiltro', '{{ $valor }}')"
-                        class="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors {{ $activeClass }}">
+                        class="queue-filter"
+                        aria-pressed="{{ $estadoFiltro === $valor ? 'true' : 'false' }}">
                     {{ $chip['label'] }}
-                    <span class="inline-flex items-center justify-center rounded-full {{ $activo ? 'bg-white/20' : 'bg-surface-100 text-ink-700' }} px-1.5 min-w-[1.25rem]">
+                    <span class="queue-count">
                         {{ $chip['count'] }}
                     </span>
                 </button>
             @endforeach
 
-            <div class="ml-auto w-full sm:w-80 relative">
+            <div class="queue-search relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-ink-400 pointer-events-none">
                     <x-ui.icon name="search" class="w-4 h-4" />
                 </span>
-                <input type="text"
+                <input type="search"
+                       aria-label="{{ __('asignaciones.search_placeholder') }}"
                        wire:model.live.debounce.300ms="busqueda"
                        placeholder="{{ __('asignaciones.search_placeholder') }}"
                        class="w-full rounded-lg border-surface-border pl-9 text-sm focus:border-brand-500 focus:ring-brand-500">
             </div>
         </div>
-    </x-ui.card>
+    </div>
 
     {{-- La bandeja de antes se queda en pantalla mientras llega la nueva; sólo
          esta barra dice que se está trabajando. --}}
@@ -75,18 +71,13 @@
             :title="__('asignaciones.empty_title')"
             :message="__('asignaciones.empty_message')" />
     @else
-        <x-ui.table>
+        <x-ui.table class="queue-table">
             <x-slot name="head">
                 <x-ui.th>{{ __('asignaciones.col_priority') }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_person') }}</x-ui.th>
-                <x-ui.th>{{ __('asignaciones.col_portfolio') }}</x-ui.th>
-                <x-ui.th>{{ __('asignaciones.col_type') }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_case_status', ['entidad' => $rotuloCaso]) }}</x-ui.th>
                 <x-ui.th>{{ __('asignaciones.col_last_management') }}</x-ui.th>
-                @unless($viendoPool)
-                    <x-ui.th>{{ __('asignaciones.col_assignment') }}</x-ui.th>
-                @endunless
-                <x-ui.th align="right">&nbsp;</x-ui.th>
+                <x-ui.th align="right"><span class="sr-only">Acciones</span></x-ui.th>
             </x-slot>
 
             @foreach($asignaciones as $a)
@@ -95,41 +86,30 @@
                     $nombre = $a->tipo_persona === 'juridica'
                         ? (string) $a->razon_social
                         : trim((string) ($a->nombres ?? '').' '.(string) ($a->apellidos ?? ''));
-                    $tipoTone = match ($a->tipo_caso) {
-                        'cobranza'   => 'warning',
-                        'ticket_cx'  => 'info',
-                        'lead_venta' => 'success',
-                        'servicio'   => 'accent',
-                        default      => 'neutral',
-                    };
-                    $asigTone = match ($estadoAsignacion) {
-                        'pendiente'  => 'warning',
-                        'en_trabajo' => 'info',
-                        'cerrada'    => 'success',
-                        default      => 'neutral',
-                    };
+                    if ($nombre === mb_strtoupper($nombre)) {
+                        $nombre = mb_convert_case(mb_strtolower($nombre), MB_CASE_TITLE, 'UTF-8');
+                    }
                 @endphp
-                <tr>
+                <tr wire:key="queue-{{ $estadoFiltro }}-{{ $viendoPool ? $a->caso_public_id : $a->id }}">
                     <x-ui.td>
-                        <x-ui.badge tone="brand" size="sm">{{ $a->prioridad }}</x-ui.badge>
+                        <span class="queue-priority">{{ $a->prioridad }}</span>
                     </x-ui.td>
                     <x-ui.td>
-                        <div class="font-medium text-ink-900">{{ $nombre !== '' ? $nombre : '—' }}</div>
-                        <div class="text-xs text-ink-500 font-mono">{{ $a->identificacion }}</div>
-                    </x-ui.td>
-                    <x-ui.td>
-                        <div class="text-xs text-ink-800">{{ $a->cartera_nombre }}</div>
-                    </x-ui.td>
-                    <x-ui.td>
-                        <x-ui.badge :tone="$tipoTone">
-                            {{ ucfirst(str_replace('_', ' ', $a->tipo_caso)) }}
-                        </x-ui.badge>
+                        <div class="queue-person">{{ $nombre !== '' ? $nombre : '—' }}</div>
+                        <div class="queue-person-meta">
+                            <span>{{ $a->identificacion }}</span>
+                            @if($a->cartera_nombre)<span>{{ $a->cartera_nombre }}</span>@endif
+                            <span>{{ ucfirst(str_replace('_', ' ', $a->tipo_caso)) }}</span>
+                        </div>
                     </x-ui.td>
                     <x-ui.td>
                         <div class="text-xs text-ink-800">{{ $a->estado_caso_nombre }}</div>
+                        @if(! $viendoPool && $estadoFiltro === 'todos')
+                            <div class="queue-assignment">{{ ucfirst(str_replace('_', ' ', $estadoAsignacion)) }}</div>
+                        @endif
                         @if($a->tiene_compromiso_vigente)
                             <div class="mt-0.5">
-                                <x-ui.badge tone="success" size="sm">{{ __('asignaciones.active_commitment') }}</x-ui.badge>
+                                <span class="queue-commitment">{{ __('asignaciones.active_commitment') }}</span>
                             </div>
                         @endif
                     </x-ui.td>
@@ -141,13 +121,6 @@
                             <span class="text-xs text-ink-400">{{ __('asignaciones.no_managements') }}</span>
                         @endif
                     </x-ui.td>
-                    @unless($viendoPool)
-                        <x-ui.td>
-                            <x-ui.badge :tone="$asigTone">
-                                {{ ucfirst(str_replace('_', ' ', $estadoAsignacion)) }}
-                            </x-ui.badge>
-                        </x-ui.td>
-                    @endunless
                     <x-ui.td align="right">
                         <div class="flex items-center justify-end gap-2">
                             @if($viendoPool)
@@ -160,6 +133,8 @@
                             @endif
                             <x-ui.button
                                 as="a"
+                                variant="secondary"
+                                class="queue-work"
                                 size="sm"
                                 :href="route('proyectos.trabajo', ['proyecto_id' => $proyectoActivo->id, 'persona' => $a->persona_public_id, 'caso' => $a->caso_public_id])"
                                 wire:navigate>
@@ -167,7 +142,7 @@
                             </x-ui.button>
                             @if(! $viendoPool && $estadoAsignacion !== 'cerrada')
                                 <x-ui.button
-                                    variant="secondary"
+                                    variant="ghost"
                                     size="sm"
                                     wire:click="cerrarAsignacion({{ $a->id }})"
                                     wire:confirm="{{ __('asignaciones.confirm_close') }}">

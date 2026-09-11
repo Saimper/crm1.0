@@ -39,8 +39,8 @@ final class PantallasOperativasRefactorTest extends TestCase
 
         // Page header con tokens
         $response->assertSee('page-header', false);
-        // Card / shadow del sistema
-        $response->assertSee('class="card"', false);
+        // The queue keeps its filters visible even without assignments.
+        $response->assertSee('queue-toolbar', false);
     }
 
     public function test_bandeja_equipo_refactorizada(): void
@@ -90,7 +90,7 @@ final class PantallasOperativasRefactorTest extends TestCase
             ->assertStatus(200);
 
         $response->assertSee('Vista de trabajo', false);
-        $response->assertSee('page-header', false);
+        $response->assertSee('workspace-navigation', false);
     }
 
     /**

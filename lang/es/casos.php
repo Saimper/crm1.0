@@ -121,7 +121,7 @@ return [
     'field_cause' => 'Causa',
     'field_duration' => 'Duración (seg)',
     'field_notes' => 'Notas (opcional)',
-    'notes_placeholder' => 'Qué pasó, en una frase. Los datos que se filtran o cuentan van en los campos de arriba, no aquí.',
+    'notes_placeholder' => 'Añade lo relevante de la conversación…',
     'ctrl_enter_hint' => 'Ctrl+Enter o ⌘+Enter para guardar.',
     'submit_gestion' => 'Registrar gestión',
 

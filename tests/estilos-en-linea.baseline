@@ -40,13 +40,11 @@
 9 resources/views/livewire/tenancy/selector-mandante.blade.php
 1 resources/views/modules/asignaciones/asignar-masivamente-page.blade.php
 1 resources/views/modules/asignaciones/bandeja-equipo-page.blade.php
-1 resources/views/modules/asignaciones/bandeja-page.blade.php
 1 resources/views/modules/asignaciones/reasignar-entre-equipos-page.blade.php
 1 resources/views/modules/auditoria/page.blade.php
 24 resources/views/modules/campos_personalizados/admin/lista.blade.php
 6 resources/views/modules/campos_personalizados/livewire/formulario-campos-personalizados.blade.php
 10 resources/views/modules/casos/livewire/crear-caso-individual.blade.php
-5 resources/views/modules/casos/livewire/editar-caso.blade.php
 10 resources/views/modules/casos/livewire/listado-casos.blade.php
 6 resources/views/modules/compromisos/livewire/editar-compromiso.blade.php
 9 resources/views/modules/compromisos/livewire/listado-compromisos.blade.php
@@ -60,7 +58,6 @@
 1 resources/views/modules/personas/crear-page.blade.php
 12 resources/views/modules/personas/livewire/buscador-global.blade.php
 4 resources/views/modules/personas/livewire/editar-persona.blade.php
-1 resources/views/modules/personas/livewire/listado-personas.blade.php
 1 resources/views/modules/reportes/constructor-page.blade.php
 1 resources/views/modules/reportes/dashboard-analitico-page.blade.php
 1 resources/views/modules/reportes/dashboard-page.blade.php

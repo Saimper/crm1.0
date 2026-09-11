@@ -1,8 +1,8 @@
-<div class="page">
+<div class="page client-directory">
     <div class="page-header">
         <div>
             <h1 class="page-title">Clientes</h1>
-            <div class="page-subtitle">{{ numero_local($totalProyecto, 0).' personas con '.$rotuloCasos.' en carteras activas' }}</div>
+            <div class="page-subtitle">{{ numero_local($totalProyecto, 0) }} clientes en operación</div>
         </div>
         <div class="flex items-center gap-2">
             @can('personas.crear', app('tenancy.proyecto_activo')->id)
@@ -16,10 +16,10 @@
     </div>
 
     <div class="card">
-        <x-ui.toolbar :count="__('personas.results', ['count' => $personas->total()])">
-            <x-ui.search-input width="300px" wire:model.live.debounce.300ms="busqueda"
-                               placeholder="Buscar persona, identificación o cuenta…" />
-            <select wire:model.live="tipoPersona" class="input" style="width:160px;">
+        <x-ui.toolbar>
+            <x-ui.search-input width="100%" wire:model.live.debounce.300ms="busqueda"
+                               placeholder="Buscar cliente, documento o cuenta…" />
+            <select wire:model.live="tipoPersona" class="input client-type-filter" aria-label="Tipo de persona">
                 <option value="">{{ __('personas.all_types') }}</option>
                 <option value="fisica">{{ __('personas.type_physical') }}</option>
                 <option value="juridica">{{ __('personas.type_legal') }}</option>
@@ -54,11 +54,11 @@
             </div>
         @else
             <div class="overflow-x-auto">
-                <table class="table table-compact">
+                <table class="table client-table">
                     <thead>
                         <tr>
-                            <th>Persona</th>
-                            <th>{{ ucfirst($rotuloCasos) }} de la persona</th>
+                            <th scope="col">Cliente</th>
+                            <th scope="col"><div class="client-account-grid"><span>{{ ucfirst($rotuloCasos) }}</span><span class="text-right">Saldo</span><span class="text-right">Mora</span><span class="sr-only">Abrir ficha</span></div></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,26 +68,34 @@
                                 $url = route('proyectos.trabajo', ['proyecto_id' => app('tenancy.proyecto_activo')->id, 'persona' => $p->public_id]);
                             @endphp
                             <tr wire:key="persona-{{ $p->id }}">
-                                <td class="align-top min-w-[200px]">
-                                    <a href="{{ $url }}" wire:navigate class="font-semibold text-ink hover:text-brand-500">{{ $nombre ?: '—' }}</a>
-                                    <div class="font-mono text-xs text-ink-500 mt-1">{{ $p->tipo_identificacion_codigo }} {{ $p->identificacion }}</div>
-                                    <div class="text-xs text-ink-500 mt-2">{{ numero_local($p->total_casos, 0) }} {{ $rotuloCasos }} en operación</div>
+                                <td class="client-identity">
+                                    <a href="{{ $url }}" wire:navigate class="client-name">{{ $nombre !== '' && $nombre === mb_strtoupper($nombre) ? mb_convert_case($nombre, MB_CASE_TITLE, 'UTF-8') : ($nombre ?: '—') }}</a>
+                                    <div class="client-document">{{ $p->tipo_identificacion_codigo }} {{ $p->identificacion }}</div>
+
                                 </td>
-                                <td class="min-w-[420px]">
-                                    <div class="grid gap-2">
+                                <td class="client-accounts">
+                                    <div class="client-account-list">
                                         @foreach($cuentasPorPersona->get($p->id, collect()) as $cuenta)
                                             <a href="{{ $url }}?caso={{ $cuenta->public_id }}" wire:navigate
-                                               class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 hover:bg-surface-100">
-                                                <div>
-                                                    <div class="font-mono text-sm font-semibold text-ink">{{ $cuenta->referencia }}</div>
-                                                    <div class="text-xs text-ink-500 mt-1">{{ $cuenta->cartera_nombre }} · {{ $cuenta->estado_nombre }}</div>
+                                               class="client-account-grid client-account-link">
+                                                <div class="min-w-0">
+                                                    <span class="client-reference">{{ $cuenta->referencia }}</span>
+                                                    <span class="client-account-meta">{{ $cuenta->cartera_nombre }} <span class="client-state">{{ $cuenta->estado_nombre }}</span></span>
                                                 </div>
-                                                @if($cuenta->tipo_caso === 'cobranza')
-                                                    <div class="text-right">
-                                                        <div class="font-mono font-medium text-ink">{{ $cuenta->moneda }} {{ $cuenta->saldo_total === null ? '—' : numero_local($cuenta->saldo_total) }}</div>
-                                                        <div class="text-xs text-ink-500 mt-1">Mora: {{ $cuenta->dias_mora === null ? 'Sin dato' : numero_local($cuenta->dias_mora, 0).' días' }}</div>
-                                                    </div>
-                                                @endif
+                                                <span class="client-balance">
+                                                    @if($cuenta->tipo_caso === 'cobranza')
+                                                        <span class="client-currency">{{ $cuenta->moneda }}</span> {{ $cuenta->saldo_total === null ? '—' : numero_local($cuenta->saldo_total) }}
+                                                    @else
+                                                        <span class="sr-only">No aplica</span>—
+                                                    @endif
+                                                </span>
+                                                <span class="client-overdue">
+                                                    @if($cuenta->tipo_caso === 'cobranza')
+                                                        {{ $cuenta->dias_mora === null ? '—' : numero_local($cuenta->dias_mora, 0).' días' }}
+                                                    @else
+                                                        <span class="sr-only">No aplica</span>—
+                                                    @endif
+                                                </span>
                                                 <x-ui.icon name="chevron-right" :size="14" />
                                             </a>
                                         @endforeach
