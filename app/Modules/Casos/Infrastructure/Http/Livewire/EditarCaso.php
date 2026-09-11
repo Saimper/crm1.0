@@ -227,7 +227,7 @@ final class EditarCaso extends Component
             'numero_entero' => $fila->valor_numero_entero === null ? null : (int) $fila->valor_numero_entero,
             'numero_decimal' => $fila->valor_numero_decimal,
             'fecha' => $fila->valor_fecha,
-            'fecha_hora' => $fila->valor_fecha_hora,
+            'fecha_hora' => $fila->valor_fecha_hora === null ? null : hora_local($fila->valor_fecha_hora, 'Y-m-d\TH:i:s'),
             'booleano' => $fila->valor_booleano === null ? null : (bool) $fila->valor_booleano,
             'moneda' => $fila->valor_moneda_monto,
             default => null,

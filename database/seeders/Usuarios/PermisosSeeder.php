@@ -25,6 +25,9 @@ final class PermisosSeeder extends Seeder
     public function run(): void
     {
         $rows = [
+            ['codigo' => 'historico.ver', 'nombre' => 'Consultar cuentas del histórico', 'grupo' => 'historico', 'activo' => true],
+            ['codigo' => 'historico.exportar', 'nombre' => 'Exportar cuentas del histórico', 'grupo' => 'historico', 'activo' => true],
+            ['codigo' => 'casos.colaborar', 'nombre' => 'Gestionar cuentas asignadas a otro gestor', 'grupo' => 'casos', 'activo' => true],
             // Gestiones
             ['codigo' => 'gestiones.ver',           'nombre' => 'Ver gestiones',                           'grupo' => 'gestiones',     'activo' => true],
             ['codigo' => 'gestiones.crear',         'nombre' => 'Registrar gestiones',                     'grupo' => 'gestiones',     'activo' => true],

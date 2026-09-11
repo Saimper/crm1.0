@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Compromisos\Infrastructure\Http\Livewire;
 
+use App\Modules\Cobranza\Domain\ValueObjects\MontoPromesa;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
+use App\Modules\Venta\Domain\ValueObjects\MontoCierre;
+use App\Support\Livewire\AutorizaCompromisoOperativo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 /**
@@ -24,16 +29,23 @@ use Livewire\Component;
  */
 final class EditarCompromiso extends Component
 {
+    use AutorizaCompromisoOperativo;
+
+    #[Locked]
     public string $compromisoPublicId = '';
 
+    #[Locked]
     public ?int $compromisoId = null;
 
+    #[Locked]
     public string $tipoCompromiso = '';
 
     public string $estado = '';
 
+    #[Locked]
     public string $personaPublicId = '';
 
+    #[Locked]
     public string $casoPublicId = '';
 
     public string $fechaVencimiento = '';
@@ -88,6 +100,7 @@ final class EditarCompromiso extends Component
             abort(409, 'Solo compromisos en estado pendiente son editables.');
         }
 
+        $this->exigirCompromisoOperativo((int) $row->id, 'compromisos.crear');
         $this->compromisoPublicId = $compromiso;
         $this->compromisoId = (int) $row->id;
         $this->tipoCompromiso = (string) $row->tipo_compromiso;
@@ -116,7 +129,7 @@ final class EditarCompromiso extends Component
         if ($row === null) {
             return;
         }
-        $this->monto = (string) $row->monto;
+        $this->monto = app(RegionalConfiguration::class)->forProject()->formatNumber((string) $row->monto, group: false);
         $this->moneda = (string) $row->moneda;
         $this->tipoPagoId = $row->tipo_pago_id !== null ? (string) $row->tipo_pago_id : '';
     }
@@ -129,7 +142,7 @@ final class EditarCompromiso extends Component
         }
         $this->accionComprometida = (string) $row->accion_comprometida;
         if (property_exists($row, 'fecha_limite_sla') && $row->fecha_limite_sla !== null) {
-            $this->fechaLimiteSla = Carbon::parse($row->fecha_limite_sla)->format('Y-m-d\TH:i');
+            $this->fechaLimiteSla = hora_local($row->fecha_limite_sla, 'Y-m-d\TH:i');
         }
         if (property_exists($row, 'nivel_escalamiento_id') && $row->nivel_escalamiento_id !== null) {
             $this->nivelEscalamientoId = (string) $row->nivel_escalamiento_id;
@@ -142,7 +155,7 @@ final class EditarCompromiso extends Component
         if ($row === null) {
             return;
         }
-        $this->montoCierre = (string) $row->monto_cierre;
+        $this->montoCierre = app(RegionalConfiguration::class)->forProject()->formatNumber((string) $row->monto_cierre, group: false);
         $this->moneda = (string) $row->moneda;
         $this->etapaEmbudoId = $row->etapa_embudo_id !== null ? (string) $row->etapa_embudo_id : '';
     }
@@ -155,7 +168,7 @@ final class EditarCompromiso extends Component
         }
         $this->descripcionAccion = (string) $row->descripcion_accion;
         if (property_exists($row, 'fecha_programada') && $row->fecha_programada !== null) {
-            $this->fechaProgramada = Carbon::parse($row->fecha_programada)->format('Y-m-d\TH:i');
+            $this->fechaProgramada = hora_local($row->fecha_programada, 'Y-m-d\TH:i');
         }
         $this->tipoAccionServicioId = $row->tipo_accion_servicio_id !== null ? (string) $row->tipo_accion_servicio_id : '';
         $this->tecnicoAsignado = (string) ($row->tecnico_asignado ?? '');
@@ -172,8 +185,8 @@ final class EditarCompromiso extends Component
             return;
         }
 
-        // Defensa: doble check de estado en BD (race condition).
-        $estadoActual = (string) DB::table('compromisos')->where('id', $this->compromisoId)->value('estado');
+        $commitment = $this->exigirCompromisoOperativo($this->compromisoId, 'compromisos.crear');
+        $estadoActual = (string) $commitment->estado;
         if ($estadoActual !== 'pendiente') {
             abort(409, 'El compromiso ya no está pendiente.');
         }
@@ -201,9 +214,40 @@ final class EditarCompromiso extends Component
         $this->validate($reglas);
 
         $proyectoId = (int) $proyecto->id;
+        $regional = app(RegionalConfiguration::class)->forProject($proyectoId);
+        $amount = '';
+        $timestamp = null;
+        $errorField = match ($this->tipoCompromiso) {
+            'cierre_venta' => 'montoCierre',
+            'resolucion_ticket' => 'fechaLimiteSla',
+            'accion_servicio' => 'fechaProgramada',
+            default => 'monto',
+        };
+        try {
+            if ($this->tipoCompromiso === 'promesa_pago') {
+                $amount = $regional->parseNumber($this->monto);
+                new MontoPromesa($amount, $this->moneda);
+            } elseif ($this->tipoCompromiso === 'cierre_venta') {
+                $amount = $regional->parseNumber($this->montoCierre);
+                new MontoCierre($amount, $this->moneda);
+            }
+            if ($this->tipoCompromiso === 'resolucion_ticket' && $this->fechaLimiteSla !== '') {
+                $timestamp = $regional->parseDate($this->fechaLimiteSla, true)->format('Y-m-d H:i:s');
+            }
+            if ($this->tipoCompromiso === 'accion_servicio' && $this->fechaProgramada !== '') {
+                $timestamp = $regional->parseDate($this->fechaProgramada, true)->format('Y-m-d H:i:s');
+            }
+        } catch (\InvalidArgumentException|\DomainException $error) {
+            $this->addError($errorField, $error->getMessage());
+
+            return;
+        }
         $ahora = Carbon::now();
 
-        DB::transaction(function () use ($proyectoId, $ahora): void {
+        DB::transaction(function () use ($proyectoId, $ahora, $amount, $timestamp): void {
+            $locked = DB::table('compromisos')->where('proyecto_id', $proyectoId)->where('id', $this->compromisoId)->lockForUpdate()->first();
+            abort_unless($locked !== null && $locked->estado === 'pendiente', 409, 'El compromiso ya no está pendiente.');
+            $this->exigirCompromisoOperativo((int) $locked->id, 'compromisos.crear');
             DB::table('compromisos')
                 ->where('id', $this->compromisoId)
                 ->where('proyecto_id', $proyectoId)
@@ -213,10 +257,10 @@ final class EditarCompromiso extends Component
                 ]);
 
             match ($this->tipoCompromiso) {
-                'promesa_pago' => $this->guardarPromesa($ahora),
-                'resolucion_ticket' => $this->guardarResolucion($ahora),
-                'cierre_venta' => $this->guardarCierre($ahora),
-                'accion_servicio' => $this->guardarAccion($ahora),
+                'promesa_pago' => $this->guardarPromesa($ahora, $amount),
+                'resolucion_ticket' => $this->guardarResolucion($ahora, $timestamp),
+                'cierre_venta' => $this->guardarCierre($ahora, $amount),
+                'accion_servicio' => $this->guardarAccion($ahora, $timestamp),
                 default => null,
             };
         });
@@ -230,24 +274,24 @@ final class EditarCompromiso extends Component
         ], navigate: true);
     }
 
-    private function guardarPromesa(Carbon $ahora): void
+    private function guardarPromesa(Carbon $ahora, string $amount): void
     {
         DB::table('compromisos_promesa_pago')->where('compromiso_id', $this->compromisoId)->update([
-            'monto' => $this->monto,
+            'monto' => $amount,
             'moneda' => $this->moneda,
             'tipo_pago_id' => $this->tipoPagoId !== '' ? (int) $this->tipoPagoId : null,
             'actualizada_en' => $ahora,
         ]);
     }
 
-    private function guardarResolucion(Carbon $ahora): void
+    private function guardarResolucion(Carbon $ahora, ?string $timestamp): void
     {
         $payload = [
             'accion_comprometida' => $this->accionComprometida,
             'actualizada_en' => $ahora,
         ];
-        if ($this->fechaLimiteSla !== '') {
-            $payload['fecha_limite_sla'] = $this->fechaLimiteSla;
+        if ($timestamp !== null) {
+            $payload['fecha_limite_sla'] = $timestamp;
         }
         if ($this->nivelEscalamientoId !== '') {
             $payload['nivel_escalamiento_id'] = (int) $this->nivelEscalamientoId;
@@ -256,10 +300,10 @@ final class EditarCompromiso extends Component
         DB::table('compromisos_resolucion_ticket')->where('compromiso_id', $this->compromisoId)->update($payload);
     }
 
-    private function guardarCierre(Carbon $ahora): void
+    private function guardarCierre(Carbon $ahora, string $amount): void
     {
         $payload = [
-            'monto_cierre' => $this->montoCierre,
+            'monto_cierre' => $amount,
             'moneda' => $this->moneda,
             'actualizada_en' => $ahora,
         ];
@@ -270,15 +314,15 @@ final class EditarCompromiso extends Component
         DB::table('compromisos_cierre_venta')->where('compromiso_id', $this->compromisoId)->update($payload);
     }
 
-    private function guardarAccion(Carbon $ahora): void
+    private function guardarAccion(Carbon $ahora, ?string $timestamp): void
     {
         $payload = [
             'descripcion_accion' => $this->descripcionAccion,
             'tecnico_asignado' => $this->tecnicoAsignado !== '' ? $this->tecnicoAsignado : null,
             'actualizada_en' => $ahora,
         ];
-        if ($this->fechaProgramada !== '') {
-            $payload['fecha_programada'] = $this->fechaProgramada;
+        if ($timestamp !== null) {
+            $payload['fecha_programada'] = $timestamp;
         }
         if ($this->tipoAccionServicioId !== '') {
             $payload['tipo_accion_servicio_id'] = (int) $this->tipoAccionServicioId;

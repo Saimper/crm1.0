@@ -20,7 +20,7 @@ final readonly class RegistrarCasoCobranzaInput
         public DateTimeImmutable $fechaIngreso,
         public int $prioridad,
         public string $numeroPrestamo,
-        public string $moneda = 'USD',
+        public ?string $moneda = null,
         public ?string $montoOriginal = null,
         public ?string $saldoCapital = null,
         public ?string $saldoInteres = null,

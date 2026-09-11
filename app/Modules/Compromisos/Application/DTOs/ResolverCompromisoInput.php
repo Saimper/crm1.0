@@ -11,5 +11,6 @@ final readonly class ResolverCompromisoInput
     public function __construct(
         public int $compromisoId,
         public DateTimeImmutable $fechaResolucion,
+        public ?int $proyectoId = null,
     ) {}
 }

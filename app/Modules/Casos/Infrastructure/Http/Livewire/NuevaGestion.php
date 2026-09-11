@@ -20,6 +20,7 @@ use App\Modules\Integracion\Infrastructure\Http\Concerns\EmiteWritebackFicha;
 use App\Modules\Servicio\Domain\ValueObjects\DatosAccionServicio;
 use App\Modules\Servicio\Domain\ValueObjects\DescripcionAccion;
 use App\Modules\Servicio\Domain\ValueObjects\FechaProgramada;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Modules\Venta\Domain\ValueObjects\DatosCierreVenta;
 use App\Modules\Venta\Domain\ValueObjects\FechaCierreEstimada;
 use App\Modules\Venta\Domain\ValueObjects\MontoCierre;
@@ -179,7 +180,7 @@ final class NuevaGestion extends Component
         $esVentaConCierre = $this->tipoCaso === 'lead_venta' && (bool) $resultado->requiere_compromiso;
         $esServicioConAccion = $this->tipoCaso === 'servicio' && (bool) $resultado->requiere_compromiso;
         if ($esCobranzaConPromesa) {
-            $reglas['promesaMonto'] = ['required', 'regex:/^\d+(\.\d{1,2})?$/'];
+            $reglas['promesaMonto'] = ['required', 'string'];
             $reglas['promesaFecha'] = ['required', 'date'];
         }
         if ($esCxConResolucion) {
@@ -187,7 +188,7 @@ final class NuevaGestion extends Component
             $reglas['resolucionFechaLimite'] = ['required', 'date'];
         }
         if ($esVentaConCierre) {
-            $reglas['cierreMonto'] = ['required', 'regex:/^\d+(\.\d{1,2})?$/'];
+            $reglas['cierreMonto'] = ['required', 'string'];
             $reglas['cierreFechaEstimada'] = ['required', 'date'];
         }
         if ($esServicioConAccion) {
@@ -198,29 +199,32 @@ final class NuevaGestion extends Component
         $this->validate($reglas);
 
         try {
+            $regional = app(RegionalConfiguration::class)->forProject($proyectoId);
+            $currencyTable = $this->tipoCaso === 'cobranza' ? 'casos_cobranza' : ($this->tipoCaso === 'lead_venta' ? 'casos_lead_venta' : null);
+            $currency = $currencyTable === null ? $regional->currency : (DB::table($currencyTable)->where('proyecto_id', $proyectoId)->where('caso_id', $this->casoId)->value('moneda') ?? $regional->currency);
             $datosCompromiso = null;
             if ($esCobranzaConPromesa) {
                 $datosCompromiso = new DatosPromesaPago(
-                    monto: new MontoPromesa((string) $this->promesaMonto, 'USD'),
+                    monto: new MontoPromesa($regional->parseNumber((string) $this->promesaMonto), (string) $currency),
                     fechaVencimiento: new FechaPromesa(new DateTimeImmutable((string) $this->promesaFecha)),
                     tipoPagoId: $this->promesaTipoPagoId,
                 );
             } elseif ($esCxConResolucion) {
                 $datosCompromiso = new DatosResolucionTicket(
                     accion: new AccionComprometida((string) $this->resolucionAccion),
-                    fechaLimite: new FechaLimiteSla(new DateTimeImmutable((string) $this->resolucionFechaLimite)),
+                    fechaLimite: new FechaLimiteSla($regional->parseDate((string) $this->resolucionFechaLimite, true)),
                     nivelEscalamientoId: $this->resolucionNivelEscalamientoId,
                 );
             } elseif ($esVentaConCierre) {
                 $datosCompromiso = new DatosCierreVenta(
-                    monto: new MontoCierre((string) $this->cierreMonto, 'USD'),
+                    monto: new MontoCierre($regional->parseNumber((string) $this->cierreMonto), (string) $currency),
                     fechaEstimada: new FechaCierreEstimada(new DateTimeImmutable((string) $this->cierreFechaEstimada)),
                     etapaEmbudoId: $this->cierreEtapaEmbudoId,
                 );
             } elseif ($esServicioConAccion) {
                 $datosCompromiso = new DatosAccionServicio(
                     descripcion: new DescripcionAccion((string) $this->accionDescripcion),
-                    fechaProgramada: new FechaProgramada(new DateTimeImmutable((string) $this->accionFechaProgramada)),
+                    fechaProgramada: new FechaProgramada($regional->parseDate((string) $this->accionFechaProgramada, true)),
                     tipoAccionServicioId: $this->accionTipoAccionId,
                     tecnicoAsignado: $this->accionTecnicoAsignado !== '' ? $this->accionTecnicoAsignado : null,
                 );

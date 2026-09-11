@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\Casos\Infrastructure\Http\Livewire;
 
+use App\Models\User;
 use App\Modules\Asignaciones\Application\UseCases\AutoasignarCaso;
 use App\Modules\Asignaciones\Domain\Exceptions\AutoasignacionNoPermitida;
 use App\Modules\CamposPersonalizados\Application\Services\ServicioCamposPersonalizados;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
-use App\Support\Database\CarterasOperativas;
+use App\Modules\Casos\Application\Services\ConsultaFichaTrabajo;
+use App\Modules\Usuarios\Domain\Contracts\AccesoACuenta;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -24,6 +26,7 @@ use Livewire\Component;
  */
 final class VistaDeTrabajo extends Component
 {
+    #[Locked]
     public string $personaPublicId = '';
 
     #[Url(as: 'caso')]
@@ -101,6 +104,10 @@ final class VistaDeTrabajo extends Component
     {
         $proyectoActivo = app('tenancy.proyecto_activo');
         $proyectoId = (int) $proyectoActivo->id;
+        $usuario = auth()->user();
+        abort_unless($usuario instanceof User && $usuario->tienePermiso('casos.ver', $proyectoId), 403);
+        $carteras = $usuario->carterasPermitidasParaPermiso('casos.ver', $proyectoId);
+        $consulta = app(ConsultaFichaTrabajo::class);
 
         $persona = DB::table('personas as p')
             ->leftJoin('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
@@ -117,25 +124,9 @@ final class VistaDeTrabajo extends Component
             ->first();
         abort_unless($persona, 404);
 
-        $casos = DB::table('casos as c')
-            ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
-            ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
-            ->leftJoin('resultados as ru', 'ru.id', '=', 'c.resultado_ultima_gestion_id')
-            ->where('c.proyecto_id', $proyectoId)
-            ->where('c.persona_id', $persona->id)
-            ->whereNull('c.eliminada_en')
-            ->where(fn ($q) => CarterasOperativas::filtrar($q))
-            ->select([
-                'c.id', 'c.public_id', 'c.tipo_caso', 'c.prioridad',
-                'c.cartera_id', 'c.fecha_ingreso', 'c.cerrado_en',
-                'c.fecha_ultima_gestion', 'c.tiene_compromiso_vigente',
-                'ec.nombre as estado_caso_nombre', 'ec.codigo as estado_caso_codigo',
-                'ca.nombre as cartera_nombre',
-                'ru.nombre as resultado_ultimo_nombre',
-            ])
-            ->orderByDesc('c.prioridad')
-            ->orderByDesc('c.fecha_ingreso')
-            ->get();
+        $casos = $consulta->cuentas($proyectoId, (int) $persona->id, $carteras);
+        abort_if($casos->isEmpty() && ($carteras !== null || $consulta->tieneCuentasRegistradas($proyectoId, (int) $persona->id)), 404);
+        $compromisosPendientes = $consulta->compromisosPendientes($proyectoId, $casos->pluck('id')->map(fn ($id): int => (int) $id)->all());
 
         if (
             $casos->isNotEmpty()
@@ -206,19 +197,19 @@ final class VistaDeTrabajo extends Component
                     $valor = match ((string) $f->tipo) {
                         'texto_corto' => $f->valor_texto_corto,
                         'texto_largo' => $f->valor_texto_largo,
-                        'numero_entero' => $f->valor_numero_entero,
-                        'numero_decimal' => $f->valor_numero_decimal,
+                        'numero_entero' => $f->valor_numero_entero === null ? null : numero_local($f->valor_numero_entero, 0, $proyectoId),
+                        'numero_decimal' => $f->valor_numero_decimal === null ? null : numero_local($f->valor_numero_decimal, null, $proyectoId),
                         'fecha' => $f->valor_fecha
-                            ? Carbon::parse($f->valor_fecha)->format('d/m/Y')
+                            ? fecha_local($f->valor_fecha, $proyectoId)
                             : null,
                         'fecha_hora' => $f->valor_fecha_hora
-                            ? Carbon::parse($f->valor_fecha_hora)->format('d/m/Y H:i')
+                            ? hora_local($f->valor_fecha_hora, null, $proyectoId)
                             : null,
                         'booleano' => $f->valor_booleano === null
                             ? null
                             : ((bool) $f->valor_booleano ? 'Sí' : 'No'),
                         'moneda' => $f->valor_moneda_monto !== null
-                            ? ($f->valor_moneda_codigo ?? '').' '.number_format((float) $f->valor_moneda_monto, 2, '.', ',')
+                            ? ($f->valor_moneda_codigo ?? '').' '.numero_local($f->valor_moneda_monto, null, $proyectoId)
                             : null,
                         default => null,
                     };
@@ -236,40 +227,7 @@ final class VistaDeTrabajo extends Component
                 }
             }
 
-            $compromisoActivo = DB::table('compromisos')
-                ->where('proyecto_id', $proyectoId)
-                ->where('caso_id', $casoActivo->id)
-                ->where('estado', 'pendiente')
-                ->whereNull('eliminada_en')
-                ->orderBy('fecha_vencimiento')
-                ->first();
-
-            if ($compromisoActivo !== null && $compromisoActivo->tipo_compromiso === 'promesa_pago') {
-                $compromisoActivo->promesa = DB::table('compromisos_promesa_pago')
-                    ->where('compromiso_id', $compromisoActivo->id)
-                    ->first();
-            }
-            if ($compromisoActivo !== null && $compromisoActivo->tipo_compromiso === 'resolucion_ticket') {
-                $compromisoActivo->resolucion = DB::table('compromisos_resolucion_ticket as crt')
-                    ->leftJoin('niveles_escalamiento as ne', 'ne.id', '=', 'crt.nivel_escalamiento_id')
-                    ->where('crt.compromiso_id', $compromisoActivo->id)
-                    ->select(['crt.accion_comprometida', 'crt.fecha_limite_sla', 'ne.nombre as escalamiento_nombre'])
-                    ->first();
-            }
-            if ($compromisoActivo !== null && $compromisoActivo->tipo_compromiso === 'cierre_venta') {
-                $compromisoActivo->cierre = DB::table('compromisos_cierre_venta as ccv')
-                    ->leftJoin('etapas_embudo as ee', 'ee.id', '=', 'ccv.etapa_embudo_id')
-                    ->where('ccv.compromiso_id', $compromisoActivo->id)
-                    ->select(['ccv.monto_cierre', 'ccv.moneda', 'ee.nombre as etapa_nombre'])
-                    ->first();
-            }
-            if ($compromisoActivo !== null && $compromisoActivo->tipo_compromiso === 'accion_servicio') {
-                $compromisoActivo->accion = DB::table('compromisos_accion_servicio as cas')
-                    ->leftJoin('tipos_accion_servicio as tas', 'tas.id', '=', 'cas.tipo_accion_servicio_id')
-                    ->where('cas.compromiso_id', $compromisoActivo->id)
-                    ->select(['cas.descripcion_accion', 'cas.fecha_programada', 'cas.tecnico_asignado', 'tas.nombre as tipo_accion_nombre'])
-                    ->first();
-            }
+            $compromisoActivo = $compromisosPendientes->firstWhere('caso_id', $casoActivo->id);
 
             $compromisosResueltos = DB::table('compromisos')
                 ->where('proyecto_id', $proyectoId)
@@ -289,6 +247,7 @@ final class VistaDeTrabajo extends Component
             $casoCobranza = DB::table('casos_cobranza as cc')
                 ->leftJoin('tramos_mora as tm', 'tm.id', '=', 'cc.tramo_mora_id')
                 ->where('cc.caso_id', $casoActivo->id)
+                ->where('cc.proyecto_id', $proyectoId)
                 ->select([
                     'cc.numero_prestamo', 'cc.moneda', 'cc.monto_original',
                     'cc.saldo_capital', 'cc.saldo_interes', 'cc.saldo_total',
@@ -305,6 +264,7 @@ final class VistaDeTrabajo extends Component
                 ->leftJoin('productos_venta as pv', 'pv.id', '=', 'clv.producto_venta_id')
                 ->leftJoin('etapas_embudo as ee', 'ee.id', '=', 'clv.etapa_embudo_id')
                 ->where('clv.caso_id', $casoActivo->id)
+                ->where('clv.proyecto_id', $proyectoId)
                 ->select([
                     'clv.codigo_lead', 'clv.valor_estimado', 'clv.moneda',
                     'clv.origen_lead', 'clv.fecha_primer_contacto', 'clv.fecha_estimada_cierre',
@@ -322,6 +282,7 @@ final class VistaDeTrabajo extends Component
                 ->leftJoin('niveles_sla as sla', 'sla.id', '=', 'ct.nivel_sla_id')
                 ->leftJoin('niveles_escalamiento as esc', 'esc.id', '=', 'ct.nivel_escalamiento_id')
                 ->where('ct.caso_id', $casoActivo->id)
+                ->where('ct.proyecto_id', $proyectoId)
                 ->select([
                     'ct.codigo_ticket', 'ct.asunto', 'ct.descripcion',
                     'ct.fecha_reporte', 'ct.fecha_limite_sla',
@@ -339,6 +300,7 @@ final class VistaDeTrabajo extends Component
                 ->leftJoin('tipos_accion_servicio as tas', 'tas.id', '=', 'cs.tipo_accion_servicio_id')
                 ->leftJoin('estados_tecnicos as et', 'et.id', '=', 'cs.estado_tecnico_id')
                 ->where('cs.caso_id', $casoActivo->id)
+                ->where('cs.proyecto_id', $proyectoId)
                 ->select([
                     'cs.codigo_servicio', 'cs.direccion_servicio', 'cs.tecnico_asignado',
                     'cs.fecha_solicitud', 'cs.fecha_programada',
@@ -348,13 +310,13 @@ final class VistaDeTrabajo extends Component
                 ->first();
         }
 
-        $contactos = DB::table('contactos')
+        $contactos = $usuario->tienePermiso('contactos.ver', $proyectoId) ? DB::table('contactos')
             ->where('proyecto_id', $proyectoId)
             ->where('persona_id', $persona->id)
             ->where('activo', true)
             ->orderByDesc('es_principal')
             ->orderBy('tipo')
-            ->get();
+            ->get() : collect();
 
         $nombrePersona = $persona->tipo_persona === 'juridica'
             ? (string) ($persona->razon_social ?? '')
@@ -373,6 +335,8 @@ final class VistaDeTrabajo extends Component
             'historial' => $historial,
             'valoresCamposGestion' => $valoresCamposGestion ?? [],
             'compromisoActivo' => $compromisoActivo,
+            'compromisosPendientes' => $compromisosPendientes,
+            'puedeGestionarCaso' => $casoActivo !== null && app(AccesoACuenta::class)->puedeGestionar((int) $usuario->id, $proyectoId, (int) $casoActivo->id),
             'compromisosResueltos' => $compromisosResueltos,
             'contactos' => $contactos,
             'gruposCamposCaso' => $casoActivo === null ? [] : $this->camposDelCasoPorGrupo($casoActivo),

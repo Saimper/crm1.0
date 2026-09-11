@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Notificaciones\Application\Listeners;
 
 use App\Modules\Compromisos\Domain\Events\CompromisoRoto;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,8 +28,11 @@ final readonly class NotificarCompromisoRoto
 {
     public function handle(CompromisoRoto $evento): void
     {
-        $compromiso = DB::table('compromisos')
+        $compromiso = CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos')
             ->where('id', $evento->compromisoId)
+            ->where('proyecto_id', $evento->proyectoId)
+            ->where('caso_id', $evento->casoId)
+            ->whereNull('eliminada_en')
             ->first(['tipo_compromiso', 'fecha_vencimiento']);
 
         if ($compromiso === null) {

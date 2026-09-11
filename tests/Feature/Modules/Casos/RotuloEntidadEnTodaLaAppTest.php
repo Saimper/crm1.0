@@ -198,12 +198,14 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
         foreach (self::PALABRA as $tipo => [$singular, $plural]) {
             $proyecto = $this->crearProyecto($tipo);
             $supervisor = $this->crearSupervisor($proyecto);
+            $this->poblar($proyecto, $supervisor);
 
             $html = $this->actingAs($supervisor)->get("/proyectos/{$proyecto->id}/personas")->assertOk()->getContent();
 
             $this->assertIsString($html);
             $this->assertStringContainsString("Buscar persona o {$singular}", $html, "buscador global en {$tipo}");
-            $this->assertStringContainsString('>'.ucfirst($plural).'<', $html, "columna de conteo en {$tipo}");
+            $this->assertStringContainsString('Clientes', $html, "espacio unificado en {$tipo}");
+            $this->assertStringContainsString(ucfirst($plural).' de la persona', $html, "cuentas agrupadas en {$tipo}");
         }
     }
 
@@ -223,7 +225,7 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
         }
     }
 
-    public function test_la_asignacion_masiva_concuerda_el_articulo(): void
+    public function test_la_asignacion_masiva_rotula_el_tipo_y_explica_la_asignacion_por_tandas(): void
     {
         foreach (self::PALABRA as $tipo => [$singular, $plural]) {
             $proyecto = $this->crearProyecto($tipo);
@@ -234,7 +236,7 @@ final class RotuloEntidadEnTodaLaAppTest extends TestCase
 
             $this->assertIsString($html);
             $this->assertStringContainsString("Asignar {$plural} en batch", $html, "título en {$tipo}");
-            $this->assertStringContainsString("Cada {$singular} del proyecto", $html, "descripción en {$tipo}");
+            $this->assertStringContainsString('conserva las asignaciones existentes', $html, "descripción del reparto en {$tipo}");
         }
     }
 

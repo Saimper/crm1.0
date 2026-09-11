@@ -11,11 +11,14 @@ use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Domain\Exceptions\FalloDeImportacion;
+use App\Modules\Importaciones\Domain\Exceptions\FilaNoImportable;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoEncontrada;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionNoProcesable;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
+use App\Modules\Importaciones\Domain\ValueObjects\ResultadoFila;
 use App\Modules\Importaciones\Infrastructure\Persistence\Models\ImportacionFilaModel;
 use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +67,7 @@ final readonly class EjecutarImportacionDinamica
 
             $this->db->table('importaciones')
                 ->where('id', $input->importacionId)
+                ->whereIn('estado', [EstadoImportacion::PREPARADA->value, EstadoImportacion::PROCESANDO->value])
                 ->update([
                     'estado' => EstadoImportacion::FALLIDA->value,
                     'error_global' => $fallo->motivo,
@@ -116,14 +120,21 @@ final readonly class EjecutarImportacionDinamica
         // se guardó al terminar el paso 2, cuando el modo aún era el de por
         // defecto, y leerlo de ahí fue lo que hizo que todo corriera como upsert.
         $esquema = $esquema->conModo(ModoImportacion::from((string) $importacion->modo));
+        $tipoOperacion = (string) $this->db->table('proyectos')->where('id', $proyectoId)->value('tipo_operacion');
+        $esquema->validarContexto($proyectoId, (string) $importacion->tipo_entidad, $tipoOperacion);
         $carteraId = $esquema->carteraId;
 
-        $this->db->table('importaciones')
+        $iniciada = $this->db->table('importaciones')
             ->where('id', $input->importacionId)
+            ->where('proyecto_id', $proyectoId)
+            ->whereIn('estado', [EstadoImportacion::PREPARADA->value, EstadoImportacion::PROCESANDO->value])
             ->update([
                 'estado' => EstadoImportacion::PROCESANDO->value,
                 'iniciado_en' => CarbonImmutable::now(),
             ]);
+        if ($iniciada === 0 && $this->verificarCancelacion($input->importacionId)) {
+            throw ImportacionNoProcesable::enEstado(EstadoImportacion::CANCELADA);
+        }
 
         $totalProcesadas = 0;
         $totalInsertadas = 0;
@@ -140,8 +151,12 @@ final readonly class EjecutarImportacionDinamica
         $ultimoNumeroFila = 0;
 
         while (true) {
+            if ($this->verificarCancelacion($input->importacionId)) {
+                break;
+            }
             $filas = ImportacionFilaModel::query()
                 ->sinScopeProyecto()
+                ->where('proyecto_id', $proyectoId)
                 ->where('importacion_id', $input->importacionId)
                 ->where('estado', EstadoFila::PENDIENTE->value)
                 ->where('numero_fila', '>', $ultimoNumeroFila)
@@ -190,15 +205,26 @@ final readonly class EjecutarImportacionDinamica
                 foreach ($filas as $fila) {
                     $payload = is_array($fila->payload) ? $fila->payload : [];
 
-                    $resultado = $this->procesarFila->execute(new ProcesarFilaInput(
-                        fila: $payload,
-                        esquema: $esquema,
-                        importacionFilaId: (int) $fila->id,
-                        mapaCampos: $mapaCampos,
-                        tiposIdentificacion: $tiposIdentificacion,
-                        personasExistentes: $personasExistentes,
-                        casosExistentes: $casosExistentes,
-                    ));
+                    try {
+                        $resultado = $this->db->transaction(function () use ($payload, $esquema, $fila, $mapaCampos, $tiposIdentificacion, $personasExistentes, $casosExistentes): ResultadoFilaConValoresCp {
+                            $resultado = $this->procesarFila->execute(new ProcesarFilaInput(
+                                fila: $payload,
+                                esquema: $esquema,
+                                importacionFilaId: (int) $fila->id,
+                                mapaCampos: $mapaCampos,
+                                tiposIdentificacion: $tiposIdentificacion,
+                                personasExistentes: $personasExistentes,
+                                casosExistentes: $casosExistentes,
+                            ));
+                            if ($resultado->resultadoFila->estado === EstadoFila::INVALIDA) {
+                                throw new FilaNoImportable($resultado->resultadoFila->razon ?? 'Fila inválida.');
+                            }
+
+                            return $resultado;
+                        });
+                    } catch (DomainException|InvalidArgumentException $e) {
+                        $resultado = new ResultadoFilaConValoresCp(ResultadoFila::invalida($this->descriptor->motivoDeFila($e)), []);
+                    }
 
                     $fila->estado = $resultado->resultadoFila->estado->value;
                     $fila->mensaje_error = $resultado->resultadoFila->razon;
@@ -245,13 +271,12 @@ final readonly class EjecutarImportacionDinamica
                 $totalDuplicadas += $chunkDuplicadas;
             });
 
-            if ($this->verificarCancelacion($input->importacionId)) {
-                break;
-            }
         }
 
         $this->db->table('importaciones')
             ->where('id', $input->importacionId)
+            ->where('proyecto_id', $proyectoId)
+            ->where('estado', EstadoImportacion::PROCESANDO->value)
             ->update([
                 'estado' => EstadoImportacion::COMPLETADA->value,
                 'terminado_en' => CarbonImmutable::now(),

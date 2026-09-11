@@ -10,6 +10,7 @@ use App\Modules\Cobranza\Application\UseCases\RegistrarCasoCobranza;
 use App\Modules\Contactos\Domain\Contracts\AltaContactosEnLote;
 use App\Modules\Cx\Application\UseCases\RegistrarCasoTicketCx;
 use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
+use App\Modules\Importaciones\Application\Services\FormatoDeImportacion;
 use App\Modules\Importaciones\Application\Services\ResolverPersonaImportacion;
 use App\Modules\Importaciones\Application\UseCases\ProcesarFilaDinamica;
 use App\Modules\Importaciones\Application\UseCases\ProcesarFilaInput;
@@ -23,6 +24,8 @@ use App\Modules\Personas\Application\DTOs\RegistrarPersonaOutput;
 use App\Modules\Personas\Application\UseCases\RegistrarPersona;
 use App\Modules\Servicio\Application\UseCases\RegistrarCasoServicio;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
+use App\Modules\Tenancy\Domain\ValueObjects\RegionalSettings;
 use App\Modules\Venta\Application\UseCases\RegistrarCasoLeadVenta;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
@@ -30,12 +33,23 @@ use PHPUnit\Framework\TestCase;
 
 final class ProcesarFilaDinamicaTest extends TestCase
 {
+    private function defaultImportFormat(): FormatoDeImportacion
+    {
+        $regional = $this->createMock(RegionalConfiguration::class);
+        $regional->method('forProject')->willReturn(new RegionalSettings);
+
+        return new FormatoDeImportacion($regional);
+    }
+
     private function builderWithActivePortfolio(): Builder
     {
         $builder = $this->createMock(Builder::class);
         $builder->method('where')->willReturnSelf();
         $builder->method('whereNull')->willReturnSelf();
         $builder->method('whereExists')->willReturnSelf();
+        $builder->method('when')->willReturnCallback(
+            fn (bool $condition, callable $callback): Builder => $condition ? $callback($builder, $condition) : $builder,
+        );
         $builder->method('exists')->willReturn(true);
 
         return $builder;
@@ -97,16 +111,23 @@ final class ProcesarFilaDinamicaTest extends TestCase
      * Configura un mock de DB para el flujo de "caso existente":
      * - buscarCasoExistente → 99
      */
-    private function configurarDbParaCasoExistente(ConnectionInterface $db): void
+    private function configurarDbParaCasoExistente(ConnectionInterface $db, int $personaId): void
     {
-        $builder = $this->builderWithActivePortfolio();
-        $builder->method('where')->willReturnSelf();
-        $builder->method('value')->willReturn(99);
+        $db->method('table')->willReturnCallback(function (string $table) use ($personaId): Builder {
+            $builder = $this->builderWithActivePortfolio();
+            $builder->method('orderBy')->willReturnSelf();
+            $builder->method('lockForUpdate')->willReturnSelf();
+            $builder->method('value')->willReturn($table === 'tipos_identificacion' ? 1 : 99);
+            $builder->method('first')->willReturn($table === 'casos' ? (object) [
+                'id' => 99, 'proyecto_id' => 1, 'cartera_id' => 5,
+                'persona_id' => $personaId, 'tipo_caso' => 'cobranza', 'eliminada_en' => null,
+            ] : null);
 
-        $db->method('table')->willReturn($builder);
+            return $builder;
+        });
     }
 
-    public function test_insert_persona_no_existe_retorna_duplicada(): void
+    public function test_insert_creates_another_account_for_an_existing_person(): void
     {
         $columnas = [
             $this->crearColumna('ced', campoSistema: 'identificacion', esId: true, accion: AccionColumna::MAPEAR_SISTEMA),
@@ -117,10 +138,12 @@ final class ProcesarFilaDinamicaTest extends TestCase
 
         $db = $this->createMock(ConnectionInterface::class);
         $this->configurarDbParaNuevoCaso($db);
+        $registrar = $this->createMock(RegistrarCasoCobranza::class);
+        $registrar->expects(self::once())->method('execute')->willReturn(new RegistrarCasoCobranzaOutput(99, 'NEW'));
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
             $this->createMock(RegistrarPersona::class),
-            $this->createMock(RegistrarCasoCobranza::class),
+            $registrar,
             $this->createMock(RegistrarCasoTicketCx::class),
             $this->createMock(RegistrarCasoLeadVenta::class),
             $this->createMock(RegistrarCasoServicio::class),
@@ -128,17 +151,18 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
-            fila: ['identificacion' => '12345'],
+            fila: ['identificacion' => '12345', 'id_cpelegido' => 'NEW'],
             esquema: $this->crearEsquema(ModoImportacion::INSERT, $columnas),
             importacionFilaId: 1,
             mapaCampos: [],
             tiposIdentificacion: ['CED' => 1],
         ));
 
-        self::assertSame(EstadoFila::DUPLICADA, $resultado->resultadoFila->estado);
+        self::assertSame(EstadoFila::PROCESADA, $resultado->resultadoFila->estado);
         self::assertSame([], $resultado->valoresCp);
     }
 
@@ -165,6 +189,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -208,6 +233,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -236,12 +262,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(10);
 
-        $builder = $this->builderWithActivePortfolio();
-        $builder->method('where')->willReturnSelf();
-        $builder->method('value')->willReturn(99);
-
         $db = $this->createMock(ConnectionInterface::class);
-        $db->method('table')->willReturn($builder);
+        $this->configurarDbParaCasoExistente($db, 10);
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -254,6 +276,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -265,6 +288,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             esquema: $this->crearEsquema(ModoImportacion::UPSERT, $columnas),
             importacionFilaId: 1,
             mapaCampos: [],
+            tiposIdentificacion: ['CED' => 1],
         ));
 
         self::assertSame(EstadoFila::PROCESADA, $resultado->resultadoFila->estado);
@@ -280,12 +304,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(10);
 
-        $builder = $this->builderWithActivePortfolio();
-        $builder->method('where')->willReturnSelf();
-        $builder->method('value')->willReturn(99);
-
         $db = $this->createMock(ConnectionInterface::class);
-        $db->method('table')->willReturn($builder);
+        $this->configurarDbParaCasoExistente($db, 10);
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -298,6 +318,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -309,6 +330,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             esquema: $this->crearEsquema(ModoImportacion::MERGE, $columnas),
             importacionFilaId: 1,
             mapaCampos: [],
+            tiposIdentificacion: ['CED' => 1],
         ));
 
         self::assertSame(EstadoFila::PROCESADA, $resultado->resultadoFila->estado);
@@ -336,6 +358,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -371,6 +394,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -407,6 +431,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -451,6 +476,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -470,7 +496,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
         self::assertNotEmpty($resultado->valoresCp);
         self::assertSame(1, $resultado->valoresCp[0]['campo_id']);
         self::assertSame(99, $resultado->valoresCp[0]['entidad_id']);
-        self::assertSame(1500.50, $resultado->valoresCp[0]['valor']);
+        self::assertSame('1500.50', $resultado->valoresCp[0]['valor']);
         self::assertSame('numero_decimal', $resultado->valoresCp[0]['tipo']);
     }
 
@@ -485,12 +511,8 @@ final class ProcesarFilaDinamicaTest extends TestCase
         $personaResolver = $this->createMock(ResolverPersonaImportacion::class);
         $personaResolver->method('lookup')->willReturn(10);
 
-        $builder = $this->builderWithActivePortfolio();
-        $builder->method('where')->willReturnSelf();
-        $builder->method('value')->willReturn(99);
-
         $db = $this->createMock(ConnectionInterface::class);
-        $db->method('table')->willReturn($builder);
+        $this->configurarDbParaCasoExistente($db, 10);
 
         $useCase = new ProcesarFilaDinamica(
             $personaResolver,
@@ -503,6 +525,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             $this->createMock(AltaContactosEnLote::class),
             new DescriptorDeFalloImportacion,
             new RelojDelMandante,
+            $this->defaultImportFormat(),
         );
 
         $resultado = $useCase->execute(new ProcesarFilaInput(
@@ -515,6 +538,7 @@ final class ProcesarFilaDinamicaTest extends TestCase
             esquema: $this->crearEsquema(ModoImportacion::UPDATE, $columnas),
             importacionFilaId: 1,
             mapaCampos: ['saldo' => ['id' => 1, 'tipo' => 'numero_decimal']],
+            tiposIdentificacion: ['CED' => 1],
         ));
 
         self::assertSame(EstadoFila::PROCESADA, $resultado->resultadoFila->estado);

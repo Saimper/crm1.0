@@ -168,7 +168,7 @@
                     <label class="block text-xs font-medium text-warning-700">
                         {{ __('casos.promise_amount') }} <span class="text-danger-600">*</span>
                     </label>
-                    <input type="text" wire:model="promesaMonto" placeholder="0.00"
+                    <input type="text" wire:model="promesaMonto" placeholder="{{ numero_local(0) }}"
                            class="mt-1 block w-full text-sm rounded border-warning-200 focus:border-warning-500 focus:ring-warning-500"/>
                     @error('promesaMonto')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>
@@ -202,7 +202,7 @@
                     <label class="block text-xs font-medium text-success-700">
                         {{ __('casos.close_amount') }} <span class="text-danger-600">*</span>
                     </label>
-                    <input type="text" wire:model="cierreMonto" placeholder="0.00"
+                    <input type="text" wire:model="cierreMonto" placeholder="{{ numero_local(0) }}"
                            class="mt-1 block w-full text-sm rounded border-success-200 focus:border-success-500 focus:ring-success-500"/>
                     @error('cierreMonto')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 </div>

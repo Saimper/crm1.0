@@ -11,18 +11,32 @@ use App\Modules\Cobranza\Domain\ValueObjects\MontoCobranza;
 use App\Modules\Cobranza\Domain\ValueObjects\NumeroPrestamo;
 use App\Modules\Cobranza\Infrastructure\Persistence\Models\CasoCobranzaModel;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use DateTimeImmutable;
-use Illuminate\Support\Facades\DB;
 
 final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
 {
-    /** @var array<int, int> proyecto_id => mandante_id */
-    private array $mandantePorProyecto = [];
-
     public function __construct(private readonly RelojDelMandante $reloj) {}
 
     public function save(CasoCobranza $caso): CasoCobranza
     {
+        $regional = app(RegionalConfiguration::class)->forProject($caso->proyectoId);
+        if ($caso->montoOriginal !== null) {
+            $regional->validateCanonical($caso->montoOriginal->monto);
+        }
+        if ($caso->saldoCapital !== null) {
+            $regional->validateCanonical($caso->saldoCapital->monto);
+        }
+        if ($caso->saldoInteres !== null) {
+            $regional->validateCanonical($caso->saldoInteres->monto);
+        }
+        if ($caso->saldoTotal !== null) {
+            $regional->validateCanonical($caso->saldoTotal->monto);
+        }
+        if ($caso->cuotaMensual !== null) {
+            $regional->validateCanonical($caso->cuotaMensual->monto);
+        }
+
         $model = CasoCobranzaModel::query()->sinScopeProyecto()->find($caso->casoId)
             ?? new CasoCobranzaModel;
 
@@ -32,7 +46,7 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
         $model->moneda = $caso->montoOriginal?->moneda
             ?? $caso->saldoTotal?->moneda
             ?? $caso->saldoCapital?->moneda
-            ?? 'USD';
+            ?? ($model->exists ? (string) $model->moneda : $regional->currency);
         $model->monto_original = $caso->montoOriginal?->monto;
         $model->saldo_capital = $caso->saldoCapital?->monto;
         $model->saldo_interes = $caso->saldoInteres?->monto;
@@ -54,7 +68,7 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
         // ancla hacia hoy sin sumar los días que van del ancla vieja a hoy.
         // En el calendario del mandante, no del servidor (§RelojDelMandante).
         if ($model->dias_mora !== null && $model->isDirty('dias_mora')) {
-            $hoy = $this->reloj->hoy($this->mandanteDe($caso->proyectoId));
+            $hoy = $this->reloj->hoy(proyectoId: $caso->proyectoId);
             $model->dias_mora_actualizado_en = $hoy;
             $model->dias_mora_confirmado_en = $hoy;
         }
@@ -62,13 +76,6 @@ final class EloquentCasoCobranzaRepository implements CasoCobranzaRepository
         $model->save();
 
         return $caso;
-    }
-
-    private function mandanteDe(int $proyectoId): int
-    {
-        return $this->mandantePorProyecto[$proyectoId] ??= (int) DB::table('proyectos')
-            ->where('id', $proyectoId)
-            ->value('mandante_id');
     }
 
     public function buscarPorCasoId(int $casoId): ?CasoCobranza

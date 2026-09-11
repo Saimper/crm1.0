@@ -62,9 +62,9 @@
             @if($valor === null || $valor === '')
                 —
             @elseif($esMonto)
-                {{ number_format((float) $valor, 2) }}
+                {{ numero_local($valor) }}
             @elseif($esFecha)
-                {{ \Illuminate\Support\Carbon::parse($valor)->format('d/m/Y') }}
+                {{ fecha_local($valor) }}
             @else
                 {{ $valor }}
             @endif

@@ -29,6 +29,9 @@ final readonly class EsquemaImportacion
         public ?int $carteraId,
         public ModoImportacion $modo,
         public array $columnas,
+        public bool $reincorporarArchivadas = false,
+        public ?int $autorizadoPorId = null,
+        public string $formatoEntrada = 'proyecto',
     ) {}
 
     /**
@@ -125,6 +128,9 @@ final readonly class EsquemaImportacion
             carteraId: $this->carteraId,
             modo: $modo,
             columnas: $this->columnas,
+            reincorporarArchivadas: $this->reincorporarArchivadas,
+            autorizadoPorId: $this->autorizadoPorId,
+            formatoEntrada: $this->formatoEntrada,
         );
     }
 
@@ -137,6 +143,16 @@ final readonly class EsquemaImportacion
      */
     public function validar(): void
     {
+        if ($this->proyectoId <= 0 || ($this->carteraId !== null && $this->carteraId <= 0)) {
+            throw new EsquemaInvalidoException('El proyecto y la cartera deben ser válidos.');
+        }
+        if (! in_array($this->formatoEntrada, ['proyecto', 'estandar'], true)) {
+            throw new EsquemaInvalidoException('El formato de entrada no es válido.');
+        }
+        if ($this->reincorporarArchivadas && ($this->target === TargetImportacion::PERSONA
+            || $this->carteraId === null || $this->autorizadoPorId === null || $this->autorizadoPorId <= 0)) {
+            throw new EsquemaInvalidoException('Reincorporar cuentas requiere un actor autorizado y una cartera de destino.');
+        }
         if ($this->target !== TargetImportacion::PERSONA && $this->carteraId === null) {
             throw new EsquemaInvalidoException(
                 sprintf('El target "%s" requiere una cartera asignada.', $this->target->value),
@@ -150,6 +166,9 @@ final readonly class EsquemaImportacion
 
         if (count($identificadores) > 1) {
             throw new ColumnaIdentificadorAmbiguaException;
+        }
+        if (count(array_filter($this->columnas, static fn (ColumnaExcel $c): bool => $c->esIdentificadorCaso)) > 1) {
+            throw new EsquemaInvalidoException('Solo una columna puede identificar la cuenta.');
         }
 
         $codigos = [];
@@ -173,6 +192,23 @@ final readonly class EsquemaImportacion
         }
     }
 
+    /** Bind persisted metadata to the project that owns the import. */
+    public function validarContexto(int $proyectoId, string $tipoEntidad, string $tipoOperacion): void
+    {
+        $this->validar();
+        $targetProyecto = match ($tipoOperacion) {
+            'cobranza' => TargetImportacion::CASO_COBRANZA,
+            'cx' => TargetImportacion::CASO_TICKET_CX,
+            'venta' => TargetImportacion::CASO_LEAD_VENTA,
+            'servicio' => TargetImportacion::CASO_SERVICIO,
+            default => null,
+        };
+        if ($this->proyectoId !== $proyectoId || $this->target->value !== $tipoEntidad
+            || ($this->target !== TargetImportacion::PERSONA && $this->target !== $targetProyecto)) {
+            throw new EsquemaInvalidoException('El esquema no corresponde al proyecto y operación de esta importación.');
+        }
+    }
+
     /**
      * Serializa el esquema a JSON para almacenamiento en base de datos.
      */
@@ -183,6 +219,9 @@ final readonly class EsquemaImportacion
             'proyecto_id' => $this->proyectoId,
             'cartera_id' => $this->carteraId,
             'modo' => $this->modo->value,
+            'reincorporar_archivadas' => $this->reincorporarArchivadas,
+            'autorizado_por_id' => $this->autorizadoPorId,
+            'formato_entrada' => $this->formatoEntrada,
             'columnas' => array_map(
                 static fn (ColumnaExcel $c): array => [
                     'nombre_original' => $c->nombreOriginal,
@@ -223,12 +262,21 @@ final readonly class EsquemaImportacion
 
         $clavesRequeridas = ['target', 'proyecto_id', 'cartera_id', 'modo', 'columnas'];
 
+        if (! is_array($datos)) {
+            throw new \InvalidArgumentException('El esquema de importación tiene una estructura inválida.');
+        }
+
         foreach ($clavesRequeridas as $clave) {
             if (! array_key_exists($clave, $datos)) {
                 throw new \InvalidArgumentException(
                     sprintf('Falta la clave requerida "%s" en el esquema de importación.', $clave),
                 );
             }
+        }
+
+        if (! is_array($datos['columnas'])
+            || (isset($datos['reincorporar_archivadas']) && ! is_bool($datos['reincorporar_archivadas']))) {
+            throw new \InvalidArgumentException('El esquema de importación tiene una estructura inválida.');
         }
 
         $columnas = [];
@@ -252,6 +300,9 @@ final readonly class EsquemaImportacion
             carteraId: $datos['cartera_id'] !== null ? (int) $datos['cartera_id'] : null,
             modo: ModoImportacion::from($datos['modo']),
             columnas: $columnas,
+            reincorporarArchivadas: (bool) ($datos['reincorporar_archivadas'] ?? false),
+            autorizadoPorId: isset($datos['autorizado_por_id']) ? (int) $datos['autorizado_por_id'] : null,
+            formatoEntrada: (string) ($datos['formato_entrada'] ?? 'proyecto'),
         );
     }
 }

@@ -219,7 +219,7 @@ final class ImportacionUpsertTest extends TestCase
         self::assertGreaterThanOrEqual(2, $totalPersonas);
     }
 
-    public function test_insert_con_duplicados(): void
+    public function test_insert_requires_an_account_identifier_even_when_the_person_exists(): void
     {
         $proyecto = $this->crearProyectoCobranza();
         $cartera = $this->crearCarteraEn($proyecto);
@@ -289,14 +289,10 @@ final class ImportacionUpsertTest extends TestCase
             chunkSize: 1000,
         ));
 
-        /*
-         * En modo INSERT con solo columna de identidad:
-         * - Fila 1 (persona existente) → duplicada
-         * - Filas 2-5 (persona inexistente) → invalida
-         * El return array usa 'insertadas'/'duplicadas'/'invalidas', NO 'validas'.
-         */
-        self::assertSame(1, $resultado['duplicadas']);
-        self::assertSame(4, $resultado['invalidas']);
+        // A person identity alone is not an account identifier; it cannot identify a debt.
+        self::assertSame(0, $resultado['duplicadas']);
+        self::assertSame(5, $resultado['invalidas']);
+        self::assertSame(0, DB::table('casos')->where('proyecto_id', $proyecto->id)->count());
     }
 
     public function test_update_con_omitidos(): void

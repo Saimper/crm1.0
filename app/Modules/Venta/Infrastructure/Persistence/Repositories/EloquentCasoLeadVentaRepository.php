@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Venta\Infrastructure\Persistence\Repositories;
 
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Modules\Venta\Domain\Contracts\CasoLeadVentaRepository;
 use App\Modules\Venta\Domain\Entities\CasoLeadVenta;
 use App\Modules\Venta\Domain\ValueObjects\CodigoLead;
@@ -15,6 +16,11 @@ final class EloquentCasoLeadVentaRepository implements CasoLeadVentaRepository
 {
     public function save(CasoLeadVenta $lead): CasoLeadVenta
     {
+        $regional = app(RegionalConfiguration::class)->forProject($lead->proyectoId);
+        if ($lead->valorEstimado !== null) {
+            $regional->validateCanonical($lead->valorEstimado->monto);
+        }
+
         $model = CasoLeadVentaModel::query()->sinScopeProyecto()->find($lead->casoId)
             ?? new CasoLeadVentaModel;
 
@@ -24,7 +30,7 @@ final class EloquentCasoLeadVentaRepository implements CasoLeadVentaRepository
         $model->producto_venta_id = $lead->productoVentaId;
         $model->etapa_embudo_id = $lead->etapaEmbudoId;
         $model->valor_estimado = $lead->valorEstimado?->monto;
-        $model->moneda = $lead->valorEstimado?->moneda ?? 'USD';
+        $model->moneda = $lead->valorEstimado?->moneda ?? ($model->exists ? (string) $model->moneda : $regional->currency);
         $model->origen_lead = $lead->origenLead;
         $model->fecha_primer_contacto = $lead->fechaPrimerContacto;
         $model->fecha_estimada_cierre = $lead->fechaEstimadaCierre;

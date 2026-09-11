@@ -52,9 +52,6 @@ final class RescatarCamposNativosCommand extends Command
         'dias_mora' => 'dias_mora',
     ];
 
-    /** @var array<int, int> proyecto_id => mandante_id */
-    private array $mandantePorProyecto = [];
-
     public function __construct(private readonly RelojDelMandante $reloj)
     {
         parent::__construct();
@@ -204,20 +201,13 @@ final class RescatarCamposNativosCommand extends Command
             return null;
         }
 
-        $fecha = $this->reloj->enZona($afirmadoEn, $this->mandanteDe($proyectoId))?->toDateString();
+        $fecha = $this->reloj->enZona($afirmadoEn, proyectoId: $proyectoId)?->toDateString();
 
         return [
             'dias_mora' => $dias->dias,
             'dias_mora_actualizado_en' => $fecha,
             'dias_mora_confirmado_en' => $fecha,
         ];
-    }
-
-    private function mandanteDe(int $proyectoId): int
-    {
-        return $this->mandantePorProyecto[$proyectoId] ??= (int) DB::table('proyectos')
-            ->where('id', $proyectoId)
-            ->value('mandante_id');
     }
 
     /**

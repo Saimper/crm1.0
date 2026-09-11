@@ -98,6 +98,12 @@ final class InventarioDePermisos
         foreach (['app', 'routes', 'resources/views', 'config'] as $carpeta) {
             foreach (self::ficheros(base_path($carpeta)) as $fichero) {
                 $ruta = $fichero->getPathname();
+                // A delegation-protection catalogue does not authorize the
+                // underlying operation. Its literals must not make orphaned
+                // permissions appear to have acquired a runtime consumer.
+                if ($ruta === base_path('app/Modules/Usuarios/Domain/RolesBase/ConfiguracionRolBase.php')) {
+                    continue;
+                }
                 $contenido = (string) file_get_contents($ruta);
 
                 if (str_ends_with($ruta, '.blade.php')) {

@@ -11,6 +11,7 @@ use App\Modules\EntidadesConfigurables\Domain\ValueObjects\RelacionEntidad;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
 
@@ -25,19 +26,27 @@ use Throwable;
  */
 final class PanelEntidadesVinculadas extends Component
 {
+    use AutorizaEntidadesOperativas;
+
+    #[Locked]
     public int $proyectoId = 0;
 
     /** @var 'caso'|'persona' */
+    #[Locked]
     public string $vinculo = 'caso';
 
+    #[Locked]
     public int $vinculoId = 0;
 
+    #[Locked]
     public ?int $carteraId = null;
 
+    #[Locked]
     public ?int $entidadActivaId = null;
 
     public bool $formVisible = false;
 
+    #[Locked]
     public ?int $registroEditandoId = null;
 
     public string $titulo = '';
@@ -54,13 +63,14 @@ final class PanelEntidadesVinculadas extends Component
         $this->vinculo = $vinculo;
         $this->vinculoId = $vinculoId;
         $this->carteraId = $carteraId;
+        $this->carteraId = $this->autorizarContextoEntidad('entidades.ver', $this->casoVinculado(), $this->personaVinculada(), $carteraId);
     }
 
     // ----- Form -----
 
     public function abrirFormCrear(int $entidadId): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.crear', $this->proyectoId) === true, 403);
+        $this->autorizarDefinicionEntidad('entidades.crear', $entidadId, $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
 
         $this->entidadActivaId = $entidadId;
         $this->registroEditandoId = null;
@@ -72,17 +82,7 @@ final class PanelEntidadesVinculadas extends Component
 
     public function abrirFormEditar(int $entidadId, int $registroId): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.editar', $this->proyectoId) === true, 403);
-
-        $row = DB::table('entidades_registros')
-            ->where('proyecto_id', $this->proyectoId)
-            ->where('entidad_configurable_id', $entidadId)
-            ->where('id', $registroId)
-            ->whereNull('eliminado_en')
-            ->first();
-        if ($row === null) {
-            return;
-        }
+        $row = $this->autorizarRegistroEntidad('entidades.editar', $registroId, $entidadId, $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
 
         $this->entidadActivaId = $entidadId;
         $this->registroEditandoId = $registroId;
@@ -107,6 +107,11 @@ final class PanelEntidadesVinculadas extends Component
 
         if ($this->entidadActivaId === null) {
             return;
+        }
+
+        $this->autorizarDefinicionEntidad($this->registroEditandoId === null ? 'entidades.crear' : 'entidades.editar', $this->entidadActivaId, $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
+        if ($this->registroEditandoId !== null) {
+            $this->autorizarRegistroEntidad('entidades.editar', $this->registroEditandoId, $this->entidadActivaId, $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
         }
 
         try {
@@ -143,7 +148,7 @@ final class PanelEntidadesVinculadas extends Component
 
     public function eliminar(int $registroId, ServicioEntidades $servicio): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.eliminar', $this->proyectoId) === true, 403);
+        $this->autorizarRegistroEntidad('entidades.eliminar', $registroId, null, $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
         $servicio->eliminarRegistro($this->proyectoId, $registroId);
         session()->flash('entidades-registros-ok', 'Registro eliminado.');
     }
@@ -167,6 +172,7 @@ final class PanelEntidadesVinculadas extends Component
         $bloques = [];
         $servicioCampos = app(ServicioCamposPersonalizados::class);
         foreach ($entidades as $entidad) {
+            $this->autorizarDefinicionEntidad('entidades.ver', (int) $entidad->id, $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
             $registros = app(ServicioEntidades::class)->registros(
                 proyectoId: $this->proyectoId,
                 entidadId: (int) $entidad->id,
@@ -195,6 +201,7 @@ final class PanelEntidadesVinculadas extends Component
         $filas = DB::table('valores_campo_personalizado as v')
             ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
             ->where('v.entidad_id', $registroId)
+            ->where('c.proyecto_id', $this->proyectoId)
             ->where('c.ambito', 'entidad_configurable')
             ->where('c.ambito_id', $entidadId)
             ->select(['c.codigo', 'c.tipo', 'v.*'])
@@ -208,7 +215,7 @@ final class PanelEntidadesVinculadas extends Component
                 'numero_entero' => $f->valor_numero_entero === null ? null : (int) $f->valor_numero_entero,
                 'numero_decimal' => $f->valor_numero_decimal,
                 'fecha' => $f->valor_fecha,
-                'fecha_hora' => $f->valor_fecha_hora,
+                'fecha_hora' => $f->valor_fecha_hora === null ? null : hora_local($f->valor_fecha_hora, 'Y-m-d\TH:i:s'),
                 'booleano' => $f->valor_booleano === null ? null : (bool) $f->valor_booleano,
                 'seleccion_unica' => $f->valor_opcion_id === null ? null : (int) $f->valor_opcion_id,
                 'seleccion_multiple' => $this->decodificarOpcionesMultiples($f->valor_opciones_ids),
@@ -239,8 +246,19 @@ final class PanelEntidadesVinculadas extends Component
         return is_array($decoded) ? array_map('intval', $decoded) : null;
     }
 
+    private function casoVinculado(): ?int
+    {
+        return $this->vinculo === 'caso' ? $this->vinculoId : null;
+    }
+
+    private function personaVinculada(): ?int
+    {
+        return $this->vinculo === 'persona' ? $this->vinculoId : null;
+    }
+
     public function render(): View
     {
+        $this->autorizarContextoEntidad('entidades.ver', $this->casoVinculado(), $this->personaVinculada(), $this->carteraId);
         $bloques = $this->cargarBloques();
         $relacionEnum = RelacionEntidad::from($this->vinculo);
         $camposForm = collect();

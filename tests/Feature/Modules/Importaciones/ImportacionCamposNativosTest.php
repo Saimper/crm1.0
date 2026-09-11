@@ -80,8 +80,8 @@ final class ImportacionCamposNativosTest extends TestCase
             ->first();
 
         self::assertNotNull($cti);
-        self::assertSame('1250.40', (string) $cti->saldo_total, 'El separador de miles no debe truncar el saldo.');
-        self::assertSame('1000.00', (string) $cti->saldo_capital);
+        self::assertSame('1250.400', (string) $cti->saldo_total, 'El separador de miles no debe truncar el saldo.');
+        self::assertSame('1000.000', (string) $cti->saldo_capital);
         self::assertSame(45, (int) $cti->dias_mora);
     }
 
@@ -146,7 +146,7 @@ final class ImportacionCamposNativosTest extends TestCase
 
         self::assertNotNull($cti, 'La fila debe cargarse igual.');
         self::assertNull($cti->dias_mora);
-        self::assertSame('900.00', (string) $cti->saldo_total, 'El resto de la fila sí se guarda.');
+        self::assertSame('900.000', (string) $cti->saldo_total, 'El resto de la fila sí se guarda.');
     }
 
     public function test_la_inferencia_reconoce_sola_las_columnas_del_archivo_del_cliente(): void

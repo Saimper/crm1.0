@@ -9,6 +9,7 @@ use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\EntidadesConfigurables\Application\Services\ServicioEntidades;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Throwable;
 
@@ -26,16 +27,23 @@ use Throwable;
  */
 final class GestorRegistrosEntidad extends Component
 {
+    use AutorizaEntidadesOperativas;
+
+    #[Locked]
     public int $proyectoId = 0;
 
+    #[Locked]
     public int $entidadId = 0;
 
+    #[Locked]
     public ?int $casoId = null;
 
+    #[Locked]
     public ?int $personaId = null;
 
     public bool $formVisible = false;
 
+    #[Locked]
     public ?int $registroEditandoId = null;
 
     public string $titulo = '';
@@ -45,33 +53,33 @@ final class GestorRegistrosEntidad extends Component
 
     public function mount(int $proyectoId, int $entidadId, ?int $casoId = null, ?int $personaId = null): void
     {
-        $this->autorizarVer();
         $this->proyectoId = $proyectoId;
         $this->entidadId = $entidadId;
         $this->casoId = $casoId;
         $this->personaId = $personaId;
+        $this->autorizarVer();
     }
 
     // ----- Autorizaciones (defensa en profundidad por acción) -----
 
     private function autorizarVer(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.ver', $this->proyectoId ?: null) === true, 403);
+        $this->autorizarDefinicionEntidad('entidades.ver', $this->entidadId, $this->casoId, $this->personaId);
     }
 
     private function autorizarCrear(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.crear', $this->proyectoId) === true, 403);
+        $this->autorizarDefinicionEntidad('entidades.crear', $this->entidadId, $this->casoId, $this->personaId);
     }
 
     private function autorizarEditar(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.editar', $this->proyectoId) === true, 403);
+        $this->autorizarDefinicionEntidad('entidades.editar', $this->entidadId, $this->casoId, $this->personaId);
     }
 
     private function autorizarEliminar(): void
     {
-        abort_unless(auth()->user()?->tienePermiso('entidades.eliminar', $this->proyectoId) === true, 403);
+        $this->autorizarDefinicionEntidad('entidades.eliminar', $this->entidadId, $this->casoId, $this->personaId);
     }
 
     // ----- Form -----
@@ -90,14 +98,7 @@ final class GestorRegistrosEntidad extends Component
     {
         $this->autorizarEditar();
 
-        $row = DB::table('entidades_registros')
-            ->where('proyecto_id', $this->proyectoId)
-            ->where('id', $registroId)
-            ->whereNull('eliminado_en')
-            ->first();
-        if ($row === null) {
-            return;
-        }
+        $row = $this->autorizarRegistroEntidad('entidades.editar', $registroId, $this->entidadId, $this->casoId, $this->personaId);
 
         $this->registroEditandoId = (int) $row->id;
         $this->titulo = (string) ($row->titulo ?? '');
@@ -117,6 +118,11 @@ final class GestorRegistrosEntidad extends Component
         $this->validate([
             'titulo' => ['required', 'string', 'max:255'],
         ]);
+
+        $this->autorizarDefinicionEntidad($this->registroEditandoId === null ? 'entidades.crear' : 'entidades.editar', $this->entidadId, $this->casoId, $this->personaId);
+        if ($this->registroEditandoId !== null) {
+            $this->autorizarRegistroEntidad('entidades.editar', $this->registroEditandoId, $this->entidadId, $this->casoId, $this->personaId);
+        }
 
         try {
             if ($this->registroEditandoId === null) {
@@ -153,6 +159,7 @@ final class GestorRegistrosEntidad extends Component
     public function eliminar(int $registroId, ServicioEntidades $servicio): void
     {
         $this->autorizarEliminar();
+        $this->autorizarRegistroEntidad('entidades.eliminar', $registroId, $this->entidadId, $this->casoId, $this->personaId);
         $servicio->eliminarRegistro($this->proyectoId, $registroId);
         session()->flash('entidades-registros-ok', 'Registro eliminado.');
     }
@@ -165,6 +172,7 @@ final class GestorRegistrosEntidad extends Component
         $filas = DB::table('valores_campo_personalizado as v')
             ->join('campos_personalizados as c', 'c.id', '=', 'v.campo_personalizado_id')
             ->where('v.entidad_id', $registroId)
+            ->where('c.proyecto_id', $this->proyectoId)
             ->where('c.ambito', 'entidad_configurable')
             ->where('c.ambito_id', $this->entidadId)
             ->select(['c.codigo', 'c.tipo', 'v.*'])
@@ -178,7 +186,7 @@ final class GestorRegistrosEntidad extends Component
                 'numero_entero' => $f->valor_numero_entero === null ? null : (int) $f->valor_numero_entero,
                 'numero_decimal' => $f->valor_numero_decimal,
                 'fecha' => $f->valor_fecha,
-                'fecha_hora' => $f->valor_fecha_hora,
+                'fecha_hora' => $f->valor_fecha_hora === null ? null : hora_local($f->valor_fecha_hora, 'Y-m-d\TH:i:s'),
                 'booleano' => $f->valor_booleano === null ? null : (bool) $f->valor_booleano,
                 'seleccion_unica' => $f->valor_opcion_id === null ? null : (int) $f->valor_opcion_id,
                 'seleccion_multiple' => $this->decodificarOpcionesMultiples($f->valor_opciones_ids),
@@ -211,28 +219,26 @@ final class GestorRegistrosEntidad extends Component
 
     public function render(): View
     {
+        $this->autorizarVer();
         $entidad = DB::table('entidades_configurables')
             ->where('id', $this->entidadId)
             ->where('proyecto_id', $this->proyectoId)
+            ->where('activo', true)->whereNull('eliminada_en')
             ->first();
 
-        $campos = collect();
-        if ($entidad !== null) {
-            $campos = app(ServicioCamposPersonalizados::class)->campos(
-                proyectoId: $this->proyectoId,
-                ambito: AmbitoCampo::ENTIDAD_CONFIGURABLE,
-                ambitoId: $this->entidadId,
-            );
-        }
+        abort_if($entidad === null, 404);
 
-        $registros = $entidad === null
-            ? collect()
-            : app(ServicioEntidades::class)->registros(
-                proyectoId: $this->proyectoId,
-                entidadId: $this->entidadId,
-                casoId: $this->casoId,
-                personaId: $this->personaId,
-            );
+        $campos = app(ServicioCamposPersonalizados::class)->campos(
+            proyectoId: $this->proyectoId,
+            ambito: AmbitoCampo::ENTIDAD_CONFIGURABLE,
+            ambitoId: $this->entidadId,
+        );
+        $registros = app(ServicioEntidades::class)->registros(
+            proyectoId: $this->proyectoId,
+            entidadId: $this->entidadId,
+            casoId: $this->casoId,
+            personaId: $this->personaId,
+        );
 
         return view('entidades::operativo.gestor-registros-entidad', [
             'entidad' => $entidad,

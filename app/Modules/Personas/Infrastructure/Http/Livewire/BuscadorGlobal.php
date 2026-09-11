@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Personas\Infrastructure\Http\Livewire;
 
 use App\Models\User;
-use App\Support\Database\CarterasOperativas;
+use App\Modules\Personas\Application\DTOs\FiltrosListadoPersonas;
+use App\Modules\Personas\Application\Services\ConsultaListadoPersonas;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 /**
@@ -48,7 +48,6 @@ final class BuscadorGlobal extends Component
 
         if ($puedeBuscar && mb_strlen($texto) >= 3) {
             $proyectoId = (int) $proyectoActivo->id;
-            $like = "%{$texto}%";
 
             // El recorte por cartera del rol (F22). El buscador es la puerta más
             // usada de la aplicación: sin esto, un supervisor acotado encuentra
@@ -56,58 +55,21 @@ final class BuscadorGlobal extends Component
             // bandeja le esconde, con el nombre de la cartera al lado.
             $carteras = $this->carterasDelRol($proyectoId);
 
-            $personas = DB::table('personas as p')
-                ->leftJoin('tipos_identificacion as ti', 'ti.id', '=', 'p.tipo_identificacion_id')
-                ->where('p.proyecto_id', $proyectoId)
-                ->whereNull('p.eliminada_en')
-                ->when($carteras !== null, fn ($q) => $q->whereExists(
-                    fn ($sub) => $sub->select(DB::raw('1'))
-                        ->from('casos as cr')
-                        ->whereColumn('cr.persona_id', 'p.id')
-                        ->whereNull('cr.eliminada_en')
-                        ->whereIn('cr.cartera_id', $carteras ?? []),
-                ))
-                ->where(function ($w) use ($like): void {
-                    $w->where('p.identificacion', 'like', $like)
-                        ->orWhere('p.nombres', 'like', $like)
-                        ->orWhere('p.apellidos', 'like', $like)
-                        ->orWhere('p.razon_social', 'like', $like);
-                })
-                ->select([
-                    'p.id', 'p.public_id', 'p.tipo_persona',
-                    'p.identificacion', 'p.nombres', 'p.apellidos', 'p.razon_social',
-                    'ti.codigo as tipo_identificacion_codigo',
-                ])
-                ->limit(8)
-                ->get();
+            $consulta = app(ConsultaListadoPersonas::class);
+            $personas = $consulta->aplicarFiltros(
+                $consulta->recortarACarteras($consulta->consultaBase($proyectoId), $carteras),
+                FiltrosListadoPersonas::desde($texto, ''),
+                $carteras,
+            )->select(['p.id', 'p.public_id', 'p.tipo_persona', 'p.identificacion', 'p.nombres', 'p.apellidos',
+                'p.razon_social', 'ti.codigo as tipo_identificacion_codigo'])->orderBy('p.id')->limit(8)->get();
+            $casos = $consulta->cuentasDePersonas($proyectoId, $personas->pluck('id')->map(fn ($id): int => (int) $id)->all(), $carteras);
+            foreach ($casos as $caso) {
+                $persona = $personas->firstWhere('id', $caso->persona_id);
+                $caso->caso_public_id = $caso->public_id;
+                $caso->persona_public_id = $persona->public_id;
+                $caso->identificacion = $persona->identificacion;
+            }
 
-            $casos = DB::table('casos as c')
-                ->join('personas as p', 'p.id', '=', 'c.persona_id')
-                ->leftJoin('carteras as ca', 'ca.id', '=', 'c.cartera_id')
-                ->leftJoin('estados_caso as ec', 'ec.id', '=', 'c.estado_caso_id')
-                ->where('c.proyecto_id', $proyectoId)
-                ->whereNull('c.eliminada_en')
-                ->where(fn ($q) => CarterasOperativas::filtrar($q))
-                ->whereNull('p.eliminada_en')
-                ->when($carteras !== null, fn ($q) => $q->whereIn('c.cartera_id', $carteras ?? []))
-                ->where(function ($w) use ($like): void {
-                    $w->where('p.identificacion', 'like', $like)
-                        ->orWhere('p.nombres', 'like', $like)
-                        ->orWhere('p.apellidos', 'like', $like)
-                        ->orWhere('p.razon_social', 'like', $like);
-                })
-                ->select([
-                    'c.public_id as caso_public_id',
-                    'c.tipo_caso',
-                    'p.public_id as persona_public_id',
-                    'p.identificacion', 'p.tipo_persona',
-                    'p.nombres', 'p.apellidos', 'p.razon_social',
-                    'ca.nombre as cartera_nombre',
-                    'ec.nombre as estado_caso_nombre',
-                ])
-                ->orderByDesc('c.prioridad')
-                ->limit(8)
-                ->get();
         }
 
         return view('personas::livewire.buscador-global', [

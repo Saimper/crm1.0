@@ -259,19 +259,30 @@ final class User extends Authenticatable
      * cartera-scoping (F22), rol custom (F33) y rol de mandante (F38). Admin
      * global se resolvió antes de llegar aquí.
      */
-    private function evaluarPermiso(string $codigo, int $proyectoId, ?int $carteraId): bool
+    private function rolesBaseConPermiso(string $codigo, int $proyectoId): Builder
     {
-        // Roles base — pasan por la matriz F22 (cartera-scoping aplicable).
-        $rolesConPermiso = DB::table('usuario_proyecto_rol as upr')
+        return DB::table('usuario_proyecto_rol as upr')
             ->join('roles as r', 'r.id', '=', 'upr.rol_id')
-            ->join('rol_permiso as rp', 'rp.rol_id', '=', 'upr.rol_id')
-            ->join('permisos as p', 'p.id', '=', 'rp.permiso_id')
+            ->join('permisos as p', fn ($join) => $join->where('p.codigo', $codigo)->where('p.activo', true))
+            ->leftJoin('rol_permiso as rp', fn ($join) => $join
+                ->on('rp.rol_id', '=', 'upr.rol_id')->on('rp.permiso_id', '=', 'p.id'))
+            ->leftJoin('rol_proyecto_permiso as rpp', fn ($join) => $join
+                ->on('rpp.rol_id', '=', 'upr.rol_id')->on('rpp.permiso_id', '=', 'p.id')
+                ->on('rpp.proyecto_id', '=', 'upr.proyecto_id'))
             ->where('upr.usuario_id', $this->id)
             ->where('upr.proyecto_id', $proyectoId)
             ->where('upr.activo', true)
             ->where('r.activo', true)
             ->where('p.codigo', $codigo)
             ->where('p.activo', true)
+            ->where(fn ($q) => $q->where('rpp.permitido', true)
+                ->orWhere(fn ($heredado) => $heredado->whereNull('rpp.permitido')->whereNotNull('rp.permiso_id')));
+    }
+
+    private function evaluarPermiso(string $codigo, int $proyectoId, ?int $carteraId): bool
+    {
+        // Roles base — pasan por la matriz F22 (cartera-scoping aplicable).
+        $rolesConPermiso = $this->rolesBaseConPermiso($codigo, $proyectoId)
             ->pluck('upr.rol_id')
             ->map(fn ($v) => (int) $v)
             ->unique()
@@ -307,6 +318,11 @@ final class User extends Authenticatable
             }
         }
 
+        return $this->tienePermisoSinCartera($codigo, $proyectoId);
+    }
+
+    private function tienePermisoSinCartera(string $codigo, int $proyectoId): bool
+    {
         // Roles custom F33 — siempre aplican a todo el proyecto (sin cartera-scoping en F33).
         $tienePermisoCustom = DB::table('usuario_proyecto_rol_custom as uprc')
             ->join('roles_custom as rc', 'rc.id', '=', 'uprc.rol_custom_id')
@@ -371,6 +387,42 @@ final class User extends Authenticatable
         }
 
         return $this->memoCarteras[$clave] = $this->evaluarCarteras($proyectoId);
+    }
+
+    /**
+     * Scope only roles that grant this action; an unrelated unscoped role cannot widen it.
+     * Archived portfolios remain eligible for historical access.
+     *
+     * @return list<int>|null
+     */
+    public function carterasPermitidasParaPermiso(string $codigo, int $proyectoId): ?array
+    {
+        if ($this->esAdminGlobal()) {
+            return null;
+        }
+
+        $clave = 'carteras-permiso|'.$codigo.'|'.$proyectoId;
+        if (array_key_exists($clave, $this->memoCarteras)) {
+            return $this->memoCarteras[$clave];
+        }
+        if ($this->tienePermisoSinCartera($codigo, $proyectoId)) {
+            return $this->memoCarteras[$clave] = null;
+        }
+
+        $roles = $this->rolesBaseConPermiso($codigo, $proyectoId)->pluck('upr.rol_id')
+            ->map(fn ($id): int => (int) $id)->unique()->values()->all();
+        $restricciones = DB::table('usuario_proyecto_rol_cartera')
+            ->where('usuario_id', $this->id)->where('proyecto_id', $proyectoId)->whereIn('rol_id', $roles)
+            ->get(['rol_id', 'cartera_id']);
+        $limitados = $restricciones->pluck('rol_id')->map(fn ($id): int => (int) $id)->unique()->all();
+        foreach ($roles as $rolId) {
+            if (! in_array($rolId, $limitados, true)) {
+                return $this->memoCarteras[$clave] = null;
+            }
+        }
+
+        return $this->memoCarteras[$clave] = $restricciones->pluck('cartera_id')
+            ->map(fn ($id): int => (int) $id)->unique()->values()->all();
     }
 
     /** @return list<int>|null */

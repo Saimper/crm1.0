@@ -4,7 +4,7 @@
     // los 4 paneles tipo-específicos usan colores distintos (amber/sky/emerald/blue)
     // para discriminación visual rápida. F29-bis cerrará con tokens dedicados
     // (--panel-cobranza-bg, etc.) cuando el design system se finalice.
-    $fmt = fn ($monto) => number_format((float) $monto, 2, '.', ',');
+    $fmt = fn ($monto) => numero_local($monto);
 @endphp
 
 @if($cobranza)
@@ -54,7 +54,7 @@
                      guarda quién fue la fuente. --}}
                 @if(!empty($cobranza->dias_mora_confirmado_en))
                     <dd class="text-[10px] text-warning-700">
-                        {{ __('cobranza.dias_mora_confirmado_el', ['fecha' => \Illuminate\Support\Carbon::parse($cobranza->dias_mora_confirmado_en)->format('d/m/Y')]) }}
+                        {{ __('cobranza.dias_mora_confirmado_el', ['fecha' => fecha_local($cobranza->dias_mora_confirmado_en)]) }}
                     </dd>
                 @endif
             </div>
@@ -65,13 +65,13 @@
             <div>
                 <dt class="text-warning-700">{{ __('cobranza.desembolso') }}</dt>
                 <dd class="font-medium text-warning-700">
-                    {{ \Illuminate\Support\Carbon::parse($cobranza->fecha_desembolso)->format('d/m/Y') }}
+                    {{ fecha_local($cobranza->fecha_desembolso) }}
                 </dd>
             </div>
             <div>
                 <dt class="text-warning-700">{{ __('cobranza.vencimiento') }}</dt>
                 <dd class="font-medium text-warning-700">
-                    {{ \Illuminate\Support\Carbon::parse($cobranza->fecha_vencimiento)->format('d/m/Y') }}
+                    {{ fecha_local($cobranza->fecha_vencimiento) }}
                 </dd>
             </div>
         </dl>

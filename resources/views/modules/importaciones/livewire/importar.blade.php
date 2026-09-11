@@ -338,6 +338,44 @@
         <section class="rounded-lg border border-ink-200 bg-white p-6 space-y-4">
             <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-700">{{ __('importaciones.confirm_title') }}</h3>
 
+            @if($coincidencias !== null)
+                <div class="rounded-lg border border-ink-200 p-4 space-y-3">
+                    <h4 class="font-semibold">Coincidencias de cuentas</h4>
+                    <p class="text-sm text-ink-600">Cada deuda tiene una sola cuenta y un asesor responsable. El reparto entre asesores se realiza desde Asignación; la colaboración no duplica la deuda.</p>
+                    <dl class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                        @foreach(['nuevas' => 'Sin cuenta previa', 'misma_cartera' => 'En esta cartera', 'otras_activas' => 'En otra cartera activa', 'archivadas' => 'En cartera archivada o inactiva'] as $clave => $etiqueta)
+                            <div class="rounded bg-ink-50 p-3"><dt class="text-ink-600">{{ $etiqueta }}</dt><dd class="text-lg font-semibold">{{ $coincidencias[$clave] }}</dd></div>
+                        @endforeach
+                    </dl>
+                    @foreach($coincidencias['carteras'] as $coincidencia)
+                        <p class="text-sm"><strong>{{ $coincidencia['codigo'] }} · {{ $coincidencia['nombre'] }}</strong>: {{ $coincidencia['filas'] }} filas · {{ $coincidencia['archivada'] ? 'Archivada o inactiva' : 'Activa' }}</p>
+                    @endforeach
+                    @if($coincidencias['otras_activas'] > 0)
+                        <p class="text-sm text-ink-600">Las cuentas de otras carteras activas se omitirán: conservarán sus datos y su asesor. Puedes consultarlas en Clientes con los permisos correspondientes.</p>
+                    @endif
+                    @if($coincidencias['archivadas'] > 0)
+                        <p class="text-sm text-ink-600">Las cuentas recibidas nuevamente se reincorporarán automáticamente a esta cartera. Se conservarán su historial y su asesor, sin crear deudas duplicadas.</p>
+                        <p class="text-sm text-ink-600">El modo seleccionado se aplica a las cuentas activas. Las archivadas también se cargarán con «Insertar» u «Omitir duplicados»; «Completar vacíos» conservará los valores que ya tengan.</p>
+                    @endif
+                    <p class="text-xs text-ink-500">Estos conteos identifican coincidencias; la validación final de cada fila se realiza al procesar.</p>
+                </div>
+            @endif
+
+            <div class="rounded-lg border border-ink-200 p-4 space-y-3">
+                <label for="formato-entrada" class="field-label">Formato del archivo</label>
+                <select id="formato-entrada" wire:model.live="formatoEntrada" class="select w-full">
+                    <option value="proyecto">Formato regional del proyecto</option>
+                    <option value="estandar">Excel numérico / intercambio: 1,234.56 y fecha AAAA-MM-DD</option>
+                </select>
+                <p class="text-sm text-ink-600">La configuración del proyecto determina los decimales admitidos y la moneda de las cuentas nuevas. Los formatos incompatibles se rechazan sin redondear ni adivinar.</p>
+                @if($vistaRegional !== [])
+                    <div class="overflow-x-auto"><table class="w-full text-sm text-left">
+                        <thead><tr class="border-b border-ink-200"><th class="p-2">Fila / campo</th><th class="p-2">Archivo</th><th class="p-2">Interpretación antes de guardar</th></tr></thead>
+                        <tbody>@foreach($vistaRegional as $valor)<tr class="border-b border-ink-100"><td class="p-2">{{ $valor['fila'] }} · {{ $valor['campo'] }}</td><td class="p-2">{{ $valor['entrada'] }}</td><td class="p-2">{{ $valor['interpretado'] }}</td></tr>@endforeach</tbody>
+                    </table></div>
+                @endif
+            </div>
+
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
                 <div class="rounded border border-ink-200 p-3">
                     <div class="text-[10px] uppercase text-ink-500">{{ __('importaciones.label_target') }}</div>

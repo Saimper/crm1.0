@@ -163,4 +163,24 @@ final class AsignarTramosMoraTest extends TestCase
             'Acotar por proyecto no debe tocar otro proyecto.'
         );
     }
+
+    public function test_archived_portfolios_keep_their_last_classification(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $old = $this->crearTramo($project, 'OLD', 0, 30, 10);
+        $new = $this->crearTramo($project, 'NEW', 31, null, 20);
+        $active = $this->crearCasoCobranza($project, 45);
+        $archived = $this->crearCasoCobranza($project, 45);
+        $inactive = $this->crearCasoCobranza($project, 45);
+        DB::table('casos_cobranza')->whereIn('caso_id', [$active, $archived, $inactive])->update(['tramo_mora_id' => $old]);
+        DB::table('carteras')->where('id', DB::table('casos')->where('id', $archived)->value('cartera_id'))->update(['eliminada_en' => now()]);
+        DB::table('carteras')->where('id', DB::table('casos')->where('id', $inactive)->value('cartera_id'))->update(['activo' => false]);
+
+        $this->artisan('cobranza:asignar-tramos-mora --dry-run')->expectsOutputToContain('1 casos cambiarían')->assertSuccessful();
+        $this->artisan('cobranza:asignar-tramos-mora')->expectsOutputToContain('1 casos reclasificados')->assertSuccessful();
+        $this->assertSame($new, (int) DB::table('casos_cobranza')->where('caso_id', $active)->value('tramo_mora_id'));
+        foreach ([$archived, $inactive] as $caseId) {
+            $this->assertSame($old, (int) DB::table('casos_cobranza')->where('caso_id', $caseId)->value('tramo_mora_id'));
+        }
+    }
 }

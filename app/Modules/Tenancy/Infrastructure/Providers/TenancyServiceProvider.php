@@ -8,6 +8,7 @@ use App\Modules\Tenancy\Domain\ConfiguracionProyecto\CalculadorAvanceConfiguraci
 use App\Modules\Tenancy\Domain\Contracts\CarteraRepository;
 use App\Modules\Tenancy\Domain\Contracts\MandanteRepository;
 use App\Modules\Tenancy\Domain\Contracts\ProyectoRepository;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Modules\Tenancy\Domain\ValueObjects\TipoOperacion;
 use App\Modules\Tenancy\Infrastructure\Configuracion\Verificadores\CamposPersonalizadosVerificador;
 use App\Modules\Tenancy\Infrastructure\Configuracion\Verificadores\CarterasVerificador;
@@ -40,10 +41,12 @@ use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos\PasoResul
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos\PasoResumen;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorPasos\PasoTiposGestion;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\ConfiguradorProyecto;
+use App\Modules\Tenancy\Infrastructure\Http\Livewire\RegionalSettingsEditor;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorMandante;
 use App\Modules\Tenancy\Infrastructure\Http\Livewire\SelectorProyecto;
 use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverMandanteActivo;
 use App\Modules\Tenancy\Infrastructure\Http\Middleware\ResolverProyectoActivo;
+use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\DatabaseRegionalConfiguration;
 use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentCarteraRepository;
 use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentMandanteRepository;
 use App\Modules\Tenancy\Infrastructure\Persistence\Repositories\EloquentProyectoRepository;
@@ -57,6 +60,7 @@ final class TenancyServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->scoped(RegionalConfiguration::class, DatabaseRegionalConfiguration::class);
         $this->app->bind(MandanteRepository::class, EloquentMandanteRepository::class);
         $this->app->bind(ProyectoRepository::class, EloquentProyectoRepository::class);
         $this->app->bind(CarteraRepository::class, EloquentCarteraRepository::class);
@@ -98,6 +102,7 @@ final class TenancyServiceProvider extends ServiceProvider
 
         Livewire::component('tenancy.selector-mandante', SelectorMandante::class);
         Livewire::component('tenancy.selector-proyecto', SelectorProyecto::class);
+        Livewire::component('tenancy.regional-settings', RegionalSettingsEditor::class);
         Livewire::component('tenancy.admin-mandantes', AdminMandantes::class);
         Livewire::component('tenancy.admin-proyectos', AdminProyectos::class);
         Livewire::component('tenancy.configurador-proyecto', ConfiguradorProyecto::class);

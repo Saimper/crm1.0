@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\CamposPersonalizados\Application\Services;
 
 use App\Modules\CamposPersonalizados\Domain\Exceptions\CambioDeTipoNoPermitido;
+use App\Modules\CamposPersonalizados\Domain\Exceptions\ReglaViolada;
 use App\Modules\CamposPersonalizados\Domain\Services\EvaluadorReglas;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\AmbitoCampo;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\ContextoUsuarioProyecto;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\CamposPersonalizados\Infrastructure\Persistence\Models\CampoPersonalizadoModel;
 use App\Modules\CamposPersonalizados\Infrastructure\Persistence\Models\ValorCampoPersonalizadoModel;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Collection;
 
@@ -85,22 +87,39 @@ final readonly class ServicioCamposPersonalizados
     ): void {
         $campos = $this->campos($proyectoId, $ambito, $ambitoId);
 
+        $regional = app(RegionalConfiguration::class)->forProject($proyectoId);
+
         // 1) Validar todos antes de persistir nada.
         foreach ($campos as $campo) {
             $valor = $valoresPorCodigo[$campo->codigo] ?? null;
+            if ((string) $campo->tipo === 'moneda' && $valor !== null && $valor !== '') {
+                try {
+                    $regional->validateCanonical(is_array($valor) ? (string) ($valor['monto'] ?? '') : (string) $valor);
+                } catch (\InvalidArgumentException $error) {
+                    throw new ReglaViolada($error->getMessage());
+                }
+            }
+            if (in_array((string) $campo->tipo, ['fecha', 'fecha_hora'], true) && $valor !== null && $valor !== '') {
+                try {
+                    $regional->parseDate((string) $valor, (string) $campo->tipo === 'fecha_hora');
+                } catch (\InvalidArgumentException $error) {
+                    throw new ReglaViolada($error->getMessage());
+                }
+            }
             $this->evaluador->validar(
                 TipoCampo::from((string) $campo->tipo),
-                $valor,
+                (string) $campo->tipo === 'moneda' && is_array($valor) ? ($valor['monto'] ?? null) : $valor,
                 is_array($campo->reglas) ? $campo->reglas : [],
                 (bool) $campo->obligatorio,
                 (string) $campo->etiqueta,
+                $regional->timezone,
             );
         }
 
         $conValor = $permitirVaciar ? [] : $this->camposConValor($campos, $entidadId);
 
         // 2) Persistir en transacción.
-        $this->db->transaction(function () use ($campos, $valoresPorCodigo, $entidadId, $permitirVaciar, $conValor): void {
+        $this->db->transaction(function () use ($campos, $valoresPorCodigo, $entidadId, $permitirVaciar, $conValor, $regional): void {
             foreach ($campos as $campo) {
                 if (! array_key_exists($campo->codigo, $valoresPorCodigo)) {
                     continue;
@@ -112,6 +131,14 @@ final readonly class ServicioCamposPersonalizados
                 }
 
                 $payload = $this->mapearValorAColumna(TipoCampo::from((string) $campo->tipo), $valor);
+                if ((string) $campo->tipo === 'fecha_hora' && $valor !== null && $valor !== '') {
+                    $payload['valor_fecha_hora'] = $regional->parseDate((string) $valor, true)->format('Y-m-d H:i:s');
+                }
+                if ((string) $campo->tipo === 'moneda' && $valor !== null) {
+                    $existingCurrency = $this->db->table('valores_campo_personalizado')
+                        ->where('campo_personalizado_id', $campo->id)->where('entidad_id', $entidadId)->value('valor_moneda_codigo');
+                    $payload['valor_moneda_codigo'] = is_array($valor) && isset($valor['moneda']) ? $valor['moneda'] : ($existingCurrency ?? $regional->currency);
+                }
 
                 ValorCampoPersonalizadoModel::query()->updateOrCreate(
                     [
@@ -216,6 +243,7 @@ final readonly class ServicioCamposPersonalizados
                 TipoCampo::from((string) $campo->tipo),
                 is_array($campo->reglas) ? $campo->reglas : [],
                 $ctx,
+                app(RegionalConfiguration::class)->forProject($proyectoId)->timezone,
             );
             if ($valor !== null) {
                 $resultado[(string) $campo->codigo] = $valor;

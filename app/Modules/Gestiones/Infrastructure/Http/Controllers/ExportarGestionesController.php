@@ -43,7 +43,7 @@ final class ExportarGestionesController
             return $this->exportador->responder(
                 $proyecto,
                 FiltrosExportacionGestiones::desdeRequest($request),
-                $usuario->carterasPermitidas($proyecto_id),
+                $usuario->carterasPermitidasParaPermiso('gestiones.exportar', $proyecto_id),
             );
         } catch (VentanaDeExportacionInvalida $e) {
             if ($request->expectsJson()) {

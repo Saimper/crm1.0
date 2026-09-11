@@ -97,6 +97,9 @@
                         @error('form.nombre')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                 </div>
+                @if($editandoId !== null)
+                    <livewire:tenancy.regional-settings :mandante-id="$editandoId" :key="'regional-mandante-'.$editandoId" />
+                @endif
             </div>
             <div class="drawer-footer">
                 @if($editandoId !== null)

@@ -9,6 +9,7 @@ use App\Modules\Compromisos\Application\DTOs\FiltrosListadoCompromisos;
 use App\Modules\Compromisos\Domain\Columnas\CatalogoColumnasCompromiso;
 use App\Modules\Compromisos\Domain\Columnas\ColumnaCompromiso;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Support\Csv\RespuestaCsv;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Carbon;
@@ -33,7 +34,7 @@ final readonly class ExportadorCsvCompromisos
      * @param  stdClass  $proyecto  Fila de `proyectos` con `id`, `codigo`, `mandante_id` y `tipo_operacion`.
      */
     /**
-     * @param  list<int>|null  $carterasPermitidas  El límite por cartera del rol (F22); null sin límite.
+     * @param  list<int>|null  $carterasPermitidas  Scope for compromisos.exportar; null means unrestricted.
      */
     public function responder(stdClass $proyecto, FiltrosListadoCompromisos $filtros, ?array $carterasPermitidas = null): StreamedResponse
     {
@@ -42,8 +43,8 @@ final readonly class ExportadorCsvCompromisos
         $tipoOperacion = (string) $proyecto->tipo_operacion;
 
         // Una vez, fuera del stream: ni la zona ni el «hoy» cambian entre filas.
-        $zona = $this->reloj->zonaDe($mandanteId);
-        $hoy = $this->reloj->hoy($mandanteId);
+        $zona = app(RegionalConfiguration::class)->forProject($proyectoId)->timezone;
+        $hoy = $this->reloj->hoy(proyectoId: $proyectoId);
 
         $especificas = CatalogoColumnasCompromiso::especificasDe($tipoOperacion);
 

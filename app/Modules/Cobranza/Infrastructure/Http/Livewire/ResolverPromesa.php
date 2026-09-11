@@ -8,6 +8,8 @@ use App\Modules\Cobranza\Application\UseCases\CancelarPromesa;
 use App\Modules\Cobranza\Application\UseCases\MarcarPromesaCumplida;
 use App\Modules\Cobranza\Application\UseCases\MarcarPromesaRota;
 use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Support\Livewire\AutorizaCompromisoOperativo;
 use App\Support\Livewire\AutorizaEnProyectoActivo;
 use DateTimeImmutable;
 use Illuminate\Contracts\View\View;
@@ -21,6 +23,7 @@ use Throwable;
  */
 final class ResolverPromesa extends Component
 {
+    use AutorizaCompromisoOperativo;
     use AutorizaEnProyectoActivo;
 
     /**
@@ -41,7 +44,7 @@ final class ResolverPromesa extends Component
     public function mount(int $compromisoId): void
     {
         $this->compromisoId = $compromisoId;
-        $this->fechaResolucion = (new DateTimeImmutable)->format('Y-m-d');
+        $this->fechaResolucion = app(RelojDelMandante::class)->hoy();
     }
 
     public function abrir(string $accion): void
@@ -78,10 +81,11 @@ final class ResolverPromesa extends Component
 
         // Y que la promesa sea de este proyecto: el permiso es por proyecto, así
         // que tenerlo en el propio no autoriza a tocar el compromiso del ajeno.
-        $this->exigirDelProyecto('compromisos', $this->compromisoId);
+        $this->exigirCompromisoOperativo($this->compromisoId, $this->accion === 'cancelada' ? 'compromisos.cancelar' : 'compromisos.resolver');
 
         $input = new ResolverCompromisoInput(
             compromisoId: $this->compromisoId,
+            proyectoId: $this->proyectoActivoId(),
             fechaResolucion: new DateTimeImmutable($this->fechaResolucion),
         );
 

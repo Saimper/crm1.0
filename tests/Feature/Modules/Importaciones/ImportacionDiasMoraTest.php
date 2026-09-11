@@ -92,7 +92,7 @@ final class ImportacionDiasMoraTest extends TestCase
         $this->importar($proyecto, $cartera, ModoImportacion::UPSERT, ['saldo_capital' => '250'], conDiasMora: false);
 
         $cti = $this->cti($proyecto);
-        $this->assertSame('250.00', (string) $cti->saldo_capital);
+        $this->assertSame('250.000', (string) $cti->saldo_capital);
         $this->assertSame(10, (int) $cti->dias_mora);
         $this->assertSame('2026-01-15', (string) $cti->dias_mora_actualizado_en);
         $this->assertSame('2026-01-15', (string) $cti->dias_mora_confirmado_en);
@@ -111,7 +111,7 @@ final class ImportacionDiasMoraTest extends TestCase
 
         $cti = $this->cti($proyecto);
         $this->assertSame(10, (int) $cti->dias_mora, 'Se valida antes de escribir: nada de la fila entra.');
-        $this->assertSame('1000.00', (string) $cti->saldo_capital);
+        $this->assertSame('1000.000', (string) $cti->saldo_capital);
         $this->assertSame('2026-01-15', (string) $cti->dias_mora_actualizado_en);
     }
 
@@ -135,7 +135,7 @@ final class ImportacionDiasMoraTest extends TestCase
         $cti = $this->cti($proyecto);
         $this->assertSame(10, (int) $cti->dias_mora, 'La mora no se toca.');
         $this->assertSame('2026-01-15', (string) $cti->dias_mora_actualizado_en, 'Ni su ancla: nadie ha afirmado nada nuevo.');
-        $this->assertSame('250.00', (string) $cti->saldo_capital, 'El resto de la fila sí entra.');
+        $this->assertSame('250.000', (string) $cti->saldo_capital, 'El resto de la fila sí entra.');
     }
 
     public function test_las_personas_existentes_del_lote_se_resuelven_con_una_consulta_por_tipo(): void

@@ -128,7 +128,7 @@
                             };
                         @endphp
                         <tr>
-                            <td class="px-3 py-2 text-xs">{{ hora_local($r->creada_en, 'd/m/Y H:i:s') }}</td>
+                            <td class="px-3 py-2 text-xs">{{ hora_local($r->creada_en) }}</td>
                             @if($modoGlobal)
                                 <td class="px-3 py-2 text-xs">
                                     @if($r->proyecto_id)
@@ -173,7 +173,7 @@
                 </div>
                 <div class="p-4 space-y-4 text-xs">
                     <div class="text-ink-500">
-                        {{ hora_local($detalle->creada_en, 'd/m/Y H:i:s') }}
+                        {{ hora_local($detalle->creada_en) }}
                         · IP {{ $detalle->ip ?? '—' }}
                     </div>
                     @php

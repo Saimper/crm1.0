@@ -107,6 +107,7 @@ final class AvanzarDiasMora
           AND caso_id IN (
               SELECT id FROM casos
               WHERE proyecto_id = ? AND cerrado_en IS NULL AND eliminada_en IS NULL
+                AND cartera_id IN (SELECT id FROM carteras WHERE carteras.proyecto_id = casos.proyecto_id AND activo = 1 AND eliminada_en IS NULL)
           )
         SQL;
 
@@ -122,14 +123,10 @@ final class AvanzarDiasMora
         $sinFecha = [];
         $sinConfirmar = [];
 
-        // El «hoy» de cada mandante se fija una vez por pasada: si la pasada
-        // cruza la medianoche de un cliente, todos sus proyectos ven el mismo día.
-        $hoyPorMandante = [];
-
+        // Each operation uses its own configured calendar, including project overrides.
         foreach ($this->proyectosDeCobranza($input->proyectoId) as $proyecto) {
             $proyectoId = (int) $proyecto->id;
-            $mandanteId = (int) $proyecto->mandante_id;
-            $hoy = $hoyPorMandante[$mandanteId] ??= $this->reloj->hoy($mandanteId);
+            $hoy = $this->reloj->hoy(proyectoId: $proyectoId);
 
             $sinFecha[$proyectoId] = $this->conMoraAbierta($proyectoId)
                 ->whereNull('dias_mora_actualizado_en')
@@ -200,7 +197,9 @@ final class AvanzarDiasMora
                 ->from('casos')
                 ->where('proyecto_id', $proyectoId)
                 ->whereNull('cerrado_en')
-                ->whereNull('eliminada_en'));
+                ->whereNull('eliminada_en')
+                ->whereIn('cartera_id', fn (Builder $portfolios) => $portfolios->select('id')->from('carteras')
+                    ->where('proyecto_id', $proyectoId)->where('activo', true)->whereNull('eliminada_en')));
     }
 
     /** Las que tienen ancla y el ancla se quedó atrás respecto al hoy del cliente. */
@@ -255,7 +254,9 @@ final class AvanzarDiasMora
             ->from('casos')
             ->where('proyecto_id', $proyectoId)
             ->whereNull('cerrado_en')
-            ->whereNull('eliminada_en'));
+            ->whereNull('eliminada_en')
+            ->whereIn('cartera_id', fn (Builder $portfolios) => $portfolios->select('id')->from('carteras')
+                ->where('proyecto_id', $proyectoId)->where('activo', true)->whereNull('eliminada_en')));
     }
 
     /**

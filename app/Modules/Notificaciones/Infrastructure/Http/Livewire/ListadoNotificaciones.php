@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Notificaciones\Infrastructure\Http\Livewire;
 
+use App\Modules\Notificaciones\Application\Services\ConsultaNotificacionesOperativas;
+use App\Support\Database\CarterasOperativas;
 use App\Support\Livewire\AutorizaEnProyectoActivo;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -40,7 +42,7 @@ final class ListadoNotificaciones extends Component
         // `$wire.marcarLeida(N)` desde la consola tacha la bandeja del compañero.
         $this->exigirNotificacionPropia($id);
 
-        DB::table('notificaciones')
+        app(ConsultaNotificacionesOperativas::class)->paraUsuario($this->proyectoActivoId(), (int) auth()->id())
             ->where('id', $id)
             ->where('proyecto_id', $this->proyectoActivoId())
             ->where('destinatario_usuario_id', (int) auth()->id())
@@ -54,7 +56,7 @@ final class ListadoNotificaciones extends Component
 
         // No lleva id: el WHERE por destinatario y proyecto activo es a la vez la
         // guarda de pertenencia y el alcance de la escritura.
-        DB::table('notificaciones')
+        app(ConsultaNotificacionesOperativas::class)->paraUsuario($this->proyectoActivoId(), (int) auth()->id())
             ->where('proyecto_id', $this->proyectoActivoId())
             ->where('destinatario_usuario_id', (int) auth()->id())
             ->whereNull('leida_en')
@@ -73,7 +75,7 @@ final class ListadoNotificaciones extends Component
      */
     private function exigirNotificacionPropia(int $id): void
     {
-        $esSuya = DB::table('notificaciones')
+        $esSuya = app(ConsultaNotificacionesOperativas::class)->paraUsuario($this->proyectoActivoId(), (int) auth()->id())
             ->where('id', $id)
             ->where('proyecto_id', $this->proyectoActivoId())
             ->where('destinatario_usuario_id', (int) auth()->id())
@@ -87,9 +89,7 @@ final class ListadoNotificaciones extends Component
         $proyectoId = $this->proyectoActivoId();
         $usuarioId = (int) auth()->id();
 
-        $q = DB::table('notificaciones')
-            ->where('proyecto_id', $proyectoId)
-            ->where('destinatario_usuario_id', $usuarioId);
+        $q = app(ConsultaNotificacionesOperativas::class)->paraUsuario($proyectoId, $usuarioId);
 
         if ($this->filtro === 'no_leidas') {
             $q->whereNull('leida_en');
@@ -99,9 +99,7 @@ final class ListadoNotificaciones extends Component
 
         $rutas = $this->resolverRutasPorCaso($proyectoId, $notificaciones->items());
 
-        $totalNoLeidas = (int) DB::table('notificaciones')
-            ->where('proyecto_id', $proyectoId)
-            ->where('destinatario_usuario_id', $usuarioId)
+        $totalNoLeidas = (int) app(ConsultaNotificacionesOperativas::class)->paraUsuario($proyectoId, $usuarioId)
             ->whereNull('leida_en')
             ->count();
 
@@ -134,7 +132,7 @@ final class ListadoNotificaciones extends Component
             return [];
         }
 
-        $datosCasos = DB::table('casos as c')
+        $datosCasos = CarterasOperativas::casos(DB::connection(), $proyectoId)
             ->join('personas as p', 'p.id', '=', 'c.persona_id')
             ->where('c.proyecto_id', $proyectoId)
             ->whereIn('c.id', array_keys($casoIds))

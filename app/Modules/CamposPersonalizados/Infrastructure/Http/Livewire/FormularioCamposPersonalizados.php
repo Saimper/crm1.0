@@ -192,7 +192,7 @@ final class FormularioCamposPersonalizados extends Component
             'numero_entero' => $fila->valor_numero_entero === null ? null : (int) $fila->valor_numero_entero,
             'numero_decimal' => $fila->valor_numero_decimal,
             'fecha' => $fila->valor_fecha,
-            'fecha_hora' => $fila->valor_fecha_hora,
+            'fecha_hora' => $fila->valor_fecha_hora === null ? null : hora_local($fila->valor_fecha_hora, 'Y-m-d\TH:i:s', $this->proyectoId),
             'booleano' => $fila->valor_booleano === null ? null : (bool) $fila->valor_booleano,
             'seleccion_unica' => $fila->valor_opcion_id === null ? null : (int) $fila->valor_opcion_id,
             'seleccion_multiple' => $fila->valor_opciones_ids === null ? [] : (array) json_decode((string) $fila->valor_opciones_ids, true),

@@ -42,7 +42,7 @@ final class RecolocarValoresTest extends TestCase
             ->where('campo_personalizado_id', $campoId)->whereNotNull('valor_texto_corto')->count());
         $this->assertSame(3, DB::table('valores_campo_personalizado')
             ->where('campo_personalizado_id', $campoId)->whereNotNull('valor_moneda_monto')->count());
-        $this->assertSame('1234.56', DB::table('valores_campo_personalizado')
+        $this->assertSame('1234.560', DB::table('valores_campo_personalizado')
             ->where('campo_personalizado_id', $campoId)->where('valor_moneda_monto', '1234.56')->value('valor_moneda_monto'));
         $this->assertSame('USD', DB::table('valores_campo_personalizado')
             ->where('campo_personalizado_id', $campoId)->value('valor_moneda_codigo'));

@@ -84,10 +84,10 @@
                         @endphp
                         <tr>
                             <x-ui.td>{{ $m->name }}</x-ui.td>
-                            <x-ui.td align="right" mono class="text-warning-700">{{ number_format($pend) }}</x-ui.td>
-                            <x-ui.td align="right" mono class="text-info-700">{{ number_format($enTr) }}</x-ui.td>
-                            <x-ui.td align="right" mono class="text-success-700">{{ number_format($cer) }}</x-ui.td>
-                            <x-ui.td align="right" mono class="font-semibold">{{ number_format($tot) }}</x-ui.td>
+                            <x-ui.td align="right" mono class="text-warning-700">{{ numero_local($pend, 0) }}</x-ui.td>
+                            <x-ui.td align="right" mono class="text-info-700">{{ numero_local($enTr, 0) }}</x-ui.td>
+                            <x-ui.td align="right" mono class="text-success-700">{{ numero_local($cer, 0) }}</x-ui.td>
+                            <x-ui.td align="right" mono class="font-semibold">{{ numero_local($tot, 0) }}</x-ui.td>
                         </tr>
                     @endforeach
                 </x-ui.table>
@@ -158,7 +158,7 @@
                                 @endcan
                             </x-ui.td>
                             <x-ui.td>
-                                {{ $a->fecha_ultima_gestion ? \Illuminate\Support\Carbon::parse($a->fecha_ultima_gestion)->format('d/m/Y H:i') : '—' }}
+                                {{ $a->fecha_ultima_gestion ? hora_local($a->fecha_ultima_gestion) : '—' }}
                             </x-ui.td>
                             @if($puedeReasignar)
                                 <x-ui.td align="right">

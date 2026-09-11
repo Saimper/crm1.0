@@ -66,7 +66,7 @@
                             <td class="text-xs text-ink-500">
                                 @if($oldVigente)
                                     <span class="text-warning-700">{{ __('integracion.old_valid_until') }}</span>
-                                    <div style="font-family:monospace;">{{ \Illuminate\Support\Carbon::parse($m->sso_secret_old_expires_at)->format('d/m/Y H:i') }}</div>
+                                    <div style="font-family:monospace;">{{ hora_local($m->sso_secret_old_expires_at) }}</div>
                                 @else
                                     —
                                 @endif

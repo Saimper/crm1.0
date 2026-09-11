@@ -559,6 +559,72 @@ final class HandshakeJwtTest extends TestCase
             ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja");
     }
 
+    public function test_archived_portfolio_never_opens_a_work_view_or_suggests_duplicate_identity(): void
+    {
+        $person = $this->crearPersonaEn($this->proyecto, 'ARCHIVED-IDENTITY');
+        $portfolio = $this->crearCarteraEn($this->proyecto);
+        $case = $this->crearCasoEn($this->proyecto, ['persona' => $person, 'cartera' => $portfolio]);
+        DB::table('casos_cobranza')->insert(['proyecto_id' => $this->proyectoId, 'caso_id' => $case, 'numero_prestamo' => 'ARCHIVED-LOAN', 'moneda' => 'USD']);
+
+        foreach ([['activo' => false, 'eliminada_en' => null], ['activo' => true, 'eliminada_en' => now()]] as $archive) {
+            DB::table('carteras')->where('id', $portfolio->id)->update($archive);
+            foreach ([['numero_prestamo' => 'ARCHIVED-LOAN'], ['identificacion' => $person->identificacion], ['numero_prestamo' => 'ARCHIVED-LOAN', 'identificacion' => $person->identificacion]] as $claims) {
+                $this->get('/integracion/handshake?token='.$this->firmarParaAgente($claims))
+                    ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja")
+                    ->assertSessionMissing('crm_persona_public_id');
+            }
+        }
+        $this->assertDatabaseHas('personas', ['id' => $person->id, 'eliminada_en' => null]);
+    }
+
+    public function test_archived_loan_falls_back_to_same_person_with_an_active_debt(): void
+    {
+        $person = $this->crearPersonaEn($this->proyecto, 'MIXED-IDENTITY');
+        $archived = $this->crearCarteraEn($this->proyecto);
+        $active = $this->crearCarteraEn($this->proyecto);
+        foreach ([$archived->id => 'RETIRED-LOAN', $active->id => 'CURRENT-LOAN'] as $portfolioId => $reference) {
+            $case = $this->crearCasoEn($this->proyecto, ['persona' => $person, 'cartera' => $portfolioId === $archived->id ? $archived : $active]);
+            DB::table('casos_cobranza')->insert(['proyecto_id' => $this->proyectoId, 'caso_id' => $case, 'numero_prestamo' => $reference, 'moneda' => 'USD']);
+        }
+        DB::table('carteras')->where('id', $archived->id)->update(['activo' => false]);
+
+        $path = "/proyectos/{$this->proyectoId}/trabajo/{$person->public_id}";
+        $this->get('/integracion/handshake?token='.$this->firmarParaAgente(['numero_prestamo' => 'RETIRED-LOAN', 'identificacion' => $person->identificacion]))
+            ->assertRedirect($path)->assertSessionHas('crm_persona_public_id', $person->public_id);
+        $this->get($path)->assertOk()->assertSee('CURRENT-LOAN')->assertDontSee('RETIRED-LOAN');
+    }
+
+    public function test_loan_match_cannot_anchor_an_archived_person(): void
+    {
+        $person = $this->crearPersonaEn($this->proyecto, 'RETIRED-PERSON');
+        $case = $this->crearCasoEn($this->proyecto, ['persona' => $person]);
+        DB::table('casos_cobranza')->insert(['proyecto_id' => $this->proyectoId, 'caso_id' => $case, 'numero_prestamo' => 'RETIRED-PERSON-LOAN', 'moneda' => 'USD']);
+        DB::table('personas')->where('id', $person->id)->update(['eliminada_en' => now()]);
+
+        $this->get('/integracion/handshake?token='.$this->firmarParaAgente(['numero_prestamo' => 'RETIRED-PERSON-LOAN']))
+            ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja")->assertSessionMissing('crm_persona_public_id');
+    }
+
+    public function test_screen_pop_respects_account_permission_scope_and_preserves_active_identity_fallback(): void
+    {
+        $person = $this->crearPersonaEn($this->proyecto, 'SCOPED-IDENTITY');
+        $allowed = $this->crearCarteraEn($this->proyecto);
+        $denied = $this->crearCarteraEn($this->proyecto);
+        $user = $this->crearGestor($this->proyecto);
+        DB::table('usuario_proyecto_rol_cartera')->insert(['usuario_id' => $user->id, 'proyecto_id' => $this->proyectoId,
+            'rol_id' => DB::table('roles')->where('codigo', 'GESTOR')->value('id'), 'cartera_id' => $allowed->id]);
+        $case = $this->crearCasoEn($this->proyecto, ['persona' => $person, 'cartera' => $denied]);
+        DB::table('casos_cobranza')->insert(['proyecto_id' => $this->proyectoId, 'caso_id' => $case, 'numero_prestamo' => 'DENIED-LOAN', 'moneda' => 'USD']);
+        $claims = ['sub' => $user->email, 'numero_prestamo' => 'DENIED-LOAN', 'identificacion' => $person->identificacion];
+        $this->get('/integracion/handshake?token='.$this->firmarParaAgente($claims))
+            ->assertRedirect("/proyectos/{$this->proyectoId}/bandeja")->assertSessionMissing('crm_persona_public_id');
+
+        $this->crearCasoEn($this->proyecto, ['persona' => $person, 'cartera' => $allowed]);
+        $this->get('/integracion/handshake?token='.$this->firmarParaAgente($claims))
+            ->assertRedirect("/proyectos/{$this->proyectoId}/trabajo/{$person->public_id}")
+            ->assertSessionHas('crm_persona_public_id', $person->public_id);
+    }
+
     public function test_identificacion_no_encontrada_cae_a_bandeja_con_aviso(): void
     {
         $jwt = $this->firmarParaAgente([

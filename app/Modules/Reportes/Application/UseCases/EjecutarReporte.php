@@ -11,6 +11,7 @@ use App\Modules\Reportes\Domain\Constructor\Entities\DefinicionReporte;
 use App\Modules\Reportes\Domain\Constructor\Enums\EntidadRaiz;
 use App\Modules\Reportes\Domain\Constructor\Enums\OperadorFiltro;
 use App\Modules\Reportes\Domain\Constructor\ValueObjects\CampoDisponible;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Facades\DB;
@@ -90,6 +91,18 @@ final class EjecutarReporte
             $q->whereNull($tabla.'.eliminada_en');
         }
 
+        match ($def->entidad) {
+            EntidadRaiz::CASOS => CarterasOperativas::filtrar($q, 'casos'),
+            EntidadRaiz::GESTIONES, EntidadRaiz::COMPROMISOS => CarterasOperativas::filtrarVinculados($q, $tabla),
+            EntidadRaiz::PERSONAS => $q->whereExists(fn (Builder $case) => CarterasOperativas::filtrar(
+                $case->selectRaw('1')->from('casos as report_account')
+                    ->whereColumn('report_account.persona_id', 'personas.id')
+                    ->whereColumn('report_account.proyecto_id', 'personas.proyecto_id')
+                    ->whereNull('report_account.eliminada_en'),
+                'report_account',
+            )),
+        };
+
         $this->recortarACarteras($q, $def->entidad, $carterasPermitidas);
 
         $cabeceras = [];
@@ -157,19 +170,22 @@ final class EjecutarReporte
         match ($entidad) {
             EntidadRaiz::CASOS => $q->whereIn('casos.cartera_id', $carteras),
             EntidadRaiz::GESTIONES, EntidadRaiz::COMPROMISOS => $q->whereExists(
-                fn (Builder $sub) => $sub->select(DB::raw('1'))
+                fn (Builder $sub) => CarterasOperativas::filtrar($sub->select(DB::raw('1'))
                     ->from('casos as cr')
                     ->whereColumn('cr.id', $entidad->tablaBase().'.caso_id')
-                    ->whereIn('cr.cartera_id', $carteras),
+                    ->whereColumn('cr.proyecto_id', $entidad->tablaBase().'.proyecto_id')
+                    ->whereNull('cr.eliminada_en')
+                    ->whereIn('cr.cartera_id', $carteras), 'cr'),
             ),
             // Una persona no pertenece a una cartera; sus casos sí. Mismo
             // criterio que el listado y la descarga del padrón.
             EntidadRaiz::PERSONAS => $q->whereExists(
-                fn (Builder $sub) => $sub->select(DB::raw('1'))
+                fn (Builder $sub) => CarterasOperativas::filtrar($sub->select(DB::raw('1'))
                     ->from('casos as cr')
                     ->whereColumn('cr.persona_id', 'personas.id')
+                    ->whereColumn('cr.proyecto_id', 'personas.proyecto_id')
                     ->whereNull('cr.eliminada_en')
-                    ->whereIn('cr.cartera_id', $carteras),
+                    ->whereIn('cr.cartera_id', $carteras), 'cr'),
             ),
         };
     }

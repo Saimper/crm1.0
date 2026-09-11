@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Compromisos\Application\Services;
 
 use App\Modules\Compromisos\Application\DTOs\FiltrosListadoCompromisos;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
@@ -26,19 +27,38 @@ final readonly class ConsultaListadoCompromisos
 
     public function consultaBase(int $proyectoId): Builder
     {
-        return $this->db->table('compromisos as co')
-            ->leftJoin('casos as cs', 'cs.id', '=', 'co.caso_id')
-            ->leftJoin('personas as p', 'p.id', '=', 'cs.persona_id')
+        return CarterasOperativas::filtrar($this->db->table('compromisos as co')
+            ->join('casos as cs', fn ($join) => $join->on('cs.id', '=', 'co.caso_id')->on('cs.proyecto_id', '=', 'co.proyecto_id'))
+            ->join('personas as p', fn ($join) => $join->on('p.id', '=', 'cs.persona_id')->on('p.proyecto_id', '=', 'co.proyecto_id'))
             ->leftJoin('users as u', 'u.id', '=', 'co.usuario_id')
             ->where('co.proyecto_id', $proyectoId)
-            ->whereNull('co.eliminada_en');
+            ->whereNull('co.eliminada_en')->whereNull('cs.eliminada_en')->whereNull('p.eliminada_en'), 'cs');
+    }
+
+    /** @return array{pendientes: int, vencidos: int, cumplidos: int, rotos: int} */
+    public function resumen(Builder $base, string $hoy): array
+    {
+        $row = (clone $base)->selectRaw(
+            "SUM(CASE WHEN co.estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
+             SUM(CASE WHEN co.estado = 'pendiente' AND co.fecha_vencimiento < ? THEN 1 ELSE 0 END) as vencidos,
+             SUM(CASE WHEN co.estado = 'cumplido' THEN 1 ELSE 0 END) as cumplidos,
+             SUM(CASE WHEN co.estado = 'roto' THEN 1 ELSE 0 END) as rotos",
+            [$hoy],
+        )->first();
+
+        return [
+            'pendientes' => (int) ($row->pendientes ?? 0),
+            'vencidos' => (int) ($row->vencidos ?? 0),
+            'cumplidos' => (int) ($row->cumplidos ?? 0),
+            'rotos' => (int) ($row->rotos ?? 0),
+        ];
     }
 
     /**
      * El límite por cartera del rol del usuario (F22), por el caso del
      * compromiso. `null` es «sin límite».
      *
-     * @param  list<int>|null  $carterasPermitidas  Lo que devuelve `User::carterasPermitidas()`.
+     * @param  list<int>|null  $carterasPermitidas  Portfolios authorized for the specific read/export permission.
      */
     public function recortarACarteras(Builder $q, ?array $carterasPermitidas): Builder
     {

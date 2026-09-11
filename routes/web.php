@@ -3,6 +3,7 @@
 use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaController;
 use App\Modules\Auditoria\Infrastructure\Http\Controllers\ExportarAuditoriaMandanteController;
 use App\Modules\Casos\Infrastructure\Http\Controllers\ExportarCasosController;
+use App\Modules\Casos\Infrastructure\Http\Controllers\ExportarHistoricoController;
 use App\Modules\Compromisos\Infrastructure\Http\Controllers\ExportarCompromisosController;
 use App\Modules\Gestiones\Infrastructure\Http\Controllers\ExportarGestionesController;
 use App\Modules\Importaciones\Infrastructure\Http\Controllers\DescargarFilasRechazadasController;
@@ -23,8 +24,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::view('/', 'tenancy::proyecto-dashboard')->name('proyectos.dashboard');
 
             Route::view('/personas', 'personas::listado-page')
-                ->middleware('can:personas.ver')
+                ->middleware(['can:personas.ver', 'can:casos.ver'])
                 ->name('proyectos.personas.lista');
+
+            Route::view('/historico', 'casos::historico-page')
+                ->middleware('can:historico.ver')->name('proyectos.historico.lista');
+            Route::get('/historico/exportar', ExportarHistoricoController::class)
+                ->middleware(['can:historico.ver', 'can:historico.exportar'])->name('proyectos.historico.exportar');
+            Route::get('/historico/{caso}', fn (int $proyecto_id, string $caso) => view('casos::ficha-historica-page', ['caso' => $caso]))
+                ->middleware('can:historico.ver')->name('proyectos.historico.ficha');
 
             // Exportaciones desde los listados (ola 04). Permiso propio por
             // módulo —exportar es sacar datos, no verlos— y los mismos filtros

@@ -17,6 +17,7 @@ use App\Modules\Cobranza\Domain\Exceptions\NumeroPrestamoYaRegistrado;
 use App\Modules\Cobranza\Domain\ValueObjects\DiasMora;
 use App\Modules\Cobranza\Domain\ValueObjects\MontoCobranza;
 use App\Modules\Cobranza\Domain\ValueObjects\NumeroPrestamo;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Support\Database\CarterasOperativas;
 use DateTimeImmutable;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -37,6 +38,7 @@ readonly class RegistrarCasoCobranza
         private TramoMoraRepository $tramosRepo,
         private ConnectionInterface $db,
         private Dispatcher $eventos,
+        private RegionalConfiguration $regional,
     ) {}
 
     public function execute(RegistrarCasoCobranzaInput $input): RegistrarCasoCobranzaOutput
@@ -49,9 +51,10 @@ readonly class RegistrarCasoCobranza
             );
         }
 
+        $moneda = $input->moneda ?? $this->regional->forProject($input->proyectoId)->currency;
         $ahora = new DateTimeImmutable;
 
-        return $this->db->transaction(function () use ($input, $ahora): RegistrarCasoCobranzaOutput {
+        return $this->db->transaction(function () use ($input, $ahora, $moneda): RegistrarCasoCobranzaOutput {
             $caso = Caso::registrar(
                 publicId: (string) Str::ulid(),
                 proyectoId: $input->proyectoId,
@@ -70,7 +73,7 @@ readonly class RegistrarCasoCobranza
                 ? $this->tramosRepo->resolverPorDiasMora($input->proyectoId, $input->diasMora)
                 : null;
 
-            $monto = static fn (?string $v) => $v === null ? null : new MontoCobranza($v, $input->moneda);
+            $monto = static fn (?string $v) => $v === null ? null : new MontoCobranza($v, $moneda);
 
             $cobranza = CasoCobranza::registrar(
                 casoId: $casoId,

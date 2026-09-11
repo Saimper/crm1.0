@@ -9,8 +9,9 @@ use App\Modules\Compromisos\Domain\Entities\Compromiso;
 use App\Modules\Compromisos\Domain\ValueObjects\EstadoCompromiso;
 use App\Modules\Compromisos\Domain\ValueObjects\TipoCompromiso;
 use App\Modules\Compromisos\Infrastructure\Persistence\Models\CompromisoModel;
+use App\Modules\Tenancy\Application\Services\RelojDelMandante;
 use DateTimeImmutable;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 final class EloquentCompromisoRepository implements CompromisoRepository
@@ -81,12 +82,16 @@ final class EloquentCompromisoRepository implements CompromisoRepository
      */
     public function existenVigentesParaCaso(int $casoId): bool
     {
+        $projectId = (int) DB::table('casos')->where('id', $casoId)->value('proyecto_id');
+        $today = app(RelojDelMandante::class)->hoy(proyectoId: $projectId);
+
         return CompromisoModel::query()
             ->sinScopeProyecto()
+            ->where('proyecto_id', $projectId)
             ->where('caso_id', $casoId)
             ->where('estado', EstadoCompromiso::PENDIENTE->value)
             ->whereNull('eliminada_en')
-            ->whereDate('fecha_vencimiento', '>=', Carbon::today()->toDateString())
+            ->whereDate('fecha_vencimiento', '>=', $today)
             ->exists();
     }
 }

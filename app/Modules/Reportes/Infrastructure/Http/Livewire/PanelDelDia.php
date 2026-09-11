@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Reportes\Infrastructure\Http\Livewire;
 
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
+use App\Support\Database\CarterasOperativas;
+use App\Support\Database\LocalCalendarSql;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
@@ -61,28 +64,33 @@ final class PanelDelDia extends Component
     {
         $desde = $this->desde();
         $hoy = $this->hoyDelCliente();
+        $usuario = auth()->user();
+        $puedeVerSupervision = $usuario?->tienePermiso('reportes.operativos', $this->proyectoId) === true;
+        $carteras = $usuario === null ? [] : $usuario->carterasPermitidasParaPermiso(
+            $puedeVerSupervision ? 'reportes.operativos' : 'casos.ver', $this->proyectoId,
+        );
 
-        $gestiones = DB::table('gestiones')
+        $gestiones = CarterasOperativas::filtrarVinculados(DB::table('gestiones'), 'gestiones', carterasPermitidas: $carteras)
             ->where('proyecto_id', $this->proyectoId)
             ->whereNull('eliminada_en')
             ->where('creada_en', '>=', $desde);
 
         // «A la fecha»: lo que sigue vivo hoy, no lo que se creó en el rango.
         // Una promesa vigente lo es ahora mismo, independientemente del filtro.
-        $vigentes = (int) DB::table('compromisos')
+        $vigentes = (int) CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
             ->where('proyecto_id', $this->proyectoId)
             ->where('estado', 'pendiente')
             ->whereNull('eliminada_en')
             ->whereDate('fecha_vencimiento', '>=', $hoy)
             ->count();
 
-        $cumplidas = (int) $this->compromisosResueltos('cumplido', $desde);
-        $rotas = (int) $this->compromisosResueltos('roto', $desde);
+        $cumplidas = (int) $this->compromisosResueltos('cumplido', $desde, $carteras);
+        $rotas = (int) $this->compromisosResueltos('roto', $desde, $carteras);
 
         // Vencidas y sin resolver: ni cumplidas ni marcadas rotas todavía. Es la
         // cifra que avisa de trabajo pendiente, y la que se pierde si solo se
         // miran los tres estados.
-        $vencidasSinResolver = (int) DB::table('compromisos')
+        $vencidasSinResolver = (int) CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
             ->where('proyecto_id', $this->proyectoId)
             ->where('estado', 'pendiente')
             ->whereNull('eliminada_en')
@@ -117,19 +125,19 @@ final class PanelDelDia extends Component
         // Medido el día que se detectó: el panel decía 0,00 y lo cobrado eran
         // 3.572,91.
         $prometido = $this->montoPorMoneda(
-            fn ($q) => $q->where('c.creada_en', '>=', $desde)
+            fn ($q) => $q->where('c.creada_en', '>=', $desde), $carteras,
         );
 
         $cumplido = $this->montoPorMoneda(
             fn ($q) => $q->where('c.estado', 'cumplido')->where(
                 fn ($w) => $this->resueltoEnRango($w, $desde)
-            )
+            ), $carteras,
         );
 
         $roto = $this->montoPorMoneda(
             fn ($q) => $q->where('c.estado', 'roto')->where(
                 fn ($w) => $this->resueltoEnRango($w, $desde)
-            )
+            ), $carteras,
         );
 
         $dinero = ($prometido === null && $cumplido === null) ? null : (object) [
@@ -139,7 +147,7 @@ final class PanelDelDia extends Component
             'roto' => (float) ($roto->monto ?? 0),
         ];
 
-        $porUsuario = DB::table('gestiones as g')
+        $porUsuario = CarterasOperativas::filtrarVinculados(DB::table('gestiones as g'), 'g', carterasPermitidas: $carteras)
             ->join('users as u', 'u.id', '=', 'g.usuario_id')
             ->where('g.proyecto_id', $this->proyectoId)
             ->whereNull('g.eliminada_en')
@@ -152,14 +160,13 @@ final class PanelDelDia extends Component
 
         // Tendencia: un punto por día. Con el rango en «hoy» sería un solo punto,
         // que no es una tendencia — ahí no se dibuja.
-        $tendencia = $this->rango === 'hoy' ? collect() : $this->gestionesPorDia($desde);
+        $tendencia = $this->rango === 'hoy' ? collect() : $this->gestionesPorDia($desde, $carteras);
 
         // La portada del proyecto no pide permiso —todo el que trabaja ahí tiene
         // que poder entrar—, así que este panel es el que tiene que decidir qué
         // enseña. El ranking de compañeros y el dinero del proyecto son informe
         // de supervisión: sin `reportes.operativos` no se pintan. El resto (lo
         // que ha pasado hoy en el proyecto) sí, que es para lo que se entra.
-        $puedeVerSupervision = auth()->user()?->tienePermiso('reportes.operativos', $this->proyectoId) === true;
 
         return view('reportes::livewire.panel-del-dia', [
             'puedeVerSupervision' => $puedeVerSupervision,
@@ -189,21 +196,24 @@ final class PanelDelDia extends Component
      * Si se omitieran, dos días separados por una semana muerta se dibujarían
      * juntos y la caída no se vería: el hueco ES el dato.
      *
+     * @param  list<int>|null  $carteras
      * @return Collection<int, object>
      */
-    private function gestionesPorDia(Carbon $desde): Collection
+    private function gestionesPorDia(Carbon $desde, ?array $carteras): Collection
     {
-        $conteos = DB::table('gestiones')
+        $timezone = app(RegionalConfiguration::class)->forProject($this->proyectoId)->timezone;
+        $day = LocalCalendarSql::expression('creada_en', $timezone);
+        $conteos = CarterasOperativas::filtrarVinculados(DB::table('gestiones'), 'gestiones', carterasPermitidas: $carteras)
             ->where('proyecto_id', $this->proyectoId)
             ->whereNull('eliminada_en')
             ->where('creada_en', '>=', $desde)
-            ->selectRaw('date(creada_en) as dia, count(*) as total')
+            ->selectRaw($day.' as dia, count(*) as total')
             ->groupBy('dia')
             ->pluck('total', 'dia');
 
         $dias = collect();
 
-        for ($d = $desde->copy(); $d->lte(Carbon::today()); $d->addDay()) {
+        for ($d = $desde->copy()->setTimezone($timezone)->startOfDay(); $d->lte(Carbon::today($timezone)); $d->addDay()) {
             $clave = $d->toDateString();
             $dias->push((object) [
                 'dia' => $clave,
@@ -220,10 +230,11 @@ final class PanelDelDia extends Component
      * llama. Devuelve la moneda con más volumen; el panel no mezcla divisas.
      *
      * @param  \Closure(Builder): mixed  $recorte
+     * @param  list<int>|null  $carteras
      */
-    private function montoPorMoneda(\Closure $recorte): ?object
+    private function montoPorMoneda(\Closure $recorte, ?array $carteras): ?object
     {
-        $q = DB::table('compromisos as c')
+        $q = CarterasOperativas::filtrarVinculados(DB::table('compromisos as c'), 'c', carterasPermitidas: $carteras)
             ->join('compromisos_promesa_pago as pp', 'pp.compromiso_id', '=', 'c.id')
             ->where('c.proyecto_id', $this->proyectoId)
             ->whereNull('c.eliminada_en');
@@ -242,7 +253,7 @@ final class PanelDelDia extends Component
      */
     private function resueltoEnRango(mixed $q, Carbon $desde): void
     {
-        $q->whereDate('c.fecha_resolucion', '>=', $desde->toDateString())
+        $q->whereDate('c.fecha_resolucion', '>=', $desde->copy()->setTimezone(app(RegionalConfiguration::class)->forProject($this->proyectoId)->timezone)->toDateString())
             ->orWhere(function ($q2) use ($desde): void {
                 // fecha_resolucion es nullable en filas antiguas; para esas se
                 // cae a cuándo se actualizó, igual que en compromisosResueltos().
@@ -251,16 +262,17 @@ final class PanelDelDia extends Component
             });
     }
 
-    private function compromisosResueltos(string $estado, Carbon $desde): int
+    /** @param list<int>|null $carteras */
+    private function compromisosResueltos(string $estado, Carbon $desde, ?array $carteras): int
     {
-        return DB::table('compromisos')
+        return CarterasOperativas::filtrarVinculados(DB::table('compromisos'), 'compromisos', carterasPermitidas: $carteras)
             ->where('proyecto_id', $this->proyectoId)
             ->where('estado', $estado)
             ->whereNull('eliminada_en')
             ->where(function ($q) use ($desde): void {
                 // fecha_resolucion es lo correcto, pero es nullable en filas
                 // antiguas: para esas se cae a cuándo se actualizó la promesa.
-                $q->whereDate('fecha_resolucion', '>=', $desde->toDateString())
+                $q->whereDate('fecha_resolucion', '>=', $desde->copy()->setTimezone(app(RegionalConfiguration::class)->forProject($this->proyectoId)->timezone)->toDateString())
                     ->orWhere(function ($q2) use ($desde): void {
                         $q2->whereNull('fecha_resolucion')
                             ->where('actualizada_en', '>=', $desde);

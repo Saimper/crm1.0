@@ -54,28 +54,28 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="rounded-lg border border-ink-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.label_intentadas', ['entidades' => $rotuloCasos]) }}</div>
-            <div class="text-2xl font-semibold text-ink-900 mt-1">{{ number_format($cuentasIntentadas) }}</div>
+            <div class="text-2xl font-semibold text-ink-900 mt-1">{{ numero_local($cuentasIntentadas, 0) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.label_gestionadas', ['entidades' => $rotuloCasos]) }}</div>
-            <div class="text-2xl font-semibold text-success-700 mt-1">{{ number_format($cuentasGestionadas) }}</div>
+            <div class="text-2xl font-semibold text-success-700 mt-1">{{ numero_local($cuentasGestionadas, 0) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_contactabilidad') }}</div>
-            <div class="text-2xl font-semibold text-brand-700 mt-1">{{ number_format($efectividad, 1) }}%</div>
-            <div class="text-[11px] text-ink-500 mt-1 tabular-nums">{{ __('reportes.kpi_contactabilidad_pie', ['alcanzadas' => number_format($cuentasGestionadas), 'intentadas' => number_format($cuentasIntentadas), 'entidades' => mb_strtolower($rotuloCasos)]) }}</div>
+            <div class="text-2xl font-semibold text-brand-700 mt-1">{{ numero_local($efectividad, 1) }}%</div>
+            <div class="text-[11px] text-ink-500 mt-1 tabular-nums">{{ __('reportes.kpi_contactabilidad_pie', ['alcanzadas' => numero_local($cuentasGestionadas, 0), 'intentadas' => numero_local($cuentasIntentadas, 0), 'entidades' => mb_strtolower($rotuloCasos)]) }}</div>
         </div>
         <div class="rounded-lg border border-ink-200 bg-white p-4">
             <div class="text-[10px] uppercase tracking-wider text-ink-500">{{ __('reportes.kpi_total_gestiones') }}</div>
-            <div class="text-2xl font-semibold text-ink-900 mt-1">{{ number_format($totalGestiones) }}</div>
+            <div class="text-2xl font-semibold text-ink-900 mt-1">{{ numero_local($totalGestiones, 0) }}</div>
         </div>
         <div class="rounded-lg border border-success-200 bg-success-50 p-4">
             <div class="text-[10px] uppercase tracking-wider text-success-700">{{ __('reportes.kpi_commitments_active') }}</div>
-            <div class="text-2xl font-semibold text-success-700 mt-1">{{ number_format($compromisosVigentes) }}</div>
+            <div class="text-2xl font-semibold text-success-700 mt-1">{{ numero_local($compromisosVigentes, 0) }}</div>
         </div>
         <div class="rounded-lg border border-danger-200 bg-danger-50 p-4">
             <div class="text-[10px] uppercase tracking-wider text-danger-700">{{ __('reportes.kpi_commitments_overdue') }}</div>
-            <div class="text-2xl font-semibold text-danger-700 mt-1">{{ number_format($compromisosVencidos) }}</div>
+            <div class="text-2xl font-semibold text-danger-700 mt-1">{{ numero_local($compromisosVencidos, 0) }}</div>
         </div>
     </div>
 
@@ -103,10 +103,10 @@
                         @endphp
                         <tr>
                             <td class="px-3 py-2">{{ $r->name }}</td>
-                            <td class="px-3 py-2 text-right font-mono">{{ number_format($r->total_gestiones) }}</td>
-                            <td class="px-3 py-2 text-right font-mono">{{ number_format($r->cuentas_intentadas) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-success-700">{{ number_format($r->cuentas_gestionadas) }}</td>
-                            <td class="px-3 py-2 text-right font-mono text-brand-700">{{ number_format($ef, 1) }}%</td>
+                            <td class="px-3 py-2 text-right font-mono">{{ numero_local($r->total_gestiones, 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono">{{ numero_local($r->cuentas_intentadas, 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-success-700">{{ numero_local($r->cuentas_gestionadas, 0) }}</td>
+                            <td class="px-3 py-2 text-right font-mono text-brand-700">{{ numero_local($ef, 1) }}%</td>
                         </tr>
                     @endforeach
                 </tbody>

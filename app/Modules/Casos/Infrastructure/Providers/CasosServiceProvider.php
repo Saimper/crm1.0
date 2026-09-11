@@ -8,10 +8,14 @@ use App\Modules\Casos\Application\Listeners\ActivarBanderaCompromisoVigente;
 use App\Modules\Casos\Application\Listeners\ActualizarDesnormalizadosDesdeGestion;
 use App\Modules\Casos\Application\Listeners\CerrarCasoDesdeGestion;
 use App\Modules\Casos\Application\Listeners\RecalcularBanderaCompromisoVigente;
+use App\Modules\Casos\Application\UseCases\ReincorporarCuenta;
 use App\Modules\Casos\Domain\Contracts\CasoRepository;
+use App\Modules\Casos\Domain\Contracts\ReincorporacionDeCuenta;
 use App\Modules\Casos\Infrastructure\Http\Livewire\CrearCasoIndividual;
 use App\Modules\Casos\Infrastructure\Http\Livewire\EditarCaso;
+use App\Modules\Casos\Infrastructure\Http\Livewire\FichaHistorica;
 use App\Modules\Casos\Infrastructure\Http\Livewire\ListadoCasos;
+use App\Modules\Casos\Infrastructure\Http\Livewire\ListadoHistorico;
 use App\Modules\Casos\Infrastructure\Http\Livewire\NuevaGestion;
 use App\Modules\Casos\Infrastructure\Http\Livewire\VistaDeTrabajo;
 use App\Modules\Casos\Infrastructure\Persistence\Repositories\EloquentCasoRepository;
@@ -29,6 +33,7 @@ final class CasosServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(CasoRepository::class, EloquentCasoRepository::class);
+        $this->app->bind(ReincorporacionDeCuenta::class, ReincorporarCuenta::class);
     }
 
     public function boot(): void
@@ -40,6 +45,8 @@ final class CasosServiceProvider extends ServiceProvider
         Livewire::component('casos.listado-casos', ListadoCasos::class);
         Livewire::component('casos.crear-caso-individual', CrearCasoIndividual::class);
         Livewire::component('casos.editar-caso', EditarCaso::class);
+        Livewire::component('casos.listado-historico', ListadoHistorico::class);
+        Livewire::component('casos.ficha-historica', FichaHistorica::class);
 
         Event::listen(GestionRegistrada::class, ActualizarDesnormalizadosDesdeGestion::class);
         Event::listen(GestionRegistrada::class, CerrarCasoDesdeGestion::class);

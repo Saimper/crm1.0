@@ -9,7 +9,9 @@ use App\Modules\Gestiones\Application\DTOs\FiltrosExportacionGestiones;
 use App\Modules\Gestiones\Domain\Exceptions\VentanaDeExportacionInvalida;
 use App\Modules\Gestiones\Domain\ValueObjects\VentanaDeExportacion;
 use App\Modules\Tenancy\Application\Services\RelojDelMandante;
+use App\Modules\Tenancy\Domain\Contracts\RegionalConfiguration;
 use App\Support\Csv\RespuestaCsv;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Carbon;
 use stdClass;
@@ -45,7 +47,7 @@ final readonly class ExportadorCsvGestiones
      * @throws VentanaDeExportacionInvalida si las fechas no forman una ventana admisible.
      */
     /**
-     * @param  list<int>|null  $carterasPermitidas  El límite por cartera del rol (F22); null sin límite.
+     * @param  list<int>|null  $carterasPermitidas  Scope for gestiones.exportar; null means unrestricted.
      */
     public function responder(stdClass $proyecto, FiltrosExportacionGestiones $filtros, ?array $carterasPermitidas = null): StreamedResponse
     {
@@ -53,12 +55,12 @@ final readonly class ExportadorCsvGestiones
         $mandanteId = (int) $proyecto->mandante_id;
 
         // Una vez, fuera del stream.
-        $zona = $this->reloj->zonaDe($mandanteId);
-        $rango = $this->rangoDe($filtros, $mandanteId);
+        $zona = app(RegionalConfiguration::class)->forProject($proyectoId)->timezone;
+        $rango = $this->rangoDe($filtros, $proyectoId);
 
-        $q = $this->db->table('gestiones as g')
-            ->leftJoin('casos as c', 'c.id', '=', 'g.caso_id')
-            ->leftJoin('personas as p', 'p.id', '=', 'g.persona_id')
+        $q = CarterasOperativas::filtrar($this->db->table('gestiones as g')
+            ->join('casos as c', fn ($join) => $join->on('c.id', '=', 'g.caso_id')->on('c.proyecto_id', '=', 'g.proyecto_id'))
+            ->join('personas as p', fn ($join) => $join->on('p.id', '=', 'g.persona_id')->on('p.proyecto_id', '=', 'g.proyecto_id'))
             ->leftJoin('tipos_gestion as tg', 'tg.id', '=', 'g.tipo_gestion_id')
             ->leftJoin('canales as cn', 'cn.id', '=', 'g.canal_id')
             ->leftJoin('resultados as r', 'r.id', '=', 'g.resultado_id')
@@ -67,8 +69,8 @@ final readonly class ExportadorCsvGestiones
             ->leftJoin('users as u', 'u.id', '=', 'g.usuario_id')
             // El recorte va primero y no depende de ningún parámetro.
             ->where('g.proyecto_id', $proyectoId)
-            ->whereNull('g.eliminada_en')
-            ->whereBetween('g.creada_en', [$rango['desde'], $rango['hasta']]);
+            ->whereNull('g.eliminada_en')->whereNull('c.eliminada_en')->whereNull('p.eliminada_en')
+            ->whereBetween('g.creada_en', [$rango['desde'], $rango['hasta']]));
 
         // El límite por cartera del rol (F22), por el caso de la gestión.
         if ($carterasPermitidas !== null) {
@@ -140,15 +142,15 @@ final readonly class ExportadorCsvGestiones
      *
      * @throws VentanaDeExportacionInvalida
      */
-    private function rangoDe(FiltrosExportacionGestiones $filtros, int $mandanteId): array
+    private function rangoDe(FiltrosExportacionGestiones $filtros, int $proyectoId): array
     {
         if (! $filtros->usaVentana()) {
-            return $this->reloj->rangoPreestablecido($filtros->rango, $mandanteId);
+            return $this->reloj->rangoPreestablecido($filtros->rango, proyectoId: $proyectoId);
         }
 
         $ventana = VentanaDeExportacion::entre($filtros->desde, $filtros->hasta);
 
-        return $this->reloj->rangoDeFechas($ventana->desde, $ventana->hasta, $mandanteId);
+        return $this->reloj->rangoDeFechas($ventana->desde, $ventana->hasta, proyectoId: $proyectoId);
     }
 
     /**

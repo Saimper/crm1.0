@@ -42,7 +42,7 @@
                     <span class="label-xs">{{ __('reportes.panel_'.$t['clave']) }}</span>
                 </div>
                 <div class="font-semibold tnum text-5xl" style="margin-top:6px;color:{{ $t['color'] }};">
-                    {{ number_format($t['valor']) }}
+                    {{ numero_local($t['valor'], 0) }}
                 </div>
             </div>
         @endforeach
@@ -55,7 +55,7 @@
                                      border-color:var(--warning);background:var(--warning-soft);">
             <x-ui.icon name="alert-triangle" :size="15" class="text-warning-700" style="flex-shrink:0;" />
             <span class="text-base text-warning-700">
-                {{ trans_choice('reportes.panel_vencidas', $vencidasSinResolver, ['n' => number_format($vencidasSinResolver)]) }}
+                {{ trans_choice('reportes.panel_vencidas', $vencidasSinResolver, ['n' => numero_local($vencidasSinResolver, 0)]) }}
             </span>
         </div>
     @endif
@@ -68,7 +68,7 @@
             <div class="gap-2 flex items-baseline justify-between">
                 <span class="label-xs">{{ __('reportes.panel_efectividad') }}</span>
                 <span class="text-xs text-ink-500">
-                    {{ __('reportes.panel_efectividad_pie', ['efectivas' => number_format($gestionesEfectivas), 'total' => number_format($totalGestiones)]) }}
+                    {{ __('reportes.panel_efectividad_pie', ['efectivas' => numero_local($gestionesEfectivas, 0), 'total' => numero_local($totalGestiones, 0)]) }}
                 </span>
             </div>
             @if($efectividad === null)
@@ -101,11 +101,11 @@
                         : null;
                 @endphp
                 <div class="gap-2 flex items-baseline" style="margin-top:6px;">
-                    <span class="font-semibold tnum text-success-700 text-[22px]">{{ number_format((float) $dinero->cumplido, 2) }}</span>
+                    <span class="font-semibold tnum text-success-700 text-[22px]">{{ numero_local($dinero->cumplido) }}</span>
                     <span class="text-base text-ink-500">{{ $dinero->moneda }} · {{ __('reportes.panel_dinero_cobrado') }}</span>
                 </div>
                 <div class="text-sm text-ink-500 tnum" style="margin-top:2px;">
-                    {{ __('reportes.panel_dinero_prometido', ['monto' => number_format((float) $dinero->prometido, 2), 'moneda' => $dinero->moneda]) }}
+                    {{ __('reportes.panel_dinero_prometido', ['monto' => numero_local($dinero->prometido), 'moneda' => $dinero->moneda]) }}
                 </div>
                 @if($pctCumplido !== null)
                     <span class="bar-track" style="margin-top:10px;"
@@ -131,7 +131,7 @@
                     {{-- Ancho acotado: con pocos días, un flex:1 suelto convierte cada
                          barra en un bloque y la tendencia deja de leerse como tal. --}}
                     <div class="flex flex-col flex-1 justify-end" style="max-width:26px;height:100%;"
-                         title="{{ $d->etiqueta }} · {{ number_format($d->total) }}">
+                         title="{{ $d->etiqueta }} · {{ numero_local($d->total, 0) }}">
                         <span style="display:block;border-radius:4px 4px 0 0;
                                      background:{{ $d->total > 0 ? 'var(--primary)' : 'var(--border)' }};
                                      height:{{ $maximoDia > 0 && $d->total > 0 ? max(6, (int) round($d->total * 100 / $maximoDia)) : 3 }}%;"></span>
@@ -159,13 +159,13 @@
 
         @forelse($porUsuario as $u)
             <div class="items-center" style="display:grid;grid-template-columns:minmax(90px,150px) 1fr 44px;gap:10px;
-                        padding:5px 0;" title="{{ $u->name }} · {{ number_format($u->total) }}">
+                        padding:5px 0;" title="{{ $u->name }} · {{ numero_local($u->total, 0) }}">
                 <span class="text-[12.5px] text-ink-600" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $u->name }}</span>
                 <span class="bar-track">
                     <span class="bar-fill" style="
                                  width:{{ $maximo > 0 ? max(3, (int) round($u->total * 100 / $maximo)) : 0 }}%;"></span>
                 </span>
-                <span class="text-[12.5px] font-semibold tnum text-ink text-right">{{ number_format($u->total) }}</span>
+                <span class="text-[12.5px] font-semibold tnum text-ink text-right">{{ numero_local($u->total, 0) }}</span>
             </div>
         @empty
             <div class="text-base text-ink-500" style="padding:6px 0;">

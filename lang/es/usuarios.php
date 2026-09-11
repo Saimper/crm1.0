@@ -7,10 +7,10 @@ return [
     'page_equipos_title' => 'Equipos del proyecto',
     'page_usuarios_proyecto_title' => 'Usuarios del proyecto',
     'page_matriz_title' => 'Matriz de permisos',
-    'page_roles_custom_title' => 'Roles custom',
+    'page_roles_custom_title' => 'Roles y permisos',
     'back_to_project' => '← Volver al proyecto',
     'back_to_panel' => '← Volver al panel',
-    'link_roles_custom' => '← Roles custom',
+    'link_roles_custom' => '← Roles y permisos',
     'link_matriz_permisos' => 'Matriz de permisos',
 
     // Admin usuarios (lista.blade.php)
@@ -118,13 +118,13 @@ return [
     'help_restrict_portfolios' => 'Si no seleccionas ninguna, el rol aplica a todo el proyecto.',
 
     // Roles custom (roles-custom.blade.php)
-    'roles_summary' => 'Roles base del sistema (read-only) + :count roles custom de este proyecto.',
-    'btn_new_custom_role' => 'Nuevo rol custom',
+    'roles_summary' => ':count roles personalizados de este proyecto.',
+    'btn_new_custom_role' => 'Nuevo rol personalizado',
     'section_base_roles' => 'Roles base del sistema',
     'badge_system' => 'Sistema',
-    'empty_custom_roles_title' => 'Sin roles custom',
+    'empty_custom_roles_title' => 'Sin roles personalizados',
     'empty_custom_roles_desc' => 'Crea roles a la medida combinando permisos existentes.',
-    'badge_custom_role' => 'Custom',
+    'badge_custom_role' => 'Personalizado',
     'badge_inactive_role' => 'inactivo',
     'permissions_count' => ':count permisos',
     'assignments_count' => ':count usuarios asignados',
@@ -146,4 +146,16 @@ return [
     'label_group' => 'Grupo',
     'option_all_groups' => '— todos —',
     'col_permission' => 'Permiso',
+    'groups' => [
+        'asignaciones' => 'Asignación y reparto', 'auditoria' => 'Auditoría',
+        'campos' => 'Campos personalizados', 'carteras' => 'Carteras',
+        'casos' => 'Cuentas y casos', 'catalogos' => 'Catálogos',
+        'compromisos' => 'Compromisos', 'contactos' => 'Datos de contacto',
+        'entidades' => 'Registros adicionales', 'equipos' => 'Equipos de gestores',
+        'gestiones' => 'Gestiones', 'historico' => 'Histórico',
+        'importaciones' => 'Importaciones', 'mandante' => 'Mandantes',
+        'notificaciones' => 'Notificaciones', 'personas' => 'Personas',
+        'proyectos' => 'Proyectos', 'reportes' => 'Reportes',
+        'roles' => 'Roles y permisos', 'usuarios' => 'Usuarios',
+    ],
 ];

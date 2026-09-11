@@ -275,6 +275,25 @@ final class AvanzarDiasMoraTest extends TestCase
         $this->assertSinCambios($cuenta, 10, '2026-09-07');
     }
 
+    public function test_inactive_or_archived_portfolios_keep_their_last_arrears_snapshot(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $paused = $this->crearCuenta($project, 10, '2026-09-07');
+        $archived = $this->crearCuenta($project, 20, '2026-09-07');
+        $active = $this->crearCuenta($project, 30, '2026-09-07');
+        $pausedPortfolio = DB::table('casos')->where('id', $paused)->value('cartera_id');
+        $archivedPortfolio = DB::table('casos')->where('id', $archived)->value('cartera_id');
+        DB::table('carteras')->where('id', $pausedPortfolio)->update(['activo' => false]);
+        DB::table('carteras')->where('id', $archivedPortfolio)->update(['eliminada_en' => now()]);
+        $preview = $this->ejecutar((int) $project->id, true);
+        $this->assertSame(1, $preview->avanzadosPorProyecto[(int) $project->id]);
+        $result = $this->ejecutar((int) $project->id);
+        $this->assertSame(1, $result->avanzadosPorProyecto[(int) $project->id]);
+        $this->assertSinCambios($paused, 10, '2026-09-07');
+        $this->assertSinCambios($archived, 20, '2026-09-07');
+        $this->assertSame(33, (int) $this->fila($active)->dias_mora);
+    }
+
     private function ejecutar(?int $proyectoId = null, bool $simulacro = false): AvanzarDiasMoraOutput
     {
         return $this->app->make(AvanzarDiasMora::class)

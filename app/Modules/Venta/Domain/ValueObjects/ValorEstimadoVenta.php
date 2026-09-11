@@ -12,10 +12,10 @@ final readonly class ValorEstimadoVenta
         public string $monto,
         public string $moneda = 'USD',
     ) {
-        if (! preg_match('/^\d+(\.\d{1,2})?$/', $monto)) {
+        if (! is_numeric($monto) || ! preg_match('/^\d+(\.\d{1,3})?$/D', $monto)) {
             throw new DatosLeadInvalidos("Valor estimado inválido: {$monto}.");
         }
-        if (bccomp($monto, '0', 2) < 0) {
+        if (bccomp($monto, '0', 3) < 0) {
             throw new DatosLeadInvalidos('El valor estimado no puede ser negativo.');
         }
         if (! preg_match('/^[A-Z]{3}$/', $moneda)) {

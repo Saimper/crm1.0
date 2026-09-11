@@ -19,10 +19,12 @@ final class RolesSeeder extends Seeder
             ['codigo' => 'AUDITOR',         'nombre' => 'Auditor',               'descripcion' => 'Solo lectura con acceso a auditoría del proyecto',       'es_global' => false, 'activo' => true, 'orden' => 30],
         ];
 
-        DB::table('roles')->upsert(
-            $rows,
-            ['codigo'],
-            ['nombre', 'descripcion', 'es_global', 'activo', 'orden'],
-        );
+        foreach ($rows as $row) {
+            // An administrator's saved template is configuration, not seed data.
+            if (DB::table('roles')->where('codigo', $row['codigo'])->whereNotNull('configurado_en')->exists()) {
+                continue;
+            }
+            DB::table('roles')->upsert([$row], ['codigo'], ['nombre', 'descripcion', 'es_global', 'activo', 'orden']);
+        }
     }
 }

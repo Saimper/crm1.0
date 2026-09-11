@@ -7,7 +7,10 @@ namespace Tests\Feature\Modules\Importaciones;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
 use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionDinamica;
 use App\Modules\Importaciones\Application\UseCases\EjecutarImportacionInput;
+use App\Modules\Importaciones\Application\UseCases\ProcesarFilaDinamica;
+use App\Modules\Importaciones\Application\UseCases\ProcesarFilaInput;
 use App\Modules\Importaciones\Domain\Enums\AccionColumna;
+use App\Modules\Importaciones\Domain\Enums\EstadoFila;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
@@ -45,6 +48,59 @@ final class ModosImportacionTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
+    public function test_merge_keeps_filled_ticket_text_and_completes_an_empty_description(): void
+    {
+        $project = $this->crearProyectoCx();
+        $portfolio = $this->crearCarteraEn($project);
+        $person = $this->crearPersonaEn($project);
+        $case = $this->crearCasoEn($project, ['cartera' => $portfolio, 'persona' => $person]);
+        DB::table('casos_ticket_cx')->insert([
+            'proyecto_id' => $project->id, 'caso_id' => $case, 'codigo_ticket' => 'CX-MERGE',
+            'asunto' => 'Original subject', 'descripcion' => null, 'fecha_reporte' => now(),
+        ]);
+        $this->mergeNative($project, $portfolio, $person, TargetImportacion::CASO_TICKET_CX, 'CX-MERGE', [
+            'asunto' => 'Incoming subject', 'descripcion' => 'Completed description',
+        ]);
+        $this->assertDatabaseHas('casos_ticket_cx', [
+            'caso_id' => $case, 'asunto' => 'Original subject', 'descripcion' => 'Completed description',
+        ]);
+    }
+
+    public function test_merge_reads_the_actual_sales_value_column_and_keeps_the_existing_zero_rule(): void
+    {
+        $project = $this->crearProyectoVenta();
+        $portfolio = $this->crearCarteraEn($project);
+        $person = $this->crearPersonaEn($project);
+        $case = $this->crearCasoEn($project, ['cartera' => $portfolio, 'persona' => $person]);
+        DB::table('casos_lead_venta')->insert([
+            'proyecto_id' => $project->id, 'caso_id' => $case, 'codigo_lead' => 'SALE-MERGE',
+            'valor_estimado' => 1000, 'origen_lead' => null, 'fecha_primer_contacto' => now()->toDateString(),
+        ]);
+        $values = ['valor_estimado_monto' => '250.00', 'origen_lead' => 'Referral'];
+        $this->mergeNative($project, $portfolio, $person, TargetImportacion::CASO_LEAD_VENTA, 'SALE-MERGE', $values);
+        $this->assertDatabaseHas('casos_lead_venta', ['caso_id' => $case, 'valor_estimado' => 1000, 'origen_lead' => 'Referral']);
+
+        DB::table('casos_lead_venta')->where('caso_id', $case)->update(['valor_estimado' => 0]);
+        $this->mergeNative($project, $portfolio, $person, TargetImportacion::CASO_LEAD_VENTA, 'SALE-MERGE', $values);
+        $this->assertDatabaseHas('casos_lead_venta', ['caso_id' => $case, 'valor_estimado' => 250]);
+    }
+
+    /** @param array<string, string> $values */
+    private function mergeNative(stdClass $project, stdClass $portfolio, stdClass $person, TargetImportacion $target, string $reference, array $values): void
+    {
+        $columns = [new ColumnaExcel('IDENTITY', TipoCampo::TEXTO_CORTO, 'identificacion', true, false, AccionColumna::MAPEAR_SISTEMA)];
+        foreach ($values as $code => $value) {
+            $columns[] = new ColumnaExcel(strtoupper($code), $code === 'valor_estimado_monto' ? TipoCampo::NUMERO_DECIMAL : TipoCampo::TEXTO_CORTO,
+                $code, false, false, AccionColumna::MAPEAR_SISTEMA);
+        }
+        $schema = new EsquemaImportacion($target, $project->id, $portfolio->id, ModoImportacion::MERGE, $columns);
+        $result = app(ProcesarFilaDinamica::class)->execute(new ProcesarFilaInput(
+            ['identificacion' => $person->identificacion, 'id_cpelegido' => $reference, ...$values],
+            $schema, 1, [], ['TEST' => $person->tipo_identificacion_id],
+        ));
+        $this->assertSame(EstadoFila::PROCESADA, $result->resultadoFila->estado);
+    }
+
     public function test_completar_vacios_rellena_lo_nulo_y_respeta_lo_que_ya_estaba(): void
     {
         [$proyecto, $cartera] = $this->escenario();
@@ -56,8 +112,8 @@ final class ModosImportacionTest extends TestCase
         ]);
 
         $cti = $this->cti($proyecto);
-        $this->assertSame('1000.00', (string) $cti->saldo_capital, 'Lo que ya tenía valor no se toca.');
-        $this->assertSame('75.00', (string) $cti->saldo_interes, 'Lo que estaba nulo se rellena.');
+        $this->assertSame('1000.000', (string) $cti->saldo_capital, 'Lo que ya tenía valor no se toca.');
+        $this->assertSame('75.000', (string) $cti->saldo_interes, 'Lo que estaba nulo se rellena.');
     }
 
     public function test_insertar_y_actualizar_pisa_lo_que_el_archivo_trae(): void
@@ -71,8 +127,8 @@ final class ModosImportacionTest extends TestCase
         ]);
 
         $cti = $this->cti($proyecto);
-        $this->assertSame('250.00', (string) $cti->saldo_capital);
-        $this->assertSame('75.00', (string) $cti->saldo_interes);
+        $this->assertSame('250.000', (string) $cti->saldo_capital);
+        $this->assertSame('75.000', (string) $cti->saldo_interes);
     }
 
     /**
@@ -91,8 +147,8 @@ final class ModosImportacionTest extends TestCase
         $this->importar($proyecto, $cartera, ModoImportacion::UPSERT, ['saldo_capital' => '250']);
 
         $cti = $this->cti($proyecto);
-        $this->assertSame('250.00', (string) $cti->saldo_capital);
-        $this->assertSame('40.00', (string) $cti->saldo_interes, 'La columna que el archivo no trae se queda como estaba.');
+        $this->assertSame('250.000', (string) $cti->saldo_capital);
+        $this->assertSame('40.000', (string) $cti->saldo_interes, 'La columna que el archivo no trae se queda como estaba.');
     }
 
     public function test_saltar_duplicados_no_toca_el_caso_y_marca_la_fila(): void
@@ -106,8 +162,8 @@ final class ModosImportacionTest extends TestCase
         ]);
 
         $cti = $this->cti($proyecto);
-        $this->assertSame('1000.00', (string) $cti->saldo_capital, 'Saltar es no escribir: ni una columna.');
-        $this->assertSame('40.00', (string) $cti->saldo_interes);
+        $this->assertSame('1000.000', (string) $cti->saldo_capital, 'Saltar es no escribir: ni una columna.');
+        $this->assertSame('40.000', (string) $cti->saldo_interes);
 
         $fila = DB::table('importacion_filas')->where('importacion_id', $importacionId)->first();
         $this->assertSame('duplicada', (string) $fila->estado);

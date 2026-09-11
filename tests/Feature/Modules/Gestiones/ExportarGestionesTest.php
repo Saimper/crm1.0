@@ -40,6 +40,44 @@ final class ExportarGestionesTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_operational_csv_excludes_inactive_deleted_and_unauthorized_portfolios_without_removing_history(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-10 17:00:00', 'UTC'));
+        $project = $this->crearProyectoCobranza();
+        $foreignProject = $this->crearProyectoCobranza();
+        $active = $this->crearCarteraEn($project);
+        $inactive = $this->crearCarteraEn($project);
+        $deleted = $this->crearCarteraEn($project);
+        $denied = $this->crearCarteraEn($project);
+        $operator = $this->crearGestor($project);
+        $allowed = $this->registrarGestionEn($project, usuario: $operator, cartera: $active);
+        $historical = [
+            $this->registrarGestionEn($project, usuario: $operator, cartera: $inactive),
+            $this->registrarGestionEn($project, usuario: $operator, cartera: $deleted),
+        ];
+        $this->registrarGestionEn($project, usuario: $operator, cartera: $denied);
+        $this->registrarGestionEn($foreignProject);
+        DB::table('carteras')->where('id', $inactive->id)->update(['activo' => false]);
+        DB::table('carteras')->where('id', $deleted->id)->update(['eliminada_en' => now()]);
+        $supervisor = $this->crearSupervisor($project);
+        foreach ([$active, $inactive, $deleted] as $portfolio) {
+            DB::table('usuario_proyecto_rol_cartera')->insert([
+                'usuario_id' => $supervisor->id, 'proyecto_id' => $project->id,
+                'rol_id' => DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'), 'cartera_id' => $portfolio->id,
+            ]);
+        }
+        $this->actingAs($supervisor);
+        foreach ([['rango' => 'hoy'], ['desde' => '2026-09-10', 'hasta' => '2026-09-10', 'usuario_id' => (string) $operator->id]] as $filters) {
+            $csv = $this->get($this->url($project, $filters))->assertOk()->streamedContent();
+            $this->assertSame([$allowed], array_column($this->filasDe($csv), 'gestion_public_id'));
+        }
+        DB::table('carteras')->where('id', $active->id)->update(['activo' => false]);
+        $emptyCsv = $this->get($this->url($project, ['rango' => 'hoy']))->assertOk()->streamedContent();
+        $this->assertSame([], $this->filasDe($emptyCsv));
+        $this->assertSame(2, DB::table('gestiones')->whereIn('public_id', $historical)->whereNull('eliminada_en')->count());
+        $this->assertDatabaseCount('gestiones', 5);
+    }
+
     public function test_el_csv_solo_trae_gestiones_del_proyecto_activo(): void
     {
         $mandante = $this->crearMandante();
@@ -221,6 +259,13 @@ final class ExportarGestionesTest extends TestCase
             'proyecto_id' => $proyecto->id,
             'rol_id' => (int) DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'),
             'cartera_id' => $permitida->id,
+        ]);
+        // An additional unrestricted role without export permission must not widen the CSV.
+        DB::table('usuario_proyecto_rol')->insert([
+            'usuario_id' => $supervisor->id,
+            'proyecto_id' => $proyecto->id,
+            'rol_id' => DB::table('roles')->where('codigo', 'GESTOR')->value('id'),
+            'activo' => true,
         ]);
 
         $csv = $this->actingAs($supervisor)->get($this->url($proyecto, ['rango' => 'hoy']))->assertOk()->streamedContent();

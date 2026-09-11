@@ -191,7 +191,8 @@ final class ConstructorRutasTest extends TestCase
     public function test_el_csv_del_constructor_neutraliza_las_formulas(): void
     {
         $proyecto = DB::table('proyectos')->where('id', $this->proyectoId)->first();
-        $this->crearPersonaEn($proyecto, '=HYPERLINK("http://x")');
+        $person = $this->crearPersonaEn($proyecto, '=HYPERLINK("http://x")');
+        $this->crearCasoEn($proyecto, ['persona' => $person]);
 
         $defId = $this->crearDefinicionDePersonas();
 

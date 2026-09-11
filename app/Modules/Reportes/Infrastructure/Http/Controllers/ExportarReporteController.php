@@ -61,7 +61,7 @@ final class ExportarReporteController
         // El recorte por cartera del rol (F22) vale también aquí: un reporte es
         // una consulta que el usuario compone, y sin esto era la puerta de
         // atrás a las carteras que la bandeja le esconde.
-        $resultado = $this->ejecutar->execute($def, null, $usuario->carterasPermitidas($proyecto_id));
+        $resultado = $this->ejecutar->execute($def, null, $usuario->carterasPermitidasParaPermiso('reportes.constructor.exportar', $proyecto_id));
         $usuarioId = (int) $usuario->id;
 
         $onComplete = function (int $total, bool $completa) use ($def, $data, $definicion_id, $proyecto_id, $usuarioId, $formato, $inicio): void {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Compromisos;
 
+use App\Models\User;
 use App\Modules\Compromisos\Infrastructure\Http\Livewire\ListadoCompromisos;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +37,104 @@ final class ExportarCompromisosTest extends TestCase
     {
         Carbon::setTestNow();
         parent::tearDown();
+    }
+
+    public function test_combined_roles_scope_listing_and_export_to_roles_that_grant_each_permission(): void
+    {
+        $project = $this->crearProyectoCobranza();
+        $allowed = $this->crearCarteraEn($project);
+        $denied = $this->crearCarteraEn($project);
+        $own = $this->crearCompromisoEn($project, cartera: $allowed);
+        $this->crearCompromisoEn($project, cartera: $denied);
+        $user = $this->crearSupervisor($project);
+        $gestorRole = (int) DB::table('roles')->where('codigo', 'GESTOR')->value('id');
+        $viewPermission = (int) DB::table('permisos')->where('codigo', 'compromisos.ver')->value('id');
+        DB::table('usuario_proyecto_rol_cartera')->insert([
+            'usuario_id' => $user->id, 'proyecto_id' => $project->id,
+            'rol_id' => DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'), 'cartera_id' => $allowed->id,
+        ]);
+        DB::table('usuario_proyecto_rol')->insert([
+            'usuario_id' => $user->id, 'proyecto_id' => $project->id, 'rol_id' => $gestorRole, 'activo' => true,
+        ]);
+        // The additional unrestricted role grants neither viewing nor exporting here.
+        DB::table('rol_proyecto_permiso')->insert([
+            'proyecto_id' => $project->id, 'rol_id' => $gestorRole, 'permiso_id' => $viewPermission, 'permitido' => false,
+        ]);
+        $this->activarProyecto($project);
+        $this->actingAs($user);
+        $list = Livewire::test(ListadoCompromisos::class);
+        $this->assertSame(1, $list->viewData('compromisos')->total());
+        $this->assertSame(1, $list->viewData('resumen')['pendientes']);
+        $csv = $this->get($this->url($project))->assertOk()->streamedContent();
+        $this->assertSame([$this->publicIdDe($own)], array_column($this->filasDe($csv), 'compromiso_public_id'));
+
+        // Restoring broad viewing must not widen the separate export permission.
+        DB::table('rol_proyecto_permiso')->where('proyecto_id', $project->id)
+            ->where('rol_id', $gestorRole)->where('permiso_id', $viewPermission)->delete();
+        User::olvidarPermisosCacheados();
+        $list = Livewire::test(ListadoCompromisos::class);
+        $this->assertSame(2, $list->viewData('compromisos')->total());
+        $this->assertSame(2, $list->viewData('resumen')['pendientes']);
+        $csv = $this->get($this->url($project))->assertOk()->streamedContent();
+        $this->assertSame([$this->publicIdDe($own)], array_column($this->filasDe($csv), 'compromiso_public_id'));
+    }
+
+    public function test_operational_list_summary_filters_and_csv_share_active_portfolio_scope(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-10 17:00:00', 'UTC'));
+        $project = $this->crearProyectoCobranza();
+        $foreignProject = $this->crearProyectoCobranza();
+        $active = $this->crearCarteraEn($project);
+        $inactive = $this->crearCarteraEn($project);
+        $deleted = $this->crearCarteraEn($project);
+        $denied = $this->crearCarteraEn($project);
+        $allowedIds = [];
+        $historicalIds = [];
+        foreach ([$active, $inactive, $deleted, $denied] as $portfolio) {
+            foreach ([['pendiente', '2026-09-09'], ['pendiente', '2026-09-11'], ['cumplido', '2026-09-09'], ['roto', '2026-09-09']] as [$state, $due]) {
+                $id = $this->crearCompromisoEn($project, $state, $due, cartera: $portfolio);
+                if ($portfolio->id === $active->id) {
+                    $allowedIds[] = $this->publicIdDe($id);
+                } elseif ($portfolio->id !== $denied->id) {
+                    $historicalIds[] = $id;
+                }
+            }
+        }
+        $this->crearCompromisoEn($foreignProject, 'pendiente', '2026-09-09');
+        DB::table('carteras')->where('id', $inactive->id)->update(['activo' => false]);
+        // Soft deletion must exclude the portfolio even if its active flag remains true.
+        DB::table('carteras')->where('id', $deleted->id)->update(['eliminada_en' => now()]);
+        $supervisor = $this->crearSupervisor($project);
+        foreach ([$active, $inactive, $deleted] as $portfolio) {
+            DB::table('usuario_proyecto_rol_cartera')->insert([
+                'usuario_id' => $supervisor->id, 'proyecto_id' => $project->id,
+                'rol_id' => DB::table('roles')->where('codigo', 'SUPERVISOR')->value('id'), 'cartera_id' => $portfolio->id,
+            ]);
+        }
+        $this->activarProyecto($project);
+        $this->actingAs($supervisor);
+        $list = Livewire::test(ListadoCompromisos::class);
+        $expectedSummary = ['pendientes' => 2, 'vencidos' => 1, 'cumplidos' => 1, 'rotos' => 1];
+        $this->assertSame(4, $list->viewData('compromisos')->total());
+        $this->assertSame($expectedSummary, $list->viewData('resumen'));
+        $this->assertEqualsCanonicalizing($allowedIds, collect($list->viewData('compromisos')->items())->pluck('public_id')->all());
+        $csv = $this->get($this->url($project))->assertOk()->streamedContent();
+        $this->assertEqualsCanonicalizing($allowedIds, array_column($this->filasDe($csv), 'compromiso_public_id'));
+
+        $list->set('vencimiento', 'vencidos');
+        $this->assertSame(1, $list->viewData('compromisos')->total());
+        $this->assertSame($expectedSummary, $list->viewData('resumen'), 'The overview keeps the whole authorized operational scope when a list filter changes.');
+        $filteredCsv = $this->get($this->url($project, ['venc' => 'vencidos']))->assertOk()->streamedContent();
+        $this->assertSame([$allowedIds[0]], array_column($this->filasDe($filteredCsv), 'compromiso_public_id'));
+
+        DB::table('carteras')->where('id', $active->id)->update(['activo' => false]);
+        $list->call('limpiarFiltros');
+        $this->assertSame(0, $list->viewData('compromisos')->total());
+        $this->assertSame(['pendientes' => 0, 'vencidos' => 0, 'cumplidos' => 0, 'rotos' => 0], $list->viewData('resumen'));
+        $emptyCsv = $this->get($this->url($project))->assertOk()->streamedContent();
+        $this->assertSame([], $this->filasDe($emptyCsv));
+        $this->assertSame(count($historicalIds), DB::table('compromisos')->whereIn('id', $historicalIds)->whereNull('eliminada_en')->count());
+        $this->assertDatabaseCount('compromisos', 17);
     }
 
     public function test_el_csv_solo_trae_compromisos_del_proyecto_activo(): void
@@ -167,7 +266,7 @@ final class ExportarCompromisosTest extends TestCase
 
         $this->assertCount(1, $filas);
         $this->assertSame($this->publicIdDe($compromisoId), $filas[0]['compromiso_public_id']);
-        $this->assertSame('500.00', $filas[0]['monto'], 'El monto de la promesa es lo primero que pide un supervisor.');
+        $this->assertSame('500.000', $filas[0]['monto'], 'El monto de la promesa es lo primero que pide un supervisor.');
         $this->assertSame('USD', $filas[0]['moneda']);
         $this->assertSame('Tipo de pago', $filas[0]['tipo_pago'], 'El nombre del catálogo, no el id.');
     }

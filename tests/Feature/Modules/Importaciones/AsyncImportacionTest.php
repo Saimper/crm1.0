@@ -17,15 +17,21 @@ use App\Modules\Importaciones\Domain\Enums\AccionColumna;
 use App\Modules\Importaciones\Domain\Enums\EstadoImportacion;
 use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
+use App\Modules\Importaciones\Domain\Events\ImportacionFallada;
+use App\Modules\Importaciones\Domain\Events\ImportacionIniciada;
+use App\Modules\Importaciones\Domain\Events\ImportacionTerminada;
 use App\Modules\Importaciones\Domain\Exceptions\ImportacionEnCursoNoEditable;
 use App\Modules\Importaciones\Domain\ValueObjects\ColumnaExcel;
 use App\Modules\Importaciones\Domain\ValueObjects\EsquemaImportacion;
 use App\Modules\Importaciones\Infrastructure\Jobs\EjecutarImportacionJob;
 use Database\Seeders\DatabaseSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use RuntimeException;
 use stdClass;
 use Tests\Support\EscenarioOperativo;
 use Tests\TestCase;
@@ -56,6 +62,9 @@ final class AsyncImportacionTest extends TestCase
         $this->assertSame('procesando', $i->estado);
         $this->assertNotNull($i->iniciado_en);
         $this->assertSame('merge', $i->modo);
+        $schema = EsquemaImportacion::deserializar($i->esquema);
+        $this->assertTrue($schema->reincorporarArchivadas);
+        $this->assertSame($usuario->id, $schema->autorizadoPorId);
     }
 
     public function test_encolar_dos_veces_falla_con_estado_no_editable(): void
@@ -196,6 +205,47 @@ final class AsyncImportacionTest extends TestCase
 
         $personas = (int) DB::table('personas')->where('identificacion', '9999000001')->count();
         $this->assertSame(0, $personas, 'Job cancelado no debe insertar');
+    }
+
+    public function test_cancellation_after_worker_starts_is_not_reported_as_completed(): void
+    {
+        $this->assertCancellationDuringJob(false);
+    }
+
+    public function test_failure_racing_a_cancellation_preserves_cancelled_status_and_events(): void
+    {
+        $this->assertCancellationDuringJob(true);
+    }
+
+    private function assertCancellationDuringJob(bool $failAfterCancellation): void
+    {
+        [$project, $actor] = $this->contextoProyectoCobranza();
+        $importId = $this->crearImportacionPreparada($project, $actor, [
+            ['identificacion' => 'CANCEL-RACE', 'nombre' => 'Pending row'],
+        ]);
+        Event::fake([ImportacionIniciada::class, ImportacionTerminada::class, ImportacionFallada::class]);
+        $cancelled = false;
+        DB::listen(function (QueryExecuted $query) use ($importId, $failAfterCancellation, &$cancelled): void {
+            if ($cancelled || ! str_starts_with($query->sql, 'update `importaciones` set `estado`')
+                || ($query->bindings[0] ?? null) !== EstadoImportacion::PROCESANDO->value) {
+                return;
+            }
+            $cancelled = true;
+            app(CancelarImportacion::class)->execute($importId);
+            if ($failAfterCancellation) {
+                throw new RuntimeException('Synthetic worker failure after cancellation.');
+            }
+        });
+
+        $this->ejecutarJob($importId);
+
+        $this->assertTrue($cancelled);
+        $this->assertDatabaseHas('importaciones', ['id' => $importId, 'estado' => 'cancelada', 'error_global' => null]);
+        $this->assertDatabaseHas('importacion_filas', ['importacion_id' => $importId, 'estado' => 'pendiente']);
+        $this->assertDatabaseMissing('personas', ['proyecto_id' => $project->id, 'identificacion' => 'CANCEL-RACE']);
+        Event::assertNotDispatched(ImportacionIniciada::class);
+        Event::assertNotDispatched(ImportacionTerminada::class);
+        Event::assertNotDispatched(ImportacionFallada::class);
     }
 
     /**

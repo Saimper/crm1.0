@@ -25,7 +25,7 @@
                 @error('equipoOrigenId')<div class="text-xs text-danger-600 mt-0.5">{{ $message }}</div>@enderror
                 @if($pendientesOrigen !== null)
                     <div class="mt-1 text-[11px] text-ink-500">
-                        {{ __('asignaciones.pending_in_source', ['count' => number_format($pendientesOrigen)]) }}
+                        {{ __('asignaciones.pending_in_source', ['count' => numero_local($pendientesOrigen, 0)]) }}
                     </div>
                 @endif
             </div>

@@ -6,6 +6,7 @@ namespace App\Modules\Usuarios\Infrastructure\Http\Livewire;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -18,8 +19,16 @@ final class MatrizPermisos extends Component
 {
     public string $filtroGrupo = '';
 
+    public string $busqueda = '';
+
+    public bool $soloDiferencias = false;
+
+    #[On('roles-actualizados')]
+    public function actualizar(): void {}
+
     public function render(): View
     {
+        abort_unless(auth()->user()?->esAdminGlobal() === true, 403);
         $proyectoId = $this->proyectoActivoId();
 
         $rolesBase = DB::table('roles')
@@ -42,6 +51,10 @@ final class MatrizPermisos extends Component
         if ($this->filtroGrupo !== '') {
             $queryPermisos->where('grupo', $this->filtroGrupo);
         }
+        if (trim($this->busqueda) !== '') {
+            $like = '%'.trim($this->busqueda).'%';
+            $queryPermisos->where(fn ($q) => $q->where('nombre', 'like', $like)->orWhere('codigo', 'like', $like)->orWhere('grupo', 'like', $like));
+        }
 
         $permisos = $queryPermisos
             ->orderBy('grupo')
@@ -55,12 +68,36 @@ final class MatrizPermisos extends Component
             ->groupBy('rol_id')
             ->map(fn ($filas) => $filas->pluck('permiso_id')->map(fn ($v) => (int) $v)->all());
 
+        $excepciones = DB::table('rol_proyecto_permiso')->where('proyecto_id', $proyectoId)
+            ->whereIn('rol_id', $rolesBase->pluck('id')->all())->get();
+        foreach ($excepciones as $excepcion) {
+            $ids = $rolPermisoBase->get($excepcion->rol_id, []);
+            $id = (int) $excepcion->permiso_id;
+            $rolPermisoBase->put($excepcion->rol_id, (bool) $excepcion->permitido
+                ? array_values(array_unique([...$ids, $id]))
+                : array_values(array_diff($ids, [$id])));
+        }
+
         $rolPermisoCustom = DB::table('rol_custom_permiso')
             ->whereIn('rol_custom_id', $rolesCustom->pluck('id')->all())
             ->select(['rol_custom_id', 'permiso_id'])
             ->get()
             ->groupBy('rol_custom_id')
             ->map(fn ($filas) => $filas->pluck('permiso_id')->map(fn ($v) => (int) $v)->all());
+
+        if ($this->soloDiferencias) {
+            $permisos = $permisos->filter(function ($permiso) use ($rolesBase, $rolesCustom, $rolPermisoBase, $rolPermisoCustom): bool {
+                $valores = [];
+                foreach ($rolesBase as $rol) {
+                    $valores[] = in_array((int) $permiso->id, $rolPermisoBase->get($rol->id, []), true);
+                }
+                foreach ($rolesCustom as $rol) {
+                    $valores[] = in_array((int) $permiso->id, $rolPermisoCustom->get($rol->id, []), true);
+                }
+
+                return in_array(true, $valores, true) && in_array(false, $valores, true);
+            });
+        }
 
         $grupos = DB::table('permisos')
             ->where('activo', true)

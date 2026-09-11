@@ -20,6 +20,32 @@ final class EvaluadorReglasTest extends TestCase
         $this->evaluador = new EvaluadorReglas;
     }
 
+    public function test_local_today_and_now_rules_match_the_operator_calendar(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-10 02:00:00', 'UTC'));
+        try {
+            $this->evaluador->validar(TipoCampo::FECHA, '2026-09-09', ['fecha_minima' => 'hoy'], false, 'Fecha', 'America/Panama');
+            $this->evaluador->validar(TipoCampo::FECHA_HORA, '2026-09-09T21:01', ['fecha_minima' => 'ahora'], false, 'Fecha', 'America/Panama');
+            $this->addToAssertionCount(2);
+            $this->expectException(ReglaViolada::class);
+            $this->evaluador->validar(TipoCampo::FECHA_HORA, '2026-09-09T20:59', ['fecha_minima' => 'ahora'], false, 'Fecha', 'America/Panama');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_local_autofill_uses_inherited_timezone(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-10 02:00:00', 'UTC'));
+        try {
+            $context = new ContextoUsuarioProyecto(1, 'Usuario', 'usuario@example.test', 'PROYECTO');
+            $this->assertSame('2026-09-09', $this->evaluador->valorAutoFill(TipoCampo::FECHA, ['auto_fill' => 'today'], $context, 'America/Panama'));
+            $this->assertSame('2026-09-09T21:00', $this->evaluador->valorAutoFill(TipoCampo::FECHA_HORA, ['auto_fill' => 'now'], $context, 'America/Panama'));
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_obligatorio_con_valor_vacio_throws(): void
     {
         $this->expectException(ReglaViolada::class);

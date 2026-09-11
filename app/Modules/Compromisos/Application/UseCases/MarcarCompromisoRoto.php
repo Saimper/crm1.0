@@ -7,6 +7,7 @@ namespace App\Modules\Compromisos\Application\UseCases;
 use App\Modules\Compromisos\Application\DTOs\ResolverCompromisoInput;
 use App\Modules\Compromisos\Domain\Contracts\CompromisoRepository;
 use App\Modules\Compromisos\Domain\Events\CompromisoRoto;
+use App\Support\Database\CarterasOperativas;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 
@@ -22,6 +23,10 @@ final readonly class MarcarCompromisoRoto
     {
         $this->db->transaction(function () use ($input): void {
             $c = $this->repositorio->buscarPorId($input->compromisoId);
+            if ($input->proyectoId !== null && $input->proyectoId !== $c->proyectoId) {
+                throw new \DomainException('El compromiso no pertenece al proyecto.');
+            }
+            CarterasOperativas::exigirCaso($this->db, $c->proyectoId, $c->casoId);
             $roto = $c->marcarRoto($input->fechaResolucion);
             $persistido = $this->repositorio->save($roto);
 

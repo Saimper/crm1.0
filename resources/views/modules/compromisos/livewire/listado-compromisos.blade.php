@@ -7,6 +7,14 @@
                 <span style="color:var(--danger);"><strong>{{ $resumen['vencidos'] }}</strong> {{ __('compromisos.filter_expired') }}</span> ·
                 {{ $resumen['cumplidos'] }} {{ __('compromisos.state_fulfilled') }} · {{ $resumen['rotos'] }} {{ __('compromisos.state_broken') }}
             </div>
+            <p class="text-sm text-ink-500 mt-2">
+                Se muestran compromisos de carteras activas. Los de carteras archivadas se conservan en
+                @can('historico.ver', (int) app('tenancy.proyecto_activo')->id)
+                    <a href="{{ route('proyectos.historico.lista', ['proyecto_id' => app('tenancy.proyecto_activo')->id]) }}" wire:navigate class="text-brand-500 hover:underline">Histórico</a>.
+                @else
+                    Histórico, bajo consulta de supervisión.
+                @endcan
+            </p>
         </div>
     </div>
 
@@ -105,10 +113,10 @@
                             <td><span class="font-mono text-sm">{{ $c->identificacion }}</span></td>
                             <td class="text-sm text-ink-600">{{ $c->usuario_nombre ?? '—' }}</td>
                             <td class="text-sm">
-                                {{ $c->fecha_vencimiento ? \Illuminate\Support\Carbon::parse($c->fecha_vencimiento)->format('d/m/Y') : '—' }}
+                                {{ $c->fecha_vencimiento ? fecha_local($c->fecha_vencimiento) : '—' }}
                             </td>
                             <td class="text-sm text-ink-600">
-                                {{ $c->fecha_resolucion ? \Illuminate\Support\Carbon::parse($c->fecha_resolucion)->format('d/m/Y') : '—' }}
+                                {{ $c->fecha_resolucion ? fecha_local($c->fecha_resolucion) : '—' }}
                             </td>
                             <td class="text-ink-400">
                                 @if($url)
