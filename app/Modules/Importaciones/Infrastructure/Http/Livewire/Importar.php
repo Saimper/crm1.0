@@ -6,6 +6,7 @@ namespace App\Modules\Importaciones\Infrastructure\Http\Livewire;
 
 use App\Models\User;
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\CamposNuevosDeImportacion;
 use App\Modules\Importaciones\Application\Services\ConsultaCoincidenciasImportacion;
 use App\Modules\Importaciones\Application\Services\DescriptorDeFalloImportacion;
 use App\Modules\Importaciones\Application\Services\FormatoDeImportacion;
@@ -402,23 +403,6 @@ final class Importar extends Component
             return;
         }
 
-        $tienePermisoCampos = auth()->user()?->tienePermiso('campos.definir') === true;
-        $tieneColumnasCP = false;
-
-        foreach ($columnas as $col) {
-            if ($col->accion === AccionColumna::CREAR_CP) {
-                $tieneColumnasCP = true;
-
-                break;
-            }
-        }
-
-        if ($tieneColumnasCP && ! $tienePermisoCampos) {
-            $this->addError('columnas', 'No tienes permiso para crear campos personalizados. Solicita acceso a un administrador.');
-
-            return;
-        }
-
         $esquema = new EsquemaImportacion(
             target: $target,
             proyectoId: $this->proyectoId(),
@@ -428,8 +412,15 @@ final class Importar extends Component
             formatoEntrada: $this->formatoEntrada,
         );
 
+        // `campos.definir` protege CREAR campos, no usar los que ya existen:
+        // sin él se puede cargar un archivo cuyas columnas ya son campos de la
+        // cartera. Se pregunta antes de persistir las filas para que un «no»
+        // no deje una importación huérfana con miles de filas pendientes.
+        $tienePermisoCampos = auth()->user()?->tienePermiso('campos.definir') === true;
+
         try {
             $esquema->validar();
+            app(CamposNuevosDeImportacion::class)->exigirPermisoParaCrear($esquema, $tienePermisoCampos);
         } catch (\DomainException $e) {
             $this->addError('columnas', $this->motivoParaPantalla($e));
 

@@ -146,6 +146,7 @@ final class ImportacionPermisosTest extends TestCase
         $importacion->save();
 
         $this->expectException(ImportacionSinPermisoCamposException::class);
+        $this->expectExceptionMessage('observacion');
 
         app(PrepararImportacionDinamica::class)->execute(new PrepararImportacionInput(
             importacionId: (int) $importacion->id,

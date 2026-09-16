@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Importaciones\Application\UseCases;
 
 use App\Modules\CamposPersonalizados\Domain\ValueObjects\TipoCampo;
+use App\Modules\Importaciones\Application\Services\CamposNuevosDeImportacion;
 use App\Modules\Importaciones\Domain\Contracts\CampoPersonalizadoImportacionRepository;
-use App\Modules\Importaciones\Domain\Enums\ModoImportacion;
 use App\Modules\Importaciones\Domain\Events\CamposPersonalizadosCreadosPorImportacion;
 use App\Modules\Importaciones\Domain\Events\ImportacionConEsquemaDinamicoIniciada;
-use App\Modules\Importaciones\Domain\Exceptions\ImportacionSinPermisoCamposException;
 use App\Modules\Importaciones\Domain\ValueObjects\ResultadoDryRun;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Events\Dispatcher as EventDispatcher;
@@ -26,6 +25,7 @@ final readonly class PrepararImportacionDinamica
 {
     public function __construct(
         private CampoPersonalizadoImportacionRepository $cpRepo,
+        private CamposNuevosDeImportacion $camposNuevos,
         private ConnectionInterface $db,
         private EventDispatcher $events,
     ) {}
@@ -37,27 +37,9 @@ final readonly class PrepararImportacionDinamica
 
             $columnasCP = $input->esquema->columnasParaCamposPersonalizados();
 
-            if ($columnasCP !== []
-                && $input->esquema->carteraId !== null
-                && $input->esquema->modo !== ModoImportacion::UPDATE) {
-                $camposNuevosReales = 0;
-                foreach ($columnasCP as $columna) {
-                    if (! $this->cpRepo->existeCampo(
-                        $input->esquema->proyectoId,
-                        $input->esquema->carteraId,
-                        $columna->codigoSugerido(),
-                    )) {
-                        $camposNuevosReales++;
-                    }
-                }
-
-                if ($camposNuevosReales > 0 && ! $input->tienePermisoCampos) {
-                    throw new ImportacionSinPermisoCamposException(
-                        'crear campos personalizados durante la importación',
-                        $input->esquema->proyectoId,
-                    );
-                }
-            }
+            // La misma pregunta que hace el asistente antes de persistir las
+            // filas; aquí se repite porque el UseCase es la autoridad.
+            $this->camposNuevos->exigirPermisoParaCrear($input->esquema, $input->tienePermisoCampos);
 
             $camposCreados = 0;
             $camposReutilizados = 0;
