@@ -40,9 +40,28 @@ final readonly class InferirEsquemaDesdeHeaders
         'numerodecuenta', 'cuentacliente', 'contrato', 'obligacion', 'obligación',
     ];
 
+    /**
+     * Nombre con el que los lectores bautizan una celda de cabecera VACÍA
+     * (`LectorXlsx`/`LectorCsv::desambiguarDuplicados`): «columna», y
+     * «columna_2», «columna_3»… si hay varias.
+     */
+    private const CABECERA_VACIA = '/^columna(_\d+)?$/';
+
     public function __construct(
         private InferidorTiposColumnas $inferidor,
     ) {}
+
+    /**
+     * Una columna sin cabecera no se propone como campo personalizado. Nadie
+     * quiere un campo llamado «columna_2» en la ficha, y proponerlo bloqueaba
+     * la carga a quien no puede crear campos: el archivo de la semana traía
+     * dos celdas de cabecera en blanco y el asistente exigía crearlas. Quien
+     * sepa qué es puede seguir eligiéndola a mano en el paso 2.
+     */
+    private function esCabeceraVacia(string $header): bool
+    {
+        return preg_match(self::CABECERA_VACIA, $header) === 1;
+    }
 
     public function execute(InferirEsquemaInput $input): InferirEsquemaOutput
     {
@@ -75,6 +94,8 @@ final readonly class InferirEsquemaDesdeHeaders
             if ($campoMapeado !== null) {
                 $accion = AccionColumna::MAPEAR_SISTEMA;
                 $camposTomados[$campoMapeado] = $header;
+            } elseif ($this->esCabeceraVacia($header)) {
+                $accion = AccionColumna::IGNORAR;
             } else {
                 $accion = $rolContacto === RolContacto::NINGUNO
                     ? AccionColumna::CREAR_CP
