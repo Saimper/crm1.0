@@ -63,8 +63,11 @@ final class RolPermisoSeeder extends Seeder
             // Reportes
             'reportes.operativos', 'reportes.analiticos',
             'reportes.constructor.gestionar', 'reportes.constructor.ejecutar', 'reportes.constructor.exportar',
-            // Importaciones
-            'importaciones.ver', 'importaciones.crear', 'importaciones.procesar',
+            // Importaciones. `crear_campos`: el administrador del mandante es el
+            // dueño de la carga semanal y el archivo cambia de columnas cada semana;
+            // sin esto dependía de un ADMIN_GLOBAL para cada carga. SUPERVISOR no lo
+            // lleva de serie: se le da con un rol custom (F33) si el cliente lo pide.
+            'importaciones.ver', 'importaciones.crear', 'importaciones.procesar', 'importaciones.crear_campos',
             // Auditoría
             'auditoria.ver', 'auditoria.exportar',
             // Notificaciones

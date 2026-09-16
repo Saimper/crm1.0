@@ -412,11 +412,11 @@ final class Importar extends Component
             formatoEntrada: $this->formatoEntrada,
         );
 
-        // `campos.definir` protege CREAR campos, no usar los que ya existen:
-        // sin él se puede cargar un archivo cuyas columnas ya son campos de la
-        // cartera. Se pregunta antes de persistir las filas para que un «no»
-        // no deje una importación huérfana con miles de filas pendientes.
-        $tienePermisoCampos = auth()->user()?->tienePermiso('campos.definir') === true;
+        // Crear campos protege CREARLOS, no usar los que ya existen: sin
+        // permiso se puede cargar un archivo cuyas columnas ya son campos de
+        // la cartera. Se pregunta antes de persistir las filas para que un
+        // «no» no deje una importación huérfana con miles de filas pendientes.
+        $tienePermisoCampos = $this->puedeCrearCamposDesdeImportacion();
 
         try {
             $esquema->validar();
@@ -640,6 +640,28 @@ final class Importar extends Component
                 ? app(ConsultaCoincidenciasImportacion::class)->execute($proyectoId, $this->importacionId) : null,
             'vistaRegional' => $this->paso === 3 ? app(FormatoDeImportacion::class)->vistaPrevia($preview, $importacionActual?->esquema, $this->formatoEntrada) : [],
         ]);
+    }
+
+    /**
+     * Quién puede crear campos personalizados desde el archivo.
+     *
+     * `campos.definir` (ADMIN_GLOBAL) diseña la ficha; `importaciones.crear_campos`
+     * sólo permite que una carga dé de alta las columnas que trae. Son cosas
+     * distintas: la carga semanal cambia de columnas cada semana y quien la hace
+     * no tiene por qué ser quien diseña.
+     */
+    private function puedeCrearCamposDesdeImportacion(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $proyectoId = $this->proyectoId();
+
+        return $user->tienePermiso('importaciones.crear_campos', $proyectoId)
+            || $user->tienePermiso('campos.definir', $proyectoId);
     }
 
     /**

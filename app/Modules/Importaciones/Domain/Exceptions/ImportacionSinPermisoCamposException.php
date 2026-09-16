@@ -20,7 +20,7 @@ class ImportacionSinPermisoCamposException extends \DomainException implements M
         parent::__construct(sprintf(
             'No tienes permiso para crear campos personalizados en el proyecto %d. '
             .'Esta carga crearía %d campo(s) nuevo(s) en la cartera: %s. '
-            .'Pide a un administrador global que los cree, o marca esas columnas como «Ignorar».',
+            .'Hace falta el permiso «importaciones.crear_campos»; pide que te lo den o que creen los campos, o marca esas columnas como «Ignorar».',
             $proyectoId,
             count($codigosNuevos),
             implode(', ', $codigosNuevos),

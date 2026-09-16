@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Modules\Importaciones;
 
+use App\Models\User;
 use App\Modules\Importaciones\Domain\Enums\TargetImportacion;
 use App\Modules\Importaciones\Infrastructure\Http\Livewire\Importar;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use stdClass;
-use Tests\Support\EscenarioOperativo;
+use Tests\Support\EscenarioMultiMandante;
 use Tests\TestCase;
 
 /**
@@ -27,7 +29,7 @@ use Tests\TestCase;
  */
 final class ImportarCamposExistentesTest extends TestCase
 {
-    use EscenarioOperativo;
+    use EscenarioMultiMandante;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -97,6 +99,48 @@ final class ImportarCamposExistentesTest extends TestCase
         ]);
     }
 
+    /**
+     * `importaciones.crear_campos` (2026-09-16): el administrador del mandante
+     * es el dueño de la carga semanal y el archivo cambia de columnas cada
+     * semana. Crea los campos que trae el archivo sin ser quien diseña la
+     * ficha: `campos.definir` sigue siendo de ADMIN_GLOBAL.
+     */
+    public function test_admin_de_mandante_crea_los_campos_que_falten_sin_campos_definir(): void
+    {
+        $mandante = $this->crearMandante();
+        $proyecto = $this->crearProyectoCobranza($mandante);
+        $cartera = $this->crearCarteraEn($proyecto, 'CART_CE');
+        $this->crearEstadoCasoEn($proyecto, 'ABIERTO');
+        $this->activarProyecto($proyecto);
+
+        $admin = $this->crearAdminDeMandante($mandante);
+        self::assertTrue($admin->tienePermiso('importaciones.crear_campos', (int) $proyecto->id));
+        self::assertFalse($admin->tienePermiso('campos.definir', (int) $proyecto->id));
+
+        $this->actingAs($admin);
+        $componente = $this->wizardHastaConfirmar($cartera, $this->csvConColumnas('Sem 39,2026-09-21', 'x,y'))
+            ->assertHasNoErrors()
+            ->assertSet('paso', 3);
+
+        self::assertGreaterThanOrEqual(2, (int) $componente->get('resultadoDryRun')['camposCreados']);
+        $this->assertDatabaseHas('campos_personalizados', ['ambito_id' => $cartera->id, 'codigo' => 'sem_39']);
+        $this->assertDatabaseHas('campos_personalizados', ['ambito_id' => $cartera->id, 'codigo' => '2026_09_21']);
+    }
+
+    public function test_supervisor_con_rol_custom_que_lleva_el_permiso_tambien_crea_los_campos(): void
+    {
+        [$proyecto, $cartera] = $this->escenario();
+        $supervisor = $this->crearSupervisor($proyecto);
+        $this->darRolCustomConPermiso($supervisor, (int) $proyecto->id, 'importaciones.crear_campos');
+
+        $this->actingAs($supervisor);
+        $this->wizardHastaConfirmar($cartera, $this->csvConColumnas('Observacion', 'x'))
+            ->assertHasNoErrors()
+            ->assertSet('paso', 3);
+
+        $this->assertDatabaseHas('campos_personalizados', ['ambito_id' => $cartera->id, 'codigo' => 'observacion']);
+    }
+
     public function test_admin_global_sigue_creando_los_campos_que_falten(): void
     {
         [, $cartera] = $this->escenario();
@@ -121,6 +165,28 @@ final class ImportarCamposExistentesTest extends TestCase
         $this->activarProyecto($proyecto);
 
         return [$proyecto, $cartera];
+    }
+
+    private function darRolCustomConPermiso(User $user, int $proyectoId, string $permiso): void
+    {
+        $rol = DB::table('roles_custom')->insertGetId([
+            'public_id' => (string) Str::ulid(),
+            'proyecto_id' => $proyectoId,
+            'codigo' => 'CARGADOR',
+            'nombre' => 'Cargador',
+            'activo' => true,
+            'creado_por_usuario_id' => $user->id,
+        ]);
+        DB::table('rol_custom_permiso')->insert([
+            'rol_custom_id' => $rol,
+            'permiso_id' => DB::table('permisos')->where('codigo', $permiso)->value('id'),
+        ]);
+        DB::table('usuario_proyecto_rol_custom')->insert([
+            'usuario_id' => $user->id,
+            'proyecto_id' => $proyectoId,
+            'rol_custom_id' => $rol,
+            'activo' => true,
+        ]);
     }
 
     private function wizardHastaConfirmar(stdClass $cartera, string $csv): Testable
