@@ -118,6 +118,10 @@ final class PermisosSeeder extends Seeder
             ['codigo' => 'importaciones.crear',     'nombre' => 'Cargar importaciones',                    'grupo' => 'importaciones', 'activo' => true],
             ['codigo' => 'importaciones.procesar',  'nombre' => 'Procesar importaciones',                  'grupo' => 'importaciones', 'activo' => true],
             ['codigo' => 'importaciones.eliminar',  'nombre' => 'Eliminar importaciones',                  'grupo' => 'importaciones', 'activo' => true],
+            // 2026-09-16: la carga semanal trae columnas nuevas cada semana (fechas,
+            // número de semana). Crear el campo desde el archivo es parte de cargar,
+            // no de diseñar la ficha: este permiso lo separa de `campos.definir`.
+            ['codigo' => 'importaciones.crear_campos', 'nombre' => 'Crear campos personalizados desde una importación', 'grupo' => 'importaciones', 'activo' => true],
 
             // Auditoría
             ['codigo' => 'auditoria.ver',           'nombre' => 'Consultar auditoría',                     'grupo' => 'auditoria',     'activo' => true],

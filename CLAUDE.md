@@ -241,7 +241,7 @@ Pantalla única del gestor: identidad de persona + selector de casos (pestañas)
 - Desactivar solo con `sinScopeProyecto()` en reportes consolidados de ADMIN_GLOBAL y en las tareas de plataforma (los comandos, los jobs, el planificador), que recorren todos los proyectos por diseño.
 - **El scope cierra las LECTURAS; las escrituras las cierra otro guardia**, y confundirlos era el agujero. El global scope sólo toca los SELECT: `$modelo->save()` y `$modelo->delete()` sobre una instancia no pasan por él, así que con el proyecto de A activo se podía insertar una fila dentro del de B sin más que decir su id. Lo corta `PerteneceAProyecto` en los hooks del modelo, y revienta (`EscrituraFueraDelProyectoActivo`) en vez de corregir el `proyecto_id` en silencio: mover la fila a donde nadie la pidió sería peor que no escribirla. Sin contexto NO se prohíbe escribir — la plataforma escribe cross-proyecto por diseño.
 - Roles base por proyecto: `SUPERVISOR`, `GESTOR`, `AUDITOR`. Inmutables desde UI.
-- Rol base mandante-scoped: `ADMIN_MANDANTE` (F38). Vive en `usuario_mandante_rol`, autoriza cross-proyecto del mandante. Permisos vetados igual que SUPERVISOR (no define campos ni entidades ni gestiona roles custom).
+- Rol base mandante-scoped: `ADMIN_MANDANTE` (F38). Vive en `usuario_mandante_rol`, autoriza cross-proyecto del mandante. Permisos vetados igual que SUPERVISOR (no define campos ni entidades ni gestiona roles custom). Desde 2026-09-16 lleva `importaciones.crear_campos`: una carga puede dar de alta las columnas que trae, que no es diseñar la ficha (`campos.definir` sigue siendo de ADMIN_GLOBAL).
 - Middleware admin (F39): `admin.global` exclusivo ADMIN_GLOBAL (mandantes, campos-personalizados, entidades-configurables, integracion.secrets). `admin.dual` acepta ADMIN_GLOBAL o ADMIN_MANDANTE (dashboard, proyectos, usuarios, auditoria); cada Livewire aplica scoping por mandante cuando user es mandante (no global).
 - **Roles custom (F33)**: ADMIN_GLOBAL define roles adicionales por proyecto combinando permisos existentes. Se persisten en `roles_custom` + `rol_custom_permiso`. Asignación a usuario en `usuario_proyecto_rol_custom` (tabla simétrica a la base, sin tocar `usuario_proyecto_rol`). Permisos `*.definir` y `roles.gestionar` están vetados (`RolCustom::PERMISOS_VETADOS`).
 - Permisos granulares CRUD: `gestiones.crear`, `campos.editar`, `entidades.definir`, etc. (80 activos). Uno que no gobierna nada es peor que no tenerlo: aparece en el selector de roles custom y en la matriz, así que un administrador se lo asigna a alguien creyendo que le da —o le quita— algo. `PermisosSinConsumidorTest` vigila la lista de los que hoy no comprueba nadie (`tests/permisos-huerfanos.baseline`): puede menguar, nunca crecer.
@@ -815,6 +815,27 @@ estar mintiendo en las dos direcciones.
 
 - **Restricción §13.16 vigente**: este archivo se modificó al cerrar las olas 04
   y 05 y la Fase 3, con acuerdo explícito.
+
+### Campos desde la importación (2026-09-16)
+
+**Cargar no es diseñar.** `campos.definir` protege la ficha: tipos, reglas,
+grupos, qué se ve en la gestión. Dar de alta la columna que trae el archivo de
+esta semana es parte de cargar, y la carga semanal de cobranza cambia de
+columnas CADA semana (fechas del día, número de semana). Exigir `campos.definir`
+para eso dejaba la carga en manos de un ADMIN_GLOBAL cada lunes; el día que se
+vio, el administrador del cliente hizo ADMIN_GLOBAL a la supervisora para
+saltárselo, con lo que el SSO la rechazó. El permiso propio es
+`importaciones.crear_campos`: ADMIN_MANDANTE lo lleva de serie, SUPERVISOR no
+(se le da con un rol custom), y sólo se comprueba cuando la carga CREARÍA un
+campo; usar los que ya existen no pide nada (`CamposNuevosDeImportacion`, la
+única fuente de esa pregunta para el asistente y el UseCase).
+
+**Una cabecera vacía no es un campo.** Los lectores la bautizan «columna»,
+«columna_2»…; la inferencia las deja en «Ignorar». Proponerlas como campo
+bloqueaba la carga por dos celdas que nadie quería en la ficha.
+
+- **Restricción §13.16 vigente**: este archivo se modificó el 2026-09-16 con
+  acuerdo explícito, para §10 (el permiso nuevo de ADMIN_MANDANTE) y esta sección.
 
 ### Decisiones arquitectónicas vigentes
 
